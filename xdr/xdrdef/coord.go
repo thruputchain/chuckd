@@ -33,17 +33,11 @@ type IntroExecutorResult struct {
 type ListDbResult struct {
 	// cc holds the identity of the coordinator that responded
 	Cc CoordinatorCard
-	// readiness indicates whether the db cluster is ready to use
-	Readiness DbReadiness
+	// is_ready indicates whether the db cluster is ready to use
+	Is_ready bool
 	// shards describes all currently available db shards
 	Shards []DbCard
 }
-
-type DbReadiness int32
-const (
-	NOT_READY DbReadiness = 0
-	READY DbReadiness = 1
-)
 
 // CoordinatorCard uniquely describes a coordinator instance.
 type CoordinatorCard struct {
@@ -54,6 +48,7 @@ type CoordinatorCard struct {
 type DbCard struct {
 	Upid UPID
 	Block_height uint32
+	Shard_count uint32
 	Address ServerAddress
 }
 
@@ -407,52 +402,10 @@ func (v *ListDbResult) XdrRecurse(x XDR, name string) {
 		name = x.Sprintf("%s.", name)
 	}
 	x.Marshal(x.Sprintf("%scc", name), XDR_CoordinatorCard(&v.Cc))
-	x.Marshal(x.Sprintf("%sreadiness", name), XDR_DbReadiness(&v.Readiness))
+	x.Marshal(x.Sprintf("%sis_ready", name), XDR_bool(&v.Is_ready))
 	x.Marshal(x.Sprintf("%sshards", name), (*_XdrVec_unbounded_DbCard)(&v.Shards))
 }
 func XDR_ListDbResult(v *ListDbResult) *ListDbResult { return v }
-var _XdrNames_DbReadiness = map[int32]string{
-	int32(NOT_READY): "NOT_READY",
-	int32(READY): "READY",
-}
-var _XdrValues_DbReadiness = map[string]int32{
-	"NOT_READY": int32(NOT_READY),
-	"READY": int32(READY),
-}
-func (DbReadiness) XdrEnumNames() map[int32]string {
-	return _XdrNames_DbReadiness
-}
-func (v DbReadiness) String() string {
-	if s, ok := _XdrNames_DbReadiness[int32(v)]; ok {
-		return s
-	}
-	return fmt.Sprintf("DbReadiness#%d", v)
-}
-func (v *DbReadiness) Scan(ss fmt.ScanState, _ rune) error {
-	if tok, err := ss.Token(true, XdrSymChar); err != nil {
-		return err
-	} else {
-		stok := string(tok)
-		if val, ok := _XdrValues_DbReadiness[stok]; ok {
-			*v = DbReadiness(val)
-			return nil
-		} else if stok == "DbReadiness" {
-			if n, err := fmt.Fscanf(ss, "#%d", (*int32)(v));
-				n == 1 && err == nil {
-				return nil
-			}
-		}
-		return XdrError(fmt.Sprintf("%s is not a valid DbReadiness.", stok))
-	}
-}
-func (v DbReadiness) GetU32() uint32 { return uint32(v) }
-func (v *DbReadiness) SetU32(n uint32) { *v = DbReadiness(n) }
-func (v *DbReadiness) XdrPointer() interface{} { return v }
-func (DbReadiness) XdrTypeName() string { return "DbReadiness" }
-func (v DbReadiness) XdrValue() interface{} { return v }
-func (v *DbReadiness) XdrMarshal(x XDR, name string) { x.Marshal(name, v) }
-type XdrType_DbReadiness = *DbReadiness
-func XDR_DbReadiness(v *DbReadiness) *DbReadiness { return v }
 type XdrType_CoordinatorCard = *CoordinatorCard
 func (v *CoordinatorCard) XdrPointer() interface{} { return v }
 func (CoordinatorCard) XdrTypeName() string { return "CoordinatorCard" }
@@ -476,6 +429,7 @@ func (v *DbCard) XdrRecurse(x XDR, name string) {
 	}
 	x.Marshal(x.Sprintf("%supid", name), XDR_UPID(&v.Upid))
 	x.Marshal(x.Sprintf("%sblock_height", name), XDR_uint32(&v.Block_height))
+	x.Marshal(x.Sprintf("%sshard_count", name), XDR_uint32(&v.Shard_count))
 	x.Marshal(x.Sprintf("%saddress", name), XDR_ServerAddress(&v.Address))
 }
 func XDR_DbCard(v *DbCard) *DbCard { return v }

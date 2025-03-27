@@ -11,8 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/xdr/xdrutil"
 )
 
-// XXX: how do we cleanup stale cards?
-// XXX: determine db cluster is ready?
+// XXX: how do we cleanup stale cards? blocked on xdr defs
 
 type Coordinator struct {
 	upid xdrdef.UPID
@@ -62,8 +61,38 @@ func (s *Coordinator) List_db() xdrdef.ListDbResult {
 	}
 	dbs.Sort()
 	return xdrdef.ListDbResult{
-		Cc:        s.Card(),
-		Readiness: xdrdef.READY, //XXX: when are we ready?
-		Shards:    dbs,
+		Cc:       s.Card(),
+		Is_ready: s.isDbReady(),
+		Shards:   dbs,
 	}
+}
+
+// isDbReady returns true if the db cluster is ready to use.
+// The cluster is deemed ready if:
+// - one or more shards have introduced themselves
+// - all introduced shards report the same total shard count and block height
+// - the total shard count matches the number of shards we know
+func (s *Coordinator) isDbReady() bool {
+	if len(s.db) == 0 {
+		return false
+	}
+	shardCount, blockHeight := int64(-1), int64(-1)
+	for _, dbc := range s.db {
+		if shardCount < 0 {
+			shardCount = int64(dbc.Shard_count)
+		}
+		if shardCount != int64(dbc.Shard_count) {
+			return false
+		}
+		if blockHeight < 0 {
+			blockHeight = int64(dbc.Block_height)
+		}
+		if blockHeight != int64(dbc.Block_height) {
+			return false
+		}
+	}
+	if shardCount != int64(len(s.db)) {
+		return false
+	}
+	return true
 }

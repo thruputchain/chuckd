@@ -33,14 +33,12 @@ struct ListDbResult {
   // cc holds the identity of the coordinator that responded
   CoordinatorCard cc;
 
-  // readiness indicates whether the db cluster is ready to use
-  DbReadiness readiness;
+  // is_ready indicates whether the db cluster is ready to use
+  bool is_ready;
 
   // shards describes all currently available db shards
   DbCard shards<>;
 };
-
-enum DbReadiness { NOT_READY = 0, READY = 1 };
 
 // CoordinatorCard uniquely describes a coordinator instance.
 struct CoordinatorCard {
@@ -54,6 +52,8 @@ struct DbCard {
   UPID upid;
 
   unsigned int block_height;
+
+  unsigned int shard_count;
 
   ServerAddress address;
 
