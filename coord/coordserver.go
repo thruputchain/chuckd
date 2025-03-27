@@ -114,7 +114,8 @@ func DoServer(ctx context.Context, addr string) {
 		driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 		driver.Lock = nil // process all calls in parallel
 		driver.Log = log.Writer()
+		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 		driver.Register(xdrdef.Coordinator1_Server{Srv: s})
-		go driver.Go() // XXX: driver.Go handles panics, but doesn't display the attached error/trace info
+		go driver.Go()
 	}
 }

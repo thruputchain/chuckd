@@ -21,7 +21,7 @@ func NewResult(r any, err *must.Error) Result {
 	var result Result
 	if err != nil {
 		result.Msg = err.Error()
-		result.Error = err.Wrapped()
+		result.Error = err.Unwrap()
 	}
 	result.Returned = r
 	return result
@@ -76,7 +76,7 @@ func Invoke(f func()) Result {
 	xerr = must.TryThru(f)
 	r := NewResult(nil, xerr)
 	if xerr != nil && log.IsVerbose() {
-		fmt.Fprint(os.Stderr, string(xerr.Stack))
+		fmt.Fprint(os.Stderr, xerr.StackString())
 	}
 	fmt.Fprint(os.Stdout, form.SprintJSON(r))
 
@@ -126,7 +126,7 @@ func Invoke1[R1 any](f func() R1) Result {
 	r1, xerr = must.Try1Thru[R1](f)
 	r := NewResult(r1, xerr)
 	if xerr != nil && log.IsVerbose() {
-		fmt.Fprint(os.Stderr, string(xerr.Stack))
+		fmt.Fprint(os.Stderr, xerr.StackString())
 	}
 	fmt.Fprint(os.Stdout, form.SprintJSON(r))
 
