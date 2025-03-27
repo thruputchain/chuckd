@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
@@ -44,6 +45,10 @@ func LogVerbosely() {
 		},
 	)
 	verbose = true
+}
+
+func Writer() io.Writer {
+	return log.Logger
 }
 
 func Debugf(template string, args ...interface{}) {

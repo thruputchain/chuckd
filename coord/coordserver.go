@@ -3,12 +3,15 @@ package coord
 
 import (
 	"context"
+	"log"
+	"net"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/xdr/xdrdef"
 	"github.com/groundhogchain/chuckd/xdr/xdrutil"
+	"github.com/xdrpp/goxdr/rpc"
 )
 
 // XXX: how do we cleanup stale cards? blocked on xdr defs
@@ -95,4 +98,23 @@ func (s *Coordinator) isDbReady() bool {
 		return false
 	}
 	return true
+}
+
+// DoServer runs the coordinator server and blocks forever.
+func DoServer(ctx context.Context, addr string) {
+	s := NewCoordinator(ctx)
+
+	l, err := net.Listen("tcp", addr)
+	must.NoError(ctx, err)
+	defer l.Close()
+
+	for {
+		sock, err := l.Accept()
+		must.NoError(ctx, err)
+		driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
+		driver.Lock = nil // process all calls in parallel
+		driver.Log = log.Writer()
+		driver.Register(xdrdef.Coordinator1_Server{Srv: s})
+		go driver.Go() // XXX: driver.Go handles panics, but doesn't display the attached error/trace info
+	}
 }

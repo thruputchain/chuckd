@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/groundhogchain/chuckd/coord"
 	"github.com/spf13/cobra"
 )
 
@@ -18,10 +19,17 @@ var (
 		Short: "start coordinator server",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
+			go coord.DoServer(ctx, coordAddress)
+			<-(chan int)(nil) // hang
 		},
 	}
 )
 
+var (
+	coordAddress string
+)
+
 func init() {
 	serverCmd.AddCommand(serverStartCmd)
+	serverStartCmd.Flags().StringVar(&coordAddress, "caddr", "localhost:7888", "coordinator api address")
 }
