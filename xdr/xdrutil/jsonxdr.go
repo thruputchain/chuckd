@@ -1,4 +1,4 @@
-package xdr
+package xdrutil
 
 import (
 	"bytes"
