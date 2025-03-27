@@ -16,7 +16,7 @@ import (
 
 // XXX: how do we cleanup stale cards? blocked on xdr defs
 
-type Coordinator struct {
+type CoordinatorService struct {
 	upid xdrdef.UPID
 	lk   sync.Mutex
 	db   map[xdrdef.UPID]xdrdef.DbCard
@@ -25,84 +25,101 @@ type Coordinator struct {
 
 const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
 
-func NewCoordinator(ctx context.Context) *Coordinator {
+func NewCoordinatorService(ctx context.Context) *CoordinatorService {
 	upid, err := GenerateUPID(runtime.NewRand(UPID_SEED_OFFSET).Uint64())
 	must.NoError(ctx, err)
-	return &Coordinator{
+	return &CoordinatorService{
 		upid: upid,
 		db:   map[xdrdef.UPID]xdrdef.DbCard{},
 		exec: map[xdrdef.UPID]xdrdef.ExecutorCard{},
 	}
 }
 
-func (s *Coordinator) Card() xdrdef.CoordinatorCard {
+func (s *CoordinatorService) Card() xdrdef.CoordinatorCard {
 	return xdrdef.CoordinatorCard{Upid: s.upid}
 }
 
-func (s *Coordinator) Null() {}
+func (s *CoordinatorService) Null() {}
 
-func (s *Coordinator) Intro_db(card xdrdef.DbCard) xdrdef.IntroDbResult {
+func (s *CoordinatorService) Intro_db(card xdrdef.DbCard) xdrdef.IntroDbResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	s.db[card.Upid] = card
 	return xdrdef.IntroDbResult{Cc: s.Card()}
 }
 
-func (s *Coordinator) Intro_executor(card xdrdef.ExecutorCard) xdrdef.IntroExecutorResult {
+func (s *CoordinatorService) Intro_executor(card xdrdef.ExecutorCard) xdrdef.IntroExecutorResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	s.exec[card.Upid] = card
 	return xdrdef.IntroExecutorResult{Cc: s.Card()}
 }
 
-func (s *Coordinator) List_db() xdrdef.ListDbResult {
+func (s *CoordinatorService) List_db() xdrdef.ListDbResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
-	dbs := xdrutil.DbCards{}
-	for _, db := range s.db {
-		dbs = append(dbs, db)
-	}
-	dbs.Sort()
+	shards := s.findReadyDb()
 	return xdrdef.ListDbResult{
 		Cc:       s.Card(),
-		Is_ready: s.isDbReady(),
-		Shards:   dbs,
+		Is_ready: len(shards) > 0,
+		Shards:   shards,
 	}
 }
 
-// isDbReady returns true if the db cluster is ready to use.
-// The cluster is deemed ready if:
-// - one or more shards have introduced themselves
-// - all introduced shards report the same total shard count and block height
-// - the total shard count matches the number of shards we know
-func (s *Coordinator) isDbReady() bool {
-	if len(s.db) == 0 {
+// findReadyDb returns a list of db shards of highest block height that form a ready cluster.
+// It returns nil if there is no ready db cluster.
+// A set of shards is deemed ready if:
+// - it is not empty
+// - all shards report the same block height and total shard count
+// - the shard count matches the reported count
+func (s *CoordinatorService) findReadyDb() xdrutil.DbCards {
+	byHeight := map[uint32]xdrutil.DbCards{} // block_height -> shards
+	for _, dbc := range s.db {
+		byHeight[dbc.Block_height] = append(byHeight[dbc.Block_height], dbc)
+	}
+	var foundReady bool
+	var foundHeight uint32
+	var foundShards xdrutil.DbCards
+	for height, shards := range byHeight {
+		shards.Sort()
+		if isDbReadyFixedHeight(shards) {
+			if !foundReady || foundHeight < height {
+				foundReady = true
+				foundHeight = height
+				foundShards = shards
+			}
+		}
+	}
+	return foundShards
+}
+
+func isDbReadyFixedHeight(shards xdrutil.DbCards) bool {
+	if len(shards) == 0 {
 		return false
 	}
-	shardCount, blockHeight := int64(-1), int64(-1)
-	for _, dbc := range s.db {
+	shardCount := int64(-1)
+	for _, dbc := range shards {
 		if shardCount < 0 {
 			shardCount = int64(dbc.Shard_count)
 		}
 		if shardCount != int64(dbc.Shard_count) {
 			return false
 		}
-		if blockHeight < 0 {
-			blockHeight = int64(dbc.Block_height)
-		}
-		if blockHeight != int64(dbc.Block_height) {
-			return false
-		}
 	}
-	if shardCount != int64(len(s.db)) {
+	if shardCount != int64(len(shards)) {
 		return false
 	}
 	return true
 }
 
+func StartServer(ctx context.Context, addr string) {
+	go DoServer(ctx, addr)
+}
+
 // DoServer runs the coordinator server and blocks forever.
+// TODO: make an abortable server for test purposes
 func DoServer(ctx context.Context, addr string) {
-	s := NewCoordinator(ctx)
+	s := NewCoordinatorService(ctx)
 
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)

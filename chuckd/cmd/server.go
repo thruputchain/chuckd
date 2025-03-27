@@ -19,7 +19,7 @@ var (
 		Short: "start coordinator server",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			go coord.DoServer(ctx, coordAddress)
+			coord.StartServer(ctx, coordAddress)
 			<-(chan int)(nil) // hang
 		},
 	}
