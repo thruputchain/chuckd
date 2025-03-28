@@ -3,41 +3,9 @@ package must
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
+
+	"github.com/groundhogchain/chuckd/lib/log"
 )
-
-type Error struct {
-	Ctx     context.Context
-	Stack   []byte
-	wrapped error
-}
-
-func (x *Error) Error() string {
-	return x.Wrapped().Error()
-}
-
-func (x *Error) Wrapped() error { //XXX: rename as Unwrap
-	if x == nil {
-		return nil
-	}
-	return x.wrapped
-}
-
-type ErrorString struct {
-	Msg string `json:"msg"`
-}
-
-func (x ErrorString) Error() string {
-	return x.Msg
-}
-
-func mkErr(ctx context.Context, wrapped error) *Error {
-	return &Error{
-		Ctx:     ctx,
-		Stack:   debug.Stack(),
-		wrapped: wrapped,
-	}
-}
 
 func Panic(ctx context.Context, err error) {
 	panic(mkErr(ctx, err))
@@ -70,7 +38,7 @@ func NoError(ctx context.Context, err error) {
 func Try(f func()) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(*Error).Wrapped()
+			err = r.(*Error).Unwrap()
 		}
 	}()
 	f()
@@ -90,7 +58,7 @@ func TryThru(f func()) (err *Error) {
 func TryWithStack(f func()) (err error, stack []byte) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(*Error).Wrapped()
+			err = r.(*Error).Unwrap()
 			stack = r.(*Error).Stack
 		}
 	}()
@@ -101,7 +69,7 @@ func TryWithStack(f func()) (err error, stack []byte) {
 func Try1[R1 any](f func() R1) (_ R1, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(*Error).Wrapped()
+			err = r.(*Error).Unwrap()
 		}
 	}()
 	return f(), nil
@@ -114,4 +82,20 @@ func Try1Thru[R1 any](f func() R1) (_ R1, err *Error) {
 		}
 	}()
 	return f(), nil
+}
+
+func LogPanic(r any) {
+	if xerr, ok := r.(*Error); ok {
+		if xerr != nil {
+			if log.IsVerbose() {
+				log.Error().Str("stack", xerr.StackString()).Msg(xerr.Error())
+			} else {
+				log.Error().Msg(xerr.Error())
+			}
+		} else {
+			log.Errorf("encountered panic without error payload")
+		}
+	} else {
+		log.Error().Msg(xerr.Error())
+	}
 }

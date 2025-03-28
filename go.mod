@@ -20,6 +20,11 @@ require (
 )
 
 require (
+	github.com/groundhogchain/protocol-go v0.0.0-20250328054903-22b3c9fa686e
+	github.com/xdrpp/goxdr v0.1.2
+)
+
+require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect

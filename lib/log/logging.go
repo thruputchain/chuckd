@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
@@ -46,6 +47,10 @@ func LogVerbosely() {
 	verbose = true
 }
 
+func Writer() io.Writer {
+	return log.Logger
+}
+
 func Debugf(template string, args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	src := fmt.Sprintf("%s:%d ", file, line)
@@ -79,4 +84,24 @@ func Warnf(template string, args ...interface{}) {
 	src := fmt.Sprintf("%s:%d ", file, line)
 	msg := fmt.Sprintf(template, args...)
 	log.Warn().Msg(src + msg)
+}
+
+func Info() *zerolog.Event {
+	return log.Info()
+}
+
+func Debug() *zerolog.Event {
+	return log.Debug()
+}
+
+func Fatal() *zerolog.Event {
+	return log.Fatal()
+}
+
+func Error() *zerolog.Event {
+	return log.Error()
+}
+
+func Warn() *zerolog.Event {
+	return log.Warn()
 }

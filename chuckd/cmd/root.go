@@ -11,7 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
-	_ "github.com/groundhogchain/chuckd/runtime"
+	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -34,6 +34,7 @@ var (
 	verbose        bool
 	cpuProfilePath string
 	memProfilePath string
+	seed           int64
 )
 
 func init() {
@@ -41,7 +42,9 @@ func init() {
 
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file (default is $HOME/"+api.LocalAgentPath+"/config.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "",
+		"config file (default is $HOME/"+api.LocalAgentPath+"/"+api.LocalAgentConfigFilebase+")")
+	rootCmd.PersistentFlags().Int64VarP(&seed, "seed", "s", 0x0102030405060708, "randomness seed")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "run in developer mode with verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&cpuProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&memProfilePath, "mem", "m", "", "memory profile path")
@@ -59,6 +62,7 @@ func initAfterFlags() {
 	log.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	api.SetCPUProfilePath(cpuProfilePath)
 	api.SetMemProfilePath(memProfilePath)
+	chuckdruntime.SetSeed(seed)
 }
 
 func LoadConfig(ctx context.Context) {
