@@ -3,10 +3,10 @@ package xdrutil
 import (
 	"sort"
 
-	"github.com/groundhogchain/chuckd/xdr/xdrdef"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
-type DbCards []xdrdef.DbCard
+type DbCards []proto.DbCard
 
 func (x DbCards) Len() int {
 	return len(x)

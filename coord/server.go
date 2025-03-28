@@ -9,18 +9,18 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/xdr/xdrdef"
 	"github.com/groundhogchain/chuckd/xdr/xdrutil"
+	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
 
 // XXX: how do we cleanup stale cards? blocked on xdr defs
 
 type CoordinatorService struct {
-	upid xdrdef.UPID
+	upid proto.UPID
 	lk   sync.Mutex
-	db   map[xdrdef.UPID]xdrdef.DbCard
-	exec map[xdrdef.UPID]xdrdef.ExecutorCard
+	db   map[proto.UPID]proto.DbCard
+	exec map[proto.UPID]proto.ExecutorCard
 }
 
 const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
@@ -30,36 +30,36 @@ func NewCoordinatorService(ctx context.Context) *CoordinatorService {
 	must.NoError(ctx, err)
 	return &CoordinatorService{
 		upid: upid,
-		db:   map[xdrdef.UPID]xdrdef.DbCard{},
-		exec: map[xdrdef.UPID]xdrdef.ExecutorCard{},
+		db:   map[proto.UPID]proto.DbCard{},
+		exec: map[proto.UPID]proto.ExecutorCard{},
 	}
 }
 
-func (s *CoordinatorService) Card() xdrdef.CoordinatorCard {
-	return xdrdef.CoordinatorCard{Upid: s.upid}
+func (s *CoordinatorService) Card() proto.CoordinatorCard {
+	return proto.CoordinatorCard{Upid: s.upid}
 }
 
 func (s *CoordinatorService) Null() {}
 
-func (s *CoordinatorService) Intro_db(card xdrdef.DbCard) xdrdef.IntroDbResult {
+func (s *CoordinatorService) Intro_db(card proto.DbCard) proto.IntroDbResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	s.db[card.Upid] = card
-	return xdrdef.IntroDbResult{Cc: s.Card()}
+	return proto.IntroDbResult{Cc: s.Card()}
 }
 
-func (s *CoordinatorService) Intro_executor(card xdrdef.ExecutorCard) xdrdef.IntroExecutorResult {
+func (s *CoordinatorService) Intro_executor(card proto.ExecutorCard) proto.IntroExecutorResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	s.exec[card.Upid] = card
-	return xdrdef.IntroExecutorResult{Cc: s.Card()}
+	return proto.IntroExecutorResult{Cc: s.Card()}
 }
 
-func (s *CoordinatorService) List_db() xdrdef.ListDbResult {
+func (s *CoordinatorService) List_db() proto.ListDbResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	shards := s.findReadyDb()
-	return xdrdef.ListDbResult{
+	return proto.ListDbResult{
 		Cc:       s.Card(),
 		Is_ready: len(shards) > 0,
 		Shards:   shards,
@@ -132,7 +132,7 @@ func DoServer(ctx context.Context, addr string) {
 		driver.Lock = nil // process all calls in parallel
 		driver.Log = log.Writer()
 		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
-		driver.Register(xdrdef.Coordinator1_Server{Srv: s})
+		driver.Register(proto.Coordinator1_Server{Srv: s})
 		go driver.Go()
 	}
 }

@@ -3,10 +3,10 @@ package xdrutil
 import (
 	"encoding/binary"
 
-	"github.com/groundhogchain/chuckd/xdr/xdrdef"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
-func LessUPID(a, b xdrdef.UPID) bool {
+func LessUPID(a, b proto.UPID) bool {
 	for i := 0; i < len(a); i++ {
 		if a[i] < b[i] {
 			return true
@@ -17,8 +17,8 @@ func LessUPID(a, b xdrdef.UPID) bool {
 	return false // a == b
 }
 
-func Uint64UPID(i uint64) xdrdef.UPID {
-	var u xdrdef.UPID
+func Uint64UPID(i uint64) proto.UPID {
+	var u proto.UPID
 	binary.LittleEndian.PutUint64(u[:], i)
 	return u
 }

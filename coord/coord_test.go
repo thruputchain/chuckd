@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/xdr/xdrdef"
 	"github.com/groundhogchain/chuckd/xdr/xdrutil"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 func TestNullRoundtrip(t *testing.T) {
@@ -22,7 +22,7 @@ func TestDbReadiness(t *testing.T) {
 	ctx := context.Background()
 	s := NewCoordinatorService(ctx)
 
-	s.Intro_db(xdrdef.DbCard{
+	s.Intro_db(proto.DbCard{
 		Upid:         xdrutil.Uint64UPID(1),
 		Block_height: 1,
 		Shard_count:  2,
@@ -33,7 +33,7 @@ func TestDbReadiness(t *testing.T) {
 		t.Fatalf("db should not be ready")
 	}
 
-	s.Intro_db(xdrdef.DbCard{
+	s.Intro_db(proto.DbCard{
 		Upid:         xdrutil.Uint64UPID(2),
 		Block_height: 2, // different height
 		Shard_count:  2,
@@ -44,7 +44,7 @@ func TestDbReadiness(t *testing.T) {
 		t.Fatalf("db should not be ready")
 	}
 
-	s.Intro_db(xdrdef.DbCard{
+	s.Intro_db(proto.DbCard{
 		Upid:         xdrutil.Uint64UPID(3),
 		Block_height: 1,
 		Shard_count:  2,

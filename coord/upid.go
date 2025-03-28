@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/groundhogchain/chuckd/xdr/xdrdef"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
-func GenerateUPID(seed uint64) (xdrdef.UPID, error) {
-	var result xdrdef.UPID
+func GenerateUPID(seed uint64) (proto.UPID, error) {
+	var result proto.UPID
 
 	// Get process ID
 	pid := int32(os.Getpid())

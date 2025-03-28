@@ -5,12 +5,12 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/xdr/xdrdef"
+	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
 
 type CoordinatorClient struct {
-	xdrdef.Coordinator1_Client
+	proto.Coordinator1_Client
 	driver *rpc.Driver
 }
 
@@ -23,7 +23,7 @@ func NewCoordinatorClient(ctx context.Context, addr string) *CoordinatorClient {
 	go driver.Go()
 
 	return &CoordinatorClient{
-		Coordinator1_Client: xdrdef.Coordinator1_Client{Send: driver, Ctx: ctx},
+		Coordinator1_Client: proto.Coordinator1_Client{Send: driver, Ctx: ctx},
 		driver:              driver,
 	}
 }

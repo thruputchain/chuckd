@@ -19,7 +19,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/xdrpp/goxdr v0.0.0-20250325235340-1a1ed131c453
+require (
+	github.com/groundhogchain/protocol-go v0.0.0-20250328054903-22b3c9fa686e
+	github.com/xdrpp/goxdr v0.1.2
+)
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
