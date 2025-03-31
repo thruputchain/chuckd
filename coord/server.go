@@ -18,9 +18,16 @@ import (
 
 type CoordinatorService struct {
 	upid proto.UPID
+	//
 	lk   sync.Mutex
-	db   map[proto.UPID]proto.DbCard
-	exec map[proto.UPID]proto.ExecutorCard
+	db   map[proto.UPID]proto.ShardCard
+	exec map[proto.UPID]proto.ExecCard
+	//
+	dbCond       *sync.Cond
+	dbLk         sync.Mutex
+	dbShards     xdrutil.ShardCards
+	dbIsUp       bool
+	dbIsRestored bool
 }
 
 const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
@@ -28,11 +35,13 @@ const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
 func NewCoordinatorService(ctx context.Context) *CoordinatorService {
 	upid, err := GenerateUPID(runtime.NewRand(UPID_SEED_OFFSET).Uint64())
 	must.NoError(ctx, err)
-	return &CoordinatorService{
+	cs := &CoordinatorService{
 		upid: upid,
-		db:   map[proto.UPID]proto.DbCard{},
-		exec: map[proto.UPID]proto.ExecutorCard{},
+		db:   map[proto.UPID]proto.ShardCard{},
+		exec: map[proto.UPID]proto.ExecCard{},
 	}
+	cs.dbCond = sync.NewCond(&cs.dbLk)
+	return cs
 }
 
 func (s *CoordinatorService) Card() proto.CoordinatorCard {
@@ -41,48 +50,77 @@ func (s *CoordinatorService) Card() proto.CoordinatorCard {
 
 func (s *CoordinatorService) Coordinator_null() {}
 
-func (s *CoordinatorService) Coordinator_intro_db(card proto.DbCard) proto.IntroDbResult {
+func (s *CoordinatorService) Coordinator_intro_shard(card proto.ShardCard) proto.IntroShardResult {
 	s.lk.Lock()
-	defer s.lk.Unlock()
 	s.db[card.Upid] = card
-	return proto.IntroDbResult{Cc: s.Card()}
+	shards := s.findCompleteDb()
+	s.lk.Unlock()
+
+	s.prepareDb(shards)
+
+	return proto.IntroShardResult{Cc: s.Card()}
 }
 
-func (s *CoordinatorService) Coordinator_intro_executor(card proto.ExecutorCard) proto.IntroExecutorResult {
+func (s *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
+	if len(shards) == 0 {
+		return
+	}
+
+	s.dbLk.Lock()
+	defer s.dbLk.Unlock()
+
+	if s.dbIsUp {
+		return
+	}
+	s.dbIsUp = true
+	s.dbShards = shards
+
+	s.dbIsRestored = true // XXX: impl restoration step
+
+	s.dbCond.Broadcast()
+}
+
+func (s *CoordinatorService) Coordinator_intro_exec(card proto.ExecCard) proto.IntroExecResult {
 	s.lk.Lock()
-	defer s.lk.Unlock()
 	s.exec[card.Upid] = card
-	return proto.IntroExecutorResult{Cc: s.Card()}
-}
-
-func (s *CoordinatorService) Coordinator_list_db() proto.ListDbResult {
-	s.lk.Lock()
-	defer s.lk.Unlock()
-	shards := s.findReadyDb()
-	return proto.ListDbResult{
-		Cc:       s.Card(),
-		Is_ready: len(shards) > 0,
-		Shards:   shards,
+	s.lk.Unlock()
+	shards := s.waitForDbReady()
+	return proto.IntroExecResult{
+		Cc:     s.Card(),
+		Shards: shards,
 	}
 }
 
-// findReadyDb returns a list of db shards of highest block height that form a ready cluster.
-// It returns nil if there is no ready db cluster.
-// A set of shards is deemed ready if:
+func (s *CoordinatorService) waitForDbReady() xdrutil.ShardCards {
+	s.dbLk.Lock()
+	defer s.dbLk.Unlock()
+	for !s.dbIsReady() {
+		s.dbCond.Wait()
+	}
+	return s.dbShards
+}
+
+func (s *CoordinatorService) dbIsReady() bool {
+	return s.dbIsUp && s.dbIsRestored
+}
+
+// findCompleteDb returns a list of db shards of highest block height that form a complete cluster.
+// It returns nil if there is no complete db cluster.
+// A set of shards is deemed complete if:
 // - it is not empty
 // - all shards report the same block height and total shard count
 // - the shard count matches the reported count
-func (s *CoordinatorService) findReadyDb() xdrutil.DbCards {
-	byHeight := map[uint32]xdrutil.DbCards{} // block_height -> shards
+func (s *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
+	byHeight := map[uint32]xdrutil.ShardCards{} // block_height -> shards
 	for _, dbc := range s.db {
 		byHeight[dbc.Block_height] = append(byHeight[dbc.Block_height], dbc)
 	}
 	var foundReady bool
 	var foundHeight uint32
-	var foundShards xdrutil.DbCards
+	var foundShards xdrutil.ShardCards
 	for height, shards := range byHeight {
 		shards.Sort()
-		if isDbReadyFixedHeight(shards) {
+		if isShardCountComplete(shards) {
 			if !foundReady || foundHeight < height {
 				foundReady = true
 				foundHeight = height
@@ -93,7 +131,7 @@ func (s *CoordinatorService) findReadyDb() xdrutil.DbCards {
 	return foundShards
 }
 
-func isDbReadyFixedHeight(shards xdrutil.DbCards) bool {
+func isShardCountComplete(shards xdrutil.ShardCards) bool {
 	if len(shards) == 0 {
 		return false
 	}

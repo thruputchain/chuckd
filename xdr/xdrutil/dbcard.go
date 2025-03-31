@@ -6,23 +6,23 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type DbCards []proto.DbCard
+type ShardCards []proto.ShardCard
 
-func (x DbCards) Len() int {
+func (x ShardCards) Len() int {
 	return len(x)
 }
 
-func (x DbCards) Less(i, j int) bool {
+func (x ShardCards) Less(i, j int) bool {
 	if LessUPID(x[i].Upid, x[j].Upid) {
 		return true
 	}
 	return x[i].Address < x[j].Address
 }
 
-func (x DbCards) Swap(i, j int) {
+func (x ShardCards) Swap(i, j int) {
 	x[i], x[j] = x[j], x[i]
 }
 
-func (x DbCards) Sort() {
+func (x ShardCards) Sort() {
 	sort.Sort(x)
 }

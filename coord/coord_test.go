@@ -2,6 +2,7 @@ package coord
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/groundhogchain/chuckd/xdr/xdrutil"
@@ -18,41 +19,79 @@ func TestNullRoundtrip(t *testing.T) {
 	c.Coordinator_null()
 }
 
-func TestDbReadiness(t *testing.T) {
+func TestShardCompleteness(t *testing.T) {
 	ctx := context.Background()
 	s := NewCoordinatorService(ctx)
 
-	s.Coordinator_intro_db(proto.DbCard{
+	s.Coordinator_intro_shard(proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(1),
 		Block_height: 1,
 		Shard_count:  2,
 		Address:      "1.1.1.1",
 	})
 
-	if s.Coordinator_list_db().Is_ready {
+	if len(s.findCompleteDb()) > 0 {
 		t.Fatalf("db should not be ready")
 	}
 
-	s.Coordinator_intro_db(proto.DbCard{
+	s.Coordinator_intro_shard(proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(2),
 		Block_height: 2, // different height
 		Shard_count:  2,
 		Address:      "1.1.1.2",
 	})
 
-	if s.Coordinator_list_db().Is_ready {
+	if len(s.findCompleteDb()) > 0 {
 		t.Fatalf("db should not be ready")
 	}
 
-	s.Coordinator_intro_db(proto.DbCard{
+	s.Coordinator_intro_shard(proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(3),
 		Block_height: 1,
 		Shard_count:  2,
 		Address:      "1.1.1.3",
 	})
 
-	if !s.Coordinator_list_db().Is_ready {
+	if len(s.findCompleteDb()) == 0 {
 		t.Fatalf("db should be ready")
 	}
 
+}
+
+func TestDbReadiness(t *testing.T) {
+	ctx := context.Background()
+	s := NewCoordinatorService(ctx)
+
+	execUnblocked := make(chan int, 1)
+
+	go func() {
+		s.Coordinator_intro_exec(proto.ExecCard{
+			Upid:    xdrutil.Uint64UPID(10),
+			Address: "2.2.2.2",
+		})
+		execUnblocked <- 1
+		fmt.Println("unblocked")
+	}()
+
+	s.Coordinator_intro_shard(proto.ShardCard{
+		Upid:         xdrutil.Uint64UPID(1),
+		Block_height: 1,
+		Shard_count:  2,
+		Address:      "1.1.1.1",
+	})
+
+	select {
+	case <-execUnblocked:
+		t.Errorf("executor should be blocked")
+	default:
+	}
+
+	s.Coordinator_intro_shard(proto.ShardCard{
+		Upid:         xdrutil.Uint64UPID(3),
+		Block_height: 1,
+		Shard_count:  2,
+		Address:      "1.1.1.3",
+	})
+
+	<-execUnblocked
 }
