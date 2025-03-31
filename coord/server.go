@@ -39,23 +39,23 @@ func (s *CoordinatorService) Card() proto.CoordinatorCard {
 	return proto.CoordinatorCard{Upid: s.upid}
 }
 
-func (s *CoordinatorService) Null() {}
+func (s *CoordinatorService) Coordinator_null() {}
 
-func (s *CoordinatorService) Intro_db(card proto.DbCard) proto.IntroDbResult {
+func (s *CoordinatorService) Coordinator_intro_db(card proto.DbCard) proto.IntroDbResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	s.db[card.Upid] = card
 	return proto.IntroDbResult{Cc: s.Card()}
 }
 
-func (s *CoordinatorService) Intro_executor(card proto.ExecutorCard) proto.IntroExecutorResult {
+func (s *CoordinatorService) Coordinator_intro_executor(card proto.ExecutorCard) proto.IntroExecutorResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	s.exec[card.Upid] = card
 	return proto.IntroExecutorResult{Cc: s.Card()}
 }
 
-func (s *CoordinatorService) List_db() proto.ListDbResult {
+func (s *CoordinatorService) Coordinator_list_db() proto.ListDbResult {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 	shards := s.findReadyDb()
