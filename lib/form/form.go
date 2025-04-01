@@ -30,6 +30,10 @@ func SprintJSON(form Form) string {
 	return string(data)
 }
 
+func SprintJSONBytes(form Form) []byte {
+	return []byte(SprintJSON(form))
+}
+
 func Encode[F Form](ctx context.Context, w io.Writer, f F) error {
 	return json.NewEncoder(w).Encode(f)
 }

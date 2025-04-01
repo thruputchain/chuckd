@@ -30,6 +30,8 @@ var (
 )
 
 func init() {
+	rootCmd.AddCommand(serverCmd)
+
 	serverCmd.AddCommand(serverStartCmd)
 	serverStartCmd.Flags().StringVar(&coordAddress, "caddr", "localhost:7888", "coordinator api address")
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,9 +13,9 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
+	proto "github.com/groundhogchain/protocol-go"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 var ctx = context.Background()
@@ -48,12 +49,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "run in developer mode with verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&cpuProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&memProfilePath, "mem", "m", "", "memory profile path")
-
-	rootCmd.AddCommand(serverCmd)
 }
 
 func initAfterFlags() {
-	LoadConfig(ctx)
 	if verbose {
 		log.LogVerbosely()
 	} else {
@@ -65,34 +63,34 @@ func initAfterFlags() {
 	chuckdruntime.SetSeed(seed)
 }
 
-func LoadConfig(ctx context.Context) {
-
-	// search for config in ~/.chuckd/chuckd.yaml
-	if configPath == "" {
+func effectiveConfigPath(ctx context.Context) string {
+	// search for config in ~/.chuckd/chuckd.json
+	cfgPath := configPath
+	if cfgPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			log.Fatalf("looking for home dir (%v)", err)
 		}
 		must.NoError(ctx, err)
-		configPath = filepath.Join(home, api.LocalAgentPath, api.LocalAgentConfigFilebase)
+		cfgPath = filepath.Join(home, api.LocalAgentPath, api.LocalAgentConfigFilebase)
 	}
-	log.Infof("loading config %v", configPath)
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		log.Fatalf("reading config file (%v)", err)
-	}
-
-	var config api.Config
-	err = yaml.Unmarshal(data, &config)
-	must.NoError(ctx, err)
-
-	cfg = &config
+	return cfgPath
 }
 
-var (
-	cfg *api.Config
-)
+func LoadConfig(ctx context.Context) *proto.Config {
+
+	cfgPath := effectiveConfigPath(ctx)
+	log.Infof("loading config %v", cfgPath)
+
+	data, err := os.ReadFile(cfgPath)
+	must.Assertf(ctx, err != nil, "reading config file (%w)", err)
+
+	var config proto.Config
+	err = json.Unmarshal(data, &config)
+	must.NoError(ctx, err)
+
+	return &config
+}
 
 func Execute() int {
 	if err := rootCmd.Execute(); err != nil {

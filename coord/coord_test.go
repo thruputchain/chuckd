@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/groundhogchain/chuckd/shard"
-	"github.com/groundhogchain/chuckd/xdr/xdrutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

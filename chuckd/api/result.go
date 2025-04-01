@@ -75,10 +75,12 @@ func Invoke(f func()) Result {
 	//
 	xerr = must.TryThru(f)
 	r := NewResult(nil, xerr)
-	if xerr != nil && log.IsVerbose() {
-		fmt.Fprint(os.Stderr, xerr.StackString())
+	if xerr != nil {
+		if log.IsVerbose() {
+			fmt.Fprintln(os.Stderr, xerr.StackString())
+		}
+		fmt.Fprintln(os.Stderr, xerr.Error())
 	}
-	fmt.Fprint(os.Stdout, form.SprintJSON(r))
 
 	return r
 }
@@ -125,10 +127,13 @@ func Invoke1[R1 any](f func() R1) Result {
 	var r1 R1
 	r1, xerr = must.Try1Thru[R1](f)
 	r := NewResult(r1, xerr)
-	if xerr != nil && log.IsVerbose() {
-		fmt.Fprint(os.Stderr, xerr.StackString())
+	if xerr != nil {
+		if log.IsVerbose() {
+			fmt.Fprintln(os.Stderr, xerr.StackString())
+		}
+		fmt.Fprintln(os.Stderr, xerr.Error())
 	}
-	fmt.Fprint(os.Stdout, form.SprintJSON(r))
+	fmt.Fprint(os.Stdout, form.SprintJSON(r.Returned))
 
 	return r
 }

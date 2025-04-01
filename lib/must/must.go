@@ -12,7 +12,7 @@ func Panic(ctx context.Context, err error) {
 }
 
 func Errorf(ctx context.Context, format string, args ...any) {
-	Panic(ctx, ErrorString{Msg: fmt.Sprintf(format, args...)})
+	Panic(ctx, fmt.Errorf(format, args...))
 }
 
 func Assert(ctx context.Context, cond bool, err error) {
