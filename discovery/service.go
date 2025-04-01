@@ -8,17 +8,27 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// TODO: interface with multicast trees and broadcast
+
+// TODO: start the discovery service on "server start"
 // TODO: share our quorums, when?
 
 type DiscoveryService struct {
+	slices  []proto.QuorumSlice
 	lk      sync.Mutex
 	vslices map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot
 }
 
-func NewDiscoveryService(ctx context.Context) *DiscoveryService {
-	return &DiscoveryService{
+func NewDiscoveryService(
+	ctx context.Context,
+	slices []proto.QuorumSlice,
+) *DiscoveryService {
+	s := &DiscoveryService{
+		slices:  slices,
 		vslices: map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot{},
 	}
+	go s.advertise(ctx)
+	return s
 }
 
 func (s *DiscoveryService) Discovery_null() {}

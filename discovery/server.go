@@ -10,13 +10,17 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
-func StartServer(ctx context.Context, addr string) {
-	go doServer(ctx, addr)
+func StartServer(ctx context.Context, addr string, slices []proto.QuorumSlice) {
+	go doServer(ctx, addr, slices)
 }
 
 // doServer runs the coordinator server and blocks forever.
-func doServer(ctx context.Context, addr string) {
-	s := NewDiscoveryService(ctx)
+func doServer(
+	ctx context.Context,
+	addr string,
+	slices []proto.QuorumSlice,
+) {
+	s := NewDiscoveryService(ctx, slices)
 
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
