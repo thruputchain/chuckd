@@ -1,4 +1,4 @@
-package configutil
+package protoutil
 
 import (
 	"context"
@@ -16,7 +16,11 @@ func InitConfig(ctx context.Context) *proto.Config {
 }
 
 func GenerateCredentials() (*proto.ValidatorPrivateInfo, error) {
-	pubKey, secretKey, err := ed25519.GenerateKey(nil) // for safety, uses non-deterministic randomness from crypto package
+	// For safety, use non-deterministic randomness from crypto package, instead of
+	// seeding the randomness source with the runtime seed.
+	// Alternatively, we could force the user to provide a seed on the command-line,
+	// when generating credentials.
+	pubKey, secretKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +32,6 @@ func GenerateCredentials() (*proto.ValidatorPrivateInfo, error) {
 	}, nil
 }
 
-func Ed25519PubKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
+func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 	return sha256.Sum256(pubKey[:])
 }

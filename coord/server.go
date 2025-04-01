@@ -11,12 +11,11 @@ import (
 )
 
 func StartServer(ctx context.Context, addr string) {
-	go DoServer(ctx, addr)
+	go doServer(ctx, addr)
 }
 
-// DoServer runs the coordinator server and blocks forever.
-// TODO: make an abortable server for test purposes
-func DoServer(ctx context.Context, addr string) {
+// doServer runs the coordinator server and blocks forever.
+func doServer(ctx context.Context, addr string) {
 	s := NewCoordinatorService(ctx)
 
 	l, err := net.Listen("tcp", addr)
