@@ -34,7 +34,7 @@ func NewDiscoveryService(
 func (s *DiscoveryService) Discovery_null() {}
 
 func (s *DiscoveryService) Discovery_update_quorums(vs proto.ValidatorQuorumSlicesSnapshots) proto.UpdateQuorumsResult {
-	snapshots := s.snapshots()
+	snapshots := s.Snapshots()
 	for _, v := range vs {
 		s.addQuorumSlices(v)
 	}
@@ -58,7 +58,7 @@ func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSn
 	s.lk.Unlock()
 }
 
-func (s *DiscoveryService) snapshots() proto.ValidatorQuorumSlicesSnapshots {
+func (s *DiscoveryService) Snapshots() proto.ValidatorQuorumSlicesSnapshots {
 	ourValidatorSlices := protoutil.MakeValidatorQuorumSlicesSnapshot(s.privInfo, s.ourSlices)
 	snapshots := proto.ValidatorQuorumSlicesSnapshots{ourValidatorSlices}
 
