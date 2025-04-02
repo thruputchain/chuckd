@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/chuckd/server"
 	"github.com/spf13/cobra"
 )
 
@@ -19,19 +19,29 @@ var (
 		Short: "start coordinator server",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			coord.StartServer(ctx, coordAddress)
+			cfg := LoadConfig(ctx)
+			srv := server.NewServer(
+				ctx,
+				serverInternalBindAddress,
+				serverExternalBindAddress,
+				cfg.Private_info,
+				cfg.Quorum_slices,
+			)
+			srv.Start(ctx)
 			<-(chan int)(nil) // hang
 		},
 	}
 )
 
 var (
-	coordAddress string
+	serverInternalBindAddress string
+	serverExternalBindAddress string
 )
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.AddCommand(serverStartCmd)
-	serverStartCmd.Flags().StringVar(&coordAddress, "caddr", "localhost:7888", "coordinator api address")
+	serverStartCmd.Flags().StringVar(&serverInternalBindAddress, "inaddr", "localhost:7888", "bind address for internal apis")
+	serverStartCmd.Flags().StringVar(&serverExternalBindAddress, "exaddr", "localhost:9111", "bind address for external apis")
 }

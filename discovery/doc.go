@@ -1,8 +1,6 @@
 package discovery
 
 // TODO:
-// - start the discovery service on "server start"
-//
 // - only the tree root computes the multicast tree and sends its hash along with messages
 //	- provide network call to retrieve multicast tree, if not known by some receiving node
 

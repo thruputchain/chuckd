@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 
 	"github.com/spf13/cobra"
@@ -83,10 +83,10 @@ func LoadConfig(ctx context.Context) *proto.Config {
 	log.Infof("loading config %v", cfgPath)
 
 	data, err := os.ReadFile(cfgPath)
-	must.Assertf(ctx, err != nil, "reading config file (%w)", err)
+	must.Assertf(ctx, err == nil, "reading config file (%w)", err)
 
 	var config proto.Config
-	err = json.Unmarshal(data, &config)
+	err = xdrutil.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 
 	return &config

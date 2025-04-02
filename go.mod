@@ -3,19 +3,11 @@ module github.com/groundhogchain/chuckd
 go 1.24.0
 
 require (
-	// github.com/gin-contrib/sessions v1.0.1
-	// github.com/gin-gonic/gin v1.10.0
-	// github.com/google/go-github/v66 v66.0.0
-	// github.com/gorilla/mux v1.8.1
 	// github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
-	// github.com/palantir/go-githubapp v0.30.0
 	// github.com/pkg/errors v0.9.1
 	// github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.9.1
-// github.com/stripe/stripe-go/v81 v81.0.0
-// go.mongodb.org/mongo-driver v1.17.1
-// golang.org/x/oauth2 v0.24.0
 )
 
 require (
