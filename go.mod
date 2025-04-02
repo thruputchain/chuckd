@@ -13,10 +13,9 @@ require (
 	// github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.9.1
-	// github.com/stripe/stripe-go/v81 v81.0.0
-	// go.mongodb.org/mongo-driver v1.17.1
-	// golang.org/x/oauth2 v0.24.0
-	gopkg.in/yaml.v3 v3.0.1
+// github.com/stripe/stripe-go/v81 v81.0.0
+// go.mongodb.org/mongo-driver v1.17.1
+// golang.org/x/oauth2 v0.24.0
 )
 
 require (
