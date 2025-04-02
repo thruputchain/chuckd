@@ -1,6 +1,7 @@
 package protoutil
 
 import (
+	"sort"
 	"time"
 
 	proto "github.com/groundhogchain/protocol-go"
@@ -25,8 +26,21 @@ func MakeQuorumsSlicesSnapshot(slices []proto.QuorumSlice) proto.QuorumSlicesSna
 	}
 }
 
-func VerifyValidatorQuorumSlicesSnapshot(
-	value proto.ValidatorQuorumSlicesSnapshot,
-) bool {
+func VerifyValidatorQuorumSlicesSnapshot(value proto.ValidatorQuorumSlicesSnapshot) bool {
 	return VerifyXdr(value.Validator_public_info.Public_key, &value.Quorum_slices_snapshot, value.Validator_signature)
 }
+
+func SortValidatorQuorumSlicesSnapshotsByDescendingTimestamp(vslices proto.ValidatorQuorumSlicesSnapshots) {
+	ValidatorQuorumSlicesSnapshotsByDescendingTimestamp(vslices).Sort()
+}
+
+type ValidatorQuorumSlicesSnapshotsByDescendingTimestamp proto.ValidatorQuorumSlicesSnapshots
+
+func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Len() int { return len(xs) }
+func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Less(i, j int) bool {
+	return xs[i].Quorum_slices_snapshot.Timestamp > xs[j].Quorum_slices_snapshot.Timestamp
+}
+func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Swap(i, j int) {
+	xs[i], xs[j] = xs[j], xs[i]
+}
+func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Sort() { sort.Sort(xs) }

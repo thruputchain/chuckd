@@ -26,7 +26,6 @@ func NewDiscoveryService(
 		ourSlices: ourSlices,
 		allSlices: map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot{},
 	}
-	s.addQuorumSlices(protoutil.MakeValidatorQuorumSlicesSnapshot(privInfo, ourSlices))
 
 	go s.advertise(ctx)
 	return s
@@ -35,10 +34,11 @@ func NewDiscoveryService(
 func (s *DiscoveryService) Discovery_null() {}
 
 func (s *DiscoveryService) Discovery_update_quorums(vs proto.ValidatorQuorumSlicesSnapshots) proto.UpdateQuorumsResult {
+	snapshots := s.snapshots()
 	for _, v := range vs {
 		s.addQuorumSlices(v)
 	}
-	panic("XXX")
+	return proto.UpdateQuorumsResult{Quorum_slices_snapshots: snapshots}
 }
 
 func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSnapshot) {
@@ -48,4 +48,18 @@ func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSn
 	s.lk.Lock()
 	s.allSlices[protoutil.ValidatorPublicKeyToID(vslices.Validator_public_info.Public_key)] = vslices
 	s.lk.Unlock()
+}
+
+func (s *DiscoveryService) snapshots() proto.ValidatorQuorumSlicesSnapshots {
+	ourValidatorSlices := protoutil.MakeValidatorQuorumSlicesSnapshot(s.privInfo, s.ourSlices)
+	snapshots := proto.ValidatorQuorumSlicesSnapshots{ourValidatorSlices}
+
+	s.lk.Lock()
+	for _, vslices := range s.allSlices {
+		snapshots = append(snapshots, vslices)
+	}
+	s.lk.Unlock()
+
+	protoutil.SortValidatorQuorumSlicesSnapshotsByDescendingTimestamp(snapshots)
+	return snapshots
 }
