@@ -1,0 +1,64 @@
+package discovery
+
+import (
+	"context"
+	"sync"
+	"time"
+
+	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+// Advertise quorum slices we know on every REFRESH_INTERVAL.
+const REFRESH_INTERVAL = time.Minute * 2
+
+// advertise tries to advetise the quorum slices we know of to every validator participating in them.
+// we try to deliver quorum slices to each validator in parallel with throttle and backoff.
+// the process repeats once every few minutes hours.
+func (s *DiscoveryService) advertise(ctx context.Context) {
+	epoch := 0
+	for {
+		epoch += 1
+		log.Infof("advertising epoch %d begins", epoch)
+		s.advertiseToAll(ctx, epoch)
+		log.Infof("advertising epoch %d ends", epoch)
+		time.Sleep(REFRESH_INTERVAL)
+	}
+}
+
+// advertise quorum slices to ADVERTISE_CONCURRENCY validators in parallel.
+const ADVERTISE_CONCURRENCY = 10
+
+func (s *DiscoveryService) advertiseToAll(ctx context.Context, epoch int) {
+	limiter := make(chan struct{}, ADVERTISE_CONCURRENCY)
+	var wg sync.WaitGroup
+
+	snapshots := s.snapshots()
+	for _, v := range protoutil.ValidatorsInQuorumSlices(s.ourSlices) {
+		wg.Add(1)
+		limiter <- struct{}{} // acquire an execution slot
+		go func(v proto.ValidatorPublicInfo) {
+			defer wg.Done()
+			defer func() { <-limiter }() // release the execution slot
+			s.advertiseToValidator(ctx, epoch, v, snapshots)
+		}(v)
+	}
+	wg.Wait()
+}
+
+func (s *DiscoveryService) advertiseToValidator(
+	ctx context.Context,
+	epoch int,
+	v proto.ValidatorPublicInfo,
+	snapshots proto.ValidatorQuorumSlicesSnapshots,
+) {
+	log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
+	c := NewDiscoveryClient(ctx, v.Address)
+	defer c.Close()
+
+	r := c.Discovery_update_quorums(snapshots)
+	for _, v := range r.Quorum_slices_snapshots {
+		s.addQuorumSlices(v)
+	}
+}

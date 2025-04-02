@@ -3,7 +3,6 @@ package protoutil
 import (
 	"context"
 	"crypto/ed25519"
-	"crypto/sha256"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -30,8 +29,4 @@ func GenerateCredentials() (*proto.ValidatorPrivateInfo, error) {
 		},
 		Secret_key: proto.ValidatorSecretKey(secretKey),
 	}, nil
-}
-
-func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
-	return sha256.Sum256(pubKey[:])
 }
