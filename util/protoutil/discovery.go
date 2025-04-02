@@ -44,3 +44,18 @@ func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Swap(i, j int) {
 	xs[i], xs[j] = xs[j], xs[i]
 }
 func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Sort() { sort.Sort(xs) }
+
+// ValidatorsInQuorumSlices returns the validators encountered in quorum slices in random order.
+func ValidatorsInQuorumSlices(slices []proto.QuorumSlice) []proto.ValidatorPublicInfo {
+	m := map[proto.ValidatorID]proto.ValidatorPublicInfo{}
+	for _, s := range slices {
+		for _, v := range s {
+			m[ValidatorPublicKeyToID(v.Public_key)] = v
+		}
+	}
+	vs := []proto.ValidatorPublicInfo{}
+	for _, v := range m {
+		vs = append(vs, v)
+	}
+	return vs
+}

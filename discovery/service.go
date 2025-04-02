@@ -46,7 +46,15 @@ func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSn
 		return
 	}
 	s.lk.Lock()
-	s.allSlices[protoutil.ValidatorPublicKeyToID(vslices.Validator_public_info.Public_key)] = vslices
+	// add slices only if more recent than currently known
+	key := protoutil.ValidatorPublicKeyToID(vslices.Validator_public_info.Public_key)
+	if current, ok := s.allSlices[key]; ok {
+		if current.Quorum_slices_snapshot.Timestamp < vslices.Quorum_slices_snapshot.Timestamp {
+			s.allSlices[key] = vslices
+		}
+	} else {
+		s.allSlices[key] = vslices
+	}
 	s.lk.Unlock()
 }
 
