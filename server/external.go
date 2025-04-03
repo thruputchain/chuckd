@@ -5,6 +5,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/groundhogchain/chuckd/broadcast"
 	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -15,6 +16,7 @@ import (
 type ExternalServer struct {
 	l         net.Listener
 	discovery *discovery.DiscoveryService
+	broadcast *broadcast.BroadcastService
 }
 
 func NewExternalServer(
@@ -26,9 +28,13 @@ func NewExternalServer(
 	log.Infof("starting external apis on %s", addr)
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
+
+	discovery := discovery.NewDiscoveryService(ctx, privInfo, ourSlices)
+	broadcast := broadcast.NewBroadcastService(ctx, privInfo, ourSlices, discovery)
 	return &ExternalServer{
 		l:         l,
-		discovery: discovery.NewDiscoveryService(ctx, privInfo, ourSlices),
+		discovery: discovery,
+		broadcast: broadcast,
 	}
 }
 
@@ -42,6 +48,7 @@ func (s *ExternalServer) Start(ctx context.Context) {
 		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 
 		driver.Register(proto.Discovery1_Server{Srv: s.discovery})
+		driver.Register(proto.Broadcast1_Server{Srv: s.broadcast})
 
 		go driver.Go()
 	}()

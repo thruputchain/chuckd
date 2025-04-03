@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/discovery"
+	"github.com/groundhogchain/chuckd/lib/log"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -20,6 +21,7 @@ func NewBroadcastService(
 	discovery *discovery.DiscoveryService,
 ) *BroadcastService {
 
+	log.Infof("starting broadcast service")
 	s := &BroadcastService{
 		privInfo:  privInfo,
 		ourSlices: ourSlices,

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/groundhogchain/chuckd/chuckd/server"
+	"github.com/groundhogchain/chuckd/server"
 	"github.com/spf13/cobra"
 )
 

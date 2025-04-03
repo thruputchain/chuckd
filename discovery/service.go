@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -21,6 +22,7 @@ func NewDiscoveryService(
 	ourSlices []proto.QuorumSlice,
 ) *DiscoveryService {
 
+	log.Infof("starting discovery service")
 	s := &DiscoveryService{
 		privInfo:  privInfo,
 		ourSlices: ourSlices,
