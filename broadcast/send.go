@@ -15,12 +15,17 @@ type sendChannel struct {
 	sent     []proto.BroadcastMessage
 }
 
-func newSendChannel(svc *BroadcastService, channel Channel) *sendChannel {
+func newSendChannel(
+	svc *BroadcastService,
+	channel Channel,
+	tree MulticastTreeNodes,
+	children []proto.ValidatorPublicInfo,
+) *sendChannel {
 	return &sendChannel{
 		svc:      svc,
 		channel:  channel,
-		// tree:     XXX,
-		// children: XXX,
+		tree:     tree,
+		children: children,
 	}
 }
 

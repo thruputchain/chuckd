@@ -47,7 +47,7 @@ func NewBroadcastService(
 }
 
 func (s *BroadcastService) API() Broadcast {
-	return &broadcastAPI{service: s}
+	return &broadcastAPI{svc: s}
 }
 
 func (s *BroadcastService) ValidatorPublicInfo() proto.ValidatorPublicInfo {
@@ -57,7 +57,7 @@ func (s *BroadcastService) ValidatorPublicInfo() proto.ValidatorPublicInfo {
 func (s *BroadcastService) Broadcast_null() {}
 
 func (s *BroadcastService) Broadcast_deliver(x proto.Delivery) {
-	panic("not implemented")
+	panic("not implemented") // XXX: next up
 }
 
 func (s *BroadcastService) Broadcast_reconcile(x proto.ReconcileMessages) proto.ReconciledMessages {
