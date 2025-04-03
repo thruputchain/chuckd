@@ -31,6 +31,10 @@ func NewBroadcastService(
 	return s
 }
 
+func (s *BroadcastService) API() Broadcast {
+	return &broadcastAPI{service: s}
+}
+
 func (s *BroadcastService) Broadcast_null() {}
 
 func (s *BroadcastService) Broadcast_deliver(x proto.Delivery) {

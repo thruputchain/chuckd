@@ -1,5 +1,9 @@
 package broadcast
 
+import (
+	proto "github.com/groundhogchain/protocol-go"
+)
+
 // Epoch describes an epoch of the broadcast system.
 // Each node maintains a current epoch.
 // Newly created (send) channels are associated with an epoch which must be greater or equal to the current one.
@@ -9,7 +13,10 @@ package broadcast
 // Epochs provide a mechanism for knowing when the lifetime of a send or receive channel is over and resources can be released.
 // The current epoch (of the broadcast system at a node) is controlled by the application.
 // For example, in Groundhog the epoch can be derived from the round or block height of the consensus allgorithm.
-type Epoch uint64
+type Epoch = proto.BroadcastEpoch
+
+type ChannelID = proto.BroadcastChannelID
+type SeqNo = proto.SeqNo
 
 // Broadcast describes the application-facing API for the broadcast system.
 type Broadcast interface {
@@ -26,13 +33,15 @@ type Broadcast interface {
 }
 
 type SendChannel interface {
+	ChannelID() ChannelID
 	// Epoch returns the epoch of this channel, which is determined by the application at this node when the channel was created.
 	Epoch() Epoch
 	Send(payload []byte)
 }
 
 type ReceiveChannel interface {
+	ChannelID() ChannelID
 	// Epoch returns the epoch of this channel, which is determined by the node that created it.
 	Epoch() Epoch
-	Receive()
+	Receive() (seqno SeqNo, payload []byte, err error)
 }
