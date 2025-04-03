@@ -1,18 +1,22 @@
 package broadcast
 
-type receiveChannel struct {
-	channelID ChannelID
-	epoch     Epoch
+type recvChannel struct {
+	svc     *BroadcastService
+	channel Channel
 }
 
-func (x *receiveChannel) ChannelID() ChannelID {
-	return x.channelID
+func newRecvChannel(svc *BroadcastService, channel Channel) *recvChannel {
+	return &recvChannel{svc: svc, channel: channel}
 }
 
-func (x *receiveChannel) Epoch() Epoch {
-	return x.epoch
+func (x *recvChannel) Channel() Channel {
+	return x.channel
 }
 
-func (x *receiveChannel) Receive() (seqno SeqNo, payload []byte, err error) {
+func (x *recvChannel) Epoch() Epoch {
+	return x.channel.Epoch
+}
+
+func (x *recvChannel) Receive() (seqno SeqNo, payload []byte, err error) {
 	panic("not implemented")
 }

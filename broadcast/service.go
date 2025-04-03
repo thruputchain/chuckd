@@ -16,9 +16,11 @@ type BroadcastService struct {
 	//
 	lk     sync.Mutex
 	epoch  Epoch
-	sendCh map[Channel]bool                          // send channels that are still alive
-	recvCh map[Channel]bool                          // known receive channels that are still alive
-	trees  map[MulticastTreeHash][]MulticastTreeNode // cached multicast trees
+	sendCh map[Channel]*sendChannel                 // send channels that are still alive
+	recvCh map[Channel]*recvChannel                 // known receive channels that are still alive
+	trees  map[MulticastTreeHash]MulticastTreeNodes // cached multicast trees
+	//
+	deliveryQueue *DeliveryQueue
 }
 
 func NewBroadcastService(
@@ -33,17 +35,23 @@ func NewBroadcastService(
 		privInfo:  privInfo,
 		ourSlices: ourSlices,
 		discovery: discovery,
-		epoch:     0,
-		sendCh:    map[Channel]bool{},
-		recvCh:    map[Channel]bool{},
-		trees:     map[MulticastTreeHash][]MulticastTreeNode{},
+		//
+		epoch:  0,
+		sendCh: map[Channel]*sendChannel{},
+		recvCh: map[Channel]*recvChannel{},
+		trees:  map[MulticastTreeHash]MulticastTreeNodes{},
+		//
+		deliveryQueue: NewDeliveryQueue(ctx),
 	}
-
 	return s
 }
 
 func (s *BroadcastService) API() Broadcast {
 	return &broadcastAPI{service: s}
+}
+
+func (s *BroadcastService) ValidatorPublicInfo() proto.ValidatorPublicInfo {
+	return s.privInfo.Public_info
 }
 
 func (s *BroadcastService) Broadcast_null() {}
@@ -56,6 +64,6 @@ func (s *BroadcastService) Broadcast_reconcile(x proto.ReconcileMessages) proto.
 	panic("not implemented")
 }
 
-func (s *BroadcastService) Broadcast_expand(x MulticastTreeHash) proto.ExpandedMulticastTree {
-	return proto.ExpandedMulticastTree{Tree_nodes: s.findTree(x)}
+func (s *BroadcastService) Broadcast_expand(x MulticastTreeHash) MulticastTreeNodes {
+	return s.findTree(x)
 }

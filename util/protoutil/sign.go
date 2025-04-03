@@ -1,9 +1,9 @@
 package protoutil
 
 import (
-	"bytes"
 	"crypto/ed25519"
 
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
@@ -16,15 +16,8 @@ func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 	return signature
 }
 
-func marshalXdr(value xdr.XdrType) []byte {
-	var w bytes.Buffer
-	out := xdr.XdrOut{Out: &w}
-	out.Marshal("", value)
-	return w.Bytes()
-}
-
 func SignXdr(secretKey proto.ValidatorSecretKey, value xdr.XdrType) proto.Signature {
-	return SignBytes(secretKey, marshalXdr(value))
+	return SignBytes(secretKey, xdrutil.MarshalXdr(value))
 }
 
 func VerifyBytes(pubKey proto.ValidatorPublicKey, msg []byte, signature []byte) bool {
@@ -36,5 +29,5 @@ func VerifyXdr(pubKey proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Sig
 		return false
 	}
 	sigBytes := *sig.Ed25519()
-	return VerifyBytes(pubKey, marshalXdr(value), sigBytes[:])
+	return VerifyBytes(pubKey, xdrutil.MarshalXdr(value), sigBytes[:])
 }

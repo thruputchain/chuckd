@@ -19,6 +19,7 @@ type ChannelID = proto.BroadcastChannelID
 type SeqNo = proto.SeqNo
 type Channel = proto.BroadcastChannel
 type MulticastTreeNode = proto.MulticastTreeNode
+type MulticastTreeNodes = proto.MulticastTreeNodes
 type MulticastTreeHash = proto.MulticastTreeHash
 
 // Broadcast describes the application-facing API for the broadcast system.
@@ -36,14 +37,14 @@ type Broadcast interface {
 }
 
 type SendChannel interface {
-	ChannelID() ChannelID
+	Channel() Channel
 	// Epoch returns the epoch of this channel, which is determined by the application at this node when the channel was created.
 	Epoch() Epoch
 	Send(payload []byte)
 }
 
 type ReceiveChannel interface {
-	ChannelID() ChannelID
+	Channel() Channel
 	// Epoch returns the epoch of this channel, which is determined by the node that created it.
 	Epoch() Epoch
 	Receive() (seqno SeqNo, payload []byte, err error)
