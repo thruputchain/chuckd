@@ -4,33 +4,97 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type DeliveryQueue struct {
-	lk sync.Mutex
-	ch map[Channel][]proto.Delivery
+	cond *sync.Cond
+	lk   sync.Mutex
+	chq  map[Channel][]deliveryTo
+}
+
+type deliveryTo struct {
+	To       proto.ValidatorPublicInfo
+	Delivery proto.Delivery
+}
+
+func newDeliveryTo(to proto.ValidatorPublicInfo, delivery proto.Delivery) deliveryTo {
+	return deliveryTo{To: to, Delivery: delivery}
 }
 
 func NewDeliveryQueue(ctx context.Context) *DeliveryQueue {
 	q := &DeliveryQueue{
-		ch: map[Channel][]proto.Delivery{},
+		chq: map[Channel][]deliveryTo{},
 	}
+	q.cond = sync.NewCond(&q.lk)
 	go q.flush(ctx)
 	return q
 }
 
-func (q *DeliveryQueue) Enqueue(v proto.ValidatorPublicInfo, delivery proto.Delivery) {
+func (q *DeliveryQueue) Enqueue(to proto.ValidatorPublicInfo, delivery proto.Delivery) {
 	q.lk.Lock()
 	defer q.lk.Unlock()
-	q.ch[delivery.Msg.Header.Channel] = append(q.ch[delivery.Msg.Header.Channel], delivery)
+	defer q.cond.Broadcast()
+	q.chq[delivery.Msg.Header.Channel] = append(
+		q.chq[delivery.Msg.Header.Channel],
+		newDeliveryTo(to, delivery),
+	)
 }
 
 // Discard drops all queued deliveries on the given channel.
 func (q *DeliveryQueue) Discard(ch Channel) {
-	panic("not implemented")
+	q.lk.Lock()
+	defer q.lk.Unlock()
+	defer q.cond.Broadcast()
+	delete(q.chq, ch)
 }
 
+const DELIVERY_CONCURRENCY = 100
+
 func (q *DeliveryQueue) flush(ctx context.Context) {
-	panic("XXX")
+
+	sem := make(chan struct{}, DELIVERY_CONCURRENCY)
+
+	for {
+		// block until there are deliveries in the queue
+		q.lk.Lock()
+		deliveries := q.linearizeAndClearDeliveries()
+		for len(deliveries) == 0 {
+			q.cond.Wait()
+		}
+		q.lk.Unlock()
+
+		// deliver in parallel with a throttle
+		for _, dto := range deliveries {
+			sem <- struct{}{} // acquire a delivery slot
+			go func(dto deliveryTo) {
+				defer func() { <-sem }() // release delivery slot
+				q.deliver(ctx, dto)
+			}(dto)
+		}
+	}
+}
+
+func (q *DeliveryQueue) linearizeAndClearDeliveries() []deliveryTo {
+	l := []deliveryTo{}
+	for key, ds := range q.chq {
+		l = append(l, ds...)
+		delete(q.chq, key)
+	}
+	// TODO: should we randomize the order?
+	return l
+}
+
+func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
+	log.Infof("delivering message #%d on channel id %x to %s",
+		dto.Delivery.Msg.Header.Seqno,
+		dto.Delivery.Msg.Header.Channel.Channel_id,
+		protoutil.ValidatorPublicShortString(dto.To),
+	)
+	c := NewBroadcastClient(ctx, dto.To.Address)
+	defer c.Close()
+
+	c.Broadcast_deliver(dto.Delivery)
 }
