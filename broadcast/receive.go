@@ -1,13 +1,16 @@
 package broadcast
 
-type receiveChannel struct{}
+type receiveChannel struct {
+	channelID ChannelID
+	epoch     Epoch
+}
 
 func (x *receiveChannel) ChannelID() ChannelID {
-	panic("not implemented")
+	return x.channelID
 }
 
 func (x *receiveChannel) Epoch() Epoch {
-	panic("not implemented")
+	return x.epoch
 }
 
 func (x *receiveChannel) Receive() (seqno SeqNo, payload []byte, err error) {

@@ -17,6 +17,9 @@ type Epoch = proto.BroadcastEpoch
 
 type ChannelID = proto.BroadcastChannelID
 type SeqNo = proto.SeqNo
+type Channel = proto.BroadcastChannel
+type MulticastTreeNode = proto.MulticastTreeNode
+type MulticastTreeHash = proto.MulticastTreeHash
 
 // Broadcast describes the application-facing API for the broadcast system.
 type Broadcast interface {
