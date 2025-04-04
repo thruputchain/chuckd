@@ -3,18 +3,26 @@ package coord
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/shard"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func TestMain(m *testing.M) {
+	runtime.SetRootSeed(0)
+	exitVal := m.Run()
+	os.Exit(exitVal)
+}
+
 func TestNullRoundtrip(t *testing.T) {
 	ctx := context.Background()
 
 	addr := "localhost:8991"
-	StartServer(ctx, addr)
+	StartServer(ctx, runtime.NewRandFromRoot(), addr)
 
 	c := NewCoordinatorClient(ctx, addr)
 	c.Coordinator_null()
@@ -22,7 +30,7 @@ func TestNullRoundtrip(t *testing.T) {
 
 func TestShardCompleteness(t *testing.T) {
 	ctx := context.Background()
-	s := NewCoordinatorService(ctx)
+	s := NewCoordinatorService(ctx, runtime.NewRandFromRoot())
 
 	sh1 := shard.NewTestShardServer(ctx)
 	sh2 := shard.NewTestShardServer(ctx)
@@ -70,7 +78,7 @@ func TestDbReadiness(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := NewCoordinatorService(ctx)
+	s := NewCoordinatorService(ctx, runtime.NewRandFromRoot())
 
 	sh1 := shard.NewTestShardServer(ctx)
 	sh2 := shard.NewTestShardServer(ctx)

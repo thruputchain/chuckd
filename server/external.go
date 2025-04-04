@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"math/rand"
 	"net"
 
 	"github.com/groundhogchain/chuckd/broadcast"
@@ -21,10 +22,12 @@ type ExternalServer struct {
 
 func NewExternalServer(
 	ctx context.Context,
+	rr *rand.Rand,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 ) *ExternalServer {
+
 	log.Infof("starting external apis on %s", addr)
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)

@@ -3,11 +3,11 @@ package coord
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/shard"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -31,9 +31,9 @@ type CoordinatorService struct {
 
 const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
 
-func NewCoordinatorService(ctx context.Context) *CoordinatorService {
+func NewCoordinatorService(ctx context.Context, rr *rand.Rand) *CoordinatorService {
 	log.Infof("starting coordinator service")
-	upid, err := GenerateUPID(runtime.NewRand(UPID_SEED_OFFSET).Uint64())
+	upid, err := GenerateUPID(rr.Uint64())
 	must.NoError(ctx, err)
 	cs := &CoordinatorService{
 		upid: upid,

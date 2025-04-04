@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"math/rand"
 
+	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -13,14 +15,15 @@ type Server struct {
 
 func NewServer(
 	ctx context.Context,
+	rr *rand.Rand,
 	inaddr string,
 	exaddr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 ) *Server {
 	return &Server{
-		internal: NewInternalServer(ctx, inaddr),
-		external: NewExternalServer(ctx, exaddr, privInfo, ourSlices),
+		internal: NewInternalServer(ctx, runtime.NewRandFromRand(rr), inaddr),
+		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), exaddr, privInfo, ourSlices),
 	}
 }
 

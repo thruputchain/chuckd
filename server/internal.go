@@ -2,11 +2,13 @@ package server
 
 import (
 	"context"
+	"math/rand"
 	"net"
 
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -18,14 +20,16 @@ type InternalServer struct {
 
 func NewInternalServer(
 	ctx context.Context,
+	rr *rand.Rand,
 	addr string,
 ) *InternalServer {
+
 	log.Infof("starting internal apis on %s", addr)
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
 	return &InternalServer{
 		l:     l,
-		coord: coord.NewCoordinatorService(ctx),
+		coord: coord.NewCoordinatorService(ctx, runtime.NewRandFromRand(rr)),
 	}
 }
 

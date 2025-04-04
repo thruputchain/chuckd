@@ -60,7 +60,7 @@ func initAfterFlags() {
 	log.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	api.SetCPUProfilePath(cpuProfilePath)
 	api.SetMemProfilePath(memProfilePath)
-	chuckdruntime.SetSeed(seed)
+	chuckdruntime.SetRootSeed(seed)
 }
 
 func effectiveConfigPath(ctx context.Context) string {

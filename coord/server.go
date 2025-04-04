@@ -3,6 +3,7 @@ package coord
 import (
 	"context"
 	"log"
+	"math/rand"
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -10,13 +11,13 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
-func StartServer(ctx context.Context, addr string) {
-	go doServer(ctx, addr)
+func StartServer(ctx context.Context, rr *rand.Rand, addr string) {
+	go doServer(ctx, rr, addr)
 }
 
 // doServer runs the coordinator server and blocks forever.
-func doServer(ctx context.Context, addr string) {
-	s := NewCoordinatorService(ctx)
+func doServer(ctx context.Context, rr *rand.Rand, addr string) {
+	s := NewCoordinatorService(ctx, rr)
 
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)

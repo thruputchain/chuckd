@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/server"
 	"github.com/spf13/cobra"
 )
@@ -22,6 +23,7 @@ var (
 			cfg := LoadConfig(ctx)
 			srv := server.NewServer(
 				ctx,
+				runtime.NewRandFromRoot(),
 				serverInternalBindAddress,
 				serverExternalBindAddress,
 				cfg.Private_info,
