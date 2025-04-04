@@ -1,12 +1,26 @@
 package broadcast
 
 type recvChannel struct {
-	svc     *BroadcastService
-	channel Channel
+	svc       *BroadcastService
+	channel   Channel
+	treeHash  MulticastTreeHash
+	treeNodes *MulticastTreeNodes
+	children  *[]ValidatorPublicInfo
+	received  []Message
 }
 
-func newRecvChannel(svc *BroadcastService, channel Channel) *recvChannel {
-	return &recvChannel{svc: svc, channel: channel}
+func newRecvChannel(
+	svc *BroadcastService,
+	channel Channel,
+	treeHash MulticastTreeHash,
+	treeNodes *MulticastTreeNodes,
+) *recvChannel {
+	return &recvChannel{
+		svc:       svc,
+		channel:   channel,
+		treeHash:  treeHash,
+		treeNodes: treeNodes,
+	}
 }
 
 func (x *recvChannel) Channel() Channel {

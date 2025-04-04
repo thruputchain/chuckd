@@ -1,13 +1,5 @@
 package broadcast
 
-type broadcastAPI struct {
-	svc *BroadcastService
-}
-
-func (s *broadcastAPI) AdvanceEpoch(delta int) Epoch {
-	panic("not implemented")
-}
-
 func (s *broadcastAPI) MakeChannel(epoch Epoch) SendChannel {
 
 	s.svc.lk.Lock()
@@ -31,20 +23,4 @@ func (s *broadcastAPI) MakeChannel(epoch Epoch) SendChannel {
 	s.svc.trees[treeHash] = tree
 
 	return sch
-}
-
-func (svc *BroadcastService) generateChannelID() ChannelID {
-	svc.randLk.Lock()
-	defer svc.randLk.Lock()
-	var chID ChannelID
-	svc.rand.Read(chID[:])
-	return chID
-}
-
-func (svc *BroadcastService) buildMulticastTree(chID ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash) {
-	return svc.router.BuildTree(svc.ValidatorID(), chID)
-}
-
-func (s *broadcastAPI) AcceptChannel() ReceiveChannel {
-	panic("not implemented")
 }

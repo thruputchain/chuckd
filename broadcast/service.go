@@ -26,6 +26,8 @@ type BroadcastService struct {
 	trees  map[MulticastTreeHash]MulticastTreeNodes // cached multicast trees
 	//
 	deliveryQueue *DeliveryQueue
+	//
+	accept chan *recvChannel
 }
 
 func NewBroadcastService(
@@ -48,8 +50,14 @@ func NewBroadcastService(
 		trees:  map[MulticastTreeHash]MulticastTreeNodes{},
 		//
 		deliveryQueue: NewDeliveryQueue(ctx),
+		//
+		accept: make(chan *recvChannel),
 	}
 	return s
+}
+
+type broadcastAPI struct {
+	svc *BroadcastService
 }
 
 func (s *BroadcastService) API() Broadcast {
@@ -62,18 +70,4 @@ func (s *BroadcastService) ValidatorPublicInfo() ValidatorPublicInfo {
 
 func (s *BroadcastService) ValidatorID() proto.ValidatorID {
 	return protoutil.ValidatorIDFromPublic(s.ValidatorPublicInfo())
-}
-
-func (s *BroadcastService) Broadcast_null() {}
-
-func (s *BroadcastService) Broadcast_deliver(x Delivery) {
-	panic("not implemented") // XXX: next up
-}
-
-func (s *BroadcastService) Broadcast_reconcile(x ReconcileMessages) ReconciledMessages {
-	panic("not implemented")
-}
-
-func (s *BroadcastService) Broadcast_expand(x MulticastTreeHash) MulticastTreeNodes {
-	return s.findTree(x)
 }
