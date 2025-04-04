@@ -54,5 +54,5 @@ type ReceiveChannel interface {
 	Channel() Channel
 	// Epoch returns the epoch of this channel, which is determined by the node that created it.
 	Epoch() Epoch
-	Receive() (seqno SeqNo, payload []byte, err error)
+	Receive() (seqno SeqNo, payload []byte)
 }

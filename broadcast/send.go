@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"crypto/sha256"
+	"sync"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
@@ -11,7 +12,9 @@ type sendChannel struct {
 	channel  Channel
 	tree     MulticastTreeNodes
 	children []ValidatorPublicInfo
-	sent     []Message
+	//
+	lk   sync.Mutex
+	sent []Message
 }
 
 func newSendChannel(
@@ -57,7 +60,9 @@ func (x *sendChannel) Send(payload []byte) {
 		},
 		Payload: payload,
 	}
+	x.lk.Lock()
 	x.sent = append(x.sent, msg)
+	x.lk.Unlock()
 
 	// prepare delivery structure
 
