@@ -1,11 +1,9 @@
 package router
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -19,10 +17,15 @@ func TestBasic(t *testing.T) {
 	}
 
 	maxFanOut := 3
-	treeNodes, _, _ := buildTree(maxFanOut, vs[0], vs[1:])
-	for _, tn := range treeNodes {
-		h := protoutil.MulticastTreeNodeHash(tn)
-		fmt.Println(form.SprintJSON(&h))
-		fmt.Println(form.SprintJSON(&tn))
+	treeNodes, _, treeHash := buildTree(maxFanOut, vs[0], vs[1:])
+	_ = treeNodes
+	// for _, tn := range treeNodes {
+	// 	h := protoutil.MulticastTreeNodeHash(tn)
+	// 	fmt.Println(protoutil.EncodeBase64(h[:]))
+	// 	fmt.Println(form.SprintJSON(&tn))
+	// }
+	// fmt.Println(protoutil.EncodeBase64(treeHash[:]))
+	if protoutil.EncodeBase64(treeHash[:]) != "VuppSEinD6tIEdvNVwF5GugJlBv5c0bTj2lPWBQvnh0=" {
+		t.Errorf("incorrect tree")
 	}
 }

@@ -27,13 +27,14 @@ type Map = map[string]Form
 type None struct{}
 
 func SprintJSON(form Form) string {
-	if x, ok := form.(xdr.XdrAggregate); ok {
+	switch x := form.(type) {
+	case xdr.XdrAggregate:
 		b, err := xdrutil.XdrToJson(x)
 		if err != nil {
 			panic(err)
 		}
 		return string(b)
-	} else {
+	default:
 		data, err := json.MarshalIndent(form, "", "   ")
 		if err != nil {
 			panic(err)
