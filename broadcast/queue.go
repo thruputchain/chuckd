@@ -6,7 +6,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	proto "github.com/groundhogchain/protocol-go"
 )
 
 type DeliveryQueue struct {
@@ -16,11 +15,11 @@ type DeliveryQueue struct {
 }
 
 type deliveryTo struct {
-	To       proto.ValidatorPublicInfo
-	Delivery proto.Delivery
+	To       ValidatorPublicInfo
+	Delivery Delivery
 }
 
-func newDeliveryTo(to proto.ValidatorPublicInfo, delivery proto.Delivery) deliveryTo {
+func newDeliveryTo(to ValidatorPublicInfo, delivery Delivery) deliveryTo {
 	return deliveryTo{To: to, Delivery: delivery}
 }
 
@@ -33,7 +32,7 @@ func NewDeliveryQueue(ctx context.Context) *DeliveryQueue {
 	return q
 }
 
-func (q *DeliveryQueue) Enqueue(to proto.ValidatorPublicInfo, delivery proto.Delivery) {
+func (q *DeliveryQueue) Enqueue(to ValidatorPublicInfo, delivery Delivery) {
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()

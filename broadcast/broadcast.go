@@ -1,7 +1,5 @@
 package broadcast
 
-import proto "github.com/groundhogchain/protocol-go"
-
 type broadcastAPI struct {
 	svc *BroadcastService
 }
@@ -21,7 +19,7 @@ func (s *broadcastAPI) MakeChannel(epoch Epoch) SendChannel {
 
 	channelID := s.svc.generateChannelID()
 	tree, children, treeHash := s.svc.buildMulticastTree(channelID)
-	ch := proto.BroadcastChannel{
+	ch := Channel{
 		Source_id:  s.svc.ValidatorPublicInfo().Public_key,
 		Channel_id: channelID,
 		Epoch:      epoch,
@@ -36,10 +34,14 @@ func (s *broadcastAPI) MakeChannel(epoch Epoch) SendChannel {
 }
 
 func (svc *BroadcastService) generateChannelID() ChannelID {
-	panic("not implemented")
+	svc.randLk.Lock()
+	defer svc.randLk.Lock()
+	var chID ChannelID
+	svc.rand.Read(chID[:])
+	return chID
 }
 
-func (svc *BroadcastService) buildMulticastTree(chID ChannelID) (MulticastTreeNodes, []proto.ValidatorPublicInfo, MulticastTreeHash) {
+func (svc *BroadcastService) buildMulticastTree(chID ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash) {
 	panic("not implemented")
 }
 

@@ -3,6 +3,7 @@ package broadcast
 import (
 	"context"
 	"log"
+	"math/rand"
 	"net"
 
 	"github.com/groundhogchain/chuckd/discovery"
@@ -13,13 +14,14 @@ import (
 
 func StartServer(
 	ctx context.Context,
+	rr *rand.Rand,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 	discovery *discovery.DiscoveryService,
 ) {
 	go func() {
-		s := NewBroadcastService(ctx, privInfo, ourSlices, discovery)
+		s := NewBroadcastService(ctx, rr, privInfo, ourSlices, discovery)
 
 		l, err := net.Listen("tcp", addr)
 		must.NoError(ctx, err)

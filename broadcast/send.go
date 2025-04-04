@@ -4,22 +4,21 @@ import (
 	"crypto/sha256"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	proto "github.com/groundhogchain/protocol-go"
 )
 
 type sendChannel struct {
 	svc      *BroadcastService
 	channel  Channel
 	tree     MulticastTreeNodes
-	children []proto.ValidatorPublicInfo
-	sent     []proto.BroadcastMessage
+	children []ValidatorPublicInfo
+	sent     []Message
 }
 
 func newSendChannel(
 	svc *BroadcastService,
 	channel Channel,
 	tree MulticastTreeNodes,
-	children []proto.ValidatorPublicInfo,
+	children []ValidatorPublicInfo,
 ) *sendChannel {
 	return &sendChannel{
 		svc:      svc,
@@ -42,7 +41,7 @@ func (x *sendChannel) Send(payload []byte) {
 	// create broadcast message
 
 	var attachTree bool
-	var prevMsgHash *proto.BroadcastMessageHash
+	var prevMsgHash *MessageHash
 	if len(x.sent) > 0 {
 		h := sha256.Sum256(xdrutil.MarshalXdr(&x.sent[len(x.sent)-1]))
 		prevMsgHash = &h
@@ -50,8 +49,8 @@ func (x *sendChannel) Send(payload []byte) {
 		attachTree = true
 	}
 
-	msg := proto.BroadcastMessage{
-		Header: proto.BroadcastHeader{
+	msg := Message{
+		Header: Header{
 			Channel:  x.channel,
 			Seqno:    SeqNo(len(x.sent)),
 			Prev_msg: prevMsgHash,
@@ -62,11 +61,11 @@ func (x *sendChannel) Send(payload []byte) {
 
 	// prepare delivery structure
 
-	var tree *proto.MulticastTreeNodes
+	var tree *MulticastTreeNodes
 	if attachTree {
 		tree = &x.tree
 	}
-	delivery := proto.Delivery{
+	delivery := Delivery{
 		Relayer: x.svc.ValidatorPublicInfo(),
 		Msg:     msg,
 		Tree:    tree,

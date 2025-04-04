@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -33,7 +34,7 @@ func NewExternalServer(
 	must.NoError(ctx, err)
 
 	discovery := discovery.NewDiscoveryService(ctx, privInfo, ourSlices)
-	broadcast := broadcast.NewBroadcastService(ctx, privInfo, ourSlices, discovery)
+	broadcast := broadcast.NewBroadcastService(ctx, runtime.NewRandFromRand(rr), privInfo, ourSlices, discovery)
 	return &ExternalServer{
 		l:         l,
 		discovery: discovery,

@@ -15,12 +15,19 @@ import (
 // For example, in Groundhog the epoch can be derived from the round or block height of the consensus allgorithm.
 type Epoch = proto.BroadcastEpoch
 
-type ChannelID = proto.BroadcastChannelID
 type SeqNo = proto.SeqNo
+type ChannelID = proto.BroadcastChannelID
 type Channel = proto.BroadcastChannel
 type MulticastTreeNode = proto.MulticastTreeNode
 type MulticastTreeNodes = proto.MulticastTreeNodes
 type MulticastTreeHash = proto.MulticastTreeHash
+type ValidatorPublicInfo = proto.ValidatorPublicInfo
+type ReconcileMessages = proto.ReconcileMessages
+type ReconciledMessages = proto.ReconciledMessages
+type Delivery = proto.Delivery
+type Message = proto.BroadcastMessage
+type MessageHash = proto.BroadcastMessageHash
+type Header = proto.BroadcastHeader
 
 // Broadcast describes the application-facing API for the broadcast system.
 type Broadcast interface {

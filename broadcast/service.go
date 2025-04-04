@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/discovery"
@@ -14,6 +15,9 @@ type BroadcastService struct {
 	ourSlices []proto.QuorumSlice
 	discovery *discovery.DiscoveryService
 	//
+	randLk sync.Mutex
+	rand   *rand.Rand
+	//
 	lk     sync.Mutex
 	epoch  Epoch
 	sendCh map[Channel]*sendChannel                 // send channels that are still alive
@@ -25,6 +29,7 @@ type BroadcastService struct {
 
 func NewBroadcastService(
 	ctx context.Context,
+	rr *rand.Rand,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 	discovery *discovery.DiscoveryService,
@@ -50,17 +55,17 @@ func (s *BroadcastService) API() Broadcast {
 	return &broadcastAPI{svc: s}
 }
 
-func (s *BroadcastService) ValidatorPublicInfo() proto.ValidatorPublicInfo {
+func (s *BroadcastService) ValidatorPublicInfo() ValidatorPublicInfo {
 	return s.privInfo.Public_info
 }
 
 func (s *BroadcastService) Broadcast_null() {}
 
-func (s *BroadcastService) Broadcast_deliver(x proto.Delivery) {
+func (s *BroadcastService) Broadcast_deliver(x Delivery) {
 	panic("not implemented") // XXX: next up
 }
 
-func (s *BroadcastService) Broadcast_reconcile(x proto.ReconcileMessages) proto.ReconciledMessages {
+func (s *BroadcastService) Broadcast_reconcile(x ReconcileMessages) ReconciledMessages {
 	panic("not implemented")
 }
 
