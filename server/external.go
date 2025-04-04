@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
@@ -27,6 +28,7 @@ func NewExternalServer(
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
+	maxFanOut int, // maximum fanout of multicast trees
 ) *ExternalServer {
 
 	log.Infof("starting external apis on %s", addr)
@@ -34,7 +36,8 @@ func NewExternalServer(
 	must.NoError(ctx, err)
 
 	discovery := discovery.NewDiscoveryService(ctx, privInfo, ourSlices)
-	broadcast := broadcast.NewBroadcastService(ctx, runtime.NewRandFromRand(rr), privInfo, ourSlices, discovery)
+	router := router.NewBasicRouter(ctx, discovery, maxFanOut)
+	broadcast := broadcast.NewBroadcastService(ctx, runtime.NewRandFromRand(rr), privInfo, ourSlices, router)
 	return &ExternalServer{
 		l:         l,
 		discovery: discovery,

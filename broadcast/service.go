@@ -5,15 +5,16 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/router"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type BroadcastService struct {
 	privInfo  proto.ValidatorPrivateInfo
 	ourSlices []proto.QuorumSlice
-	discovery *discovery.DiscoveryService
+	router    router.Router
 	//
 	randLk sync.Mutex
 	rand   *rand.Rand
@@ -32,14 +33,14 @@ func NewBroadcastService(
 	rr *rand.Rand,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
-	discovery *discovery.DiscoveryService,
+	router router.Router,
 ) *BroadcastService {
 
 	log.Infof("starting broadcast service")
 	s := &BroadcastService{
 		privInfo:  privInfo,
 		ourSlices: ourSlices,
-		discovery: discovery,
+		router:    router,
 		//
 		epoch:  0,
 		sendCh: map[Channel]*sendChannel{},
@@ -57,6 +58,10 @@ func (s *BroadcastService) API() Broadcast {
 
 func (s *BroadcastService) ValidatorPublicInfo() ValidatorPublicInfo {
 	return s.privInfo.Public_info
+}
+
+func (s *BroadcastService) ValidatorID() proto.ValidatorID {
+	return protoutil.ValidatorIDFromPublic(s.ValidatorPublicInfo())
 }
 
 func (s *BroadcastService) Broadcast_null() {}

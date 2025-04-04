@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"net"
 
-	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/router"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -18,10 +18,10 @@ func StartServer(
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
-	discovery *discovery.DiscoveryService,
+	router router.Router,
 ) {
 	go func() {
-		s := NewBroadcastService(ctx, rr, privInfo, ourSlices, discovery)
+		s := NewBroadcastService(ctx, rr, privInfo, ourSlices, router)
 
 		l, err := net.Listen("tcp", addr)
 		must.NoError(ctx, err)

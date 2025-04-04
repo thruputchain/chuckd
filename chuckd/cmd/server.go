@@ -28,6 +28,7 @@ var (
 				serverExternalBindAddress,
 				cfg.Private_info,
 				cfg.Quorum_slices,
+				serverMaxFanOut,
 			)
 			srv.Start(ctx)
 			<-(chan int)(nil) // hang
@@ -38,6 +39,7 @@ var (
 var (
 	serverInternalBindAddress string
 	serverExternalBindAddress string
+	serverMaxFanOut           int // maximum fanout for multicast trees
 )
 
 func init() {
@@ -46,4 +48,5 @@ func init() {
 	serverCmd.AddCommand(serverStartCmd)
 	serverStartCmd.Flags().StringVar(&serverInternalBindAddress, "inaddr", "localhost:7888", "bind address for internal apis")
 	serverStartCmd.Flags().StringVar(&serverExternalBindAddress, "exaddr", "localhost:9111", "bind address for external apis")
+	serverStartCmd.Flags().IntVar(&serverMaxFanOut, "fanout", 5, "maximum fanout of multicast trees")
 }

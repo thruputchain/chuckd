@@ -7,6 +7,10 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func ValidatorIDFromPublic(v proto.ValidatorPublicInfo) proto.ValidatorID {
+	return ValidatorPublicKeyToID(v.Public_key)
+}
+
 func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 	return sha256.Sum256(pubKey[:])
 }

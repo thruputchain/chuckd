@@ -42,7 +42,7 @@ func (svc *BroadcastService) generateChannelID() ChannelID {
 }
 
 func (svc *BroadcastService) buildMulticastTree(chID ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash) {
-	panic("not implemented")
+	return svc.router.BuildTree(svc.ValidatorID(), chID)
 }
 
 func (s *broadcastAPI) AcceptChannel() ReceiveChannel {
