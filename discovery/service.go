@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -12,8 +13,13 @@ import (
 type DiscoveryService struct {
 	privInfo  proto.ValidatorPrivateInfo
 	ourSlices []proto.QuorumSlice
+	//
 	lk        sync.Mutex
 	allSlices map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot
+	//
+	cachedLk        sync.Mutex
+	cachedStamp     time.Time
+	cachedSnapshots proto.ValidatorQuorumSlicesSnapshots
 }
 
 func NewDiscoveryService(
@@ -36,7 +42,7 @@ func NewDiscoveryService(
 func (s *DiscoveryService) Discovery_null() {}
 
 func (s *DiscoveryService) Discovery_update_quorums(vs proto.ValidatorQuorumSlicesSnapshots) proto.UpdateQuorumsResult {
-	snapshots := s.Snapshots()
+	snapshots := s.CachedSnapshots()
 	for _, v := range vs {
 		s.addQuorumSlices(v)
 	}
@@ -47,6 +53,7 @@ func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSn
 	if !protoutil.VerifyValidatorQuorumSlicesSnapshot(vslices) {
 		return
 	}
+
 	s.lk.Lock()
 	// add slices only if more recent than currently known
 	key := protoutil.ValidatorPublicKeyToID(vslices.Validator_public_info.Public_key)
@@ -60,16 +67,34 @@ func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSn
 	s.lk.Unlock()
 }
 
-func (s *DiscoveryService) Snapshots() proto.ValidatorQuorumSlicesSnapshots {
+const SNAPSHOT_MIN_REBUILD_DURATION = time.Second * 10
+
+func (s *DiscoveryService) rebuildSnapshots() proto.ValidatorQuorumSlicesSnapshots {
+	s.cachedLk.Lock()
+	defer s.cachedLk.Unlock()
+
+	// don't rebuild snapshots more frequently than once every 10 seconds
+	if time.Now().Sub(s.cachedStamp) < SNAPSHOT_MIN_REBUILD_DURATION {
+		return s.cachedSnapshots
+	}
+
+	// build snapshots
+	s.lk.Lock()
 	ourValidatorSlices := protoutil.MakeValidatorQuorumSlicesSnapshot(s.privInfo, s.ourSlices)
 	snapshots := proto.ValidatorQuorumSlicesSnapshots{ourValidatorSlices}
-
-	s.lk.Lock()
 	for _, vslices := range s.allSlices {
 		snapshots = append(snapshots, vslices)
 	}
+	protoutil.SortValidatorQuorumSlicesSnapshotsByDescendingTimestamp(snapshots)
 	s.lk.Unlock()
 
-	protoutil.SortValidatorQuorumSlicesSnapshotsByDescendingTimestamp(snapshots)
-	return snapshots
+	// update cache
+	s.cachedSnapshots = snapshots
+	s.cachedStamp = time.Now()
+
+	return s.cachedSnapshots
+}
+
+func (s *DiscoveryService) CachedSnapshots() proto.ValidatorQuorumSlicesSnapshots {
+	return s.rebuildSnapshots()
 }

@@ -34,7 +34,7 @@ func (s *DiscoveryService) advertiseToAll(ctx context.Context, epoch int) {
 	limiter := make(chan struct{}, ADVERTISE_CONCURRENCY)
 	var wg sync.WaitGroup
 
-	snapshots := s.Snapshots()
+	snapshots := s.CachedSnapshots()
 	for _, v := range protoutil.ValidatorsInQuorumSlices(s.ourSlices) {
 		wg.Add(1)
 		limiter <- struct{}{} // acquire an execution slot
