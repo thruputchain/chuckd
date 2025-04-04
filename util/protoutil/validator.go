@@ -1,9 +1,7 @@
 package protoutil
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 
 	proto "github.com/groundhogchain/protocol-go"
@@ -18,10 +16,6 @@ func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
 	return fmt.Sprintf("%s@%s", EncodeBase64(id[:]), pubInfo.Address)
 }
 
-func EncodeBase64(v []byte) string {
-	var w bytes.Buffer
-	enc := base64.NewEncoder(base64.StdEncoding, &w)
-	enc.Write(v)
-	enc.Close()
-	return w.String()
+func ValidatorIDEqual(vid1 proto.ValidatorID, vid2 proto.ValidatorID) bool {
+	return vid1 == vid2
 }
