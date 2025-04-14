@@ -59,3 +59,7 @@ func (x *receiving) Receive() (seqno SeqNo, payload []byte) {
 	msg := <-x.deliverCh
 	return msg.Header.Seqno, msg.Payload
 }
+
+func (x *receiving) Close() {
+	panic("XXX")
+}

@@ -78,3 +78,7 @@ func (x *sending) Send(payload []byte) {
 		x.svc.enqueueDelivery(v, delivery)
 	}
 }
+
+func (x *sending) Close() {
+	panic("XXX")
+}

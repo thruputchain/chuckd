@@ -64,7 +64,7 @@ func (a *accepting) accept(ctx context.Context) {
 	r := newReceiving(a.svc, a.channel, *treeNodes, children, a.deliveries)
 	delete(a.svc.accepting, a.channel)
 	a.svc.receiving[a.channel] = r
-	a.svc.trees[a.channel.Tree_hash] = *treeNodes // add the multicast tree to the cache
+	a.svc.trees.Ref(a.channel.Tree_hash, *treeNodes)
 
 	// unlock accepting structure and service
 	a.lk.Unlock()

@@ -24,7 +24,7 @@ type BroadcastService struct {
 	sending   map[Channel]*sending
 	receiving map[Channel]*receiving
 	accepting map[Channel]*accepting
-	trees     map[MulticastTreeHash]MulticastTreeNodes // cached multicast trees
+	trees     *TreeCache
 	//
 	deliveryQueue *DeliveryQueue
 	//
@@ -49,7 +49,7 @@ func NewBroadcastService(
 		sending:   map[Channel]*sending{},
 		receiving: map[Channel]*receiving{},
 		accepting: map[Channel]*accepting{},
-		trees:     map[MulticastTreeHash]MulticastTreeNodes{},
+		trees:     NewTreeCache(),
 		//
 		deliveryQueue: NewDeliveryQueue(ctx),
 		//
