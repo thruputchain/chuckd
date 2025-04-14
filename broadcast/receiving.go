@@ -61,5 +61,9 @@ func (x *receiving) Receive() (seqno SeqNo, payload []byte) {
 }
 
 func (x *receiving) Close() {
-	panic("XXX")
+	x.svc.lk.Lock()
+	defer x.svc.lk.Unlock()
+
+	delete(x.svc.receiving, x.channel)
+	x.svc.trees.Deref(x.channel.Tree_hash)
 }

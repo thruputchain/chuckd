@@ -1,5 +1,5 @@
 [x] tree hash has to be refcounted
-[ ] close methods on recv and send
+[x] close methods on recv and send
 
 [ ] reconciliation
 [ ] XXX: relayer and message have to be signed together by the relayer

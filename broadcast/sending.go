@@ -8,10 +8,10 @@ import (
 )
 
 type sending struct {
-	svc      *BroadcastService
-	channel  Channel
-	tree     MulticastTreeNodes
-	children []ValidatorPublicInfo
+	svc       *BroadcastService
+	channel   Channel
+	treeNodes MulticastTreeNodes
+	children  []ValidatorPublicInfo
 	//
 	lk   sync.Mutex
 	sent []Message
@@ -20,14 +20,14 @@ type sending struct {
 func newSending(
 	svc *BroadcastService,
 	channel Channel,
-	tree MulticastTreeNodes,
+	treeNodes MulticastTreeNodes,
 	children []ValidatorPublicInfo,
 ) *sending {
 	return &sending{
-		svc:      svc,
-		channel:  channel,
-		tree:     tree,
-		children: children,
+		svc:       svc,
+		channel:   channel,
+		treeNodes: treeNodes,
+		children:  children,
 	}
 }
 
@@ -64,7 +64,7 @@ func (x *sending) Send(payload []byte) {
 
 	var tree *MulticastTreeNodes
 	if attachTree {
-		tree = &x.tree
+		tree = &x.treeNodes
 	}
 	delivery := Delivery{
 		Relayer:    x.svc.ValidatorPublicInfo(),
@@ -80,5 +80,9 @@ func (x *sending) Send(payload []byte) {
 }
 
 func (x *sending) Close() {
-	panic("XXX")
+	x.svc.lk.Lock()
+	defer x.svc.lk.Unlock()
+
+	delete(x.svc.sending, x.channel)
+	x.svc.trees.Deref(x.channel.Tree_hash)
 }
