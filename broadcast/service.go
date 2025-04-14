@@ -15,19 +15,20 @@ type BroadcastService struct {
 	privInfo  proto.ValidatorPrivateInfo
 	ourSlices []proto.QuorumSlice
 	router    router.Router
+	disc      AcceptDiscriminator
 	//
 	randLk sync.Mutex
 	rand   *rand.Rand
 	//
-	lk     sync.Mutex
-	epoch  Epoch
-	sendCh map[Channel]*sendChannel                 // send channels that are still alive
-	recvCh map[Channel]*recvChannel                 // known receive channels that are still alive
-	trees  map[MulticastTreeHash]MulticastTreeNodes // cached multicast trees
+	lk        sync.Mutex
+	sending   map[Channel]*sending
+	receiving map[Channel]*receiving
+	accepting map[Channel]*accepting
+	trees     map[MulticastTreeHash]MulticastTreeNodes // cached multicast trees
 	//
 	deliveryQueue *DeliveryQueue
 	//
-	accept chan *recvChannel
+	acceptCh chan *receiving
 }
 
 func NewBroadcastService(
@@ -36,22 +37,23 @@ func NewBroadcastService(
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 	router router.Router,
+	disc AcceptDiscriminator,
 ) *BroadcastService {
-
 	log.Infof("starting broadcast service")
 	s := &BroadcastService{
 		privInfo:  privInfo,
 		ourSlices: ourSlices,
 		router:    router,
+		disc:      disc,
 		//
-		epoch:  0,
-		sendCh: map[Channel]*sendChannel{},
-		recvCh: map[Channel]*recvChannel{},
-		trees:  map[MulticastTreeHash]MulticastTreeNodes{},
+		sending:   map[Channel]*sending{},
+		receiving: map[Channel]*receiving{},
+		accepting: map[Channel]*accepting{},
+		trees:     map[MulticastTreeHash]MulticastTreeNodes{},
 		//
 		deliveryQueue: NewDeliveryQueue(ctx),
 		//
-		accept: make(chan *recvChannel),
+		acceptCh: make(chan *receiving),
 	}
 	return s
 }
@@ -60,14 +62,14 @@ type broadcastAPI struct {
 	svc *BroadcastService
 }
 
-func (s *BroadcastService) API() Broadcast {
-	return &broadcastAPI{svc: s}
+func (svc *BroadcastService) API() Broadcast {
+	return &broadcastAPI{svc: svc}
 }
 
-func (s *BroadcastService) ValidatorPublicInfo() ValidatorPublicInfo {
-	return s.privInfo.Public_info
+func (svc *BroadcastService) ValidatorPublicInfo() ValidatorPublicInfo {
+	return svc.privInfo.Public_info
 }
 
-func (s *BroadcastService) ValidatorID() proto.ValidatorID {
-	return protoutil.ValidatorIDFromPublic(s.ValidatorPublicInfo())
+func (svc *BroadcastService) ValidatorID() proto.ValidatorID {
+	return protoutil.ValidatorIDFromPublic(svc.ValidatorPublicInfo())
 }

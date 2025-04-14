@@ -7,7 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
-type sendChannel struct {
+type sending struct {
 	svc      *BroadcastService
 	channel  Channel
 	tree     MulticastTreeNodes
@@ -17,13 +17,13 @@ type sendChannel struct {
 	sent []Message
 }
 
-func newSendChannel(
+func newSending(
 	svc *BroadcastService,
 	channel Channel,
 	tree MulticastTreeNodes,
 	children []ValidatorPublicInfo,
-) *sendChannel {
-	return &sendChannel{
+) *sending {
+	return &sending{
 		svc:      svc,
 		channel:  channel,
 		tree:     tree,
@@ -31,15 +31,11 @@ func newSendChannel(
 	}
 }
 
-func (x *sendChannel) Channel() Channel {
+func (x *sending) Channel() Channel {
 	return x.channel
 }
 
-func (x *sendChannel) Epoch() Epoch {
-	return x.channel.Epoch
-}
-
-func (x *sendChannel) Send(payload []byte) {
+func (x *sending) Send(payload []byte) {
 
 	// create broadcast message
 
@@ -71,9 +67,9 @@ func (x *sendChannel) Send(payload []byte) {
 		tree = &x.tree
 	}
 	delivery := Delivery{
-		Relayer: x.svc.ValidatorPublicInfo(),
-		Msg:     msg,
-		Tree:    tree,
+		Relayer:    x.svc.ValidatorPublicInfo(),
+		Msg:        msg,
+		Tree_nodes: tree,
 	}
 
 	// send message to delivery queue

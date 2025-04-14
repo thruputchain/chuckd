@@ -37,7 +37,7 @@ func NewExternalServer(
 
 	discovery := discovery.NewDiscoveryService(ctx, privInfo, ourSlices)
 	router := router.NewBasicRouter(ctx, discovery, maxFanOut)
-	broadcast := broadcast.NewBroadcastService(ctx, runtime.NewRandFromRand(rr), privInfo, ourSlices, router)
+	broadcast := broadcast.NewBroadcastService(ctx, runtime.NewRandFromRand(rr), privInfo, ourSlices, router, broadcast.AcceptEverything{})
 	return &ExternalServer{
 		l:         l,
 		discovery: discovery,

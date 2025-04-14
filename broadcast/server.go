@@ -19,9 +19,10 @@ func StartServer(
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 	router router.Router,
+	disc AcceptDiscriminator,
 ) {
 	go func() {
-		s := NewBroadcastService(ctx, rr, privInfo, ourSlices, router)
+		s := NewBroadcastService(ctx, rr, privInfo, ourSlices, router, disc)
 
 		l, err := net.Listen("tcp", addr)
 		must.NoError(ctx, err)
