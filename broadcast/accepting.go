@@ -84,7 +84,7 @@ func (a *accepting) accept(ctx context.Context) {
 }
 
 func expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
-	c := NewBroadcastClient(ctx, address)
+	c := NewBroadcastClientTCP(ctx, address)
 	defer c.Close()
 	return xdrutil.CallRpc(c.Broadcast_expand, treeHash)
 }

@@ -14,11 +14,13 @@ type BroadcastClient struct {
 	driver *rpc.Driver
 }
 
-func NewBroadcastClient(ctx context.Context, addr string) *BroadcastClient {
-
+func NewBroadcastClientTCP(ctx context.Context, addr string) *BroadcastClient {
 	sock, err := net.Dial("tcp", addr)
 	must.NoError(ctx, err)
+	return NewBroadcastClient(ctx, sock)
+}
 
+func NewBroadcastClient(ctx context.Context, sock net.Conn) *BroadcastClient {
 	driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 	go driver.Go()
 

@@ -1,4 +1,6 @@
-- [ ] testing virtual network
+- [ ] test broadcast
+  - [x] testing virtual network
+  - [ ] test router
 
 - [x] malicious node can replay a delivery to dos receiver or source
   - [x] include source validator public info in the message

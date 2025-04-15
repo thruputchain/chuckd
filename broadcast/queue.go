@@ -93,7 +93,7 @@ func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
 		dto.Delivery.Msg.Header.Channel.Channel_id,
 		protoutil.ValidatorPublicShortString(dto.To),
 	)
-	c := NewBroadcastClient(ctx, dto.To.Address)
+	c := NewBroadcastClientTCP(ctx, dto.To.Address)
 	defer c.Close()
 
 	err := xdrutil.CallRpcVoid(c.Broadcast_deliver, dto.Delivery)
