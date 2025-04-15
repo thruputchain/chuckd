@@ -1,3 +1,7 @@
+GITHUB
+- [ ] code coverage
+- [ ] code builds and tests
+
 CODE QUALITY
 - [ ] renames
     - Multicast->M

@@ -1,3 +1,5 @@
+- [ ] testing virtual network
+
 - [x] malicious node can replay a delivery to dos receiver or source
   - [x] include source validator public info in the message
   - [x] source signs the channel to bind tree hash with other channel info
