@@ -1,6 +1,10 @@
 package broadcast
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/groundhogchain/chuckd/util/protoutil"
+)
 
 type receiving struct {
 	svc       *BroadcastService
@@ -60,9 +64,9 @@ func (x *receiving) relay(delivery Delivery) {
 	}
 }
 
-func (x *receiving) Receive() (seqno SeqNo, payload []byte) {
+func (x *receiving) Receive() (seqno SeqNo, msgHash MessageHash, payload []byte) {
 	msg := <-x.deliverCh
-	return msg.Header.Seqno, msg.Payload
+	return msg.Header.Seqno, protoutil.HashOfMessage(msg), msg.Payload
 }
 
 func (x *receiving) Close() {
@@ -71,4 +75,10 @@ func (x *receiving) Close() {
 
 	delete(x.svc.receiving, x.channel)
 	x.svc.trees.Deref(x.channel.Tree_hash)
+}
+
+func (x *receiving) reconcile(msgHashes []MessageHash) []Message {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return protoutil.FindMessages(msgHashes, x.received)
 }

@@ -35,7 +35,7 @@ type SendChannel interface {
 
 type ReceiveChannel interface {
 	Channel() Channel
-	Receive() (seqno SeqNo, payload []byte)
+	Receive() (seqno SeqNo, msgHash MessageHash, payload []byte)
 	Close()
 }
 

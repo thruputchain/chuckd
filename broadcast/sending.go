@@ -1,11 +1,9 @@
 package broadcast
 
 import (
-	"crypto/sha256"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 type sending struct {
@@ -43,7 +41,7 @@ func (x *sending) Send(payload []byte) {
 	var attachTree bool
 	var prevMsgHash *MessageHash
 	if len(x.sent) > 0 {
-		h := sha256.Sum256(xdrutil.MarshalXdr(&x.sent[len(x.sent)-1]))
+		h := protoutil.HashOfMessage(x.sent[len(x.sent)-1])
 		prevMsgHash = &h
 	} else {
 		attachTree = true
@@ -88,4 +86,10 @@ func (x *sending) Close() {
 
 	delete(x.svc.sending, x.channel)
 	x.svc.trees.Deref(x.channel.Tree_hash)
+}
+
+func (x *sending) reconcile(msgHashes []MessageHash) []Message {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return protoutil.FindMessages(msgHashes, x.sent)
 }

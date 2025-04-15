@@ -1,8 +1,15 @@
 package protoutil
 
 import (
+	"crypto/sha256"
+
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
+
+func HashOfMessage(msg proto.BroadcastMessage) proto.BroadcastMessageHash {
+	return sha256.Sum256(xdrutil.MarshalXdr(&msg))
+}
 
 func VerifyDelivery(delivery proto.Delivery) bool {
 
@@ -22,4 +29,21 @@ func VerifyDelivery(delivery proto.Delivery) bool {
 	}
 
 	return true
+}
+
+func FindMessages(msgHashes []proto.BroadcastMessageHash, msgs []proto.BroadcastMessage) []proto.BroadcastMessage {
+
+	hs := map[proto.BroadcastMessageHash]bool{}
+	for _, h := range msgHashes {
+		hs[h] = true
+	}
+
+	found := []proto.BroadcastMessage{}
+	for _, msg := range msgs {
+		if hs[HashOfMessage(msg)] {
+			found = append(found, msg)
+		}
+	}
+
+	return found
 }

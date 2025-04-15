@@ -34,8 +34,19 @@ func (svc *BroadcastService) Broadcast_deliver(delivery Delivery) {
 	}
 }
 
+// XXX: DOS attacks?
 func (svc *BroadcastService) Broadcast_reconcile(x ReconcileMessages) ReconciledMessages {
-	panic("not implemented")
+
+	svc.lk.Lock()
+	defer svc.lk.Unlock()
+
+	if s := svc.sending[x.Channel]; s != nil {
+		return ReconciledMessages{Msgs: s.reconcile(x.Msg_hashes)}
+	} else if r := svc.receiving[x.Channel]; r != nil {
+		return ReconciledMessages{Msgs: r.reconcile(x.Msg_hashes)}
+	} else {
+		return ReconciledMessages{}
+	}
 }
 
 func (svc *BroadcastService) Broadcast_expand(x MulticastTreeHash) MulticastTreeNodes {
