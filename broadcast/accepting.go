@@ -4,7 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 type accepting struct {
@@ -42,7 +44,12 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
-		expanded := expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
+		expanded, err := expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
+		if err != nil {
+			log.Errorf("recovering multicast tree from relayer %s: %s",
+				protoutil.ValidatorPublicShortString(first.Relayer), err)
+			return
+		}
 		treeNodes = &expanded
 	}
 
@@ -76,8 +83,8 @@ func (a *accepting) accept(ctx context.Context) {
 	a.svc.acceptCh <- r
 }
 
-func expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) MulticastTreeNodes {
+func expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
 	c := NewBroadcastClient(ctx, address)
 	defer c.Close()
-	return c.Broadcast_expand(treeHash) //XXX: what happens if a call fails or timeouts?
+	return xdrutil.CallRpc(c.Broadcast_expand, treeHash)
 }

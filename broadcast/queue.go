@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 type DeliveryQueue struct {
@@ -95,5 +96,14 @@ func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
 	c := NewBroadcastClient(ctx, dto.To.Address)
 	defer c.Close()
 
-	c.Broadcast_deliver(dto.Delivery)
+	err := xdrutil.CallRpcVoid(c.Broadcast_deliver, dto.Delivery)
+	if err != nil {
+		log.Errorf("delivering message #%d on channel id %x to %s: %s",
+			dto.Delivery.Msg.Header.Seqno,
+			dto.Delivery.Msg.Header.Channel.Channel_id,
+			protoutil.ValidatorPublicShortString(dto.To),
+			err,
+		)
+		return
+	}
 }
