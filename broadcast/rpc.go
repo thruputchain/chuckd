@@ -1,8 +1,14 @@
 package broadcast
 
+import "github.com/groundhogchain/chuckd/util/protoutil"
+
 func (svc *BroadcastService) Broadcast_null() {}
 
 func (svc *BroadcastService) Broadcast_deliver(delivery Delivery) {
+
+	if !protoutil.VerifyDelivery(delivery) {
+		return //discard
+	}
 
 	channel := delivery.Msg.Header.Channel
 
