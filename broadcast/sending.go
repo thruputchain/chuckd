@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
@@ -50,9 +51,11 @@ func (x *sending) Send(payload []byte) {
 
 	msg := Message{
 		Header: Header{
-			Channel:  x.channel,
-			Seqno:    SeqNo(len(x.sent)),
-			Prev_msg: prevMsgHash,
+			Source:           x.svc.ValidatorPublicInfo(),
+			Source_signature: protoutil.SignXdr(x.svc.SecretKey(), &x.channel),
+			Channel:          x.channel,
+			Seqno:            SeqNo(len(x.sent)),
+			Prev_msg:         prevMsgHash,
 		},
 		Payload: payload,
 	}

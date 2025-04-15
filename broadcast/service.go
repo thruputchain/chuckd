@@ -70,6 +70,10 @@ func (svc *BroadcastService) ValidatorPublicInfo() ValidatorPublicInfo {
 	return svc.privInfo.Public_info
 }
 
+func (svc *BroadcastService) SecretKey() proto.ValidatorSecretKey {
+	return svc.privInfo.Secret_key
+}
+
 func (svc *BroadcastService) ValidatorID() proto.ValidatorID {
 	return protoutil.ValidatorIDFromPublic(svc.ValidatorPublicInfo())
 }

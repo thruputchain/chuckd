@@ -51,7 +51,12 @@ func (x *receiving) deliver(delivery Delivery) {
 
 func (x *receiving) relay(delivery Delivery) {
 	for _, v := range x.children {
-		x.svc.enqueueDelivery(v, delivery)
+		reDelivery := Delivery{
+			Relayer:    x.svc.ValidatorPublicInfo(),
+			Msg:        delivery.Msg,
+			Tree_nodes: delivery.Tree_nodes,
+		}
+		x.svc.enqueueDelivery(v, reDelivery)
 	}
 }
 
