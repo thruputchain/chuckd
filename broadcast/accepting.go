@@ -45,7 +45,9 @@ func (a *accepting) accept(ctx context.Context) {
 		expanded := expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		treeNodes = &expanded
 	}
-	children, ok := findChildren(a.svc.ValidatorPublicInfo(), *treeNodes)
+
+	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
+	children, ok := linked.FindChildren(a.svc.ValidatorPublicInfo())
 
 	// if we fail to retrieve the tree and find out children in it, abort
 	if !ok {
@@ -78,42 +80,4 @@ func expandTree(ctx context.Context, address string, treeHash MulticastTreeHash)
 	c := NewBroadcastClient(ctx, address)
 	defer c.Close()
 	return c.Broadcast_expand(treeHash) //XXX: what happens if a call fails or timeouts?
-}
-
-func findChildren(node ValidatorPublicInfo, treeNodes MulticastTreeNodes) ([]ValidatorPublicInfo, bool) {
-	hashes, ok := findChildrenHashes(node, treeNodes)
-	if !ok {
-		return nil, false
-	}
-
-	hs := map[MulticastTreeHash]bool{}
-	for _, h := range hashes {
-		hs[h] = true
-	}
-
-	children := []ValidatorPublicInfo{}
-	for _, treeNode := range treeNodes {
-		nodeHash := protoutil.MulticastTreeNodeHash(treeNode)
-		if hs[nodeHash] {
-			children = append(children, treeNode.Node)
-			delete(hs, nodeHash)
-		}
-	}
-	if len(hs) > 0 {
-		return nil, false
-	}
-
-	return children, true
-}
-
-func findChildrenHashes(node ValidatorPublicInfo, treeNodes MulticastTreeNodes) ([]MulticastTreeHash, bool) {
-	for _, treeNode := range treeNodes {
-		if protoutil.ValidatorIDEqual(
-			protoutil.ValidatorIDFromPublic(node),
-			protoutil.ValidatorIDFromPublic(treeNode.Node),
-		) {
-			return treeNode.Children, true
-		}
-	}
-	return nil, false
 }
