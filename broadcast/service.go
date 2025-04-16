@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -12,10 +13,10 @@ import (
 )
 
 type BroadcastService struct {
-	privInfo  proto.ValidatorPrivateInfo
-	ourSlices []proto.QuorumSlice
-	router    router.Router
-	disc      AcceptDiscriminator
+	dialer   libnet.AddressDialer
+	privInfo proto.ValidatorPrivateInfo
+	router   router.Router
+	disc     AcceptDiscriminator
 	//
 	randLk sync.Mutex
 	rand   *rand.Rand
@@ -33,25 +34,27 @@ type BroadcastService struct {
 
 func NewBroadcastService(
 	ctx context.Context,
+	dialer libnet.AddressDialer,
 	rr *rand.Rand,
 	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
 	router router.Router,
 	disc AcceptDiscriminator,
 ) *BroadcastService {
-	log.Infof("starting broadcast service")
+	log.Infof("starting broadcast service for %s", protoutil.ValidatorPublicShortString(privInfo.Public_info))
 	s := &BroadcastService{
-		privInfo:  privInfo,
-		ourSlices: ourSlices,
-		router:    router,
-		disc:      disc,
+		dialer:   dialer,
+		privInfo: privInfo,
+		router:   router,
+		disc:     disc,
+		//
+		rand: rr,
 		//
 		sending:   map[Channel]*sending{},
 		receiving: map[Channel]*receiving{},
 		accepting: map[Channel]*accepting{},
 		trees:     NewTreeCache(),
 		//
-		deliveryQueue: NewDeliveryQueue(ctx),
+		deliveryQueue: NewDeliveryQueue(ctx, dialer),
 		//
 		acceptCh: make(chan *receiving),
 	}

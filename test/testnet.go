@@ -19,6 +19,10 @@ func NewTestNetwork() *TestNetwork {
 	}
 }
 
+func (x *TestNetwork) DialAddress(address string) (net.Conn, error) {
+	return x.Dial("", address)
+}
+
 func (x *TestNetwork) Dial(network string, address string) (net.Conn, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()

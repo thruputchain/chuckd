@@ -55,7 +55,11 @@ func (s *DiscoveryService) advertiseToValidator(
 	snapshots proto.ValidatorQuorumSlicesSnapshots,
 ) {
 	log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
-	c := NewDiscoveryClient(ctx, v.Address)
+	c, err := DialDiscoveryClient(ctx, s.dialer, v.Address)
+	if err != nil {
+		log.Errorf("discovery dialing %s: %v", protoutil.ValidatorPublicShortString(v), err)
+		return
+	}
 	defer c.Close()
 
 	r, err := xdrutil.CallRpc(c.Discovery_update_quorums, snapshots)

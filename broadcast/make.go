@@ -8,7 +8,7 @@ func (s *broadcastAPI) MakeChannel() SendChannel {
 	channelID := s.svc.generateChannelID()
 	treeNodes, children, treeHash := s.svc.buildMulticastTree(channelID)
 	ch := Channel{
-		Source_id:  s.svc.ValidatorPublicInfo().Public_key,
+		Source_id:  s.svc.ValidatorID(),
 		Channel_id: channelID,
 		Tree_hash:  treeHash,
 	}

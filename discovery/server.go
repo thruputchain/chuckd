@@ -5,22 +5,32 @@ import (
 	"log"
 	"net"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
 
-func StartServer(
+func StartServerTCP(
 	ctx context.Context,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
-) {
-	go func() {
-		s := NewDiscoveryService(ctx, privInfo, ourSlices)
+) *DiscoveryService {
+	l, err := net.Listen("tcp", addr)
+	must.NoError(ctx, err)
+	return StartServer(ctx, libnet.TCPAddressDialer{}, l, privInfo, ourSlices)
+}
 
-		l, err := net.Listen("tcp", addr)
-		must.NoError(ctx, err)
+func StartServer(
+	ctx context.Context,
+	dialer libnet.AddressDialer,
+	l net.Listener,
+	privInfo proto.ValidatorPrivateInfo,
+	ourSlices []proto.QuorumSlice,
+) *DiscoveryService {
+	s := NewDiscoveryService(ctx, dialer, privInfo, ourSlices)
+	go func() {
 		defer l.Close()
 
 		for {
@@ -34,4 +44,5 @@ func StartServer(
 			go driver.Go()
 		}
 	}()
+	return s
 }

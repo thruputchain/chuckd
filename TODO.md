@@ -1,3 +1,5 @@
+[ ] handle RPC call errors everywhere
+
 GITHUB
 - [ ] code coverage
 - [ ] code builds and tests
@@ -6,6 +8,7 @@ CODE QUALITY
 - [ ] renames
     - Multicast->M
     - Validator->V
+    - Quorum->Q
 
 GOXDR
 - [ ] ctx on xdr methods?

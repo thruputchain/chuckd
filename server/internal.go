@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
@@ -29,7 +30,7 @@ func NewInternalServer(
 	must.NoError(ctx, err)
 	return &InternalServer{
 		l:     l,
-		coord: coord.NewCoordinatorService(ctx, runtime.NewRandFromRand(rr)),
+		coord: coord.NewCoordinatorService(ctx, libnet.TCPAddressDialer{}, runtime.NewRandFromRand(rr)),
 	}
 }
 

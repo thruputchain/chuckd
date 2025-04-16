@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +26,7 @@ var (
 		Short: "initialize identity and create barebones config",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg := protoutil.InitConfig(ctx)
+			cfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
 			if configToStdout {
 				fmt.Println(form.SprintJSON(cfg))
 			} else {

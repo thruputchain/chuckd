@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/shard"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -22,15 +24,16 @@ func TestNullRoundtrip(t *testing.T) {
 	ctx := context.Background()
 
 	addr := "localhost:8991"
-	StartServer(ctx, runtime.NewRandFromRoot(), addr)
+	StartServerTCP(ctx, runtime.NewRandFromRoot(), addr)
 
-	c := NewCoordinatorClient(ctx, addr)
+	c, err := DialCoordinatorClientTCP(ctx, addr)
+	must.NoError(ctx, err)
 	c.Coordinator_null()
 }
 
 func TestShardCompleteness(t *testing.T) {
 	ctx := context.Background()
-	s := NewCoordinatorService(ctx, runtime.NewRandFromRoot())
+	s := NewCoordinatorService(ctx, libnet.TCPAddressDialer{}, runtime.NewRandFromRoot())
 
 	sh1 := shard.NewTestShardServer(ctx)
 	sh2 := shard.NewTestShardServer(ctx)
@@ -78,7 +81,7 @@ func TestDbReadiness(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := NewCoordinatorService(ctx, runtime.NewRandFromRoot())
+	s := NewCoordinatorService(ctx, libnet.TCPAddressDialer{}, runtime.NewRandFromRoot())
 
 	sh1 := shard.NewTestShardServer(ctx)
 	sh2 := shard.NewTestShardServer(ctx)

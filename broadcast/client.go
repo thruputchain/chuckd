@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
@@ -14,7 +15,15 @@ type BroadcastClient struct {
 	driver *rpc.Driver
 }
 
-func NewBroadcastClientTCP(ctx context.Context, addr string) *BroadcastClient {
+func DialBroadcastClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*BroadcastClient, error) {
+	sock, err := dialer.DialAddress(addr)
+	if err != nil {
+		return nil, err
+	}
+	return NewBroadcastClient(ctx, sock), nil
+}
+
+func DialBroadcastClientTCP(ctx context.Context, addr string) *BroadcastClient {
 	sock, err := net.Dial("tcp", addr)
 	must.NoError(ctx, err)
 	return NewBroadcastClient(ctx, sock)

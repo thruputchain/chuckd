@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/shard"
@@ -16,6 +17,8 @@ import (
 // XXX: how do we cleanup stale cards? blocked on xdr defs
 
 type CoordinatorService struct {
+	dialer libnet.AddressDialer
+	//
 	upid proto.UPID
 	//
 	lk   sync.Mutex
@@ -31,49 +34,50 @@ type CoordinatorService struct {
 
 const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
 
-func NewCoordinatorService(ctx context.Context, rr *rand.Rand) *CoordinatorService {
+func NewCoordinatorService(ctx context.Context, dialer libnet.AddressDialer, rr *rand.Rand) *CoordinatorService {
 	log.Infof("starting coordinator service")
 	upid, err := GenerateUPID(rr.Uint64())
 	must.NoError(ctx, err)
 	cs := &CoordinatorService{
-		upid: upid,
-		db:   map[proto.UPID]proto.ShardCard{},
-		exec: map[proto.UPID]proto.ExecCard{},
+		dialer: dialer,
+		upid:   upid,
+		db:     map[proto.UPID]proto.ShardCard{},
+		exec:   map[proto.UPID]proto.ExecCard{},
 	}
 	cs.dbCond = sync.NewCond(&cs.dbLk)
 	return cs
 }
 
-func (s *CoordinatorService) Card() proto.CoordinatorCard {
-	return proto.CoordinatorCard{Upid: s.upid}
+func (svc *CoordinatorService) Card() proto.CoordinatorCard {
+	return proto.CoordinatorCard{Upid: svc.upid}
 }
 
-func (s *CoordinatorService) Coordinator_null() {}
+func (svc *CoordinatorService) Coordinator_null() {}
 
-func (s *CoordinatorService) Coordinator_intro_shard(card proto.ShardCard) proto.IntroShardResult {
-	s.lk.Lock()
-	s.db[card.Upid] = card
-	shards := s.findCompleteDb()
-	s.lk.Unlock()
+func (svc *CoordinatorService) Coordinator_intro_shard(card proto.ShardCard) proto.IntroShardResult {
+	svc.lk.Lock()
+	svc.db[card.Upid] = card
+	shards := svc.findCompleteDb()
+	svc.lk.Unlock()
 
-	s.prepareDb(shards)
+	svc.prepareDb(shards)
 
-	return proto.IntroShardResult{Cc: s.Card()}
+	return proto.IntroShardResult{Cc: svc.Card()}
 }
 
-func (s *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
+func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
 	if len(shards) == 0 {
 		return
 	}
 
-	s.dbLk.Lock()
-	defer s.dbLk.Unlock()
+	svc.dbLk.Lock()
+	defer svc.dbLk.Unlock()
 
-	if s.dbIsUp {
+	if svc.dbIsUp {
 		return
 	}
-	s.dbIsUp = true
-	s.dbShards = shards
+	svc.dbIsUp = true
+	svc.dbShards = shards
 
 	// trigger db restoration
 	go func() {
@@ -81,46 +85,47 @@ func (s *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
 		// restore shards in parallel
 		var wg sync.WaitGroup
 		wg.Add(len(shards))
-		for _, s := range shards {
+		for _, sh := range shards {
 			go func(s proto.ShardCard) {
 				defer wg.Done()
 
-				c := shard.NewShardClient(context.TODO(), s.Address)
-				c.Shard_restore(s.Block_height)
-			}(s)
+				c, err := shard.DialShardClient(context.TODO(), svc.dialer, s.Address)
+				must.NoError(context.TODO(), err)
+				c.Shard_restore(s.Block_height) //XXX: errors
+			}(sh)
 		}
 		wg.Wait()
 
 		// update db state
-		s.dbLk.Lock()
-		defer s.dbLk.Unlock()
-		s.dbIsRestored = true
-		s.dbCond.Broadcast()
+		svc.dbLk.Lock()
+		defer svc.dbLk.Unlock()
+		svc.dbIsRestored = true
+		svc.dbCond.Broadcast()
 	}()
 }
 
-func (s *CoordinatorService) Coordinator_intro_exec(card proto.ExecCard) proto.IntroExecResult {
-	s.lk.Lock()
-	s.exec[card.Upid] = card
-	s.lk.Unlock()
-	shards := s.waitForDbReady()
+func (svc *CoordinatorService) Coordinator_intro_exec(card proto.ExecCard) proto.IntroExecResult {
+	svc.lk.Lock()
+	svc.exec[card.Upid] = card
+	svc.lk.Unlock()
+	shards := svc.waitForDbReady()
 	return proto.IntroExecResult{
-		Cc:     s.Card(),
+		Cc:     svc.Card(),
 		Shards: shards,
 	}
 }
 
-func (s *CoordinatorService) waitForDbReady() xdrutil.ShardCards {
-	s.dbLk.Lock()
-	defer s.dbLk.Unlock()
-	for !s.dbIsReady() {
-		s.dbCond.Wait()
+func (svc *CoordinatorService) waitForDbReady() xdrutil.ShardCards {
+	svc.dbLk.Lock()
+	defer svc.dbLk.Unlock()
+	for !svc.dbIsReady() {
+		svc.dbCond.Wait()
 	}
-	return s.dbShards
+	return svc.dbShards
 }
 
-func (s *CoordinatorService) dbIsReady() bool {
-	return s.dbIsUp && s.dbIsRestored
+func (svc *CoordinatorService) dbIsReady() bool {
+	return svc.dbIsUp && svc.dbIsRestored
 }
 
 // findCompleteDb returns a list of db shards of highest block height that form a complete cluster.
@@ -129,9 +134,9 @@ func (s *CoordinatorService) dbIsReady() bool {
 // - it is not empty
 // - all shards report the same block height and total shard count
 // - the shard count matches the reported count
-func (s *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
+func (svc *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
 	byHeight := map[uint32]xdrutil.ShardCards{} // block_height -> shards
-	for _, dbc := range s.db {
+	for _, dbc := range svc.db {
 		byHeight[dbc.Block_height] = append(byHeight[dbc.Block_height], dbc)
 	}
 	var foundReady bool

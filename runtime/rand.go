@@ -1,10 +1,14 @@
 package runtime
 
 import (
+	"context"
+	cryptorand "crypto/rand"
+	"encoding/binary"
 	"math/rand"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/must"
 )
 
 var (
@@ -50,4 +54,14 @@ func NewRandFromRoot() *rand.Rand {
 
 func NewRandFromRand(parent *rand.Rand) *rand.Rand {
 	return rand.New(rand.NewSource(parent.Int63()))
+}
+
+// non-pseudorandom randomness
+
+func NewCryptoRand(ctx context.Context) *rand.Rand {
+	bytes := make([]byte, 8)
+	_, err := cryptorand.Read(bytes)
+	must.NoError(ctx, err)
+	seed := int64(binary.BigEndian.Uint64(bytes))
+	return rand.New(rand.NewSource(seed))
 }

@@ -2,17 +2,20 @@ package broadcast
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 type DeliveryQueue struct {
-	cond *sync.Cond
-	lk   sync.Mutex
-	chq  map[Channel][]deliveryTo
+	dialer libnet.AddressDialer
+	cond   *sync.Cond
+	lk     sync.Mutex
+	chq    map[Channel][]deliveryTo
 }
 
 type deliveryTo struct {
@@ -24,9 +27,10 @@ func newDeliveryTo(to ValidatorPublicInfo, delivery Delivery) deliveryTo {
 	return deliveryTo{To: to, Delivery: delivery}
 }
 
-func NewDeliveryQueue(ctx context.Context) *DeliveryQueue {
+func NewDeliveryQueue(ctx context.Context, dialer libnet.AddressDialer) *DeliveryQueue {
 	q := &DeliveryQueue{
-		chq: map[Channel][]deliveryTo{},
+		dialer: dialer,
+		chq:    map[Channel][]deliveryTo{},
 	}
 	q.cond = sync.NewCond(&q.lk)
 	go q.flush(ctx)
@@ -34,13 +38,14 @@ func NewDeliveryQueue(ctx context.Context) *DeliveryQueue {
 }
 
 func (q *DeliveryQueue) Enqueue(to ValidatorPublicInfo, delivery Delivery) {
+	fmt.Println("enqueue start", protoutil.ChannelString(delivery.Msg.Header.Channel))
+	defer fmt.Println("enqueue end", protoutil.ChannelString(delivery.Msg.Header.Channel))
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()
-	q.chq[delivery.Msg.Header.Channel] = append(
-		q.chq[delivery.Msg.Header.Channel],
-		newDeliveryTo(to, delivery),
-	)
+	channel := delivery.Msg.Header.Channel
+	q.chq[channel] = append(q.chq[channel], newDeliveryTo(to, delivery))
+	fmt.Println("XXX queue", len(q.chq[channel]))
 }
 
 // Discard drops all queued deliveries on the given channel.
@@ -60,8 +65,9 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 	for {
 		// block until there are deliveries in the queue
 		q.lk.Lock()
-		deliveries := q.linearizeAndClearDeliveries()
+		var deliveries []deliveryTo
 		for len(deliveries) == 0 {
+			deliveries = q.linearizeAndClearDeliveries()
 			q.cond.Wait()
 		}
 		q.lk.Unlock()
@@ -79,24 +85,29 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 
 func (q *DeliveryQueue) linearizeAndClearDeliveries() []deliveryTo {
 	l := []deliveryTo{}
-	for key, ds := range q.chq {
+	for channel, ds := range q.chq {
 		l = append(l, ds...)
-		delete(q.chq, key)
+		delete(q.chq, channel)
 	}
 	// TODO: should we randomize the order?
 	return l
 }
 
 func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
+	fmt.Printf("XXXdelivering to %s\n", protoutil.ValidatorPublicShortString(dto.To))
 	log.Infof("delivering message #%d on channel id %x to %s",
 		dto.Delivery.Msg.Header.Seqno,
 		dto.Delivery.Msg.Header.Channel.Channel_id,
 		protoutil.ValidatorPublicShortString(dto.To),
 	)
-	c := NewBroadcastClientTCP(ctx, dto.To.Address)
+	c, err := DialBroadcastClient(ctx, q.dialer, dto.To.Address)
+	if err != nil {
+		log.Errorf("queue dialing %s: %v", protoutil.ValidatorPublicShortString(dto.To), err)
+		return
+	}
 	defer c.Close()
 
-	err := xdrutil.CallRpcVoid(c.Broadcast_deliver, dto.Delivery)
+	err = xdrutil.CallRpcVoid(c.Broadcast_deliver, dto.Delivery)
 	if err != nil {
 		log.Errorf("delivering message #%d on channel id %x to %s: %s",
 			dto.Delivery.Msg.Header.Seqno,

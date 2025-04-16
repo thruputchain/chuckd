@@ -2,6 +2,7 @@ package protoutil
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -46,4 +47,25 @@ func FindMessages(msgHashes []proto.BroadcastMessageHash, msgs []proto.Broadcast
 	}
 
 	return found
+}
+
+// ChannelIDInt64 is intended for testing.
+func ChannelIDInt64(i int64) proto.BroadcastChannelID {
+	return int64ToBytes32(i)
+}
+
+// int64ToBytes32 converts an int64 value to a [32]byte array.
+// The int64 is placed at the end of the array (big-endian).
+func int64ToBytes32(value int64) [32]byte {
+	var result [32]byte
+
+	// Convert int64 to 8 bytes (big-endian)
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, uint64(value))
+
+	// Copy the 8 bytes to the end of the 32-byte array
+	// This places the int64 value at the rightmost position of the array
+	copy(result[32-8:], bytes)
+
+	return result
 }

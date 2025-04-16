@@ -2,7 +2,7 @@ package broadcast
 
 func (svc *BroadcastService) generateChannelID() ChannelID {
 	svc.randLk.Lock()
-	defer svc.randLk.Lock()
+	defer svc.randLk.Unlock()
 	var chID ChannelID
 	svc.rand.Read(chID[:])
 	return chID

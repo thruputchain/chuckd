@@ -2,10 +2,11 @@ package broadcast
 
 import (
 	"context"
-	"log"
 	"math/rand"
 	"net"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/test"
@@ -18,42 +19,40 @@ func StartServerTCP(
 	rr *rand.Rand,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
 	router router.Router,
 	disc AcceptDiscriminator,
-) {
+) *BroadcastService {
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
-	StartServer(ctx, rr, l, privInfo, ourSlices, router, disc)
+	return StartServer(ctx, libnet.TCPAddressDialer{}, rr, l, privInfo, router, disc)
 }
 
 func StartServerTest(
 	ctx context.Context,
 	rr *rand.Rand,
-	vnet *test.TestNetwork,
+	testnet *test.TestNetwork,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
 	router router.Router,
 	disc AcceptDiscriminator,
-) {
-	l, err := vnet.Listen("", addr)
+) *BroadcastService {
+	l, err := testnet.Listen("", addr)
 	must.NoError(ctx, err)
-	StartServer(ctx, rr, l, privInfo, ourSlices, router, disc)
+	return StartServer(ctx, testnet, rr, l, privInfo, router, disc)
 }
 
 func StartServer(
 	ctx context.Context,
+	dialer libnet.AddressDialer,
 	rr *rand.Rand,
 	l net.Listener,
 	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
 	router router.Router,
 	disc AcceptDiscriminator,
-) {
+) *BroadcastService {
+	svc := NewBroadcastService(ctx, dialer, rr, privInfo, router, disc)
 	go func() {
 		defer l.Close()
-		s := NewBroadcastService(ctx, rr, privInfo, ourSlices, router, disc)
 		for {
 			sock, err := l.Accept()
 			must.NoError(ctx, err)
@@ -61,8 +60,9 @@ func StartServer(
 			driver.Lock = nil // process all calls in parallel
 			driver.Log = log.Writer()
 			driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
-			driver.Register(proto.Broadcast1_Server{Srv: s})
+			driver.Register(proto.Broadcast1_Server{Srv: svc})
 			go driver.Go()
 		}
 	}()
+	return svc
 }

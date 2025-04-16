@@ -44,7 +44,7 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
-		expanded, err := expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
+		expanded, err := a.expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		if err != nil {
 			log.Errorf("recovering multicast tree from relayer %s: %s",
 				protoutil.ValidatorPublicShortString(first.Relayer), err)
@@ -83,8 +83,11 @@ func (a *accepting) accept(ctx context.Context) {
 	a.svc.acceptCh <- r
 }
 
-func expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
-	c := NewBroadcastClientTCP(ctx, address)
+func (a *accepting) expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
+	c, err := DialBroadcastClient(ctx, a.svc.dialer, address)
+	if err != nil {
+		return nil, err
+	}
 	defer c.Close()
 	return xdrutil.CallRpc(c.Broadcast_expand, treeHash)
 }

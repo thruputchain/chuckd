@@ -15,9 +15,13 @@ func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 	return sha256.Sum256(pubKey[:])
 }
 
+func ValidatorIDString(vid proto.ValidatorID) string {
+	return "vid:" + EncodeBase64(vid[:])
+}
+
 func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
 	id := ValidatorPublicKeyToID(pubInfo.Public_key)
-	return fmt.Sprintf("%s@%s", EncodeBase64(id[:]), pubInfo.Address)
+	return fmt.Sprintf("(%s address:%s)", ValidatorIDString(id), pubInfo.Address)
 }
 
 func ValidatorIDEqual(vid1 proto.ValidatorID, vid2 proto.ValidatorID) bool {

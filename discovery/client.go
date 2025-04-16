@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -14,11 +14,15 @@ type DiscoveryClient struct {
 	driver *rpc.Driver
 }
 
-func NewDiscoveryClient(ctx context.Context, addr string) *DiscoveryClient {
+func DialDiscoveryClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*DiscoveryClient, error) {
+	sock, err := dialer.DialAddress(address)
+	if err != nil {
+		return nil, err
+	}
+	return NewDiscoveryClient(ctx, sock), nil
+}
 
-	sock, err := net.Dial("tcp", addr)
-	must.NoError(ctx, err)
-
+func NewDiscoveryClient(ctx context.Context, sock net.Conn) *DiscoveryClient {
 	driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 	go driver.Go()
 

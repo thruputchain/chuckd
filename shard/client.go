@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -14,11 +14,15 @@ type ShardClient struct {
 	driver *rpc.Driver
 }
 
-func NewShardClient(ctx context.Context, addr string) *ShardClient {
+func DialShardClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*ShardClient, error) {
+	sock, err := dialer.DialAddress(address)
+	if err != nil {
+		return nil, err
+	}
+	return NewShardClient(ctx, sock), nil
+}
 
-	sock, err := net.Dial("tcp", addr)
-	must.NoError(ctx, err)
-
+func NewShardClient(ctx context.Context, sock net.Conn) *ShardClient {
 	driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 	go driver.Go()
 

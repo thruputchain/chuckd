@@ -5,12 +5,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type DiscoveryService struct {
+	dialer libnet.AddressDialer
+	//
 	privInfo  proto.ValidatorPrivateInfo
 	ourSlices []proto.QuorumSlice
 	//
@@ -24,12 +27,14 @@ type DiscoveryService struct {
 
 func NewDiscoveryService(
 	ctx context.Context,
+	dialer libnet.AddressDialer,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 ) *DiscoveryService {
 
 	log.Infof("starting discovery service")
 	s := &DiscoveryService{
+		dialer:    dialer,
 		privInfo:  privInfo,
 		ourSlices: ourSlices,
 		allSlices: map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot{},

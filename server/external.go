@@ -8,6 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/broadcast"
 	"github.com/groundhogchain/chuckd/discovery"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/router"
@@ -35,9 +36,16 @@ func NewExternalServer(
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
 
-	discovery := discovery.NewDiscoveryService(ctx, privInfo, ourSlices)
+	discovery := discovery.NewDiscoveryService(ctx, libnet.TCPAddressDialer{}, privInfo, ourSlices)
 	router := router.NewBasicRouter(ctx, discovery, maxFanOut)
-	broadcast := broadcast.NewBroadcastService(ctx, runtime.NewRandFromRand(rr), privInfo, ourSlices, router, broadcast.AcceptEverything{})
+	broadcast := broadcast.NewBroadcastService(
+		ctx,
+		libnet.TCPAddressDialer{},
+		runtime.NewRandFromRoot(),
+		privInfo,
+		router,
+		broadcast.AcceptEverything{},
+	)
 	return &ExternalServer{
 		l:         l,
 		discovery: discovery,

@@ -1,10 +1,15 @@
 package broadcast
 
-import "github.com/groundhogchain/chuckd/util/protoutil"
+import (
+	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+)
 
 func (svc *BroadcastService) Broadcast_null() {}
 
 func (svc *BroadcastService) Broadcast_deliver(delivery Delivery) {
+
+	log.Debugf("delivery arrived at %s\n", protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()))
 
 	if !protoutil.VerifyDelivery(delivery) {
 		return //discard

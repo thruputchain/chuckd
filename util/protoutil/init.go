@@ -3,29 +3,32 @@ package protoutil
 import (
 	"context"
 	"crypto/ed25519"
+	"math/rand"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func InitConfig(ctx context.Context) *proto.Config {
-	privInfo, err := GenerateCredentials()
-	must.NoError(ctx, err)
+func InitConfig(ctx context.Context, rr *rand.Rand, address string) *proto.Config {
+	privInfo := MustGenerateIdentity(ctx, rr, address)
 	return &proto.Config{Private_info: *privInfo}
 }
 
-func GenerateCredentials() (*proto.ValidatorPrivateInfo, error) {
-	// For safety, use non-deterministic randomness from crypto package, instead of
-	// seeding the randomness source with the runtime seed.
-	// Alternatively, we could force the user to provide a seed on the command-line,
-	// when generating credentials.
-	pubKey, secretKey, err := ed25519.GenerateKey(nil)
+func MustGenerateIdentity(ctx context.Context, rr *rand.Rand, address string) *proto.ValidatorPrivateInfo {
+	p, err := GenerateIdentity(rr, address)
+	must.NoError(ctx, err)
+	return p
+}
+
+func GenerateIdentity(rr *rand.Rand, address string) (*proto.ValidatorPrivateInfo, error) {
+	pubKey, secretKey, err := ed25519.GenerateKey(rr)
 	if err != nil {
 		return nil, err
 	}
 	return &proto.ValidatorPrivateInfo{
 		Public_info: proto.ValidatorPublicInfo{
 			Public_key: proto.ValidatorPublicKey(pubKey),
+			Address:    address,
 		},
 		Secret_key: proto.ValidatorSecretKey(secretKey),
 	}, nil
