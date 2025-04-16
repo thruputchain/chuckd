@@ -1,9 +1,13 @@
 package protoutil
 
-import proto "github.com/groundhogchain/protocol-go"
+import (
+	"encoding/hex"
+
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 func ChannelIDString(id proto.BroadcastChannelID) string {
-	return "cid:" + EncodeBase64(id[:])
+	return "cid:" + hex.EncodeToString(id[:])
 }
 
 func ChannelString(c proto.BroadcastChannel) string {

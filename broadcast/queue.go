@@ -2,7 +2,6 @@ package broadcast
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -38,14 +37,11 @@ func NewDeliveryQueue(ctx context.Context, dialer libnet.AddressDialer) *Deliver
 }
 
 func (q *DeliveryQueue) Enqueue(to ValidatorPublicInfo, delivery Delivery) {
-	fmt.Println("enqueue start", protoutil.ChannelString(delivery.Msg.Header.Channel))
-	defer fmt.Println("enqueue end", protoutil.ChannelString(delivery.Msg.Header.Channel))
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()
 	channel := delivery.Msg.Header.Channel
 	q.chq[channel] = append(q.chq[channel], newDeliveryTo(to, delivery))
-	fmt.Println("XXX queue", len(q.chq[channel]))
 }
 
 // Discard drops all queued deliveries on the given channel.
@@ -65,15 +61,16 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 	for {
 		// block until there are deliveries in the queue
 		q.lk.Lock()
-		var deliveries []deliveryTo
+		deliveries := q.linearizeAndClearDeliveries()
 		for len(deliveries) == 0 {
-			deliveries = q.linearizeAndClearDeliveries()
 			q.cond.Wait()
+			deliveries = q.linearizeAndClearDeliveries()
 		}
 		q.lk.Unlock()
 
 		// deliver in parallel with a throttle
 		for _, dto := range deliveries {
+			log.Infof("DELIVERING to %s", protoutil.ValidatorPublicShortString(dto.To))
 			sem <- struct{}{} // acquire a delivery slot
 			go func(dto deliveryTo) {
 				defer func() { <-sem }() // release delivery slot
@@ -94,7 +91,6 @@ func (q *DeliveryQueue) linearizeAndClearDeliveries() []deliveryTo {
 }
 
 func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
-	fmt.Printf("XXXdelivering to %s\n", protoutil.ValidatorPublicShortString(dto.To))
 	log.Infof("delivering message #%d on channel id %x to %s",
 		dto.Delivery.Msg.Header.Seqno,
 		dto.Delivery.Msg.Header.Channel.Channel_id,

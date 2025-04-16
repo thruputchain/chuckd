@@ -2,6 +2,7 @@ package protoutil
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	proto "github.com/groundhogchain/protocol-go"
@@ -16,7 +17,7 @@ func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 }
 
 func ValidatorIDString(vid proto.ValidatorID) string {
-	return "vid:" + EncodeBase64(vid[:])
+	return "vid:" + hex.EncodeToString(vid[:])
 }
 
 func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {

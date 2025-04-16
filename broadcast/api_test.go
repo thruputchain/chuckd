@@ -3,7 +3,6 @@ package broadcast
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"math/rand"
 	"os"
 	"sync"
@@ -103,9 +102,7 @@ func TestDelivery(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		rch := b1.API().AcceptChannel()
-		fmt.Println("acc1")
 		_, _, p := rch.Receive()
-		fmt.Println("recv1")
 		if bytes.Compare(p, payload) != 0 {
 			t.Errorf("unexpected payload")
 		}
