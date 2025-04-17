@@ -15,32 +15,36 @@ type DiscoveryService struct {
 	cfg    DiscoveryConfig
 	dialer libnet.AddressDialer
 	//
-	privInfo  proto.ValidatorPrivateInfo
-	ourSlices []proto.QuorumSlice
+	privInfo      proto.ValidatorPrivateInfo
+	ourQSet       proto.QuorumSet
+	ourValidators []proto.ValidatorPublicInfo
 	//
-	lk        sync.Mutex
-	allSlices map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot
+	lk         sync.Mutex
+	knownQSets map[proto.ValidatorID]proto.SignedQuorumSetSnapshot
+	knownVs    map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot
 	//
-	cachedLk        sync.Mutex
-	cachedStamp     time.Time
-	cachedSnapshots proto.ValidatorQuorumSlicesSnapshots
+	cachedLk         sync.Mutex
+	cachedStamp      time.Time
+	cachedSnapshots  []proto.SignedQuorumSetSnapshot
+	cachedValidators []proto.SignedValidatorInfoSnapshot
 }
 
 func NewDiscoveryService(
 	ctx context.Context,
 	cfg DiscoveryConfig,
 	dialer libnet.AddressDialer,
-	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
+	vcfg proto.ValidatorConfig,
 ) *DiscoveryService {
 
 	log.Infof("starting discovery service")
 	s := &DiscoveryService{
-		cfg:       cfg,
-		dialer:    dialer,
-		privInfo:  privInfo,
-		ourSlices: ourSlices,
-		allSlices: map[proto.ValidatorID]proto.ValidatorQuorumSlicesSnapshot{},
+		cfg:           cfg,
+		dialer:        dialer,
+		privInfo:      vcfg.Private_info,
+		ourQSet:       vcfg.Quorum_set,
+		ourValidators: vcfg.Known_validators,
+		knownQSets:    map[proto.ValidatorID]proto.SignedQuorumSetSnapshot{},
+		knownVs:       map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{},
 	}
 
 	go s.advertise(ctx)
@@ -53,59 +57,104 @@ func (s *DiscoveryService) Discovery_null(ctx context.Context) error {
 
 func (s *DiscoveryService) Discovery_update_quorums(
 	ctx context.Context,
-	vs proto.ValidatorQuorumSlicesSnapshots,
-) (proto.UpdateQuorumsResult, error) {
-	snapshots := s.CachedSnapshots()
-	for _, v := range vs {
-		s.addQuorumSlices(v)
-	}
-	return proto.UpdateQuorumsResult{Quorum_slices_snapshots: snapshots}, nil
+	known proto.KnownQuorumSets,
+) (proto.KnownQuorumSets, error) {
+
+	cachedKnown := s.CachedSnapshots()
+	s.updateKnown(known)
+	return cachedKnown, nil
 }
 
-func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSnapshot) {
-	if !protoutil.VerifyValidatorQuorumSlicesSnapshot(vslices) {
+func (s *DiscoveryService) updateKnown(known proto.KnownQuorumSets) {
+	s.lk.Lock()
+	defer s.lk.Unlock()
+
+	for _, qs := range known.Quorum_set_snapshots {
+		s.addQuorumSet(qs)
+	}
+	for _, vs := range known.Validator_snapshots {
+		s.addValidator(vs)
+	}
+}
+
+func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
+	if !protoutil.VerifySignedQuorumSetSnapshot(qset) {
 		return
 	}
 
-	s.lk.Lock()
-	// add slices only if more recent than currently known
-	key := protoutil.ValidatorPublicKeyToID(vslices.Validator_public_info.Public_key)
-	if current, ok := s.allSlices[key]; ok {
-		if current.Quorum_slices_snapshot.Timestamp < vslices.Quorum_slices_snapshot.Timestamp {
-			s.allSlices[key] = vslices
+	// add qsets only if more recent than currently known
+	key := protoutil.ValidatorPublicKeyToID(qset.Signer.Public_key)
+	if current, ok := s.knownQSets[key]; ok {
+		if current.Quorum_set_snapshot.Timestamp < qset.Quorum_set_snapshot.Timestamp {
+			s.knownQSets[key] = qset
 		}
 	} else {
-		s.allSlices[key] = vslices
+		s.knownQSets[key] = qset
 	}
-	s.lk.Unlock()
 }
 
-func (s *DiscoveryService) rebuildSnapshots() proto.ValidatorQuorumSlicesSnapshots {
+func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
+	if !protoutil.VerifySignedValidatorInfoSnapshot(v) {
+		return
+	}
+
+	// add qsets only if more recent than currently known
+	key := protoutil.ValidatorPublicKeyToID(v.Signer.Public_key)
+	if current, ok := s.knownVs[key]; ok {
+		if current.Validator_snapshot.Timestamp < v.Validator_snapshot.Timestamp {
+			s.knownVs[key] = v
+		}
+	} else {
+		s.knownVs[key] = v
+	}
+}
+
+func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 	s.cachedLk.Lock()
 	defer s.cachedLk.Unlock()
 
 	// don't rebuild snapshots more frequently than once every 10 seconds
 	if time.Now().Sub(s.cachedStamp) < s.cfg.MinSnapshotTTL {
-		return s.cachedSnapshots
+		return proto.KnownQuorumSets{
+			Quorum_set_snapshots: s.cachedSnapshots,
+			Validator_snapshots:  s.cachedValidators,
+		}
 	}
 
 	// build snapshots
 	s.lk.Lock()
-	ourValidatorSlices := protoutil.MakeValidatorQuorumSlicesSnapshot(s.privInfo, s.ourSlices)
-	snapshots := proto.ValidatorQuorumSlicesSnapshots{ourValidatorSlices}
-	for _, vslices := range s.allSlices {
-		snapshots = append(snapshots, vslices)
+
+	// qsets
+	ourSignedQSet := protoutil.MakeSignedQuorumSetSnapshot(s.privInfo, s.ourQSet)
+	allQsets := []proto.SignedQuorumSetSnapshot{ourSignedQSet}
+	for _, signedQSet := range s.knownQSets {
+		allQsets = append(allQsets, signedQSet)
 	}
-	protoutil.SortValidatorQuorumSlicesSnapshotsByDescendingTimestamp(snapshots)
+	protoutil.SortSignedQuorumSetSnapshotsByDescendingTimestamp(allQsets)
+
+	// validators
+	vv := map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{}
+	for _, v := range s.knownVs {
+		vv[protoutil.ValidatorIDFromPublic(v.Signer)] = v
+	}
+	for _, v := range s.ourValidators {
+		vv[protoutil.ValidatorIDFromPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.privInfo, v)
+	}
+	allVs := []proto.SignedValidatorInfoSnapshot{}
+	for _, v := range vv {
+		allVs = append(allVs, v)
+	}
+	protoutil.SortSignedValidatorInfoSnapshots(allVs)
+
 	s.lk.Unlock()
 
 	// update cache
-	s.cachedSnapshots = snapshots
+	s.cachedSnapshots = allQsets
+	s.cachedValidators = allVs
 	s.cachedStamp = time.Now()
 
-	return s.cachedSnapshots
-}
-
-func (s *DiscoveryService) CachedSnapshots() proto.ValidatorQuorumSlicesSnapshots {
-	return s.rebuildSnapshots()
+	return proto.KnownQuorumSets{
+		Quorum_set_snapshots: s.cachedSnapshots,
+		Validator_snapshots:  allVs,
+	}
 }

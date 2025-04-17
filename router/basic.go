@@ -38,7 +38,7 @@ func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 	r := rand.New(rand.NewSource(seed))
 
 	// shuffle validators
-	vs := protoutil.SnapshotsValidatorSet(x.discovery.CachedSnapshots())
+	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
 
 	// find and remove root

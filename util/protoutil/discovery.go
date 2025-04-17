@@ -7,55 +7,96 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func MakeValidatorQuorumSlicesSnapshot(
+func MakeSignedQuorumSetSnapshot(
 	privInfo proto.ValidatorPrivateInfo,
-	slices []proto.QuorumSlice,
-) proto.ValidatorQuorumSlicesSnapshot {
-	qss := MakeQuorumsSlicesSnapshot(slices)
-	return proto.ValidatorQuorumSlicesSnapshot{
-		Validator_public_info:  privInfo.Public_info,
-		Quorum_slices_snapshot: qss,
-		Validator_signature:    SignXdr(privInfo.Secret_key, &qss),
+	qset proto.QuorumSet,
+) proto.SignedQuorumSetSnapshot {
+	qss := proto.QuorumSetSnapshot{
+		Timestamp:  time.Now().UnixNano(),
+		Quorum_set: qset,
+	}
+	return proto.SignedQuorumSetSnapshot{
+		Signer:              privInfo.Public_info,
+		Signature:           SignXdr(privInfo.Secret_key, &qss),
+		Quorum_set_snapshot: qss,
 	}
 }
 
-func MakeQuorumsSlicesSnapshot(slices []proto.QuorumSlice) proto.QuorumSlicesSnapshot {
-	return proto.QuorumSlicesSnapshot{
-		Timestamp:     time.Now().UnixNano(),
-		Quorum_slices: slices,
+func MakeSignedValidatorInfoSnapshot(
+	privInfo proto.ValidatorPrivateInfo,
+	v proto.ValidatorPublicInfo,
+) proto.SignedValidatorInfoSnapshot {
+	w := proto.ValidatorInfoSnapshot{
+		Timestamp: time.Now().UnixNano(),
+		Validator: v,
+	}
+	return proto.SignedValidatorInfoSnapshot{
+		Signer:             privInfo.Public_info,
+		Signature:          SignXdr(privInfo.Secret_key, &w),
+		Validator_snapshot: w,
 	}
 }
 
-func VerifyValidatorQuorumSlicesSnapshot(value proto.ValidatorQuorumSlicesSnapshot) bool {
-	return VerifyXdr(value.Validator_public_info.Public_key, &value.Quorum_slices_snapshot, value.Validator_signature)
+// sorting qsets
+
+func SortSignedQuorumSetSnapshotsByDescendingTimestamp(ss []proto.SignedQuorumSetSnapshot) {
+	SignedQuorumSetSnapshotsByDescendingTimestamp(ss).Sort()
 }
 
-func SortValidatorQuorumSlicesSnapshotsByDescendingTimestamp(vslices proto.ValidatorQuorumSlicesSnapshots) {
-	ValidatorQuorumSlicesSnapshotsByDescendingTimestamp(vslices).Sort()
+type SignedQuorumSetSnapshotsByDescendingTimestamp []proto.SignedQuorumSetSnapshot
+
+func (xs SignedQuorumSetSnapshotsByDescendingTimestamp) Len() int {
+	return len(xs)
 }
 
-type ValidatorQuorumSlicesSnapshotsByDescendingTimestamp proto.ValidatorQuorumSlicesSnapshots
-
-func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Len() int { return len(xs) }
-func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Less(i, j int) bool {
-	return xs[i].Quorum_slices_snapshot.Timestamp > xs[j].Quorum_slices_snapshot.Timestamp
+func (xs SignedQuorumSetSnapshotsByDescendingTimestamp) Less(i, j int) bool {
+	return xs[i].Quorum_set_snapshot.Timestamp > xs[j].Quorum_set_snapshot.Timestamp
 }
-func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Swap(i, j int) {
+
+func (xs SignedQuorumSetSnapshotsByDescendingTimestamp) Swap(i, j int) {
 	xs[i], xs[j] = xs[j], xs[i]
 }
-func (xs ValidatorQuorumSlicesSnapshotsByDescendingTimestamp) Sort() { sort.Sort(xs) }
 
-// ValidatorsInQuorumSlices returns the validators encountered in quorum slices in random order.
-func ValidatorsInQuorumSlices(slices []proto.QuorumSlice) []proto.ValidatorPublicInfo {
-	m := map[proto.ValidatorID]proto.ValidatorPublicInfo{}
-	for _, s := range slices {
-		for _, v := range s {
-			m[ValidatorPublicKeyToID(v.Public_key)] = v
-		}
-	}
+func (xs SignedQuorumSetSnapshotsByDescendingTimestamp) Sort() { sort.Sort(xs) }
+
+// sorting validators
+
+func SortSignedValidatorInfoSnapshots(vs []proto.SignedValidatorInfoSnapshot) {
+	SignedValidatorInfoSnapshotsByDescendingTimestamp(vs).Sort()
+}
+
+type SignedValidatorInfoSnapshotsByDescendingTimestamp []proto.SignedValidatorInfoSnapshot
+
+func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Len() int {
+	return len(xs)
+}
+
+func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Less(i, j int) bool {
+	return xs[i].Validator_snapshot.Timestamp > xs[j].Validator_snapshot.Timestamp
+}
+
+func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Swap(i, j int) {
+	xs[i], xs[j] = xs[j], xs[i]
+}
+
+func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Sort() { sort.Sort(xs) }
+
+// verification
+
+func VerifySignedQuorumSetSnapshot(v proto.SignedQuorumSetSnapshot) bool {
+	return VerifyXdr(v.Signer.Public_key, &v.Quorum_set_snapshot, v.Signature)
+}
+
+func VerifySignedValidatorInfoSnapshot(v proto.SignedValidatorInfoSnapshot) bool {
+	return VerifyXdr(v.Signer.Public_key, &v.Validator_snapshot, v.Signature)
+}
+
+// misc
+
+func SnapshotValidators(known proto.KnownQuorumSets) []proto.ValidatorPublicInfo {
 	vs := []proto.ValidatorPublicInfo{}
-	for _, v := range m {
-		vs = append(vs, v)
+	for _, v := range known.Validator_snapshots {
+		vs = append(vs, v.Validator_snapshot.Validator)
 	}
 	return vs
 }

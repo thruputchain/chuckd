@@ -27,8 +27,7 @@ func NewExternalServer(
 	ctx context.Context,
 	rr *rand.Rand,
 	addr string,
-	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
+	vcfg proto.ValidatorConfig,
 	maxFanOut int, // maximum fanout of multicast trees
 ) *ExternalServer {
 
@@ -40,8 +39,7 @@ func NewExternalServer(
 		ctx,
 		discovery.DefaultDiscoveryConfig,
 		libnet.TCPAddressDialer{},
-		privInfo,
-		ourSlices,
+		vcfg,
 	)
 	router := router.NewBasicRouter(ctx, discovery, maxFanOut)
 	broadcast := broadcast.NewBroadcastService(
@@ -49,7 +47,7 @@ func NewExternalServer(
 		broadcast.DefaultBroadcastConfig,
 		libnet.TCPAddressDialer{},
 		runtime.NewRandFromRoot(),
-		privInfo,
+		vcfg.Private_info,
 		router,
 		broadcast.AcceptEverything{},
 	)

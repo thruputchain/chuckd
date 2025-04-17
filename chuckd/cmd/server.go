@@ -26,8 +26,7 @@ var (
 				runtime.NewRandFromRoot(),
 				serverInternalBindAddress,
 				serverExternalBindAddress,
-				cfg.Private_info,
-				cfg.Quorum_slices,
+				*cfg,
 				serverMaxFanOut,
 			)
 			srv.Start(ctx)

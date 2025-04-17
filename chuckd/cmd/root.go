@@ -77,7 +77,7 @@ func effectiveConfigPath(ctx context.Context) string {
 	return cfgPath
 }
 
-func LoadConfig(ctx context.Context) *proto.Config {
+func LoadConfig(ctx context.Context) *proto.ValidatorConfig {
 
 	cfgPath := effectiveConfigPath(ctx)
 	log.Infof("loading config %v", cfgPath)
@@ -85,7 +85,7 @@ func LoadConfig(ctx context.Context) *proto.Config {
 	data, err := os.ReadFile(cfgPath)
 	must.Assertf(ctx, err == nil, "reading config file (%w)", err)
 
-	var config proto.Config
+	var config proto.ValidatorConfig
 	err = xdrutil.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 

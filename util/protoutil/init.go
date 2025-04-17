@@ -9,9 +9,9 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func InitConfig(ctx context.Context, rr *rand.Rand, address string) *proto.Config {
+func InitConfig(ctx context.Context, rr *rand.Rand, address string) *proto.ValidatorConfig {
 	privInfo := MustGenerateIdentity(ctx, rr, address)
-	return &proto.Config{Private_info: *privInfo}
+	return &proto.ValidatorConfig{Private_info: *privInfo}
 }
 
 func MustGenerateIdentity(ctx context.Context, rr *rand.Rand, address string) *proto.ValidatorPrivateInfo {

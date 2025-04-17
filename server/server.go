@@ -18,13 +18,12 @@ func NewServer(
 	rr *rand.Rand,
 	inaddr string,
 	exaddr string,
-	privInfo proto.ValidatorPrivateInfo,
-	ourSlices []proto.QuorumSlice,
+	vcfg proto.ValidatorConfig,
 	maxFanOut int, // maximum fanout of multicast trees
 ) *Server {
 	return &Server{
 		internal: NewInternalServer(ctx, runtime.NewRandFromRand(rr), inaddr),
-		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), exaddr, privInfo, ourSlices, maxFanOut),
+		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), exaddr, vcfg, maxFanOut),
 	}
 }
 

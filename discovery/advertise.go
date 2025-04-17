@@ -28,14 +28,14 @@ func (s *DiscoveryService) advertiseToAll(ctx context.Context, epoch int) {
 	limiter := make(chan struct{}, s.cfg.AdvertiseMaxPar)
 	var wg sync.WaitGroup
 
-	snapshots := s.CachedSnapshots()
-	for _, v := range protoutil.ValidatorsInQuorumSlices(s.ourSlices) {
+	snapshot := s.CachedSnapshots()
+	for _, v := range s.ourValidators {
 		wg.Add(1)
 		limiter <- struct{}{} // acquire an execution slot
 		go func(v proto.ValidatorPublicInfo) {
 			defer wg.Done()
 			defer func() { <-limiter }() // release the execution slot
-			s.advertiseToValidator(ctx, epoch, v, snapshots)
+			s.advertiseToValidator(ctx, epoch, v, snapshot)
 		}(v)
 	}
 	wg.Wait()
@@ -45,7 +45,7 @@ func (s *DiscoveryService) advertiseToValidator(
 	ctx context.Context,
 	epoch int,
 	v proto.ValidatorPublicInfo,
-	snapshots proto.ValidatorQuorumSlicesSnapshots,
+	snapshot proto.KnownQuorumSets,
 ) {
 	log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
 	c, err := DialDiscoveryClient(ctx, s.dialer, v.Address)
@@ -55,12 +55,10 @@ func (s *DiscoveryService) advertiseToValidator(
 	}
 	defer c.Close()
 
-	r, err := c.Discovery_update_quorums(ctx, snapshots)
+	r, err := c.Discovery_update_quorums(ctx, snapshot)
 	if err != nil {
 		log.Errorf("advertise to %s at epoch %d: %s", protoutil.ValidatorPublicShortString(v), epoch, err)
 		return
 	}
-	for _, v := range r.Quorum_slices_snapshots {
-		s.addQuorumSlices(v)
-	}
+	s.updateKnown(r)
 }
