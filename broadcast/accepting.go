@@ -6,7 +6,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 type accepting struct {
@@ -89,5 +88,5 @@ func (a *accepting) expandTree(ctx context.Context, address string, treeHash Mul
 		return nil, err
 	}
 	defer c.Close()
-	return xdrutil.CallRpc(c.Broadcast_expand, treeHash)
+	return c.Broadcast_expand(ctx, treeHash)
 }

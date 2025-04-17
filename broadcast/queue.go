@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 type DeliveryQueue struct {
@@ -103,7 +102,7 @@ func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
 	}
 	defer c.Close()
 
-	err = xdrutil.CallRpcVoid(c.Broadcast_deliver, dto.Delivery)
+	err = c.Broadcast_deliver(ctx, dto.Delivery)
 	if err != nil {
 		log.Errorf("delivering message #%d on channel id %x to %s: %s",
 			dto.Delivery.Msg.Header.Seqno,

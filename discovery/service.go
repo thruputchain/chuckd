@@ -44,14 +44,19 @@ func NewDiscoveryService(
 	return s
 }
 
-func (s *DiscoveryService) Discovery_null() {}
+func (s *DiscoveryService) Discovery_null(ctx context.Context) error {
+	return nil
+}
 
-func (s *DiscoveryService) Discovery_update_quorums(vs proto.ValidatorQuorumSlicesSnapshots) proto.UpdateQuorumsResult {
+func (s *DiscoveryService) Discovery_update_quorums(
+	ctx context.Context,
+	vs proto.ValidatorQuorumSlicesSnapshots,
+) (proto.UpdateQuorumsResult, error) {
 	snapshots := s.CachedSnapshots()
 	for _, v := range vs {
 		s.addQuorumSlices(v)
 	}
-	return proto.UpdateQuorumsResult{Quorum_slices_snapshots: snapshots}
+	return proto.UpdateQuorumsResult{Quorum_slices_snapshots: snapshots}, nil
 }
 
 func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSnapshot) {

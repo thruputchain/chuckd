@@ -7,7 +7,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -62,7 +61,7 @@ func (s *DiscoveryService) advertiseToValidator(
 	}
 	defer c.Close()
 
-	r, err := xdrutil.CallRpc(c.Discovery_update_quorums, snapshots)
+	r, err := c.Discovery_update_quorums(ctx, snapshots)
 	if err != nil {
 		log.Errorf("advertise to %s at epoch %d: %s", protoutil.ValidatorPublicShortString(v), epoch, err)
 		return

@@ -52,9 +52,11 @@ func (svc *CoordinatorService) Card() proto.CoordinatorCard {
 	return proto.CoordinatorCard{Upid: svc.upid}
 }
 
-func (svc *CoordinatorService) Coordinator_null() {}
+func (svc *CoordinatorService) Coordinator_null(ctx context.Context) error {
+	return nil
+}
 
-func (svc *CoordinatorService) Coordinator_intro_shard(card proto.ShardCard) proto.IntroShardResult {
+func (svc *CoordinatorService) Coordinator_intro_shard(ctx context.Context, card proto.ShardCard) (proto.IntroShardResult, error) {
 	svc.lk.Lock()
 	svc.db[card.Upid] = card
 	shards := svc.findCompleteDb()
@@ -62,10 +64,11 @@ func (svc *CoordinatorService) Coordinator_intro_shard(card proto.ShardCard) pro
 
 	svc.prepareDb(shards)
 
-	return proto.IntroShardResult{Cc: svc.Card()}
+	return proto.IntroShardResult{Cc: svc.Card()}, nil
 }
 
 func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
+	ctx := context.TODO()
 	if len(shards) == 0 {
 		return
 	}
@@ -89,9 +92,10 @@ func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
 			go func(s proto.ShardCard) {
 				defer wg.Done()
 
-				c, err := shard.DialShardClient(context.TODO(), svc.dialer, s.Address)
-				must.NoError(context.TODO(), err)
-				c.Shard_restore(s.Block_height) //XXX: errors
+				c, err := shard.DialShardClient(ctx, svc.dialer, s.Address)
+				must.NoError(ctx, err)
+				_, err = c.Shard_restore(ctx, s.Block_height)
+				must.NoError(ctx, err)
 			}(sh)
 		}
 		wg.Wait()
@@ -104,7 +108,7 @@ func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
 	}()
 }
 
-func (svc *CoordinatorService) Coordinator_intro_exec(card proto.ExecCard) proto.IntroExecResult {
+func (svc *CoordinatorService) Coordinator_intro_exec(ctx context.Context, card proto.ExecCard) (proto.IntroExecResult, error) {
 	svc.lk.Lock()
 	svc.exec[card.Upid] = card
 	svc.lk.Unlock()
@@ -112,7 +116,7 @@ func (svc *CoordinatorService) Coordinator_intro_exec(card proto.ExecCard) proto
 	return proto.IntroExecResult{
 		Cc:     svc.Card(),
 		Shards: shards,
-	}
+	}, nil
 }
 
 func (svc *CoordinatorService) waitForDbReady() xdrutil.ShardCards {

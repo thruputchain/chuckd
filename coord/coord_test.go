@@ -28,7 +28,7 @@ func TestNullRoundtrip(t *testing.T) {
 
 	c, err := DialCoordinatorClientTCP(ctx, addr)
 	must.NoError(ctx, err)
-	c.Coordinator_null()
+	c.Coordinator_null(ctx)
 }
 
 func TestShardCompleteness(t *testing.T) {
@@ -42,7 +42,7 @@ func TestShardCompleteness(t *testing.T) {
 	sh2.Start(ctx)
 	sh3.Start(ctx)
 
-	s.Coordinator_intro_shard(proto.ShardCard{
+	s.Coordinator_intro_shard(ctx, proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(1),
 		Block_height: 1,
 		Shard_count:  2,
@@ -53,7 +53,7 @@ func TestShardCompleteness(t *testing.T) {
 		t.Fatalf("db should not be ready")
 	}
 
-	s.Coordinator_intro_shard(proto.ShardCard{
+	s.Coordinator_intro_shard(ctx, proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(2),
 		Block_height: 2, // different height
 		Shard_count:  2,
@@ -64,7 +64,7 @@ func TestShardCompleteness(t *testing.T) {
 		t.Fatalf("db should not be ready")
 	}
 
-	s.Coordinator_intro_shard(proto.ShardCard{
+	s.Coordinator_intro_shard(ctx, proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(3),
 		Block_height: 1,
 		Shard_count:  2,
@@ -91,7 +91,7 @@ func TestDbReadiness(t *testing.T) {
 	execUnblocked := make(chan int, 1)
 
 	go func() {
-		s.Coordinator_intro_exec(proto.ExecCard{
+		s.Coordinator_intro_exec(ctx, proto.ExecCard{
 			Upid:    xdrutil.Uint64UPID(10),
 			Address: "2.2.2.2",
 		})
@@ -99,7 +99,7 @@ func TestDbReadiness(t *testing.T) {
 		fmt.Println("unblocked")
 	}()
 
-	s.Coordinator_intro_shard(proto.ShardCard{
+	s.Coordinator_intro_shard(ctx, proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(1),
 		Block_height: 1,
 		Shard_count:  2,
@@ -112,7 +112,7 @@ func TestDbReadiness(t *testing.T) {
 	default:
 	}
 
-	s.Coordinator_intro_shard(proto.ShardCard{
+	s.Coordinator_intro_shard(ctx, proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(3),
 		Block_height: 1,
 		Shard_count:  2,

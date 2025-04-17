@@ -12,8 +12,10 @@ func NewTestShardService(ctx context.Context) *TestShardService {
 	return &TestShardService{}
 }
 
-func (s *TestShardService) Shard_null() {}
+func (s *TestShardService) Shard_null(ctx context.Context) error {
+	return nil
+}
 
-func (s *TestShardService) Shard_restore(blockHeight proto.BlockHeight) proto.ShardResult {
-	return proto.ShardOK
+func (s *TestShardService) Shard_restore(ctx context.Context, blockHeight proto.BlockHeight) (proto.ShardResult, error) {
+	return proto.ShardOK, nil
 }

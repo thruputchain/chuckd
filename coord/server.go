@@ -28,7 +28,7 @@ func StartServer(
 	dialer libnet.AddressDialer,
 	l net.Listener,
 ) *CoordinatorService {
-	s := NewCoordinatorService(ctx, dialer, rr)
+	svc := NewCoordinatorService(ctx, dialer, rr)
 	go func() {
 		defer l.Close()
 		for {
@@ -38,9 +38,9 @@ func StartServer(
 			driver.Lock = nil // process all calls in parallel
 			driver.Log = log.Writer()
 			driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
-			driver.Register(proto.Coordinator1_Server{Srv: s})
+			driver.Register(proto.Coordinator1_Server{Srv: svc})
 			go driver.Go()
 		}
 	}()
-	return s
+	return svc
 }

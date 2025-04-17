@@ -1,18 +1,22 @@
 package broadcast
 
 import (
+	"context"
+
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
-func (svc *BroadcastService) Broadcast_null() {}
+func (svc *BroadcastService) Broadcast_null(ctx context.Context) error {
+	return nil
+}
 
-func (svc *BroadcastService) Broadcast_deliver(delivery Delivery) {
+func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Delivery) error {
 
 	log.Debugf("delivery arrived at %s\n", protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()))
 
 	if !protoutil.VerifyDelivery(delivery) {
-		return //discard
+		return nil //discard
 	}
 
 	channel := delivery.Msg.Header.Channel
@@ -21,7 +25,7 @@ func (svc *BroadcastService) Broadcast_deliver(delivery Delivery) {
 	defer svc.lk.Unlock()
 
 	if s := svc.sending[channel]; s != nil {
-		return // discard
+		return nil // discard
 
 	} else if a := svc.accepting[channel]; a != nil {
 		a.deliver(delivery)
@@ -32,28 +36,29 @@ func (svc *BroadcastService) Broadcast_deliver(delivery Delivery) {
 	} else {
 		// ask the application whether the broadcast is acceptable
 		if !svc.disc.IsAcceptable(channel, delivery.Msg.Header.Seqno, delivery.Msg.Payload) {
-			return // discard
+			return nil // discard
 		}
 		svc.accepting[channel] = newAccepting(svc, delivery)
 
 	}
+	return nil
 }
 
 // XXX: DOS attacks?
-func (svc *BroadcastService) Broadcast_reconcile(x ReconcileMessages) ReconciledMessages {
+func (svc *BroadcastService) Broadcast_reconcile(ctx context.Context, x ReconcileMessages) (ReconciledMessages, error) {
 
 	svc.lk.Lock()
 	defer svc.lk.Unlock()
 
 	if s := svc.sending[x.Channel]; s != nil {
-		return ReconciledMessages{Msgs: s.reconcile(x.Msg_hashes)}
+		return ReconciledMessages{Msgs: s.reconcile(x.Msg_hashes)}, nil
 	} else if r := svc.receiving[x.Channel]; r != nil {
-		return ReconciledMessages{Msgs: r.reconcile(x.Msg_hashes)}
+		return ReconciledMessages{Msgs: r.reconcile(x.Msg_hashes)}, nil
 	} else {
-		return ReconciledMessages{}
+		return ReconciledMessages{}, nil
 	}
 }
 
-func (svc *BroadcastService) Broadcast_expand(x MulticastTreeHash) MulticastTreeNodes {
-	return svc.findTree(x)
+func (svc *BroadcastService) Broadcast_expand(ctx context.Context, x MulticastTreeHash) (MulticastTreeNodes, error) {
+	return svc.findTree(x), nil
 }
