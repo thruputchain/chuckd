@@ -12,6 +12,7 @@ import (
 )
 
 type DiscoveryService struct {
+	cfg    DiscoveryConfig
 	dialer libnet.AddressDialer
 	//
 	privInfo  proto.ValidatorPrivateInfo
@@ -27,6 +28,7 @@ type DiscoveryService struct {
 
 func NewDiscoveryService(
 	ctx context.Context,
+	cfg DiscoveryConfig,
 	dialer libnet.AddressDialer,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
@@ -34,6 +36,7 @@ func NewDiscoveryService(
 
 	log.Infof("starting discovery service")
 	s := &DiscoveryService{
+		cfg:       cfg,
 		dialer:    dialer,
 		privInfo:  privInfo,
 		ourSlices: ourSlices,
@@ -77,14 +80,12 @@ func (s *DiscoveryService) addQuorumSlices(vslices proto.ValidatorQuorumSlicesSn
 	s.lk.Unlock()
 }
 
-const SNAPSHOT_MIN_REBUILD_DURATION = time.Second * 10
-
 func (s *DiscoveryService) rebuildSnapshots() proto.ValidatorQuorumSlicesSnapshots {
 	s.cachedLk.Lock()
 	defer s.cachedLk.Unlock()
 
 	// don't rebuild snapshots more frequently than once every 10 seconds
-	if time.Now().Sub(s.cachedStamp) < SNAPSHOT_MIN_REBUILD_DURATION {
+	if time.Now().Sub(s.cachedStamp) < s.cfg.MinSnapshotTTL {
 		return s.cachedSnapshots
 	}
 

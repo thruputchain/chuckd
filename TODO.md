@@ -9,10 +9,8 @@ CODE QUALITY
     - Quorum->Q
 
 GOXDR
-- [ ] ctx on xdr methods?
-- [ ] plumb ctx in rpc driver.Go, which supports context abort
+- [x] ctx on xdr methods?
+- [x] plumb ctx in rpc driver.Go, which supports context abort
 
 DUE DILLIGENCE
-- [ ] place all constants into configuration structures
 - [ ] timeouts on all rpc calls
-- [ ] generate RPC clients that return errors (instead of panicking)

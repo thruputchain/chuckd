@@ -32,8 +32,6 @@ type CoordinatorService struct {
 	dbIsRestored bool
 }
 
-const UPID_SEED_OFFSET = 0x1eef2eef3eef4eef
-
 func NewCoordinatorService(ctx context.Context, dialer libnet.AddressDialer, rr *rand.Rand) *CoordinatorService {
 	log.Infof("starting coordinator service")
 	upid, err := GenerateUPID(rr.Uint64())

@@ -36,10 +36,17 @@ func NewExternalServer(
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
 
-	discovery := discovery.NewDiscoveryService(ctx, libnet.TCPAddressDialer{}, privInfo, ourSlices)
+	discovery := discovery.NewDiscoveryService(
+		ctx,
+		discovery.DefaultDiscoveryConfig,
+		libnet.TCPAddressDialer{},
+		privInfo,
+		ourSlices,
+	)
 	router := router.NewBasicRouter(ctx, discovery, maxFanOut)
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
+		broadcast.DefaultBroadcastConfig,
 		libnet.TCPAddressDialer{},
 		runtime.NewRandFromRoot(),
 		privInfo,

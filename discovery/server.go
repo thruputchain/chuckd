@@ -13,23 +13,25 @@ import (
 
 func StartServerTCP(
 	ctx context.Context,
+	cfg DiscoveryConfig,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 ) *DiscoveryService {
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
-	return StartServer(ctx, libnet.TCPAddressDialer{}, l, privInfo, ourSlices)
+	return StartServer(ctx, cfg, libnet.TCPAddressDialer{}, l, privInfo, ourSlices)
 }
 
 func StartServer(
 	ctx context.Context,
+	cfg DiscoveryConfig,
 	dialer libnet.AddressDialer,
 	l net.Listener,
 	privInfo proto.ValidatorPrivateInfo,
 	ourSlices []proto.QuorumSlice,
 ) *DiscoveryService {
-	s := NewDiscoveryService(ctx, dialer, privInfo, ourSlices)
+	s := NewDiscoveryService(ctx, cfg, dialer, privInfo, ourSlices)
 	go func() {
 		defer l.Close()
 

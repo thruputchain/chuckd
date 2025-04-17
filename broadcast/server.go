@@ -16,6 +16,7 @@ import (
 
 func StartServerTCP(
 	ctx context.Context,
+	cfg BroadcastConfig,
 	rr *rand.Rand,
 	addr string,
 	privInfo proto.ValidatorPrivateInfo,
@@ -24,11 +25,12 @@ func StartServerTCP(
 ) *BroadcastService {
 	l, err := net.Listen("tcp", addr)
 	must.NoError(ctx, err)
-	return StartServer(ctx, libnet.TCPAddressDialer{}, rr, l, privInfo, router, disc)
+	return StartServer(ctx, cfg, libnet.TCPAddressDialer{}, rr, l, privInfo, router, disc)
 }
 
 func StartServerTest(
 	ctx context.Context,
+	cfg BroadcastConfig,
 	rr *rand.Rand,
 	testnet *test.TestNetwork,
 	addr string,
@@ -38,11 +40,12 @@ func StartServerTest(
 ) *BroadcastService {
 	l, err := testnet.Listen("", addr)
 	must.NoError(ctx, err)
-	return StartServer(ctx, testnet, rr, l, privInfo, router, disc)
+	return StartServer(ctx, cfg, testnet, rr, l, privInfo, router, disc)
 }
 
 func StartServer(
 	ctx context.Context,
+	cfg BroadcastConfig,
 	dialer libnet.AddressDialer,
 	rr *rand.Rand,
 	l net.Listener,
@@ -50,7 +53,7 @@ func StartServer(
 	router router.Router,
 	disc AcceptDiscriminator,
 ) *BroadcastService {
-	svc := NewBroadcastService(ctx, dialer, rr, privInfo, router, disc)
+	svc := NewBroadcastService(ctx, cfg, dialer, rr, privInfo, router, disc)
 	go func() {
 		defer l.Close()
 		for {

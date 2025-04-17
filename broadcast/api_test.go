@@ -85,9 +85,9 @@ func TestDelivery(t *testing.T) {
 	r2 := runtime.NewRandFromRoot()
 
 	testnet := test.NewTestNetwork()
-	b0 := StartServerTest(testCtx, r0, testnet, testVs[0].Public_info.Address, *testVs[0], testRouter, AcceptEverything{})
-	b1 := StartServerTest(testCtx, r1, testnet, testVs[1].Public_info.Address, *testVs[1], testRouter, AcceptEverything{})
-	b2 := StartServerTest(testCtx, r2, testnet, testVs[2].Public_info.Address, *testVs[2], testRouter, AcceptEverything{})
+	b0 := StartServerTest(testCtx, DefaultBroadcastConfig, r0, testnet, testVs[0].Public_info.Address, *testVs[0], testRouter, AcceptEverything{})
+	b1 := StartServerTest(testCtx, DefaultBroadcastConfig, r1, testnet, testVs[1].Public_info.Address, *testVs[1], testRouter, AcceptEverything{})
+	b2 := StartServerTest(testCtx, DefaultBroadcastConfig, r2, testnet, testVs[2].Public_info.Address, *testVs[2], testRouter, AcceptEverything{})
 
 	payload := []byte{1, 2, 3}
 

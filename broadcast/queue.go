@@ -11,6 +11,7 @@ import (
 
 type DeliveryQueue struct {
 	dialer libnet.AddressDialer
+	maxpar int
 	cond   *sync.Cond
 	lk     sync.Mutex
 	chq    map[Channel][]deliveryTo
@@ -25,9 +26,10 @@ func newDeliveryTo(to ValidatorPublicInfo, delivery Delivery) deliveryTo {
 	return deliveryTo{To: to, Delivery: delivery}
 }
 
-func NewDeliveryQueue(ctx context.Context, dialer libnet.AddressDialer) *DeliveryQueue {
+func NewDeliveryQueue(ctx context.Context, dialer libnet.AddressDialer, maxpar int) *DeliveryQueue {
 	q := &DeliveryQueue{
 		dialer: dialer,
+		maxpar: maxpar,
 		chq:    map[Channel][]deliveryTo{},
 	}
 	q.cond = sync.NewCond(&q.lk)
@@ -51,11 +53,9 @@ func (q *DeliveryQueue) Discard(ch Channel) {
 	delete(q.chq, ch)
 }
 
-const DELIVERY_CONCURRENCY = 100
-
 func (q *DeliveryQueue) flush(ctx context.Context) {
 
-	sem := make(chan struct{}, DELIVERY_CONCURRENCY)
+	sem := make(chan struct{}, q.maxpar)
 
 	for {
 		// block until there are deliveries in the queue

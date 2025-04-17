@@ -34,6 +34,7 @@ type BroadcastService struct {
 
 func NewBroadcastService(
 	ctx context.Context,
+	cfg BroadcastConfig,
 	dialer libnet.AddressDialer,
 	rr *rand.Rand,
 	privInfo proto.ValidatorPrivateInfo,
@@ -52,9 +53,9 @@ func NewBroadcastService(
 		sending:   map[Channel]*sending{},
 		receiving: map[Channel]*receiving{},
 		accepting: map[Channel]*accepting{},
-		trees:     NewTreeCache(),
+		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
 		//
-		deliveryQueue: NewDeliveryQueue(ctx, dialer),
+		deliveryQueue: NewDeliveryQueue(ctx, dialer, cfg.MaxDeliveryPar),
 		//
 		acceptCh: make(chan *receiving),
 	}

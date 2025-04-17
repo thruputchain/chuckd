@@ -10,9 +10,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// Advertise quorum slices we know on every REFRESH_INTERVAL.
-const REFRESH_INTERVAL = time.Minute * 2
-
 // advertise tries to advetise the quorum slices we know of to every validator participating in them.
 // we try to deliver quorum slices to each validator in parallel with throttle and backoff.
 // the process repeats once every few minutes hours.
@@ -23,15 +20,12 @@ func (s *DiscoveryService) advertise(ctx context.Context) {
 		log.Infof("advertising epoch %d begins", epoch)
 		s.advertiseToAll(ctx, epoch)
 		log.Infof("advertising epoch %d ends", epoch)
-		time.Sleep(REFRESH_INTERVAL)
+		time.Sleep(s.cfg.AdvertiseInterval)
 	}
 }
 
-// advertise quorum slices to ADVERTISE_CONCURRENCY validators in parallel.
-const ADVERTISE_CONCURRENCY = 10
-
 func (s *DiscoveryService) advertiseToAll(ctx context.Context, epoch int) {
-	limiter := make(chan struct{}, ADVERTISE_CONCURRENCY)
+	limiter := make(chan struct{}, s.cfg.AdvertiseMaxPar)
 	var wg sync.WaitGroup
 
 	snapshots := s.CachedSnapshots()
