@@ -31,7 +31,7 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 		a.deliver(delivery)
 
 	} else if r := svc.receiving[channel]; r != nil {
-		r.deliver(delivery) // deliver to app and schedule relay
+		r.deliver(ctx, delivery) // deliver to app and schedule relay
 
 	} else {
 		// ask the application whether the broadcast is acceptable

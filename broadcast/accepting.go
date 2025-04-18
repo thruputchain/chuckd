@@ -69,7 +69,7 @@ func (a *accepting) accept(ctx context.Context) {
 	a.svc.lk.Lock()
 	a.lk.Lock()
 
-	r := newReceiving(a.svc, a.channel, *treeNodes, children, a.deliveries)
+	r := newReceiving(ctx, a.svc, a.channel, *treeNodes, children, a.deliveries)
 	delete(a.svc.accepting, a.channel)
 	a.svc.receiving[a.channel] = r
 	a.svc.trees.Ref(a.channel.Tree_hash, *treeNodes)

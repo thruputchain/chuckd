@@ -35,6 +35,17 @@ func NoError(ctx context.Context, err error) {
 	}
 }
 
+func Call(ctx context.Context, f func() error) {
+	err := f()
+	NoError(ctx, err)
+}
+
+func Call1[R any](ctx context.Context, f func() (R, error)) R {
+	r, err := f()
+	NoError(ctx, err)
+	return r
+}
+
 func Try(f func()) (err error) {
 	defer func() {
 		if r := recover(); r != nil {

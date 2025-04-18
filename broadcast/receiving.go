@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"context"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -13,11 +14,13 @@ type receiving struct {
 	children  []ValidatorPublicInfo
 	//
 	lk        sync.Mutex
+	nextSeqNo int64
 	received  []Message
 	deliverCh chan Message
 }
 
 func newReceiving(
+	ctx context.Context,
 	svc *BroadcastService,
 	channel Channel,
 	treeNodes MulticastTreeNodes,
@@ -34,7 +37,7 @@ func newReceiving(
 		deliverCh: make(chan Message, len(deliveries)),
 	}
 	for _, delivery := range deliveries {
-		x.deliver(delivery)
+		x.deliver(ctx, delivery)
 	}
 	return x
 }
@@ -44,13 +47,20 @@ func (x *receiving) Channel() Channel {
 }
 
 // called inside a service lock!
-func (x *receiving) deliver(delivery Delivery) {
+func (x *receiving) deliver(ctx context.Context, delivery Delivery) {
 	msg := delivery.Msg
 	defer func() { x.deliverCh <- msg }()
 	defer x.relay(delivery)
+
 	x.lk.Lock()
 	defer x.lk.Unlock()
+
 	x.received = append(x.received, msg)
+
+	x.svc.metrics.NumReceived.Add(ctx, 1)
+	x.svc.metrics.NumNotReceived.Add(ctx, int64(msg.Header.Seqno)-x.nextSeqNo)
+	x.nextSeqNo = int64(msg.Header.Seqno) + 1
+	x.svc.metrics.ReceiveThroughput.Add(ctx, int64(len(delivery.Msg.Payload)))
 }
 
 func (x *receiving) relay(delivery Delivery) {

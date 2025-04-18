@@ -12,9 +12,12 @@ import (
 type DeliveryQueue struct {
 	dialer libnet.AddressDialer
 	maxpar int
-	cond   *sync.Cond
-	lk     sync.Mutex
-	chq    map[Channel][]deliveryTo
+	//
+	cond *sync.Cond
+	lk   sync.Mutex
+	chq  map[Channel][]deliveryTo
+	//
+	metrics *DeliveryQueueMetrics
 }
 
 type deliveryTo struct {
@@ -26,11 +29,17 @@ func newDeliveryTo(to ValidatorPublicInfo, delivery Delivery) deliveryTo {
 	return deliveryTo{To: to, Delivery: delivery}
 }
 
-func NewDeliveryQueue(ctx context.Context, dialer libnet.AddressDialer, maxpar int) *DeliveryQueue {
+func NewDeliveryQueue(
+	ctx context.Context,
+	metrics *DeliveryQueueMetrics,
+	dialer libnet.AddressDialer,
+	maxpar int,
+) *DeliveryQueue {
 	q := &DeliveryQueue{
-		dialer: dialer,
-		maxpar: maxpar,
-		chq:    map[Channel][]deliveryTo{},
+		dialer:  dialer,
+		maxpar:  maxpar,
+		chq:     map[Channel][]deliveryTo{},
+		metrics: metrics,
 	}
 	q.cond = sync.NewCond(&q.lk)
 	go q.flush(ctx)
@@ -112,4 +121,6 @@ func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
 		)
 		return
 	}
+	q.metrics.NumSent.Add(ctx, 1)
+	q.metrics.SendThroughput.Add(ctx, int64(len(dto.Delivery.Msg.Payload)))
 }

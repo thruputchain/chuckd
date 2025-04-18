@@ -18,6 +18,8 @@ type BroadcastService struct {
 	router   router.Router
 	disc     AcceptDiscriminator
 	//
+	metrics *BroadcastMetrics
+	//
 	randLk sync.Mutex
 	rand   *rand.Rand
 	//
@@ -42,11 +44,14 @@ func NewBroadcastService(
 	disc AcceptDiscriminator,
 ) *BroadcastService {
 	log.Infof("starting broadcast service for %s", protoutil.ValidatorPublicShortString(privInfo.Public_info))
+	m := NewBroadcastMetrics(ctx)
 	s := &BroadcastService{
 		dialer:   dialer,
 		privInfo: privInfo,
 		router:   router,
 		disc:     disc,
+		//
+		metrics: m,
 		//
 		rand: rr,
 		//
@@ -55,7 +60,7 @@ func NewBroadcastService(
 		accepting: map[Channel]*accepting{},
 		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
 		//
-		deliveryQueue: NewDeliveryQueue(ctx, dialer, cfg.MaxDeliveryPar),
+		deliveryQueue: NewDeliveryQueue(ctx, m.DeliveryQueueMetrics(), dialer, cfg.MaxDeliveryPar),
 		//
 		acceptCh: make(chan *receiving),
 	}

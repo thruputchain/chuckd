@@ -1,5 +1,3 @@
 - [ ] test broadcast api comprehensively
-
+- [ ] benchmark cli command
 - [ ] aws benchmark
-  - [ ] benchmark cli command
-  - [ ] aws orchestrator
