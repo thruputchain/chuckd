@@ -107,7 +107,6 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 
 		// deliver in parallel with a throttle
 		for _, dto := range deliveries {
-			log.Infof("DELIVERING to %s", protoutil.ValidatorPublicShortString(dto.To))
 			sem <- struct{}{} // acquire a delivery slot
 			go func(dto deliveryTo) {
 				defer func() { <-sem }() // release delivery slot
@@ -135,7 +134,7 @@ func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
 	)
 	c, err := DialBroadcastClient(ctx, q.dialer, dto.To.Address)
 	if err != nil {
-		log.Errorf("queue dialing %s: %v", protoutil.ValidatorPublicShortString(dto.To), err)
+		log.Errorf("broadcast queue dialing %s: %v", protoutil.ValidatorPublicShortString(dto.To), err)
 		return
 	}
 	defer c.Close()

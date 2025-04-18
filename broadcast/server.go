@@ -6,7 +6,6 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/test"
@@ -61,7 +60,7 @@ func StartServer(
 			must.NoError(ctx, err)
 			driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 			driver.Lock = nil // process all calls in parallel
-			driver.Log = log.Writer()
+			// driver.Log = log.Writer()
 			driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 			driver.Register(proto.Broadcast1_Server{Srv: svc})
 			go driver.Go()

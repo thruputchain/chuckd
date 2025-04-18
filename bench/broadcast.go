@@ -67,17 +67,24 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context) {
 		must.NoError(ctx, err)
 		driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 		driver.Lock = nil // process all calls in parallel
-		driver.Log = log.Writer()
+		// driver.Log = log.Writer()
 		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 		driver.Register(proto.Broadcast1_Server{Srv: bench.broadcast})
 		go driver.Go()
+		<-ctx.Done()
 	}()
 
 	// start benchmark sender
 	go func() {
 		for {
 			s := bench.broadcast.API().MakeChannel()
+		sendLoop:
 			for i := 0; i < bench.payPerChannel; i++ {
+				select {
+				case <-ctx.Done(): // benchmark timeout
+					break sendLoop
+				default:
+				}
 				sctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
 				if err := s.Send(sctx, make([]byte, bench.paySize)); err != nil {
 					log.Errorf("send: %v", err)
@@ -90,12 +97,23 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context) {
 
 	// start benchmark receiver
 	go func() {
+	acceptLoop:
 		for {
+			select {
+			case <-ctx.Done(): // benchmark timeout
+				break acceptLoop
+			default:
+			}
 			r := bench.broadcast.API().AcceptChannel()
 			go func() {
 				defer r.Close()
 			receiveLoop:
 				for {
+					select {
+					case <-ctx.Done(): // benchmark timeout
+						break receiveLoop
+					default:
+					}
 					rctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
 					if _, _, _, err := r.Receive(rctx); err != nil {
 						log.Errorf("receive: %v", err)

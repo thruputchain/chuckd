@@ -1,4 +1,4 @@
 - [ ] test broadcast api comprehensively
 - [ ] benchmark cli command
-  - [ ] backpressure on send command?
+  - [ ] uneven node start?
 - [ ] aws benchmark

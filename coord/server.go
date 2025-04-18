@@ -2,7 +2,6 @@ package coord
 
 import (
 	"context"
-	"log"
 	"math/rand"
 	"net"
 
@@ -36,7 +35,7 @@ func StartServer(
 			must.NoError(ctx, err)
 			driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 			driver.Lock = nil // process all calls in parallel
-			driver.Log = log.Writer()
+			// driver.Log = log.Writer()
 			driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 			driver.Register(proto.Coordinator1_Server{Srv: svc})
 			go driver.Go()

@@ -2,7 +2,6 @@ package shard
 
 import (
 	"context"
-	"log"
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -33,7 +32,7 @@ func (s *TestShardServer) Start(ctx context.Context) {
 			must.NoError(ctx, err)
 			driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 			driver.Lock = nil // process all calls in parallel
-			driver.Log = log.Writer()
+			// driver.Log = log.Writer()
 			driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 			driver.Register(proto.Shard1_Server{Srv: s.s})
 			go driver.Go()
