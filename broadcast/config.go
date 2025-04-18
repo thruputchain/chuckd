@@ -3,11 +3,11 @@ package broadcast
 import "time"
 
 type BroadcastConfig struct {
-	MaxDeliveryPar         int
+	DeliveryPar            int
 	UnusedMulticastTreeTTL time.Duration
 }
 
 var DefaultBroadcastConfig = BroadcastConfig{
-	MaxDeliveryPar:         100,
+	DeliveryPar:            100,
 	UnusedMulticastTreeTTL: time.Minute,
 }

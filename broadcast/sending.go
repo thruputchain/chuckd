@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"context"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -34,7 +35,7 @@ func (x *sending) Channel() Channel {
 	return x.channel
 }
 
-func (x *sending) Send(payload []byte) {
+func (x *sending) Send(ctx context.Context, payload []byte) error {
 
 	// create broadcast message
 
@@ -76,8 +77,12 @@ func (x *sending) Send(payload []byte) {
 	// send message to delivery queue
 
 	for _, v := range x.children {
-		x.svc.enqueueDelivery(v, delivery)
+		if err := x.svc.enqueueDelivery(ctx, v, delivery); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (x *sending) Close() {

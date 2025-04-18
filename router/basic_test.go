@@ -17,7 +17,7 @@ func TestBasic(t *testing.T) {
 	}
 
 	maxFanOut := 3
-	treeNodes, _, treeHash := buildTree(maxFanOut, vs[0], vs[1:])
+	treeNodes, _, treeHash := buildRootedTree(maxFanOut, vs[0], vs[1:])
 	_ = treeNodes
 	// for _, tn := range treeNodes {
 	// 	h := protoutil.MulticastTreeNodeHash(tn)

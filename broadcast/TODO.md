@@ -1,3 +1,4 @@
 - [ ] test broadcast api comprehensively
 - [ ] benchmark cli command
+  - [ ] backpressure on send command?
 - [ ] aws benchmark

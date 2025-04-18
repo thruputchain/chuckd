@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -50,7 +51,7 @@ func (x *receiving) Channel() Channel {
 func (x *receiving) deliver(ctx context.Context, delivery Delivery) {
 	msg := delivery.Msg
 	defer func() { x.deliverCh <- msg }()
-	defer x.relay(delivery)
+	defer x.relay(ctx, delivery)
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
@@ -63,20 +64,24 @@ func (x *receiving) deliver(ctx context.Context, delivery Delivery) {
 	x.svc.metrics.ReceiveThroughput.Add(ctx, int64(len(delivery.Msg.Payload)))
 }
 
-func (x *receiving) relay(delivery Delivery) {
+func (x *receiving) relay(ctx context.Context, delivery Delivery) {
 	for _, v := range x.children {
 		reDelivery := Delivery{
 			Relayer:    x.svc.ValidatorPublicInfo(),
 			Msg:        delivery.Msg,
 			Tree_nodes: delivery.Tree_nodes,
 		}
-		x.svc.enqueueDelivery(v, reDelivery)
+		x.svc.enqueueDelivery(ctx, v, reDelivery)
 	}
 }
 
-func (x *receiving) Receive() (seqno SeqNo, msgHash MessageHash, payload []byte) {
-	msg := <-x.deliverCh
-	return msg.Header.Seqno, protoutil.HashOfMessage(msg), msg.Payload
+func (x *receiving) Receive(ctx context.Context) (seqno SeqNo, msgHash MessageHash, payload []byte, _ error) {
+	select {
+	case <-ctx.Done():
+		return 0, MessageHash{}, nil, fmt.Errorf("broadcast channel receive context expired")
+	case msg := <-x.deliverCh:
+		return msg.Header.Seqno, protoutil.HashOfMessage(msg), msg.Payload, nil
+	}
 }
 
 func (x *receiving) Close() {

@@ -60,7 +60,7 @@ func NewBroadcastService(
 		accepting: map[Channel]*accepting{},
 		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
 		//
-		deliveryQueue: NewDeliveryQueue(ctx, m.DeliveryQueueMetrics(), dialer, cfg.MaxDeliveryPar),
+		deliveryQueue: NewDeliveryQueue(ctx, m.DeliveryQueueMetrics(), dialer, cfg.DeliveryPar),
 		//
 		acceptCh: make(chan *receiving),
 	}

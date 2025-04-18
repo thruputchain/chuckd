@@ -93,7 +93,7 @@ func TestDelivery(t *testing.T) {
 
 	go func() {
 		sch := b0.API().MakeChannel()
-		sch.Send(payload)
+		sch.Send(testCtx, payload)
 	}()
 
 	var wg sync.WaitGroup
@@ -102,7 +102,10 @@ func TestDelivery(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		rch := b1.API().AcceptChannel()
-		_, _, p := rch.Receive()
+		_, _, p, err := rch.Receive(testCtx)
+		if err != nil {
+			t.Error(err)
+		}
 		if bytes.Compare(p, payload) != 0 {
 			t.Errorf("unexpected payload")
 		}
@@ -111,7 +114,10 @@ func TestDelivery(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		rch := b2.API().AcceptChannel()
-		_, _, p := rch.Receive()
+		_, _, p, err := rch.Receive(testCtx)
+		if err != nil {
+			t.Error(err)
+		}
 		if bytes.Compare(p, payload) != 0 {
 			t.Errorf("unexpected payload")
 		}

@@ -19,11 +19,11 @@ func NewServer(
 	inaddr string,
 	exaddr string,
 	vcfg proto.ValidatorConfig,
-	maxFanOut int, // maximum fanout of multicast trees
+	treeFanOut int, // fanout of multicast trees
 ) *Server {
 	return &Server{
 		internal: NewInternalServer(ctx, runtime.NewRandFromRand(rr), inaddr),
-		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), exaddr, vcfg, maxFanOut),
+		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), exaddr, vcfg, treeFanOut),
 	}
 }
 

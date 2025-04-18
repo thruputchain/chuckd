@@ -1,6 +1,9 @@
 package broadcast
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 type StripedBroadcast struct {
 	b       Broadcast
@@ -20,12 +23,12 @@ func MakeStripedSender(b Broadcast, nstripes int) *StripedBroadcast {
 	return x
 }
 
-func (x *StripedBroadcast) Send(payload []byte) {
+func (x *StripedBroadcast) Send(ctx context.Context, payload []byte) {
 	x.lk.Lock()
 	n := x.next
 	x.next += 1
 	x.lk.Unlock()
-	x.stripes[n%len(x.stripes)].Send(payload)
+	x.stripes[n%len(x.stripes)].Send(ctx, payload)
 }
 
 func (x *StripedBroadcast) Close() {

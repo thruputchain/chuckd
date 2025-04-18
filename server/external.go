@@ -28,7 +28,7 @@ func NewExternalServer(
 	rr *rand.Rand,
 	addr string,
 	vcfg proto.ValidatorConfig,
-	maxFanOut int, // maximum fanout of multicast trees
+	treeFanOut int, // fanout of multicast trees
 ) *ExternalServer {
 
 	log.Infof("starting external apis on %s", addr)
@@ -41,7 +41,7 @@ func NewExternalServer(
 		libnet.TCPAddressDialer{},
 		vcfg,
 	)
-	router := router.NewBasicRouter(ctx, discovery, maxFanOut)
+	router := router.NewBasicRouter(ctx, discovery, treeFanOut)
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
 		broadcast.DefaultBroadcastConfig,

@@ -1,6 +1,8 @@
 package broadcast
 
 import (
+	"context"
+
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -29,13 +31,15 @@ type Broadcast interface {
 
 type SendChannel interface {
 	Channel() Channel
-	Send(payload []byte)
+	// errors occur when context is cancelled or times out
+	Send(ctx context.Context, payload []byte) error
 	Close()
 }
 
 type ReceiveChannel interface {
 	Channel() Channel
-	Receive() (seqno SeqNo, msgHash MessageHash, payload []byte)
+	// errors occur when context is cancelled or times out
+	Receive(ctx context.Context) (seqno SeqNo, msgHash MessageHash, payload []byte, err error)
 	Close()
 }
 

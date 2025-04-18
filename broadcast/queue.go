@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -46,12 +47,17 @@ func NewDeliveryQueue(
 	return q
 }
 
-func (q *DeliveryQueue) Enqueue(to ValidatorPublicInfo, delivery Delivery) {
+func (q *DeliveryQueue) Enqueue(ctx context.Context, to ValidatorPublicInfo, delivery Delivery) error {
+	if err := q.WaitForCapacity(ctx, 1); err != nil {
+		return err // context expired
+	}
+
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()
 	channel := delivery.Msg.Header.Channel
 	q.chq[channel] = append(q.chq[channel], newDeliveryTo(to, delivery))
+	return nil
 }
 
 // Discard drops all queued deliveries on the given channel.
@@ -60,6 +66,28 @@ func (q *DeliveryQueue) Discard(ch Channel) {
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()
 	delete(q.chq, ch)
+}
+
+func (q *DeliveryQueue) WaitForCapacity(ctx context.Context, maxBacklog int) error {
+	q.lk.Lock()
+	defer q.lk.Unlock()
+	for q.deliveriesInQueue() >= maxBacklog {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("wait for capacity context expired")
+		default:
+		}
+		q.cond.Wait()
+	}
+	return nil
+}
+
+func (q *DeliveryQueue) deliveriesInQueue() int {
+	n := 0
+	for _, chq := range q.chq {
+		n += len(chq)
+	}
+	return n
 }
 
 func (q *DeliveryQueue) flush(ctx context.Context) {
@@ -72,6 +100,7 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 		deliveries := q.linearizeAndClearDeliveries()
 		for len(deliveries) == 0 {
 			q.cond.Wait()
+			q.cond.Broadcast() // wake up WaitForCapacity
 			deliveries = q.linearizeAndClearDeliveries()
 		}
 		q.lk.Unlock()

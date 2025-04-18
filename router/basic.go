@@ -8,25 +8,35 @@ import (
 
 	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 type basicRouter struct {
-	discovery *discovery.DiscoveryService
-	maxFanOut int
+	discovery  *discovery.DiscoveryService
+	treeFanOut int
 }
 
 func NewBasicRouter(
 	ctx context.Context,
 	discovery *discovery.DiscoveryService,
-	maxFanOut int,
+	treeFanOut int,
 ) Router {
 	return &basicRouter{
-		discovery: discovery,
-		maxFanOut: maxFanOut,
+		discovery:  discovery,
+		treeFanOut: treeFanOut,
 	}
 }
 
 func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
+	treeNodes MulticastTreeNodes,
+	children []ValidatorPublicInfo,
+	treeHash MulticastTreeHash,
+) {
+	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
+	return buildTree(x.treeFanOut, vs, rootID, cid)
+}
+
+func buildTree(maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID, cid ChannelID) (
 	treeNodes MulticastTreeNodes,
 	children []ValidatorPublicInfo,
 	treeHash MulticastTreeHash,
@@ -38,7 +48,6 @@ func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 	r := rand.New(rand.NewSource(seed))
 
 	// shuffle validators
-	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
 
 	// find and remove root
@@ -47,10 +56,10 @@ func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 		panic("missing validator")
 	}
 
-	return buildTree(x.maxFanOut, root, vs)
+	return buildRootedTree(maxFanOut, root, vs)
 }
 
-func buildTree(
+func buildRootedTree(
 	maxFanOut int,
 	root ValidatorPublicInfo,
 	unused []ValidatorPublicInfo,
@@ -73,7 +82,7 @@ func buildTree(
 		m := divideRoundUp(len(unused), len(children))
 		for _, ch := range children {
 			chop := min(m, len(unused))
-			chTreeNodes, _, chTreeHash := buildTree(maxFanOut, ch, unused[:chop])
+			chTreeNodes, _, chTreeHash := buildRootedTree(maxFanOut, ch, unused[:chop])
 			unused = unused[chop:]
 			treeNodes = append(treeNodes, chTreeNodes...)
 			treeNodes[0].Children = append(treeNodes[0].Children, chTreeHash)

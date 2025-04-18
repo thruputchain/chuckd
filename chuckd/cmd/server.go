@@ -25,10 +25,10 @@ var (
 				srv := server.NewServer(
 					ctx,
 					runtime.NewRandFromRoot(),
-					serverInternalBindAddress,
-					serverExternalBindAddress,
+					serverInternalServerAddress,
+					serverExternalServerAddress,
 					*cfg,
-					serverMaxFanOut,
+					serverTreeFanOut,
 				)
 				srv.Start(ctx)
 				<-(chan int)(nil) // hang
@@ -38,16 +38,16 @@ var (
 )
 
 var (
-	serverInternalBindAddress string
-	serverExternalBindAddress string
-	serverMaxFanOut           int // maximum fanout for multicast trees
+	serverInternalServerAddress string
+	serverExternalServerAddress string
+	serverTreeFanOut            int // maximum fanout for multicast trees
 )
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.AddCommand(serverStartCmd)
-	serverStartCmd.Flags().StringVar(&serverInternalBindAddress, "inaddr", "localhost:7888", "bind address for internal apis")
-	serverStartCmd.Flags().StringVar(&serverExternalBindAddress, "exaddr", "localhost:9111", "bind address for external apis")
-	serverStartCmd.Flags().IntVar(&serverMaxFanOut, "fanout", 5, "maximum fanout of multicast trees")
+	serverStartCmd.Flags().StringVar(&serverInternalServerAddress, "inaddr", "localhost:7888", "bind address for internal apis")
+	serverStartCmd.Flags().StringVar(&serverExternalServerAddress, "exaddr", "localhost:9111", "bind address for external apis")
+	serverStartCmd.Flags().IntVar(&serverTreeFanOut, "fanout", 5, "maximum fanout of multicast trees")
 }

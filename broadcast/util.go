@@ -1,6 +1,10 @@
 package broadcast
 
-import proto "github.com/groundhogchain/protocol-go"
+import (
+	"context"
+
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 func (s *BroadcastService) findTree(h MulticastTreeHash) MulticastTreeNodes {
 	s.lk.Lock()
@@ -9,6 +13,6 @@ func (s *BroadcastService) findTree(h MulticastTreeHash) MulticastTreeNodes {
 	return nodes
 }
 
-func (s *BroadcastService) enqueueDelivery(v proto.ValidatorPublicInfo, delivery proto.Delivery) {
-	s.deliveryQueue.Enqueue(v, delivery)
+func (s *BroadcastService) enqueueDelivery(ctx context.Context, v proto.ValidatorPublicInfo, delivery proto.Delivery) error {
+	return s.deliveryQueue.Enqueue(ctx, v, delivery)
 }
