@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/server"
 	"github.com/spf13/cobra"
@@ -11,26 +12,27 @@ var (
 		Use:   "server",
 		Short: "coordinator server control",
 		Long:  ``,
-		Run: func(cmd *cobra.Command, args []string) {
-		},
+		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
 	serverStartCmd = &cobra.Command{
 		Use:   "start",
 		Short: "start coordinator server",
 		Long:  ``,
-		Run: func(cmd *cobra.Command, args []string) {
-			cfg := LoadConfig(ctx)
-			srv := server.NewServer(
-				ctx,
-				runtime.NewRandFromRoot(),
-				serverInternalBindAddress,
-				serverExternalBindAddress,
-				*cfg,
-				serverMaxFanOut,
-			)
-			srv.Start(ctx)
-			<-(chan int)(nil) // hang
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(func() {
+				cfg := LoadConfig(ctx)
+				srv := server.NewServer(
+					ctx,
+					runtime.NewRandFromRoot(),
+					serverInternalBindAddress,
+					serverExternalBindAddress,
+					*cfg,
+					serverMaxFanOut,
+				)
+				srv.Start(ctx)
+				<-(chan int)(nil) // hang
+			})
 		},
 	}
 )

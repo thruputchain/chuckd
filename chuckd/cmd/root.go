@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,41 +30,45 @@ var (
 )
 
 var (
-	configPath     string
-	verbose        bool
-	cpuProfilePath string
-	memProfilePath string
-	seed           int64
+	rootConfigPath     string
+	rootVerbose        bool
+	rootCPUProfilePath string
+	rootMemProfilePath string
+	rootSeed           int64
+	rootInstanceID     string
 )
 
 func init() {
 	cobra.OnInitialize(initAfterFlags)
+	// cobra.OnFinalize()
 
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "",
+	rootCmd.PersistentFlags().StringVarP(&rootConfigPath, "config", "c", "",
 		"config file (default is $HOME/"+api.LocalAgentPath+"/"+api.LocalAgentConfigFilebase+")")
-	rootCmd.PersistentFlags().Int64VarP(&seed, "seed", "s", 0x0102030405060708, "randomness seed")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "run in developer mode with verbose logging")
-	rootCmd.PersistentFlags().StringVarP(&cpuProfilePath, "cpu", "p", "", "cpu profile path")
-	rootCmd.PersistentFlags().StringVarP(&memProfilePath, "mem", "m", "", "memory profile path")
+	rootCmd.PersistentFlags().Int64VarP(&rootSeed, "seed", "s", 0x0102030405060708, "randomness seed")
+	rootCmd.PersistentFlags().BoolVarP(&rootVerbose, "verbose", "v", false, "run in developer mode with verbose logging")
+	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
+	rootCmd.PersistentFlags().StringVarP(&rootMemProfilePath, "mem", "m", "", "memory profile path")
+	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
 }
 
 func initAfterFlags() {
-	if verbose {
+	if rootVerbose {
 		log.LogVerbosely()
 	} else {
 		log.LogQuietly()
 	}
 	log.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
-	api.SetCPUProfilePath(cpuProfilePath)
-	api.SetMemProfilePath(memProfilePath)
-	chuckdruntime.SetRootSeed(seed)
+	api.SetCPUProfilePath(rootCPUProfilePath)
+	api.SetMemProfilePath(rootMemProfilePath)
+	api.SetInstanceID(rootInstanceID)
+	chuckdruntime.SetRootSeed(rootSeed)
 }
 
 func effectiveConfigPath(ctx context.Context) string {
 	// search for config in ~/.chuckd/chuckd.json
-	cfgPath := configPath
+	cfgPath := rootConfigPath
 	if cfgPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -92,15 +95,6 @@ func LoadConfig(ctx context.Context) *proto.ValidatorConfig {
 	return &config
 }
 
-func Execute() int {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	return 0
-}
-
-func ExecuteWithConfig(cfgPath string) int {
-	configPath = cfgPath
-	return Execute()
+func Execute() error {
+	return rootCmd.Execute()
 }

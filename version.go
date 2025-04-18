@@ -1,5 +1,5 @@
 // Package ghc provides version routines.
-package ghc
+package chuckd
 
 import (
 	_ "embed"

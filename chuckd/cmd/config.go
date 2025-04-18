@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
@@ -17,29 +18,30 @@ var (
 		Use:   "config",
 		Short: "tools to manipulate validator configuration",
 		Long:  ``,
-		Run: func(cmd *cobra.Command, args []string) {
-		},
+		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
 	configInitCmd = &cobra.Command{
 		Use:   "init",
 		Short: "initialize identity and create barebones config",
 		Long:  ``,
-		Run: func(cmd *cobra.Command, args []string) {
-			cfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
-			if configToStdout {
-				fmt.Println(form.SprintJSON(cfg))
-			} else {
-				cfgPath := effectiveConfigPath(ctx)
-				_, err := os.Stat(cfgPath)
-				if errors.Is(err, os.ErrNotExist) {
-					err := os.WriteFile(cfgPath, form.SprintJSONBytes(cfg), 0644)
-					must.NoError(ctx, err)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(func() {
+				cfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
+				if configToStdout {
+					fmt.Println(form.SprintJSON(cfg))
 				} else {
-					must.NoError(ctx, err)
-					must.Errorf(ctx, "config already exists: %s", cfgPath)
+					cfgPath := effectiveConfigPath(ctx)
+					_, err := os.Stat(cfgPath)
+					if errors.Is(err, os.ErrNotExist) {
+						err := os.WriteFile(cfgPath, form.SprintJSONBytes(cfg), 0644)
+						must.NoError(ctx, err)
+					} else {
+						must.NoError(ctx, err)
+						must.Errorf(ctx, "config already exists: %s", cfgPath)
+					}
 				}
-			}
+			})
 		},
 	}
 )
