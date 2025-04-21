@@ -36,6 +36,10 @@ func (x *TestNetwork) Dial(network string, address string) (net.Conn, error) {
 }
 
 func (x *TestNetwork) Listen(network string, address string) (net.Listener, error) {
+	return x.ListenAddress(address)
+}
+
+func (x *TestNetwork) ListenAddress(address string) (net.Listener, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 

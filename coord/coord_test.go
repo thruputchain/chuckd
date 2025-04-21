@@ -2,7 +2,6 @@ package coord
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
@@ -16,6 +15,7 @@ import (
 
 func TestMain(m *testing.M) {
 	runtime.SetRootSeed(0)
+	runtime.CaptureInterrupts()
 	exitVal := m.Run()
 	os.Exit(exitVal)
 }
@@ -24,7 +24,8 @@ func TestNullRoundtrip(t *testing.T) {
 	ctx := context.Background()
 
 	addr := "localhost:8991"
-	StartServerTCP(ctx, runtime.NewRandFromRoot(), addr)
+	svc := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
+	svc.Start(ctx, addr)
 
 	c, err := DialCoordinatorClientTCP(ctx, addr)
 	must.NoError(ctx, err)
@@ -33,7 +34,7 @@ func TestNullRoundtrip(t *testing.T) {
 
 func TestShardCompleteness(t *testing.T) {
 	ctx := context.Background()
-	s := NewCoordinatorService(ctx, libnet.TCPAddressDialer{}, runtime.NewRandFromRoot())
+	s := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
 
 	sh1 := shard.NewTestShardServer(ctx)
 	sh2 := shard.NewTestShardServer(ctx)
@@ -81,7 +82,7 @@ func TestDbReadiness(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := NewCoordinatorService(ctx, libnet.TCPAddressDialer{}, runtime.NewRandFromRoot())
+	s := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
 
 	sh1 := shard.NewTestShardServer(ctx)
 	sh2 := shard.NewTestShardServer(ctx)
@@ -96,7 +97,6 @@ func TestDbReadiness(t *testing.T) {
 			Address: "2.2.2.2",
 		})
 		execUnblocked <- 1
-		fmt.Println("unblocked")
 	}()
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{

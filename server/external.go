@@ -9,12 +9,10 @@ import (
 	"github.com/groundhogchain/chuckd/broadcast"
 	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/xdrpp/goxdr/rpc"
 )
 
 type ExternalServer struct {
@@ -26,52 +24,40 @@ type ExternalServer struct {
 func NewExternalServer(
 	ctx context.Context,
 	rr *rand.Rand,
-	addr string,
 	vcfg proto.ValidatorConfig,
 	treeFanOut int, // fanout of multicast trees
 ) *ExternalServer {
 
-	log.Infof("starting external apis on %s", addr)
-	l, err := net.Listen("tcp", addr)
-	must.NoError(ctx, err)
-
 	discovery := discovery.NewDiscoveryService(
 		ctx,
 		discovery.DefaultDiscoveryConfig,
-		libnet.TCPAddressDialer{},
+		libnet.TCPNet{},
 		vcfg,
 	)
 	router := router.NewBasicRouter(ctx, discovery, treeFanOut)
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
 		broadcast.DefaultBroadcastConfig,
-		libnet.TCPAddressDialer{},
+		libnet.TCPNet{},
 		runtime.NewRandFromRoot(),
 		vcfg.Private_info,
 		router,
 		broadcast.AcceptEverything{},
 	)
 	return &ExternalServer{
-		l:         l,
 		discovery: discovery,
 		broadcast: broadcast,
 	}
 }
 
-func (s *ExternalServer) Start(ctx context.Context) {
-	go func() {
-		sock, err := s.l.Accept()
-		must.NoError(ctx, err)
-		driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
-		driver.Lock = nil // process all calls in parallel
-		// driver.Log = log.Writer()
-		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
-
-		driver.Register(proto.Discovery1_Server{Srv: s.discovery})
-		driver.Register(proto.Broadcast1_Server{Srv: s.broadcast})
-
-		go driver.Go()
-	}()
+func (s *ExternalServer) Start(ctx context.Context, address string) {
+	s.l = rpcutil.Start(
+		ctx,
+		libnet.TCPNet{},
+		address,
+		proto.Discovery1_Server{Srv: s.discovery},
+		proto.Broadcast1_Server{Srv: s.broadcast},
+	)
 }
 
 func (s *ExternalServer) Close() {

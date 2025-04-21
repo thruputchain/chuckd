@@ -17,7 +17,7 @@ import (
 // XXX: how do we cleanup stale cards? blocked on xdr defs
 
 type CoordinatorService struct {
-	dialer libnet.AddressDialer
+	net libnet.Network
 	//
 	upid proto.UPID
 	//
@@ -32,15 +32,15 @@ type CoordinatorService struct {
 	dbIsRestored bool
 }
 
-func NewCoordinatorService(ctx context.Context, dialer libnet.AddressDialer, rr *rand.Rand) *CoordinatorService {
+func NewCoordinatorService(ctx context.Context, n libnet.Network, rr *rand.Rand) *CoordinatorService {
 	log.Infof("starting coordinator service")
 	upid, err := GenerateUPID(rr.Uint64())
 	must.NoError(ctx, err)
 	cs := &CoordinatorService{
-		dialer: dialer,
-		upid:   upid,
-		db:     map[proto.UPID]proto.ShardCard{},
-		exec:   map[proto.UPID]proto.ExecCard{},
+		net:  n,
+		upid: upid,
+		db:   map[proto.UPID]proto.ShardCard{},
+		exec: map[proto.UPID]proto.ExecCard{},
 	}
 	cs.dbCond = sync.NewCond(&cs.dbLk)
 	return cs
@@ -90,7 +90,7 @@ func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
 			go func(s proto.ShardCard) {
 				defer wg.Done()
 
-				c, err := shard.DialShardClient(ctx, svc.dialer, s.Address)
+				c, err := shard.DialShardClient(ctx, svc.net, s.Address)
 				must.NoError(ctx, err)
 				_, err = c.Shard_restore(ctx, s.Block_height)
 				must.NoError(ctx, err)

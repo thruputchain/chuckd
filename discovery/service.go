@@ -12,8 +12,8 @@ import (
 )
 
 type DiscoveryService struct {
-	cfg    DiscoveryConfig
-	dialer libnet.AddressDialer
+	cfg DiscoveryConfig
+	net libnet.Network
 	//
 	privInfo      proto.ValidatorPrivateInfo
 	ourQSet       proto.QuorumSet
@@ -32,14 +32,14 @@ type DiscoveryService struct {
 func NewDiscoveryService(
 	ctx context.Context,
 	cfg DiscoveryConfig,
-	dialer libnet.AddressDialer,
+	n libnet.Network,
 	vcfg proto.ValidatorConfig,
 ) *DiscoveryService {
 
 	log.Infof("starting discovery service")
 	s := &DiscoveryService{
 		cfg:           cfg,
-		dialer:        dialer,
+		net:           n,
 		privInfo:      vcfg.Private_info,
 		ourQSet:       vcfg.Quorum_set,
 		ourValidators: vcfg.Known_validators,

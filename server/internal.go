@@ -7,11 +7,9 @@ import (
 
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/xdrpp/goxdr/rpc"
 )
 
 type InternalServer struct {
@@ -22,31 +20,19 @@ type InternalServer struct {
 func NewInternalServer(
 	ctx context.Context,
 	rr *rand.Rand,
-	addr string,
 ) *InternalServer {
-
-	log.Infof("starting internal apis on %s", addr)
-	l, err := net.Listen("tcp", addr)
-	must.NoError(ctx, err)
 	return &InternalServer{
-		l:     l,
-		coord: coord.NewCoordinatorService(ctx, libnet.TCPAddressDialer{}, runtime.NewRandFromRand(rr)),
+		coord: coord.NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRand(rr)),
 	}
 }
 
-func (s *InternalServer) Start(ctx context.Context) {
-	go func() {
-		sock, err := s.l.Accept()
-		must.NoError(ctx, err)
-		driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
-		driver.Lock = nil // process all calls in parallel
-		// driver.Log = log.Writer()
-		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
-
-		driver.Register(proto.Coordinator1_Server{Srv: s.coord})
-
-		go driver.Go()
-	}()
+func (s *InternalServer) Start(ctx context.Context, address string) {
+	s.l = rpcutil.Start(
+		ctx,
+		libnet.TCPNet{},
+		address,
+		proto.Coordinator1_Server{Srv: s.coord},
+	)
 }
 
 func (s *InternalServer) Close() {

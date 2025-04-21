@@ -90,7 +90,7 @@ func (a *accepting) accept(ctx context.Context) {
 }
 
 func (a *accepting) expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
-	c, err := DialBroadcastClient(ctx, a.svc.dialer, address)
+	c, err := DialBroadcastClient(ctx, a.svc.net, address)
 	if err != nil {
 		return nil, err
 	}

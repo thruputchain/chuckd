@@ -13,7 +13,7 @@ import (
 )
 
 type BroadcastService struct {
-	dialer   libnet.AddressDialer
+	net      libnet.Network
 	privInfo proto.ValidatorPrivateInfo
 	router   router.Router
 	disc     AcceptDiscriminator
@@ -37,7 +37,7 @@ type BroadcastService struct {
 func NewBroadcastService(
 	ctx context.Context,
 	cfg BroadcastConfig,
-	dialer libnet.AddressDialer,
+	n libnet.Network,
 	rr *rand.Rand,
 	privInfo proto.ValidatorPrivateInfo,
 	router router.Router,
@@ -46,7 +46,7 @@ func NewBroadcastService(
 	log.Infof("starting broadcast service for %s", protoutil.ValidatorPublicShortString(privInfo.Public_info))
 	m := NewBroadcastMetrics(ctx)
 	s := &BroadcastService{
-		dialer:   dialer,
+		net:      n,
 		privInfo: privInfo,
 		router:   router,
 		disc:     disc,
@@ -60,7 +60,7 @@ func NewBroadcastService(
 		accepting: map[Channel]*accepting{},
 		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
 		//
-		deliveryQueue: NewDeliveryQueue(ctx, m.DeliveryQueueMetrics(), dialer, cfg.DeliveryPar),
+		deliveryQueue: NewDeliveryQueue(ctx, m.DeliveryQueueMetrics(), n, cfg.DeliveryPar),
 		//
 		acceptCh: make(chan *receiving),
 	}

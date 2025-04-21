@@ -9,11 +9,9 @@ import (
 	"github.com/groundhogchain/chuckd/broadcast"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/xdrpp/goxdr/rpc"
 )
 
 type BroadcastBenchmark struct {
@@ -26,17 +24,12 @@ type BroadcastBenchmark struct {
 func NewBroadcastBenchmark(
 	ctx context.Context,
 	rr *rand.Rand,
-	addr string,
 	vcfg proto.ValidatorConfig,
 	deliveryPar int,
 	treeFanOut int, // fanout of multicast trees
 	paySize int, // sife of message payload
 	payPerChannel int, // number of message to send on a channel
 ) *BroadcastBenchmark {
-
-	log.Infof("starting broadcast service on %s", addr)
-	l, err := net.Listen("tcp", addr)
-	must.NoError(ctx, err)
 
 	router := router.NewFixedRouter(ctx, vcfg.Private_info.Public_info, vcfg.Known_validators, treeFanOut)
 	broadcast := broadcast.NewBroadcastService(
@@ -45,7 +38,7 @@ func NewBroadcastBenchmark(
 			DeliveryPar:            deliveryPar,
 			UnusedMulticastTreeTTL: time.Minute,
 		},
-		libnet.TCPAddressDialer{},
+		libnet.TCPNet{},
 		runtime.NewRandFromRoot(),
 		vcfg.Private_info,
 		router,
@@ -54,25 +47,14 @@ func NewBroadcastBenchmark(
 	return &BroadcastBenchmark{
 		paySize:       paySize,
 		payPerChannel: payPerChannel,
-		listener:      l,
 		broadcast:     broadcast,
 	}
 }
 
-func (bench *BroadcastBenchmark) Start(ctx context.Context) {
+func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 
 	// start broadcast service
-	go func() {
-		sock, err := bench.listener.Accept()
-		must.NoError(ctx, err)
-		driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
-		driver.Lock = nil // process all calls in parallel
-		// driver.Log = log.Writer()
-		driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
-		driver.Register(proto.Broadcast1_Server{Srv: bench.broadcast})
-		go driver.Go()
-		<-ctx.Done()
-	}()
+	bench.broadcast.Start(ctx, address)
 
 	// start benchmark sender
 	go func() {

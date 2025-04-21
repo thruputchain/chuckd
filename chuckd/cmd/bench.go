@@ -25,14 +25,13 @@ var (
 				srv := bench.NewBroadcastBenchmark(
 					ctx,
 					runtime.NewRandFromRoot(),
-					benchServerAddress,
 					*cfg,
 					benchDeliveryPar,
 					benchTreeFanOut,
 					benchPaySize,
 					benchPayPerChannel,
 				)
-				srv.Start(ctx)
+				srv.Start(ctx, benchServerAddress)
 				<-(chan int)(nil) // hang
 			})
 		},

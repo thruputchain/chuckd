@@ -48,7 +48,7 @@ func (s *DiscoveryService) advertiseToValidator(
 	snapshot proto.KnownQuorumSets,
 ) {
 	log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
-	c, err := DialDiscoveryClient(ctx, s.dialer, v.Address)
+	c, err := DialDiscoveryClient(ctx, s.net, v.Address)
 	if err != nil {
 		log.Errorf("discovery dialing %s: %v", protoutil.ValidatorPublicShortString(v), err)
 		return

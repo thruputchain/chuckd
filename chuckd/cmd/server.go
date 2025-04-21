@@ -25,12 +25,10 @@ var (
 				srv := server.NewServer(
 					ctx,
 					runtime.NewRandFromRoot(),
-					serverInternalServerAddress,
-					serverExternalServerAddress,
 					*cfg,
 					serverTreeFanOut,
 				)
-				srv.Start(ctx)
+				srv.Start(ctx, serverInternalServerAddress, serverExternalServerAddress)
 				<-(chan int)(nil) // hang
 			})
 		},
