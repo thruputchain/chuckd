@@ -71,7 +71,13 @@ func (q *DeliveryQueue) Discard(ch Channel) {
 func (q *DeliveryQueue) WaitForCapacity(ctx context.Context, maxBacklog int) error {
 	q.lk.Lock()
 	defer q.lk.Unlock()
-	for q.deliveriesInQueue() >= maxBacklog {
+	for {
+		n := q.deliveriesInQueue()
+		// fmt.Println("n", n, "maxBacklog", maxBacklog)
+		if n < maxBacklog {
+			break
+		}
+		// fmt.Println("WAIT: n", n, "maxBacklog", maxBacklog)
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("wait for capacity context expired")

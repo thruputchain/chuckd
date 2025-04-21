@@ -33,7 +33,7 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 		return nil // discard
 
 	} else if a := svc.accepting[channel]; a != nil {
-		a.deliver(delivery)
+		a.deliver(ctx, delivery)
 
 	} else if r := svc.receiving[channel]; r != nil {
 		r.deliver(ctx, delivery) // deliver to app and schedule relay
@@ -43,7 +43,7 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 		if !svc.disc.IsAcceptable(channel, delivery.Msg.Header.Seqno, delivery.Msg.Payload) {
 			return nil // discard
 		}
-		svc.accepting[channel] = newAccepting(svc, delivery)
+		svc.accepting[channel] = newAccepting(ctx, svc, delivery)
 
 	}
 	return nil

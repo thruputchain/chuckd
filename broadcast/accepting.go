@@ -17,22 +17,33 @@ type accepting struct {
 	deliveries []Delivery
 }
 
-func newAccepting(svc *BroadcastService, first Delivery) *accepting {
+func newAccepting(ctx context.Context, svc *BroadcastService, first Delivery) *accepting {
+	log.Infof("accepting message %d on channel %s at %s",
+		first.Msg.Header.Seqno,
+		protoutil.ChannelString(first.Msg.Header.Channel),
+		protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
+	)
 	a := &accepting{
 		svc:     svc,
 		channel: first.Msg.Header.Channel,
 		//
 		deliveries: []Delivery{first},
 	}
-	go a.accept(context.TODO())
+	go a.accept(ctx)
 	return a
 }
 
 // called inside a service lock!
-func (a *accepting) deliver(delivery Delivery) {
+func (a *accepting) deliver(_ context.Context, delivery Delivery) {
 	a.lk.Lock()
 	defer a.lk.Unlock()
 	a.deliveries = append(a.deliveries, delivery)
+}
+
+func (a *accepting) abort() {
+	a.svc.lk.Lock()
+	defer a.svc.lk.Unlock()
+	delete(a.svc.accepting, a.channel)
 }
 
 func (a *accepting) accept(ctx context.Context) {
@@ -44,29 +55,30 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
-		log.Infof("recovering multicast tree from relayer %s",
-			protoutil.ValidatorPublicShortString(first.Relayer))
+		log.Infof("recovering multicast tree from relayer %s, regarding delivery %s", protoutil.ValidatorPublicShortString(first.Relayer), form.SprintJSON(&first))
+
 		expanded, err := a.expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		if err != nil {
-			log.Errorf("recovering multicast tree from relayer %s: %s",
-				protoutil.ValidatorPublicShortString(first.Relayer), err)
+			log.Errorf("recovering multicast tree from relayer %s: %s", protoutil.ValidatorPublicShortString(first.Relayer), err)
+			a.abort()
 			return
 		}
 		treeNodes = &expanded
+
+		log.Infof("recovered multicast tree from relayer %s, regarding delivery %s", protoutil.ValidatorPublicShortString(first.Relayer), form.SprintJSON(&first))
 	}
 
 	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
 	if linked == nil {
 		log.Errorf("invalid multicast tree: %s", form.SprintJSON(treeNodes))
+		a.abort()
 		return
 	}
 	children, ok := linked.FindChildren(a.svc.ValidatorPublicInfo())
 
 	// if we fail to retrieve the tree and find out children in it, abort
 	if !ok {
-		a.svc.lk.Lock()
-		defer a.svc.lk.Unlock()
-		delete(a.svc.accepting, a.channel)
+		a.abort()
 		return
 	}
 
