@@ -127,9 +127,9 @@ func (q *DeliveryQueue) linearizeAndClearDeliveries() []deliveryTo {
 }
 
 func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
-	log.Infof("delivering message #%d on channel id %x to %s",
+	log.Infof("sending message %d on channel %s to %s",
 		dto.Delivery.Msg.Header.Seqno,
-		dto.Delivery.Msg.Header.Channel.Channel_id,
+		protoutil.ChannelIDString(dto.Delivery.Msg.Header.Channel.Channel_id),
 		protoutil.ValidatorPublicShortString(dto.To),
 	)
 	c, err := DialBroadcastClient(ctx, q.dialer, dto.To.Address)
@@ -141,9 +141,9 @@ func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
 
 	err = c.Broadcast_deliver(ctx, dto.Delivery)
 	if err != nil {
-		log.Errorf("delivering message #%d on channel id %x to %s: %s",
+		log.Errorf("sending message %d on channel %s to %s: %s",
 			dto.Delivery.Msg.Header.Seqno,
-			dto.Delivery.Msg.Header.Channel.Channel_id,
+			protoutil.ChannelIDString(dto.Delivery.Msg.Header.Channel.Channel_id),
 			protoutil.ValidatorPublicShortString(dto.To),
 			err,
 		)

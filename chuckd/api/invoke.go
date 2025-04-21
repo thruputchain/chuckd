@@ -16,6 +16,8 @@ func Invoke(f func()) error {
 
 	ctx := context.Background()
 
+	xruntime.CaptureInterrupts()
+
 	// mem profile
 	defer func() {
 		if memProfilePath != "" {

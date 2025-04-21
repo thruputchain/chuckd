@@ -40,7 +40,7 @@ func LogVerbosely() {
 	log.Logger = log.Output(
 		zerolog.ConsoleWriter{
 			Out:        os.Stderr,
-			NoColor:    false,
+			NoColor:    true,
 			TimeFormat: time.RFC3339,
 		},
 	)

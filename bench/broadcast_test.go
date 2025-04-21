@@ -15,6 +15,7 @@ import (
 func TestMain(m *testing.M) {
 	log.LogVerbosely()
 	runtime.SetRootSeed(0)
+	runtime.CaptureInterrupts()
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }

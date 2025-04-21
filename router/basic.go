@@ -36,6 +36,7 @@ func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 	return buildTree(x.treeFanOut, vs, rootID, cid)
 }
 
+// Info about rootID must be available inside vs.
 func buildTree(maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID, cid ChannelID) (
 	treeNodes MulticastTreeNodes,
 	children []ValidatorPublicInfo,
@@ -48,13 +49,8 @@ func buildTree(maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID
 	r := rand.New(rand.NewSource(seed))
 
 	// shuffle validators
+	root, vs := dedupFilterOutValidators(vs, rootID)
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
-
-	// find and remove root
-	root, vs, ok := findPopValidator(rootID, vs)
-	if !ok {
-		panic("missing validator")
-	}
 
 	return buildRootedTree(maxFanOut, root, vs)
 }
@@ -80,12 +76,12 @@ func buildRootedTree(
 
 	if len(children) > 0 {
 		m := divideRoundUp(len(unused), len(children))
-		for _, ch := range children {
+		for _, child := range children {
 			chop := min(m, len(unused))
-			chTreeNodes, _, chTreeHash := buildRootedTree(maxFanOut, ch, unused[:chop])
+			childTreeNodes, _, childTreeHash := buildRootedTree(maxFanOut, child, unused[:chop])
 			unused = unused[chop:]
-			treeNodes = append(treeNodes, chTreeNodes...)
-			treeNodes[0].Children = append(treeNodes[0].Children, chTreeHash)
+			treeNodes = append(treeNodes, childTreeNodes...)
+			treeNodes[0].Children = append(treeNodes[0].Children, childTreeHash)
 		}
 	}
 	treeHash = protoutil.MulticastTreeNodeHash(treeNodes[0])
@@ -100,14 +96,20 @@ func divideRoundUp(x, y int) int {
 	return (x / y) + 1
 }
 
-func findPopValidator(vid ValidatorID, vs []ValidatorPublicInfo) (ValidatorPublicInfo, []ValidatorPublicInfo, bool) {
-
-	for i, v := range vs {
-		if protoutil.ValidatorIDEqual(vid, protoutil.ValidatorPublicKeyToID(v.Public_key)) {
-			vs[i] = vs[len(vs)-1]
-			vs = vs[:len(vs)-1]
-			return v, vs, true
-		}
+func dedupFilterOutValidators(vs []ValidatorPublicInfo, vid ValidatorID) (ValidatorPublicInfo, []ValidatorPublicInfo) {
+	m := map[ValidatorID]ValidatorPublicInfo{}
+	for _, v := range vs {
+		m[protoutil.ValidatorIDFromPublic(v)] = v
 	}
-	return ValidatorPublicInfo{}, nil, false
+	found, ok := m[vid]
+	if !ok {
+		panic("cannot find root")
+	}
+	delete(m, vid)
+	dedup := protoutil.ValidatorPublicInfos{}
+	for _, v := range m {
+		dedup = append(dedup, v)
+	}
+	dedup.Sort()
+	return found, dedup
 }

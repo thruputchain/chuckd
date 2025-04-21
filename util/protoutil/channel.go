@@ -7,7 +7,7 @@ import (
 )
 
 func ChannelIDString(id proto.BroadcastChannelID) string {
-	return "cid:" + hex.EncodeToString(id[:])
+	return "cid:" + hex.EncodeToString(id[:ShortHashLen])
 }
 
 func ChannelString(c proto.BroadcastChannel) string {

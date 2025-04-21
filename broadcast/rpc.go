@@ -13,7 +13,12 @@ func (svc *BroadcastService) Broadcast_null(ctx context.Context) error {
 
 func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Delivery) error {
 
-	log.Debugf("delivery arrived at %s\n", protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()))
+	log.Debugf("receiving message %d on channel %s at %s from %s",
+		delivery.Msg.Header.Seqno,
+		protoutil.ChannelString(delivery.Msg.Header.Channel),
+		protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
+		protoutil.ValidatorPublicShortString(delivery.Relayer),
+	)
 
 	if !protoutil.VerifyDelivery(delivery) {
 		return nil //discard

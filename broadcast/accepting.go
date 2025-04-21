@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
@@ -43,6 +44,8 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
+		log.Infof("recovering multicast tree from relayer %s",
+			protoutil.ValidatorPublicShortString(first.Relayer))
 		expanded, err := a.expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		if err != nil {
 			log.Errorf("recovering multicast tree from relayer %s: %s",
@@ -53,6 +56,10 @@ func (a *accepting) accept(ctx context.Context) {
 	}
 
 	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
+	if linked == nil {
+		log.Errorf("invalid multicast tree: %s", form.SprintJSON(treeNodes))
+		return
+	}
 	children, ok := linked.FindChildren(a.svc.ValidatorPublicInfo())
 
 	// if we fail to retrieve the tree and find out children in it, abort

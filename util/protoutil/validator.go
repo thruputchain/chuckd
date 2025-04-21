@@ -4,9 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sort"
 
 	proto "github.com/groundhogchain/protocol-go"
 )
+
+const ShortHashLen = 5
 
 func ValidatorIDFromPublic(v proto.ValidatorPublicInfo) proto.ValidatorID {
 	return ValidatorPublicKeyToID(v.Public_key)
@@ -17,7 +20,7 @@ func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 }
 
 func ValidatorIDString(vid proto.ValidatorID) string {
-	return "vid:" + hex.EncodeToString(vid[:])
+	return "vid:" + hex.EncodeToString(vid[:ShortHashLen])
 }
 
 func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
@@ -27,4 +30,24 @@ func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
 
 func ValidatorIDEqual(vid1 proto.ValidatorID, vid2 proto.ValidatorID) bool {
 	return vid1 == vid2
+}
+
+// sorting
+
+type ValidatorPublicInfos []proto.ValidatorPublicInfo
+
+func (vs ValidatorPublicInfos) Len() int {
+	return len(vs)
+}
+
+func (vs ValidatorPublicInfos) Less(i, j int) bool {
+	return ValidatorIDString(ValidatorIDFromPublic(vs[i])) < ValidatorIDString(ValidatorIDFromPublic(vs[j]))
+}
+
+func (vs ValidatorPublicInfos) Swap(i, j int) {
+	vs[i], vs[j] = vs[j], vs[i]
+}
+
+func (vs ValidatorPublicInfos) Sort() {
+	sort.Sort(vs)
 }
