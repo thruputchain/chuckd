@@ -17,6 +17,7 @@ import (
 type BroadcastBenchmark struct {
 	paySize       int
 	payPerChannel int
+	numIterations     int
 	listener      net.Listener
 	broadcast     *broadcast.BroadcastService
 }
@@ -29,6 +30,7 @@ func NewBroadcastBenchmark(
 	treeFanOut int, // fanout of multicast trees
 	paySize int, // sife of message payload
 	payPerChannel int, // number of message to send on a channel
+	numIterations int,
 ) *BroadcastBenchmark {
 
 	router := router.NewFixedRouter(ctx, vcfg.Private_info.Public_info, vcfg.Known_validators, treeFanOut)
@@ -47,6 +49,7 @@ func NewBroadcastBenchmark(
 	return &BroadcastBenchmark{
 		paySize:       paySize,
 		payPerChannel: payPerChannel,
+		numIterations:     numIterations,
 		broadcast:     broadcast,
 	}
 }
@@ -58,7 +61,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 
 	// start benchmark sender
 	go func() {
-		for {
+		for j := 0; j < bench.numIterations; j++ {
 			s := bench.broadcast.API().MakeChannel()
 		sendLoop:
 			for i := 0; i < bench.payPerChannel; i++ {

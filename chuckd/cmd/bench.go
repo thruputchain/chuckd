@@ -30,6 +30,7 @@ var (
 					benchTreeFanOut,
 					benchPaySize,
 					benchPayPerChannel,
+					benchNumIterations,
 				)
 				srv.Start(ctx, benchServerAddress)
 				<-(chan int)(nil) // hang
@@ -44,6 +45,7 @@ var (
 	benchDeliveryPar   int
 	benchPaySize       int
 	benchPayPerChannel int
+	benchNumIterations     int
 )
 
 func init() {
@@ -55,4 +57,5 @@ func init() {
 	benchBroadcastCmd.Flags().IntVar(&benchDeliveryPar, "sendpar", 5, "deliveries in parallel")
 	benchBroadcastCmd.Flags().IntVar(&benchPaySize, "paysize", 1000*1000*10, "payload size")
 	benchBroadcastCmd.Flags().IntVar(&benchPayPerChannel, "payperchan", 100, "payloads per channel")
+	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "iterations", 1, "number of iterations")
 }

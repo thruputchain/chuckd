@@ -104,6 +104,7 @@ func (a *accepting) accept(ctx context.Context) {
 func (a *accepting) expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
 	c, err := DialBroadcastClient(ctx, a.svc.net, address)
 	if err != nil {
+		log.Errorf("dialing broadcast for recovery: %s", err)
 		return nil, err
 	}
 	defer c.Close()

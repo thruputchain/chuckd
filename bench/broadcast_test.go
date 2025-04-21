@@ -22,13 +22,14 @@ func TestMain(m *testing.M) {
 
 func TestBroadcast(t *testing.T) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	testDeliveryPar := 5
 	testTreeFanOut := 5
 	testPaySize := 10
 	testPayPerChannel := 10
+	testIterations := 1
 
 	rr := runtime.NewRandFromRoot()
 	r0 := runtime.NewRandFromRoot()
@@ -49,9 +50,9 @@ func TestBroadcast(t *testing.T) {
 	vcfg1 := proto.ValidatorConfig{Private_info: *priv1, Known_validators: known}
 	vcfg2 := proto.ValidatorConfig{Private_info: *priv2, Known_validators: known}
 
-	bb0 := NewBroadcastBenchmark(ctx, r0, vcfg0, testDeliveryPar, testTreeFanOut, testPaySize, testPayPerChannel)
-	bb1 := NewBroadcastBenchmark(ctx, r1, vcfg1, testDeliveryPar, testTreeFanOut, testPaySize, testPayPerChannel)
-	bb2 := NewBroadcastBenchmark(ctx, r2, vcfg2, testDeliveryPar, testTreeFanOut, testPaySize, testPayPerChannel)
+	bb0 := NewBroadcastBenchmark(ctx, r0, vcfg0, testDeliveryPar, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
+	bb1 := NewBroadcastBenchmark(ctx, r1, vcfg1, testDeliveryPar, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
+	bb2 := NewBroadcastBenchmark(ctx, r2, vcfg2, testDeliveryPar, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
 
 	bb0.Start(ctx, a0)
 	bb1.Start(ctx, a1)
