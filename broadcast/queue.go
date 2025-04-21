@@ -102,6 +102,7 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 
 	for {
 		// block until there are deliveries in the queue
+		q.cond.Broadcast() // wake up WaitForCapacity
 		q.lk.Lock()
 		deliveries := q.linearizeAndClearDeliveries()
 		for len(deliveries) == 0 {

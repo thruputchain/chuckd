@@ -55,7 +55,7 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
-		log.Infof("recovering multicast tree from relayer %s, regarding delivery %s", protoutil.ValidatorPublicShortString(first.Relayer), form.SprintJSON(&first))
+		log.Infof("recovering multicast tree from relayer %s", protoutil.ValidatorPublicShortString(first.Relayer))
 
 		expanded, err := a.expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		if err != nil {
@@ -65,7 +65,7 @@ func (a *accepting) accept(ctx context.Context) {
 		}
 		treeNodes = &expanded
 
-		log.Infof("recovered multicast tree from relayer %s, regarding delivery %s", protoutil.ValidatorPublicShortString(first.Relayer), form.SprintJSON(&first))
+		log.Infof("recovered multicast tree from relayer %s", protoutil.ValidatorPublicShortString(first.Relayer))
 	}
 
 	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)

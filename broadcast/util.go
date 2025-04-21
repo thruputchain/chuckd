@@ -6,13 +6,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (s *BroadcastService) findTree(h MulticastTreeHash) MulticastTreeNodes {
-	s.lk.Lock()
-	defer s.lk.Unlock()
-	nodes, _ := s.trees.Find(h)
+func (svc *BroadcastService) findTree(h MulticastTreeHash) MulticastTreeNodes {
+	svc.lk.Lock()
+	defer svc.lk.Unlock()
+	nodes, _ := svc.trees.Find(h)
 	return nodes
 }
 
-func (s *BroadcastService) enqueueDelivery(ctx context.Context, v proto.ValidatorPublicInfo, delivery proto.Delivery) error {
-	return s.deliveryQueue.Enqueue(ctx, v, delivery)
+func (svc *BroadcastService) enqueueDelivery(ctx context.Context, v proto.ValidatorPublicInfo, delivery proto.Delivery) error {
+	return svc.deliveryQueue.Enqueue(ctx, v, delivery)
 }
