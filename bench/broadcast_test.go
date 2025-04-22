@@ -28,7 +28,7 @@ func TestBroadcast(t *testing.T) {
 	testTreeFanOut := 5
 	testPaySize := 10
 	testPayPerChannel := 10
-	testIterations := 1
+	testIterations := 10
 
 	rr := runtime.NewRandFromRoot()
 	r0 := runtime.NewRandFromRoot()
