@@ -96,7 +96,7 @@ func TestDelivery(t *testing.T) {
 	payload := []byte{1, 2, 3}
 
 	go func() {
-		sch := b0.API().MakeChannel()
+		sch := b0.API().MakeChannel(testCtx)
 		sch.Send(testCtx, payload)
 	}()
 

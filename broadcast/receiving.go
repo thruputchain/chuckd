@@ -13,6 +13,7 @@ type receiving struct {
 	channel   Channel
 	treeNodes MulticastTreeNodes
 	children  []ValidatorPublicInfo
+	streams   []*stream
 	//
 	lk        sync.Mutex
 	nextSeqNo int64
@@ -28,11 +29,24 @@ func newReceiving(
 	children []ValidatorPublicInfo,
 	deliveries []Delivery,
 ) *receiving {
+	streams := make([]*stream, len(children))
+	for i := range children {
+		streams[i] = newStream(
+			ctx,
+			svc.metrics.DeliveryQueueMetrics(),
+			svc.net,
+			svc.ValidatorPublicInfo(),
+			children[i],
+			channel,
+			2*len(children),
+		)
+	}
 	x := &receiving{
 		svc:       svc,
 		channel:   channel,
 		treeNodes: treeNodes,
 		children:  children,
+		streams:   streams,
 		//
 		received:  nil,
 		deliverCh: make(chan Message, len(deliveries)),
@@ -65,13 +79,13 @@ func (x *receiving) deliver(ctx context.Context, delivery Delivery) {
 }
 
 func (x *receiving) relay(ctx context.Context, delivery Delivery) {
-	for _, v := range x.children {
+	for _, v := range x.streams {
 		reDelivery := Delivery{
 			Relayer:    x.svc.ValidatorPublicInfo(),
 			Msg:        delivery.Msg,
 			Tree_nodes: delivery.Tree_nodes,
 		}
-		x.svc.enqueueDelivery(ctx, v, reDelivery)
+		v.Enqueue(ctx, reDelivery)
 	}
 }
 
@@ -85,6 +99,13 @@ func (x *receiving) Receive(ctx context.Context) (seqno SeqNo, msgHash MessageHa
 }
 
 func (x *receiving) Close() {
+
+	defer func() {
+		for i := range x.streams {
+			x.streams[i].Close()
+		}
+	}()
+
 	x.svc.lk.Lock()
 	defer x.svc.lk.Unlock()
 

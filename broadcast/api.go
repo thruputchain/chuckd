@@ -23,7 +23,7 @@ type Header = proto.BroadcastHeader
 // Broadcast describes the application-facing API for the broadcast system.
 type Broadcast interface {
 	// MakeChannel creates a new broadcast channel for sending.
-	MakeChannel() SendChannel
+	MakeChannel(context.Context) SendChannel
 
 	// AcceptChannel blocks until a new broadcast channel reaches this node.
 	AcceptChannel() ReceiveChannel

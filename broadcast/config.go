@@ -3,7 +3,7 @@ package broadcast
 import "time"
 
 type BroadcastConfig struct {
-	DeliveryPar            int
+	DeliveryPar            int // XXX: not used
 	UnusedMulticastTreeTTL time.Duration
 }
 

@@ -12,13 +12,13 @@ type StripedBroadcast struct {
 	next    int // next stripe
 }
 
-func MakeStripedSender(b Broadcast, nstripes int) *StripedBroadcast {
+func MakeStripedSender(ctx context.Context, b Broadcast, nstripes int) *StripedBroadcast {
 	x := &StripedBroadcast{
 		b:       b,
 		stripes: make([]SendChannel, nstripes),
 	}
 	for i := 0; i < nstripes; i++ {
-		x.stripes[i] = b.MakeChannel()
+		x.stripes[i] = b.MakeChannel(ctx)
 	}
 	return x
 }

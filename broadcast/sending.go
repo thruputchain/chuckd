@@ -12,22 +12,37 @@ type sending struct {
 	channel   Channel
 	treeNodes MulticastTreeNodes
 	children  []ValidatorPublicInfo
+	streams   []*stream
 	//
 	lk   sync.Mutex
 	sent []Message
 }
 
 func newSending(
+	ctx context.Context,
 	svc *BroadcastService,
 	channel Channel,
 	treeNodes MulticastTreeNodes,
 	children []ValidatorPublicInfo,
 ) *sending {
+	streams := make([]*stream, len(children))
+	for i := range children {
+		streams[i] = newStream(
+			ctx,
+			svc.metrics.DeliveryQueueMetrics(),
+			svc.net,
+			svc.ValidatorPublicInfo(),
+			children[i],
+			channel,
+			2*len(children),
+		)
+	}
 	return &sending{
 		svc:       svc,
 		channel:   channel,
 		treeNodes: treeNodes,
 		children:  children,
+		streams:   streams,
 	}
 }
 
@@ -78,16 +93,21 @@ func (x *sending) Send(ctx context.Context, payload []byte) error {
 
 	// send message to delivery queue
 
-	for _, v := range x.children {
-		if err := x.svc.enqueueDelivery(ctx, v, delivery); err != nil {
-			return err
-		}
+	for _, v := range x.streams {
+		v.Enqueue(ctx, delivery)
 	}
 
 	return nil
 }
 
 func (x *sending) Close() {
+
+	defer func() {
+		for i := range x.streams {
+			x.streams[i].Close()
+		}
+	}()
+
 	x.svc.lk.Lock()
 	defer x.svc.lk.Unlock()
 

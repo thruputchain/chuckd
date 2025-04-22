@@ -10,6 +10,7 @@ import (
 
 type BroadcastMetrics struct {
 	NumSent           metric.Int64Counter
+	NumNotSent        metric.Int64Counter
 	NumReceived       metric.Int64Counter
 	NumNotReceived    metric.Int64Counter
 	SendThroughput    metric.Int64Counter
@@ -21,6 +22,8 @@ func NewBroadcastMetrics(ctx context.Context) *BroadcastMetrics {
 	b := &BroadcastMetrics{}
 	var err error
 	b.NumSent, err = m.Int64Counter("num_sent")
+	must.NoError(ctx, err)
+	b.NumNotSent, err = m.Int64Counter("num_not_sent")
 	must.NoError(ctx, err)
 	b.NumReceived, err = m.Int64Counter("num_received")
 	must.NoError(ctx, err)
@@ -36,11 +39,13 @@ func NewBroadcastMetrics(ctx context.Context) *BroadcastMetrics {
 func (b *BroadcastMetrics) DeliveryQueueMetrics() *DeliveryQueueMetrics {
 	return &DeliveryQueueMetrics{
 		NumSent:        b.NumSent,
+		NumNotSent:     b.NumNotSent,
 		SendThroughput: b.SendThroughput,
 	}
 }
 
 type DeliveryQueueMetrics struct {
 	NumSent        metric.Int64Counter
+	NumNotSent     metric.Int64Counter
 	SendThroughput metric.Int64Counter
 }

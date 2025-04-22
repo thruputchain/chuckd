@@ -29,8 +29,6 @@ type BroadcastService struct {
 	accepting map[Channel]*accepting
 	trees     *TreeCache
 	//
-	deliveryQueue *DeliveryQueue
-	//
 	acceptCh chan *receiving
 }
 
@@ -59,8 +57,6 @@ func NewBroadcastService(
 		receiving: map[Channel]*receiving{},
 		accepting: map[Channel]*accepting{},
 		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
-		//
-		deliveryQueue: NewDeliveryQueue(ctx, m.DeliveryQueueMetrics(), n, cfg.DeliveryPar),
 		//
 		acceptCh: make(chan *receiving),
 	}

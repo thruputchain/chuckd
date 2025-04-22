@@ -1,6 +1,8 @@
 package broadcast
 
-func (s *broadcastAPI) MakeChannel() SendChannel {
+import "context"
+
+func (s *broadcastAPI) MakeChannel(ctx context.Context) SendChannel {
 
 	s.svc.lk.Lock()
 	defer s.svc.lk.Unlock()
@@ -12,7 +14,7 @@ func (s *broadcastAPI) MakeChannel() SendChannel {
 		Channel_id: channelID,
 		Tree_hash:  treeHash,
 	}
-	sch := newSending(s.svc, ch, treeNodes, children)
+	sch := newSending(ctx, s.svc, ch, treeNodes, children)
 
 	s.svc.sending[ch] = sch
 	s.svc.trees.Ref(treeHash, treeNodes)
