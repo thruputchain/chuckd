@@ -27,7 +27,6 @@ func NewBroadcastBenchmark(
 	ctx context.Context,
 	rr *rand.Rand,
 	vcfg proto.ValidatorConfig,
-	deliveryPar int,
 	treeFanOut int, // fanout of multicast trees
 	paySize int, // sife of message payload
 	payPerChannel int, // number of message to send on a channel
@@ -38,7 +37,6 @@ func NewBroadcastBenchmark(
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
 		broadcast.BroadcastConfig{
-			DeliveryPar:            deliveryPar,
 			UnusedMulticastTreeTTL: time.Minute,
 		},
 		libnet.TCPNet{},
@@ -63,7 +61,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 	// start benchmark sender
 	go func() {
 		for j := 0; j < bench.numIterations; j++ {
-			s := bench.broadcast.API().MakeChannel()
+			s := bench.broadcast.API().MakeChannel(ctx)
 		sendLoop:
 			for i := 0; i < bench.payPerChannel; i++ {
 				select {

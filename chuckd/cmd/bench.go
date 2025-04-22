@@ -26,7 +26,6 @@ var (
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg,
-					benchDeliveryPar,
 					benchTreeFanOut,
 					benchPaySize,
 					benchPayPerChannel,
@@ -42,10 +41,9 @@ var (
 var (
 	benchServerAddress string
 	benchTreeFanOut    int
-	benchDeliveryPar   int
 	benchPaySize       int
 	benchPayPerChannel int
-	benchNumIterations     int
+	benchNumIterations int
 )
 
 func init() {
@@ -54,7 +52,6 @@ func init() {
 	benchCmd.AddCommand(benchBroadcastCmd)
 	benchBroadcastCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
 	benchBroadcastCmd.Flags().IntVar(&benchTreeFanOut, "fanout", 5, "fanout of multicast trees")
-	benchBroadcastCmd.Flags().IntVar(&benchDeliveryPar, "sendpar", 5, "deliveries in parallel")
 	benchBroadcastCmd.Flags().IntVar(&benchPaySize, "paysize", 1000*1000*10, "payload size")
 	benchBroadcastCmd.Flags().IntVar(&benchPayPerChannel, "payperchan", 100, "payloads per channel")
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "iterations", 1, "number of iterations")
