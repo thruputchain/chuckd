@@ -11,13 +11,14 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type BroadcastBenchmark struct {
 	paySize       int
 	payPerChannel int
-	numIterations     int
+	numIterations int
 	listener      net.Listener
 	broadcast     *broadcast.BroadcastService
 }
@@ -49,7 +50,7 @@ func NewBroadcastBenchmark(
 	return &BroadcastBenchmark{
 		paySize:       paySize,
 		payPerChannel: payPerChannel,
-		numIterations:     numIterations,
+		numIterations: numIterations,
 		broadcast:     broadcast,
 	}
 }
@@ -71,8 +72,9 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 				default:
 				}
 				sctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
+				log.Infof("bench server %s sending message %d on channel %d", protoutil.ValidatorIDString(bench.broadcast.ValidatorID()), i, j)
 				if err := s.Send(sctx, make([]byte, bench.paySize)); err != nil {
-					log.Errorf("send: %v", err)
+					log.Errorf("bench send: %v", err)
 				}
 				cancel()
 			}

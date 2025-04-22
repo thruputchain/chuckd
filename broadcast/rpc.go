@@ -21,6 +21,12 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 	)
 
 	if !protoutil.VerifyDelivery(delivery) {
+		log.Errorf("verification failed for message %d on channel %s at %s from %s",
+			delivery.Msg.Header.Seqno,
+			protoutil.ChannelString(delivery.Msg.Header.Channel),
+			protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
+			protoutil.ValidatorPublicShortString(delivery.Relayer),
+		)
 		return nil //discard
 	}
 
@@ -30,6 +36,12 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 	defer svc.lk.Unlock()
 
 	if s := svc.sending[channel]; s != nil {
+		log.Errorf("discarding (arrived at sender) message %d on channel %s at %s from %s",
+			delivery.Msg.Header.Seqno,
+			protoutil.ChannelString(delivery.Msg.Header.Channel),
+			protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
+			protoutil.ValidatorPublicShortString(delivery.Relayer),
+		)
 		return nil // discard
 
 	} else if a := svc.accepting[channel]; a != nil {

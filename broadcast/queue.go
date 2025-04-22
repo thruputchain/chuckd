@@ -8,26 +8,36 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 type DeliveryQueue struct {
 	dialer libnet.AddressDialer
 	maxpar int
 	//
-	cond *sync.Cond
-	lk   sync.Mutex
-	chq  map[Channel][]deliveryTo
+	cond    *sync.Cond
+	lk      sync.Mutex
+	pending map[stream][]envelope
 	//
 	metrics *DeliveryQueueMetrics
 }
 
-type deliveryTo struct {
+type stream struct {
+	To      proto.ValidatorID
+	Channel Channel
+}
+
+func newStream(to ValidatorPublicInfo, channel Channel) stream {
+	return stream{To: protoutil.ValidatorIDFromPublic(to), Channel: channel}
+}
+
+type envelope struct {
 	To       ValidatorPublicInfo
 	Delivery Delivery
 }
 
-func newDeliveryTo(to ValidatorPublicInfo, delivery Delivery) deliveryTo {
-	return deliveryTo{To: to, Delivery: delivery}
+func newEnvelope(to ValidatorPublicInfo, delivery Delivery) envelope {
+	return envelope{To: to, Delivery: delivery}
 }
 
 func NewDeliveryQueue(
@@ -39,7 +49,7 @@ func NewDeliveryQueue(
 	q := &DeliveryQueue{
 		dialer:  dialer,
 		maxpar:  maxpar,
-		chq:     map[Channel][]deliveryTo{},
+		pending: map[stream][]envelope{},
 		metrics: metrics,
 	}
 	q.cond = sync.NewCond(&q.lk)
@@ -55,8 +65,10 @@ func (q *DeliveryQueue) Enqueue(ctx context.Context, to ValidatorPublicInfo, del
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()
-	channel := delivery.Msg.Header.Channel
-	q.chq[channel] = append(q.chq[channel], newDeliveryTo(to, delivery))
+
+	key := newStream(to, delivery.Msg.Header.Channel)
+	q.pending[key] = append(q.pending[key], newEnvelope(to, delivery))
+
 	return nil
 }
 
@@ -65,19 +77,21 @@ func (q *DeliveryQueue) Discard(ch Channel) {
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	defer q.cond.Broadcast()
-	delete(q.chq, ch)
+	for key := range q.pending {
+		if key.Channel == ch {
+			delete(q.pending, key)
+		}
+	}
 }
 
 func (q *DeliveryQueue) WaitForCapacity(ctx context.Context, maxBacklog int) error {
 	q.lk.Lock()
 	defer q.lk.Unlock()
 	for {
-		n := q.deliveriesInQueue()
-		// fmt.Println("n", n, "maxBacklog", maxBacklog)
+		n := q.streamsInQueue()
 		if n < maxBacklog {
 			break
 		}
-		// fmt.Println("WAIT: n", n, "maxBacklog", maxBacklog)
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("wait for capacity context expired")
@@ -88,12 +102,8 @@ func (q *DeliveryQueue) WaitForCapacity(ctx context.Context, maxBacklog int) err
 	return nil
 }
 
-func (q *DeliveryQueue) deliveriesInQueue() int {
-	n := 0
-	for _, chq := range q.chq {
-		n += len(chq)
-	}
-	return n
+func (q *DeliveryQueue) streamsInQueue() int {
+	return len(q.pending)
 }
 
 func (q *DeliveryQueue) flush(ctx context.Context) {
@@ -104,58 +114,62 @@ func (q *DeliveryQueue) flush(ctx context.Context) {
 		// block until there are deliveries in the queue
 		q.cond.Broadcast() // wake up WaitForCapacity
 		q.lk.Lock()
-		deliveries := q.linearizeAndClearDeliveries()
-		for len(deliveries) == 0 {
+		pending := q.takePending()
+		for len(pending) == 0 {
 			q.cond.Wait()
 			q.cond.Broadcast() // wake up WaitForCapacity
-			deliveries = q.linearizeAndClearDeliveries()
+			pending = q.takePending()
 		}
 		q.lk.Unlock()
 
 		// deliver in parallel with a throttle
-		for _, dto := range deliveries {
+		for _, streamDeliveries := range pending {
 			sem <- struct{}{} // acquire a delivery slot
-			go func(dto deliveryTo) {
+			go func(streamDeliveries []envelope) {
 				defer func() { <-sem }() // release delivery slot
-				q.deliver(ctx, dto)
-			}(dto)
+				q.deliver(ctx, streamDeliveries)
+			}(streamDeliveries)
 		}
 	}
 }
 
-func (q *DeliveryQueue) linearizeAndClearDeliveries() []deliveryTo {
-	l := []deliveryTo{}
-	for channel, ds := range q.chq {
-		l = append(l, ds...)
-		delete(q.chq, channel)
-	}
-	// TODO: should we randomize the order?
-	return l
+func (q *DeliveryQueue) takePending() (pending map[stream][]envelope) {
+	pending, q.pending = q.pending, map[stream][]envelope{}
+	return pending
 }
 
-func (q *DeliveryQueue) deliver(ctx context.Context, dto deliveryTo) {
-	log.Infof("sending message %d on channel %s to %s",
-		dto.Delivery.Msg.Header.Seqno,
-		protoutil.ChannelIDString(dto.Delivery.Msg.Header.Channel.Channel_id),
-		protoutil.ValidatorPublicShortString(dto.To),
-	)
-	c, err := DialBroadcastClient(ctx, q.dialer, dto.To.Address)
-	if err != nil {
-		log.Errorf("broadcast queue dialing %s: %v", protoutil.ValidatorPublicShortString(dto.To), err)
+func (q *DeliveryQueue) deliver(ctx context.Context, streamDeliveries []envelope) {
+
+	if len(streamDeliveries) == 0 {
 		return
+	}
+	to := streamDeliveries[len(streamDeliveries)-1].To
+
+	c, err := DialBroadcastClient(ctx, q.dialer, to.Address)
+	if err != nil {
+		log.Errorf("broadcast queue dialing %s: %v", protoutil.ValidatorPublicShortString(to), err)
+		return // all deliveries in queue lost
 	}
 	defer c.Close()
 
-	err = c.Broadcast_deliver(ctx, dto.Delivery)
-	if err != nil {
-		log.Errorf("sending message %d on channel %s to %s: %s",
-			dto.Delivery.Msg.Header.Seqno,
-			protoutil.ChannelIDString(dto.Delivery.Msg.Header.Channel.Channel_id),
-			protoutil.ValidatorPublicShortString(dto.To),
-			err,
+	for _, env := range streamDeliveries {
+		log.Debugf("sending message %d on channel %s to %s",
+			env.Delivery.Msg.Header.Seqno,
+			protoutil.ChannelString(env.Delivery.Msg.Header.Channel),
+			protoutil.ValidatorPublicShortString(env.To),
 		)
-		return
+
+		err = c.Broadcast_deliver(ctx, env.Delivery)
+		if err != nil {
+			log.Errorf("sending message %d on channel %s to %s: %s",
+				env.Delivery.Msg.Header.Seqno,
+				protoutil.ChannelString(env.Delivery.Msg.Header.Channel),
+				protoutil.ValidatorPublicShortString(env.To),
+				err,
+			)
+			return // all deliveries in queue lost
+		}
+		q.metrics.NumSent.Add(ctx, 1)
+		q.metrics.SendThroughput.Add(ctx, int64(len(env.Delivery.Msg.Payload)))
 	}
-	q.metrics.NumSent.Add(ctx, 1)
-	q.metrics.SendThroughput.Add(ctx, int64(len(dto.Delivery.Msg.Payload)))
 }

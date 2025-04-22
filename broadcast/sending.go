@@ -39,6 +39,8 @@ func (x *sending) Send(ctx context.Context, payload []byte) error {
 
 	// create broadcast message
 
+	x.lk.Lock()
+
 	var attachTree bool
 	var prevMsgHash *MessageHash
 	if len(x.sent) > 0 {
@@ -58,8 +60,8 @@ func (x *sending) Send(ctx context.Context, payload []byte) error {
 		},
 		Payload: payload,
 	}
-	x.lk.Lock()
 	x.sent = append(x.sent, msg)
+
 	x.lk.Unlock()
 
 	// prepare delivery structure
