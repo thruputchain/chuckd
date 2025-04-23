@@ -2,9 +2,8 @@
 set -e
 
 REPOSITORY_NAME=groundhogchain
-TAG=chuckd.latest
+TAG=chuckdbench.latest
 
-#   --secret id=github_token,env=GITHUB_TOKEN \
-docker build --progress=plain \
+docker build \
   --build-arg GITHUB_TOKEN=$GITHUB_TOKEN \
-  -t $REPOSITORY_NAME:$TAG .
+  -t $REPOSITORY_NAME:$TAG --file ./Dockerfile.bench .

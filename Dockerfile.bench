@@ -14,8 +14,6 @@ COPY go.mod go.sum ./
 # The GitHub token is passed as a build argument
 ARG GITHUB_TOKEN
 
-# RUN echo "machine github.com login petar password ${GITHUB_TOKEN}" > ${HOME}/.netrc
-
 # Configure git to use the token for github.com
 RUN git config --global url."https://${GITHUB_TOKEN}:@github.com/".insteadOf "https://github.com/" && \
     # Enable authentication for private Go modules
@@ -24,7 +22,6 @@ RUN git config --global url."https://${GITHUB_TOKEN}:@github.com/".insteadOf "ht
     go env -w GOPRIVATE=github.com/groundhogchain/*
 
 # Download dependencies
-# RUN --mount=type=secret,id=github_token go mod download
 RUN go mod download
 
 # Copy the source code
@@ -41,9 +38,8 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Install AWS CLI and other utilities
-RUN apk add --no-cache curl jq python3 py3-pip && \
-    pip3 install --no-cache-dir awscli && \
-    adduser -D -g '' chuckd
+RUN apk add --no-cache aws-cli wget curl jq
+RUN adduser -D -g '' chuckd
 
 # Set working directory
 WORKDIR /app
@@ -52,10 +48,10 @@ WORKDIR /app
 COPY --from=builder /chuckd /app/chuckd
 
 # Copy scripts
-COPY scripts/entrypoint.sh /app/
+COPY scripts/entrypoint_bench.sh /app/
 
 # Make scripts executable
-RUN chmod +x /app/entrypoint.sh && \
+RUN chmod +x /app/entrypoint_bench.sh && \
     mkdir -p /app/config /app/data && \
     chown -R chuckd:chuckd /app
 
@@ -68,13 +64,13 @@ ENV INSTANCE=""
 ENV SEED=1234
 
 # Expose app port
-EXPOSE 8181
+EXPOSE 9111
 
 # Expose metrics port
 EXPOSE 2222
 
 # Use entrypoint script
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint_bench.sh"]
 
 # Default CMD (empty array, will be overridden by command-line args)
 CMD []
