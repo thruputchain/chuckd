@@ -6,4 +6,4 @@ TAG=chuckdbench.latest
 
 docker build \
   --build-arg GITHUB_TOKEN=$GITHUB_TOKEN \
-  -t $REPOSITORY_NAME:$TAG --file ./Dockerfile.bench .
+  -t $REPOSITORY_NAME:$TAG --file ./Dockerfile.bench ./..
