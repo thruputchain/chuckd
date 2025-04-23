@@ -13,10 +13,12 @@ require (
 )
 
 require (
-	github.com/groundhogchain/protocol-go v0.0.0-20250328054903-22b3c9fa686e
+	github.com/groundhogchain/protocol-go v0.0.0-20250417220746-d03851ac4bbe
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.1.2
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
+	go.opentelemetry.io/otel/metric v1.35.0
+	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/sdk/metric v1.35.0
 )
 
@@ -35,8 +37,6 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect

@@ -1,0 +1,80 @@
+# Build stage
+FROM golang:1.24-alpine AS builder
+
+# Install git and other dependencies
+RUN apk add --no-cache git ca-certificates tzdata curl jq && \
+    update-ca-certificates
+
+# Set working directory
+WORKDIR /app
+
+# Copy go.mod and go.sum files
+COPY go.mod go.sum ./
+
+# The GitHub token is passed as a build argument
+ARG GITHUB_TOKEN
+
+# RUN echo "machine github.com login petar password ${GITHUB_TOKEN}" > ${HOME}/.netrc
+
+# Configure git to use the token for github.com
+RUN git config --global url."https://${GITHUB_TOKEN}:@github.com/".insteadOf "https://github.com/" && \
+    # Enable authentication for private Go modules
+    git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" && \
+    # Set GOPRIVATE for private repositories
+    go env -w GOPRIVATE=github.com/groundhogchain/*
+
+# Download dependencies
+# RUN --mount=type=secret,id=github_token go mod download
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /chuckd ./chuckd
+
+# Final stage
+FROM alpine:3.21
+
+# Add necessary certificates and timezone data
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# Install AWS CLI and other utilities
+RUN apk add --no-cache curl jq python3 py3-pip && \
+    pip3 install --no-cache-dir awscli && \
+    adduser -D -g '' chuckd
+
+# Set working directory
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /chuckd /app/chuckd
+
+# Copy scripts
+COPY scripts/entrypoint.sh /app/
+
+# Make scripts executable
+RUN chmod +x /app/entrypoint.sh && \
+    mkdir -p /app/config /app/data && \
+    chown -R chuckd:chuckd /app
+
+# Switch to non-root user
+USER chuckd
+
+# Default env
+ENV CONFIG_FILE="/app/config/config.json"
+ENV INSTANCE=""
+ENV SEED=1234
+
+# Expose app port
+EXPOSE 8181
+
+# Expose metrics port
+EXPOSE 2222
+
+# Use entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Default CMD (empty array, will be overridden by command-line args)
+CMD []
