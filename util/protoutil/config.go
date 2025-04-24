@@ -3,9 +3,13 @@ package protoutil
 import (
 	"context"
 	"crypto/ed25519"
+	"fmt"
 	"math/rand"
+	"os"
+	"path"
 
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -32,4 +36,28 @@ func GenerateIdentity(rr *rand.Rand, address string) (*proto.ValidatorPrivateInf
 		},
 		Secret_key: proto.ValidatorSecretKey(secretKey),
 	}, nil
+}
+
+func GenerateConfigs(ctx context.Context, rr *rand.Rand, n int) []*proto.ValidatorConfig {
+	cfg := make([]*proto.ValidatorConfig, n)
+	vs := make([]proto.ValidatorPublicInfo, n)
+	for i := 0; i < n; i++ {
+		cfg[i] = InitConfig(ctx, rr, fmt.Sprintf("XXX.XXX.XXX.%d:9111", i))
+		vs[i] = cfg[i].Private_info.Public_info
+	}
+	for i := range cfg {
+		cfg[i].Known_validators = vs
+	}
+	return cfg
+}
+
+func WriteConfigsToDir(ctx context.Context, cfgs []*proto.ValidatorConfig, dir string) {
+	err := os.MkdirAll(dir, 0755)
+	must.NoError(ctx, err)
+	for i, cfg := range cfgs {
+		jsbuf, err := xdrutil.XdrToJson(cfg)
+		must.NoError(ctx, err)
+		err = os.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.json", i)), jsbuf, 0644)
+		must.NoError(ctx, err)
+	}
 }

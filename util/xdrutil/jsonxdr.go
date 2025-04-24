@@ -146,7 +146,7 @@ func (_ *jsonOut) Sprintf(f string, args ...interface{}) string {
 	return fmt.Sprintf(f, args...)
 }
 func (j *jsonOut) Marshal(name string, val xdr.XdrType) {
-	switch v := val.(type) {
+	switch v := xdr.XdrBaseType(val).(type) {
 	case *xdr.XdrBool:
 		j.printField(name, "%v", *v)
 	case xdr.XdrEnum:

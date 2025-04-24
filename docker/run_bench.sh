@@ -6,7 +6,7 @@ docker run \
   -e SEED=$SEED \
   -v $CONFIG:/app/config/config.json \
   groundhogchain:chuckdbench.latest \
-  --v \
+  -v \
   --fanout 5 \
   --iterations 3 \
   --payperchan 10 \

@@ -44,10 +44,24 @@ var (
 			})
 		},
 	}
+
+	configGroupCmd = &cobra.Command{
+		Use:   "group",
+		Short: "generate a group of configs",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(func() {
+				cfgs := protoutil.GenerateConfigs(ctx, runtime.NewCryptoRand(ctx), configGroupSize)
+				protoutil.WriteConfigsToDir(ctx, cfgs, configOutputDir)
+			})
+		},
+	}
 )
 
 var (
-	configToStdout bool
+	configToStdout  bool
+	configGroupSize int
+	configOutputDir string
 )
 
 func init() {
@@ -55,4 +69,8 @@ func init() {
 
 	configCmd.AddCommand(configInitCmd)
 	configInitCmd.Flags().BoolVar(&configToStdout, "stdout", false, "output to stdout")
+
+	configCmd.AddCommand(configGroupCmd)
+	configGroupCmd.Flags().IntVar(&configGroupSize, "size", 3, "size of group")
+	configGroupCmd.Flags().StringVar(&configOutputDir, "outdir", ".", "output directory")
 }
