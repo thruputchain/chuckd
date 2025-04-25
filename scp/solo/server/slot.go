@@ -37,8 +37,18 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 				// XXX: use cached/persistent connections
 				c, err := dial.DialSoloClientClient(ctx, s.svc.net, v.Address)
 				if err != nil {
-					log.Errorf("solo node %s not reachable: %s", protoutil.ValidatorPublicShortString(v), err)
+					log.Errorf("solo node %s not reachable for validation: %s", protoutil.ValidatorPublicShortString(v), err)
 					return
+				}
+
+				validate := proto.SoloValidate{
+					Slot_index: nomination.Slot_index,
+					Value:      nomination.Value,
+				}
+				signed := proto.SoloSignedValidate{
+					Signer:    s.svc.self.Public_info,
+					Signature: protoutil.SignXdr(s.svc.self.Secret_key, &validate),
+					Validate:  validate,
 				}
 
 				valid, err := c.Soloclient_validate(ctx, signed)
@@ -57,6 +67,18 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 		}
 		wg.Wait()
 
-		XXX // externalize and garbage collect
+		// externalize and garbage collect
+		s.lk.Lock()
+		confirmed := len(s.validated) >= len(s.validated)/2+1
+		s.lk.Unlock()
+
+		s.svc.lk.Lock()
+		// if a minority of malicious nodes try to revive the slot, they will fail for lack of majority validation.
+		delete(s.svc.slot, s.index)
+		s.svc.lk.Unlock()
+
+		if confirmed {
+			s.svc.externalize(ctx, nomination.Slot_index, nomination.Value)
+		}
 	}()
 }

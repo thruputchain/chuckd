@@ -6,6 +6,10 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/scp/solo/dial"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -34,13 +38,20 @@ func NewSoloServerService(
 	}
 }
 
+func (svc *SoloServerService) Start(ctx context.Context, address string) {
+	rpcutil.Start(ctx, svc.net, address, proto.SoloServer1_Server{Srv: svc})
+}
+
 func (svc *SoloServerService) Soloserver_null(context.Context) error {
 	return nil
 }
 
 func (svc *SoloServerService) Soloserver_nominate(ctx context.Context, nomination proto.SoloSignedNomination) error {
 
-	// XXX // check signatures
+	// check signatures
+	if !protoutil.VerifyXdr(nomination.Signer.Public_key, &nomination.Nomination, nomination.Signature) {
+		return nil
+	}
 
 	svc.lk.Lock()
 	defer svc.lk.Unlock()
@@ -52,4 +63,39 @@ func (svc *SoloServerService) Soloserver_nominate(ctx context.Context, nominatio
 	}
 	s.nominate(ctx, nomination.Nomination)
 	return nil
+}
+
+func (svc *SoloServerService) externalize(ctx context.Context, slotIndex proto.SoloSlotIndex, value proto.SoloValue) {
+
+	var wg sync.WaitGroup
+	for _, v := range svc.quorum {
+		wg.Add(1)
+		go func(v proto.ValidatorPublicInfo) {
+			defer wg.Done()
+
+			// XXX: use cached/persistent connections
+			c, err := dial.DialSoloClientClient(ctx, svc.net, v.Address)
+			if err != nil {
+				log.Errorf("solo node %s not reachable for externalization: %s", protoutil.ValidatorPublicShortString(v), err)
+				return
+			}
+
+			externalized := proto.SoloExternalized{
+				Slot_index: slotIndex,
+				Value:      value,
+			}
+			signed := proto.SoloSignedExternalized{
+				Signer:       svc.self.Public_info,
+				Signature:    protoutil.SignXdr(svc.self.Secret_key, &externalized),
+				Externalized: externalized,
+			}
+
+			err = c.Soloclient_externalized(ctx, signed)
+			if err != nil {
+				log.Errorf("solo externalization error from %s: %s", protoutil.ValidatorPublicShortString(v), err)
+				return
+			}
+		}(v)
+	}
+	wg.Wait()
 }
