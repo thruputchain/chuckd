@@ -75,5 +75,5 @@ type SCPController interface {
 	IsValidator() bool // not just listening
 
 	// Returns the validation state of the given slot
-	IsSlotFullyValidated() bool //???
+	IsSlotFullyValidated() bool
 }
