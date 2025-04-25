@@ -1,8 +1,9 @@
+SOLO
+- [ ] combine multiple nominated values?
+
+
 XDR
-- [ ] XdrToJson encodes strings in base64
 - [ ] fix MarshalXdr to print non-aggregate values
-
-
 
 
 INFRA & BENCHMARK
@@ -14,6 +15,7 @@ INFRA & BENCHMARK
 GITHUB
 - [ ] code coverage
 - [ ] code builds and tests
+
 
 DUE DILLIGENCE
 - [ ] timeouts on all rpc calls

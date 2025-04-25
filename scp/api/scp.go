@@ -34,9 +34,6 @@ type SCPHandler interface {
 	// returning nil means no valid value could be extracted.
 	ExtractValidValue(slotIndex Slot, value Value) *Value
 
-	// OnNominatingValue is called every time the local instance nominates a new value
-	OnNominatingValue(slotIndex Slot, value Value)
-
 	// OnExternalizedValue is is called at most once per slot when the slot
 	// externalizes its value
 	OnExternalizedValue(slotIndex Slot, value Value)
