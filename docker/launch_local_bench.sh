@@ -7,7 +7,7 @@ docker run --network chuckd-bench-network --ip 172.18.0.11 --name chuckd-bench-1
     -e INSTANCE=bench-1 \
     -e SEED=1000 \
     -v ./local_bench_config/config-1.json:/app/config/config.json \
-    groundhogchain:chuckdbench.latest \
+    groundhogchain:chuckd_bench.latest \
     -v \
     --fanout 5 \
     --iterations 3 \
@@ -18,7 +18,7 @@ docker run --network chuckd-bench-network --ip 172.18.0.12 --name chuckd-bench-2
     -e INSTANCE=bench-2 \
     -e SEED=2000 \
     -v ./local_bench_config/config-2.json:/app/config/config.json \
-    groundhogchain:chuckdbench.latest \
+    groundhogchain:chuckd_bench.latest \
     -v \
     --fanout 5 \
     --iterations 3 \
@@ -29,7 +29,7 @@ docker run --network chuckd-bench-network --ip 172.18.0.13 --name chuckd-bench-3
     -e INSTANCE=bench-3 \
     -e SEED=3000 \
     -v ./local_bench_config/config-3.json:/app/config/config.json \
-    groundhogchain:chuckdbench.latest \
+    groundhogchain:chuckd_bench.latest \
     -v \
     --fanout 5 \
     --iterations 3 \

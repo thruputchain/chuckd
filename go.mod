@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/groundhogchain/protocol-go v0.0.0-20250417220746-d03851ac4bbe
+	github.com/groundhogchain/protocol-go v0.0.0-20250425205833-0e39117afeea
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.1.2
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0

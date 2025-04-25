@@ -5,7 +5,7 @@ docker run \
   -e INSTANCE=$INSTANCE \
   -e SEED=$SEED \
   -v $CONFIG:/app/config/config.json \
-  groundhogchain:chuckdbench.latest \
+  groundhogchain:chuckd_bench.latest \
   -v \
   --fanout 5 \
   --iterations 3 \
