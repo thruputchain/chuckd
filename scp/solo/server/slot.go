@@ -56,7 +56,7 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 					log.Errorf("solo validation error from %s: %s", protoutil.ValidatorPublicShortString(v), err)
 					return
 				}
-				if !valid {
+				if valid != proto.SoloFullyValidValue {
 					return
 				}
 

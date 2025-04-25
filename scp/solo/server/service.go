@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"math/rand"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -15,7 +14,6 @@ import (
 
 type SoloServerService struct {
 	net    libnet.Network
-	rand   *rand.Rand
 	self   proto.ValidatorPrivateInfo
 	quorum []proto.ValidatorPublicInfo
 	lk     sync.Mutex
@@ -25,13 +23,11 @@ type SoloServerService struct {
 func NewSoloServerService(
 	ctx context.Context,
 	n libnet.Network,
-	r *rand.Rand,
 	self proto.ValidatorPrivateInfo,
 	quorum []proto.ValidatorPublicInfo,
 ) *SoloServerService {
 	return &SoloServerService{
 		net:    n,
-		rand:   r,
 		self:   self,
 		quorum: quorum,
 		slot:   map[proto.SoloSlotIndex]*slot{},

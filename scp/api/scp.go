@@ -2,23 +2,12 @@ package api
 
 import proto "github.com/groundhogchain/protocol-go"
 
-type Slot uint64
+type Slot = proto.SoloSlotIndex
 type NodeID = proto.ValidatorID
-
-type Value interface {
-	Hash() []byte
-}
+type Value = proto.SoloValue
+type ValidationLevel = proto.SoloValidationLevel
 
 // when to accept a nomination? validated by majority?
-
-type ValidationLevel int
-
-const (
-	// NB: validation levels are ordered
-	InvalidValue ValidationLevel = 0
-	MaybeValidValue
-	FullyValidatedValue
-)
 
 type SCPHandler interface {
 
