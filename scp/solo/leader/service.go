@@ -1,4 +1,4 @@
-package server
+package leader
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type SoloServerService struct {
+type SoloLeaderService struct {
 	net         libnet.Network
 	handler     api.SCPHandler
 	slotTimeout time.Duration
@@ -31,8 +31,8 @@ func NewSoloServerService(
 	slotTimeout time.Duration,
 	self proto.ValidatorPrivateInfo,
 	quorum []proto.ValidatorPublicInfo,
-) *SoloServerService {
-	return &SoloServerService{
+) *SoloLeaderService {
+	return &SoloLeaderService{
 		net:         n,
 		handler:     h,
 		slotTimeout: slotTimeout,
@@ -42,15 +42,15 @@ func NewSoloServerService(
 	}
 }
 
-func (svc *SoloServerService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.SoloServer1_Server{Srv: svc})
+func (svc *SoloLeaderService) Start(ctx context.Context, address string) {
+	rpcutil.Start(ctx, svc.net, address, proto.SoloLeader1_Server{Srv: svc})
 }
 
-func (svc *SoloServerService) Soloserver_null(context.Context) error {
+func (svc *SoloLeaderService) Sololeader_null(context.Context) error {
 	return nil
 }
 
-func (svc *SoloServerService) Soloserver_nominate(ctx context.Context, nomination proto.SoloSignedNomination) error {
+func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nomination proto.SoloSignedNomination) error {
 
 	// check signatures
 	if !protoutil.VerifyXdr(nomination.Signer.Public_key, &nomination.Nomination, nomination.Signature) {
@@ -69,7 +69,7 @@ func (svc *SoloServerService) Soloserver_nominate(ctx context.Context, nominatio
 	return nil
 }
 
-func (svc *SoloServerService) externalize(ctx context.Context, slotIndex proto.SoloSlotIndex, value proto.SoloValue) {
+func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.SoloSlotIndex, value proto.SoloValue) {
 
 	var wg sync.WaitGroup
 	for _, v := range svc.quorum {
@@ -78,7 +78,7 @@ func (svc *SoloServerService) externalize(ctx context.Context, slotIndex proto.S
 			defer wg.Done()
 
 			// XXX: use cached/persistent connections
-			c, err := dial.DialSoloClientClient(ctx, svc.net, v.Address)
+			c, err := dial.DialSoloFollowerClient(ctx, svc.net, v.Address)
 			if err != nil {
 				log.Errorf("solo node %s not reachable for externalization: %s", protoutil.ValidatorPublicShortString(v), err)
 				return
@@ -94,7 +94,7 @@ func (svc *SoloServerService) externalize(ctx context.Context, slotIndex proto.S
 				Externalized: externalized,
 			}
 
-			err = c.Soloclient_externalized(ctx, signed)
+			err = c.Solofollower_externalized(ctx, signed)
 			if err != nil {
 				log.Errorf("solo externalization error from %s: %s", protoutil.ValidatorPublicShortString(v), err)
 				return

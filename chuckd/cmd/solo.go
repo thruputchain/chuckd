@@ -5,7 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/scp/solo/server"
+	"github.com/groundhogchain/chuckd/scp/solo/leader"
 	"github.com/spf13/cobra"
 )
 
@@ -24,10 +24,10 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
 				cfg := LoadConfig(ctx)
-				srv := server.NewSoloServerService(
+				srv := leader.NewSoloServerService(
 					ctx,
 					libnet.TCPNet{},
-					server.UnionCombiner{},
+					leader.UnionCombiner{},
 					time.Millisecond*time.Duration(soloSlotTimeoutMillisecond),
 					cfg.Private_info,
 					cfg.Known_validators,

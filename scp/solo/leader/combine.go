@@ -1,4 +1,4 @@
-package server
+package leader
 
 import (
 	"github.com/groundhogchain/chuckd/scp/api"

@@ -1,4 +1,4 @@
-package client
+package follower
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type SoloClientService struct {
+type SoloFollowerService struct {
 	net     libnet.Network
 	self    proto.ValidatorPrivateInfo
 	handler api.SCPHandler
@@ -21,23 +21,23 @@ func NewSoloClientService(
 	n libnet.Network,
 	self proto.ValidatorPrivateInfo,
 	handler api.SCPHandler,
-) *SoloClientService {
-	return &SoloClientService{
+) *SoloFollowerService {
+	return &SoloFollowerService{
 		net:     n,
 		self:    self,
 		handler: handler,
 	}
 }
 
-func (svc *SoloClientService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.SoloClient1_Server{Srv: svc})
+func (svc *SoloFollowerService) Start(ctx context.Context, address string) {
+	rpcutil.Start(ctx, svc.net, address, proto.SoloFollower1_Server{Srv: svc})
 }
 
-func (svc *SoloClientService) Soloclient_null(context.Context) error {
+func (svc *SoloFollowerService) Solofollower_null(context.Context) error {
 	return nil
 }
 
-func (svc *SoloClientService) Soloclient_validate(ctx context.Context, signed proto.SoloSignedValidate) (proto.SoloValidationLevel, error) {
+func (svc *SoloFollowerService) Solofollower_validate(ctx context.Context, signed proto.SoloSignedValidate) (proto.SoloValidationLevel, error) {
 
 	// check signatures
 	if !protoutil.VerifyXdr(signed.Signer.Public_key, &signed.Validate, signed.Signature) {
@@ -47,7 +47,7 @@ func (svc *SoloClientService) Soloclient_validate(ctx context.Context, signed pr
 	return svc.handler.ValidateValue(signed.Validate.Slot_index, signed.Validate.Value, true), nil
 }
 
-func (svc *SoloClientService) Soloclient_externalized(ctx context.Context, signed proto.SoloSignedExternalized) error {
+func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, signed proto.SoloSignedExternalized) error {
 
 	// check signatures
 	if !protoutil.VerifyXdr(signed.Signer.Public_key, &signed.Externalized, signed.Signature) {

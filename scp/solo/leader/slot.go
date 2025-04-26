@@ -1,4 +1,4 @@
-package server
+package leader
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type vhash = [32]byte
 
 type slot struct {
 	started    time.Time
-	svc        *SoloServerService
+	svc        *SoloLeaderService
 	index      proto.SoloSlotIndex
 	timeout    time.Duration
 	lk         sync.Mutex
@@ -24,7 +24,7 @@ type slot struct {
 	candidates []proto.SoloValue
 }
 
-func newSlot(svc *SoloServerService, index proto.SoloSlotIndex, slotTimeout time.Duration) *slot {
+func newSlot(svc *SoloLeaderService, index proto.SoloSlotIndex, slotTimeout time.Duration) *slot {
 	return &slot{
 		started:   time.Now(),
 		svc:       svc,
@@ -45,7 +45,7 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 				defer wg.Done()
 
 				// XXX: use cached/persistent connections
-				c, err := dial.DialSoloClientClient(ctx, s.svc.net, v.Address)
+				c, err := dial.DialSoloFollowerClient(ctx, s.svc.net, v.Address)
 				if err != nil {
 					log.Errorf("solo node %s not reachable for validation: %s", protoutil.ValidatorPublicShortString(v), err)
 					return
@@ -61,7 +61,7 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 					Validate:  validate,
 				}
 
-				valid, err := c.Soloclient_validate(ctx, signed)
+				valid, err := c.Solofollower_validate(ctx, signed)
 				if err != nil {
 					log.Errorf("solo validation error from %s: %s", protoutil.ValidatorPublicShortString(v), err)
 					return

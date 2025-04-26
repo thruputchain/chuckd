@@ -9,29 +9,29 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
-type SoloServerClient struct {
-	proto.SoloServer1_Client
+type SoloLeaderClient struct {
+	proto.SoloLeader1_Client
 	driver *rpc.Driver
 }
 
-func DialSoloServerClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*SoloServerClient, error) {
+func DialSoloLeaderClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*SoloLeaderClient, error) {
 	sock, err := dialer.DialAddress(addr)
 	if err != nil {
 		return nil, err
 	}
-	return NewSoloServerClient(ctx, sock), nil
+	return NewSoloLeaderClient(ctx, sock), nil
 }
 
-func NewSoloServerClient(ctx context.Context, sock net.Conn) *SoloServerClient {
+func NewSoloLeaderClient(ctx context.Context, sock net.Conn) *SoloLeaderClient {
 	driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 	go driver.Go()
 
-	return &SoloServerClient{
-		SoloServer1_Client: proto.SoloServer1_Client{Send: driver, Ctx: ctx},
+	return &SoloLeaderClient{
+		SoloLeader1_Client: proto.SoloLeader1_Client{Send: driver, Ctx: ctx},
 		driver:             driver,
 	}
 }
 
-func (cc *SoloServerClient) Close() {
+func (cc *SoloLeaderClient) Close() {
 	cc.driver.Close()
 }
