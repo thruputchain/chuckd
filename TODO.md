@@ -1,5 +1,6 @@
 SOLO
 - [ ] combine multiple nominated values?
+- [ ] test solo scp
 
 
 XDR

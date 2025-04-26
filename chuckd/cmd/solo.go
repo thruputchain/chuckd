@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/scp/solo/server"
@@ -25,6 +27,8 @@ var (
 				srv := server.NewSoloServerService(
 					ctx,
 					libnet.TCPNet{},
+					server.UnionCombiner{},
+					time.Millisecond*time.Duration(soloSlotTimeoutMillisecond),
 					cfg.Private_info,
 					cfg.Known_validators,
 				)
@@ -36,7 +40,8 @@ var (
 )
 
 var (
-	soloServerAddress string
+	soloServerAddress          string
+	soloSlotTimeoutMillisecond int64
 )
 
 func init() {
@@ -44,4 +49,5 @@ func init() {
 
 	soloCmd.AddCommand(soloStartCmd)
 	soloStartCmd.Flags().StringVar(&soloServerAddress, "addr", "localhost:9111", "address for solo server api")
+	soloStartCmd.Flags().Int64Var(&soloSlotTimeoutMillisecond, "timeout", 100, "slot timeout in milliseconds")
 }

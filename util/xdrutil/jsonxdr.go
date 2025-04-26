@@ -2,11 +2,13 @@ package xdrutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/xdrpp/goxdr/xdr"
 )
 
@@ -194,6 +196,12 @@ func XdrToJson(src xdr.XdrAggregate) (json []byte, err error) {
 	j := &jsonOut{out: &bytes.Buffer{}}
 	j.aggregate(src)
 	return j.out.Bytes(), nil
+}
+
+func MustXdrToJsonString(src xdr.XdrAggregate) string {
+	b, err := XdrToJson(src)
+	must.NoError(context.TODO(), err)
+	return string(b)
 }
 
 // utils

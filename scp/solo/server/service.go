@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
@@ -13,24 +15,30 @@ import (
 )
 
 type SoloServerService struct {
-	net    libnet.Network
-	self   proto.ValidatorPrivateInfo
-	quorum []proto.ValidatorPublicInfo
-	lk     sync.Mutex
-	slot   map[proto.SoloSlotIndex]*slot
+	net         libnet.Network
+	handler     api.SCPHandler
+	slotTimeout time.Duration
+	self        proto.ValidatorPrivateInfo
+	quorum      []proto.ValidatorPublicInfo
+	lk          sync.Mutex
+	slot        map[proto.SoloSlotIndex]*slot
 }
 
 func NewSoloServerService(
 	ctx context.Context,
 	n libnet.Network,
+	h api.SCPHandler,
+	slotTimeout time.Duration,
 	self proto.ValidatorPrivateInfo,
 	quorum []proto.ValidatorPublicInfo,
 ) *SoloServerService {
 	return &SoloServerService{
-		net:    n,
-		self:   self,
-		quorum: quorum,
-		slot:   map[proto.SoloSlotIndex]*slot{},
+		net:         n,
+		handler:     h,
+		slotTimeout: slotTimeout,
+		self:        self,
+		quorum:      quorum,
+		slot:        map[proto.SoloSlotIndex]*slot{},
 	}
 }
 
@@ -54,7 +62,7 @@ func (svc *SoloServerService) Soloserver_nominate(ctx context.Context, nominatio
 	slotIndex := nomination.Nomination.Slot_index
 	s, ok := svc.slot[slotIndex]
 	if !ok {
-		s = newSlot(svc, slotIndex)
+		s = newSlot(svc, slotIndex, svc.slotTimeout)
 		svc.slot[slotIndex] = s
 	}
 	s.nominate(ctx, nomination.Nomination)

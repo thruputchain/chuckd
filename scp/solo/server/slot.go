@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
@@ -10,23 +12,31 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type vhash = [32]byte
+
 type slot struct {
-	svc       *SoloServerService
-	index     proto.SoloSlotIndex
-	lk        sync.Mutex
-	validated map[proto.ValidatorID]bool
+	started    time.Time
+	svc        *SoloServerService
+	index      proto.SoloSlotIndex
+	timeout    time.Duration
+	lk         sync.Mutex
+	validated  map[vhash]map[proto.ValidatorID]bool
+	candidates []proto.SoloValue
 }
 
-func newSlot(svc *SoloServerService, index proto.SoloSlotIndex) *slot {
+func newSlot(svc *SoloServerService, index proto.SoloSlotIndex, slotTimeout time.Duration) *slot {
 	return &slot{
+		started:   time.Now(),
 		svc:       svc,
 		index:     index,
-		validated: map[proto.ValidatorID]bool{},
+		timeout:   slotTimeout,
+		validated: map[vhash]map[proto.ValidatorID]bool{},
 	}
 }
 
 func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 	// ask every node to validate the block
+	h := sha256.Sum256(nomination.Value)
 	go func() {
 		var wg sync.WaitGroup
 		for _, v := range s.svc.quorum {
@@ -60,25 +70,40 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 					return
 				}
 
+				// update validated record
 				s.lk.Lock()
 				defer s.lk.Unlock()
-				s.validated[protoutil.ValidatorIDFromPublic(v)] = true
+
+				vid := protoutil.ValidatorIDFromPublic(v)
+				hv, ok := s.validated[h]
+				if !ok {
+					hv = map[proto.ValidatorID]bool{}
+					s.validated[h] = hv
+				}
+				hv[vid] = true
 			}(v)
 		}
 		wg.Wait()
 
 		// externalize and garbage collect
 		s.lk.Lock()
-		confirmed := len(s.validated) >= len(s.validated)/2+1
+		confirmed := len(s.validated[h]) >= len(s.validated[h])/2+1
+		s.candidates = append(s.candidates, nomination.Value)
 		s.lk.Unlock()
 
-		s.svc.lk.Lock()
-		// if a minority of malicious nodes try to revive the slot, they will fail for lack of majority validation.
-		delete(s.svc.slot, s.index)
-		s.svc.lk.Unlock()
-
+		// if confirmed and the round timer has expired, combine and externalize
 		if confirmed {
-			s.svc.externalize(ctx, nomination.Slot_index, nomination.Value)
+			if time.Now().Sub(s.started) > s.timeout {
+
+				s.svc.lk.Lock()
+				// if a minority of malicious nodes tries to revive the slot,
+				// they will fail for lack of majority validation.
+				delete(s.svc.slot, s.index)
+				s.svc.lk.Unlock()
+
+				combined := s.svc.handler.CombineCandidates(s.index, s.candidates)
+				s.svc.externalize(ctx, nomination.Slot_index, combined)
+			}
 		}
 	}()
 }
