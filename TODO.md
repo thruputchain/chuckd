@@ -1,5 +1,10 @@
+MAIN
+- [ ] authenticated HTTP means for submitting transactions
+
+
 SOLO
-- [ ] combine multiple nominated values?
+- [x] combine multiple nominated values
+- [ ] plumb through on nominated value?
 - [ ] test solo scp
 
 
