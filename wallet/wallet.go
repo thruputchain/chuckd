@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/mempool"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -164,10 +165,16 @@ func (g *WalletGateway) submitEndpoint(c *gin.Context) {
 
 	var walletSubmit proto.WalletSubmit
 
-	// Attempt to bind JSON from the request body to your struct
-	// XXX: this does not use JsonToXdr!
-	if err := c.ShouldBindJSON(&walletSubmit); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid json format"})
+	postData, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
+		return
+	}
+
+	// We use JsonToXdr, because xdr unions cannot unmarshal using the standard golang JSON mechanism.
+	err = xdrutil.JsonToXdr(&walletSubmit, postData)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid json/xdr format"})
 		return
 	}
 
@@ -177,5 +184,13 @@ func (g *WalletGateway) submitEndpoint(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ack)
+	// We use XdrToJson, because xdr unions cannot serialize using the standard golang JSON mechanism.
+	postReply, err := xdrutil.XdrToJson(&ack)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.Header("Content-Type", "application/json")
+	c.Data(http.StatusOK, "application/json", postReply)
 }

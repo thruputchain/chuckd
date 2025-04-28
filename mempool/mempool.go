@@ -23,6 +23,8 @@ func NewMempool(ctx context.Context, batchTTL time.Duration) *Mempool {
 	return mp
 }
 
+// AddLoose is called by the wallet gateway to add new transaction to the mempool.
+// The mempool will eventually package them into batches.
 func (mp *Mempool) AddLoose(ctx context.Context, txs []proto.SignedTransaction) {
 	panic("XXX")
 }
