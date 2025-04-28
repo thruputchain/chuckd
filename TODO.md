@@ -13,7 +13,7 @@ XDR
 
 
 INFRA & BENCHMARK
-- [ ] setup benchmark on local docker (three nodes)
+- [x] setup benchmark on local docker (three nodes)
 - [ ] setup us/asia benchmark on aws kubernetes
 - [ ] setup prometheus on aws
 

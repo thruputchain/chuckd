@@ -12,12 +12,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # The GitHub token is passed as a build argument
-ARG GITHUB_TOKEN
-
 # Configure git to use the token for github.com
-RUN git config --global url."https://${GITHUB_TOKEN}:@github.com/".insteadOf "https://github.com/" && \
+RUN --mount=type=secret,id=GITHUB_TOKEN \
+    git config --global url."https://$(cat /run/secrets/GITHUB_TOKEN):@github.com/".insteadOf "https://github.com/" && \
     # Enable authentication for private Go modules
-    git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" && \
+    git config --global url."https://$(cat /run/secrets/GITHUB_TOKEN)@github.com/".insteadOf "https://github.com/" && \
     # Set GOPRIVATE for private repositories
     go env -w GOPRIVATE=github.com/groundhogchain/*
 
@@ -47,30 +46,15 @@ WORKDIR /app
 # Copy the binary from builder
 COPY --from=builder /chuckd /app/chuckd
 
-# Copy scripts
-COPY docker/scripts/entrypoint_solo.sh /app/
-
 # Make scripts executable
-RUN chmod +x /app/entrypoint_solo.sh && \
-    mkdir -p /app/config /app/data && \
+RUN mkdir -p /app/config /app/data && \
     chown -R chuckd:chuckd /app
 
 # Switch to non-root user
 USER chuckd
-
-# Default env
-ENV CONFIG_FILE="/app/config/config.json"
-ENV INSTANCE=""
-ENV SEED=1234
 
 # Expose app port
 EXPOSE 9111
 
 # Expose metrics port
 EXPOSE 2222
-
-# Use entrypoint script
-ENTRYPOINT ["/app/entrypoint_solo.sh"]
-
-# Default CMD (empty array, will be overridden by command-line args)
-CMD []

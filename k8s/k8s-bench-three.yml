@@ -120,7 +120,7 @@ spec:
     spec:
       containers:
       - name: chuckd-bench
-        image: groundhogchain:chuckd_bench.latest
+        image: groundhogchain:chuckd.latest
         imagePullPolicy: IfNotPresent
         command:
         - "/bin/sh"
