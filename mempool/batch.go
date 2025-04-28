@@ -12,7 +12,7 @@ type batch struct {
 	started time.Time
 	ended   time.Time
 	lk      sync.Mutex
-	txs     []proto.Transaction
+	txs     []proto.SignedTransaction
 }
 
 func newBatch(header proto.BatchHeader) *batch {

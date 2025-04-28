@@ -1,0 +1,181 @@
+// Package wallet implements a wallet API provided by the validator.
+package wallet
+
+import (
+	"context"
+	"crypto/sha256"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/mempool"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+type WalletGateway struct {
+	svc    *WalletService
+	jwtKey JWTSecretKey
+	r      *gin.Engine
+	lk     sync.Mutex
+	user   map[string]proto.WalletUser
+}
+
+func NewWalletGateway(
+	ctx context.Context,
+	mp *mempool.Mempool,
+	httpaddr string,
+	jwtKey JWTSecretKey,
+	users []proto.WalletUser,
+) *WalletGateway {
+
+	r := gin.Default()
+	g := &WalletGateway{
+		svc:    NewWalletService(ctx, mp),
+		jwtKey: jwtKey,
+		r:      r,
+		user:   map[string]proto.WalletUser{},
+	}
+	for _, u := range users {
+		g.user[u.Login] = u
+	}
+
+	// public routes
+	r.POST("/login", g.login)
+
+	// authenticated routes
+	auth := r.Group("/wallet")
+	auth.Use(g.authMiddleware)
+	auth.POST("/submit", g.submitEndpoint)
+
+	go g.startHTTP(ctx, httpaddr)
+	return g
+}
+
+func (g *WalletGateway) Service() proto.Wallet1 {
+	return g.svc
+}
+
+func (g *WalletGateway) startHTTP(_ context.Context, address string) {
+	if err := g.r.Run(address); err != nil {
+		log.Fatalf("start wallet gateway http server: %v", err)
+	}
+}
+
+// User structure passed over HTTP on login
+type User struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+func (g *WalletGateway) login(c *gin.Context) {
+	var user User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	// Check if user exists and password is correct
+	walletUser, exists := g.user[user.Login]
+	if !exists || walletUser.Password_hash != sha256.Sum256([]byte(user.Password)) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+
+	// Create token
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &JWTClaim{
+		Login: user.Login,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "chuckd-wallet-jwt-auth",
+			Subject:   user.Login,
+		},
+	}
+
+	// Generate token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(g.jwtKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		return
+	}
+
+	// Return token
+	c.JSON(http.StatusOK, gin.H{
+		"token": tokenString,
+	})
+}
+
+func (g *WalletGateway) authMiddleware(c *gin.Context) {
+
+	// Get token from Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization header required"})
+		return
+	}
+
+	// Extract token (remove "Bearer " prefix if present)
+	tokenString := authHeader
+	if strings.HasPrefix(tokenString, "Bearer ") {
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	}
+
+	// Parse and validate token
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaim{},
+		func(token *jwt.Token) (interface{}, error) {
+			return g.jwtKey, nil
+		},
+	)
+
+	if err != nil || !token.Valid {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		return
+	}
+
+	// Get claims
+	claims, ok := token.Claims.(*JWTClaim)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to parse claims"})
+		return
+	}
+
+	// Add username to context
+	c.Set("login", claims.Login)
+
+	// Continue to the next handler
+	c.Next()
+}
+
+func (g *WalletGateway) submitEndpoint(c *gin.Context) {
+
+	// Get username from context
+	_, ok := c.Get("login")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "not logged in"})
+		return
+	}
+
+	var walletSubmit proto.WalletSubmit
+
+	// Attempt to bind JSON from the request body to your struct
+	// XXX: this does not use JsonToXdr!
+	if err := c.ShouldBindJSON(&walletSubmit); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid json format"})
+		return
+	}
+
+	ack, err := g.Service().Wallet_submit(c.Request.Context(), walletSubmit)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "submission error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ack)
+}

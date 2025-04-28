@@ -23,11 +23,15 @@ func NewMempool(ctx context.Context, batchTTL time.Duration) *Mempool {
 	return mp
 }
 
-func (mp *Mempool) Add(ctx context.Context, batchHeader proto.BatchHeader, txs []proto.Transaction) {
+func (mp *Mempool) AddLoose(ctx context.Context, txs []proto.SignedTransaction) {
 	panic("XXX")
 }
 
-func (mp *Mempool) Lookup(ctx context.Context, batchID proto.BatchID) ([]proto.Transaction, bool) {
+func (mp *Mempool) AddBatch(ctx context.Context, batchHeader proto.BatchHeader, txs []proto.SignedTransaction) {
+	panic("XXX")
+}
+
+func (mp *Mempool) LookupBatch(ctx context.Context, batchID proto.BatchID) ([]proto.SignedTransaction, bool) {
 	panic("XXX")
 }
 
