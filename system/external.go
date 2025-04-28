@@ -1,5 +1,5 @@
 // Package server implements a server that hosts all external APIs on the same address.
-package server
+package system
 
 import (
 	"context"

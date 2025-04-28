@@ -4,7 +4,7 @@ import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/server"
+	"github.com/groundhogchain/chuckd/system"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ var (
 			return api.Invoke(func() {
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				srv := server.NewServer(
+				srv := system.NewServer(
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg.Validator_config,
