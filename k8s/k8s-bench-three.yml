@@ -5,32 +5,34 @@ metadata:
 data:
   config.json: |-
     {
-      "private_info": {
-        "public_info": {
-          "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
-          "address": "chuckd-bench-1:9111"
+      "validator_config": {
+        "private_info": {
+          "public_info": {
+            "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
+            "address": "chuckd-bench-1:9111"
+          },
+          "secret_key": "4KuC1kpCDMA1AohWBOS40IYUMrMEEvtXpCIghlNI+GEiM37SHNWEOktPk9uM99vc6Diaox8QM3Uv9py5+qgJsQ=="
         },
-        "secret_key": "4KuC1kpCDMA1AohWBOS40IYUMrMEEvtXpCIghlNI+GEiM37SHNWEOktPk9uM99vc6Diaox8QM3Uv9py5+qgJsQ=="
-      },
-      "quorum_set": {
-        "threshold": 0,
-        "validators": [],
-        "inner_sets": []
-      },
-      "known_validators": [
-        {
-          "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
-          "address": "chuckd-bench-1:9111"
+        "quorum_set": {
+          "threshold": 0,
+          "validators": [],
+          "inner_sets": []
         },
-        {
-          "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
-          "address": "chuckd-bench-2:9111"
-        },
-        {
-          "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
-          "address": "chuckd-bench-3:9111"
-        }
-      ]
+        "known_validators": [
+          {
+            "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
+            "address": "chuckd-bench-1:9111"
+          },
+          {
+            "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
+            "address": "chuckd-bench-2:9111"
+          },
+          {
+            "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
+            "address": "chuckd-bench-3:9111"
+          }
+        ]
+      }
     }
 ---
 apiVersion: v1
@@ -40,32 +42,34 @@ metadata:
 data:
   config.json: |-
     {
-      "private_info": {
-        "public_info": {
-          "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
-          "address": "chuckd-bench-2:9111"
+      "validator_config": {
+        "private_info": {
+          "public_info": {
+            "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
+            "address": "chuckd-bench-2:9111"
+          },
+          "secret_key": "8a0ET+dpZxAoIHhxeLC7FPsvCaOAlrKKg4dEPlFixu5sxoadLgsJ7S0YZ10uheBhMzy0luLirjkpgkF6oOU8LA=="
         },
-        "secret_key": "8a0ET+dpZxAoIHhxeLC7FPsvCaOAlrKKg4dEPlFixu5sxoadLgsJ7S0YZ10uheBhMzy0luLirjkpgkF6oOU8LA=="
-      },
-      "quorum_set": {
-        "threshold": 0,
-        "validators": [],
-        "inner_sets": []
-      },
-      "known_validators": [
-        {
-          "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
-          "address": "chuckd-bench-1:9111"
+        "quorum_set": {
+          "threshold": 0,
+          "validators": [],
+          "inner_sets": []
         },
-        {
-          "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
-          "address": "chuckd-bench-2:9111"
-        },
-        {
-          "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
-          "address": "chuckd-bench-3:9111"
-        }
-      ]
+        "known_validators": [
+          {
+            "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
+            "address": "chuckd-bench-1:9111"
+          },
+          {
+            "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
+            "address": "chuckd-bench-2:9111"
+          },
+          {
+            "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
+            "address": "chuckd-bench-3:9111"
+          }
+        ]
+      }
     }
 ---
 apiVersion: v1
@@ -75,32 +79,34 @@ metadata:
 data:
   config.json: |-
     {
-      "private_info": {
-        "public_info": {
-          "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
-          "address": "chuckd-bench-3:9111"
+      "validator_config": {
+        "private_info": {
+          "public_info": {
+            "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
+            "address": "chuckd-bench-3:9111"
+          },
+          "secret_key": "yDZCBNGUF5v6cZLpRPX10NVp5dH/Dn4+KJLZyPxGgHjC6EkhB+b4ltNaMIkPT7zAkASgmXFjsY+Xs2S6W7dxdg=="
         },
-        "secret_key": "yDZCBNGUF5v6cZLpRPX10NVp5dH/Dn4+KJLZyPxGgHjC6EkhB+b4ltNaMIkPT7zAkASgmXFjsY+Xs2S6W7dxdg=="
-      },
-      "quorum_set": {
-        "threshold": 0,
-        "validators": [],
-        "inner_sets": []
-      },
-      "known_validators": [
-        {
-          "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
-          "address": "chuckd-bench-1:9111"
+        "quorum_set": {
+          "threshold": 0,
+          "validators": [],
+          "inner_sets": []
         },
-        {
-          "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
-          "address": "chuckd-bench-2:9111"
-        },
-        {
-          "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
-          "address": "chuckd-bench-3:9111"
-        }
-      ]
+        "known_validators": [
+          {
+            "public_key": "IjN+0hzVhDpLT5PbjPfb3Og4mqMfEDN1L/acufqoCbE=",
+            "address": "chuckd-bench-1:9111"
+          },
+          {
+            "public_key": "bMaGnS4LCe0tGGddLoXgYTM8tJbi4q45KYJBeqDlPCw=",
+            "address": "chuckd-bench-2:9111"
+          },
+          {
+            "public_key": "wuhJIQfm+JbTWjCJD0+8wJAEoJlxY7GPl7Nkulu3cXY=",
+            "address": "chuckd-bench-3:9111"
+          }
+        ]
+      }
     }
 ---
 apiVersion: apps/v1

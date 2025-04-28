@@ -29,8 +29,8 @@ var (
 					libnet.TCPNet{},
 					leader.UnionCombiner{},
 					time.Millisecond*time.Duration(soloSlotTimeoutMillisecond),
-					cfg.Private_info,
-					cfg.Known_validators,
+					cfg.Validator_config.Private_info,
+					cfg.Validator_config.Known_validators,
 				)
 				srv.Start(ctx, soloServerAddress)
 				<-(chan int)(nil) // hang

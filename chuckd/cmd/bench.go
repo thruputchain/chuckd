@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/groundhogchain/chuckd/bench"
 	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
 )
@@ -22,10 +23,11 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
 				cfg := LoadConfig(ctx)
+				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				srv := bench.NewBroadcastBenchmark(
 					ctx,
 					runtime.NewRandFromRoot(),
-					*cfg,
+					*cfg.Validator_config,
 					benchTreeFanOut,
 					benchPaySize,
 					benchPayPerChannel,

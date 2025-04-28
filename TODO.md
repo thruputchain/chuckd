@@ -1,6 +1,6 @@
 MAIN
 - [x] authenticated HTTP means for submitting transactions
-- [ ] expand master config with sections: validators, wallet gateway, parameters, etc.
+- [x] expand master config with sections: validators, wallet gateway, parameters, etc.
 
 
 SOLO

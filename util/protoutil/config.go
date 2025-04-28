@@ -51,7 +51,7 @@ func GenerateConfigs(ctx context.Context, rr *rand.Rand, n int) []*proto.Validat
 	return cfg
 }
 
-func WriteConfigsToDir(ctx context.Context, cfgs []*proto.ValidatorConfig, dir string) {
+func WriteConfigsToDir(ctx context.Context, cfgs []*proto.Config, dir string) {
 	err := os.MkdirAll(dir, 0755)
 	must.NoError(ctx, err)
 	for i, cfg := range cfgs {

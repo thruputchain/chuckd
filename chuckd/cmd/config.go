@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,10 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
-				cfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
+				vcfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
+				cfg := proto.Config{
+					Validator_config: vcfg,
+				}
 				if configToStdout {
 					fmt.Println(form.SprintJSON(cfg))
 				} else {
@@ -51,7 +55,13 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
-				cfgs := protoutil.GenerateConfigs(ctx, runtime.NewCryptoRand(ctx), configGroupSize)
+				vcfgs := protoutil.GenerateConfigs(ctx, runtime.NewCryptoRand(ctx), configGroupSize)
+				cfgs := make([]*proto.Config, len(vcfgs))
+				for i := range vcfgs {
+					cfgs[i] = &proto.Config{
+						Validator_config: vcfgs[i],
+					}
+				}
 				protoutil.WriteConfigsToDir(ctx, cfgs, configOutputDir)
 			})
 		},
