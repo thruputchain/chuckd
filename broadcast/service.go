@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -63,11 +64,15 @@ func NewBroadcastService(
 	return s
 }
 
+func (svc *BroadcastService) Start(ctx context.Context, address string) {
+	rpcutil.Start(ctx, svc.net, address, proto.Broadcast1_Server{Srv: svc})
+}
+
 type broadcastAPI struct {
 	svc *BroadcastService
 }
 
-func (svc *BroadcastService) API() Broadcast {
+func (svc *BroadcastService) API() StreamingBroadcast {
 	return &broadcastAPI{svc: svc}
 }
 

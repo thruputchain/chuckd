@@ -13,6 +13,7 @@ func (s *broadcastAPI) MakeChannel(ctx context.Context) SendChannel {
 		Source_id:  s.svc.ValidatorID(),
 		Channel_id: channelID,
 		Tree_hash:  treeHash,
+		Batch_size: -1, // this is a streaming channel
 	}
 	sch := newSending(ctx, s.svc, ch, treeNodes, children)
 
@@ -20,4 +21,8 @@ func (s *broadcastAPI) MakeChannel(ctx context.Context) SendChannel {
 	s.svc.trees.Ref(treeHash, treeNodes)
 
 	return sch
+}
+
+func (s *broadcastAPI) AcceptChannel() ReceiveChannel {
+	return <-s.svc.acceptCh
 }

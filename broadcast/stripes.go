@@ -6,13 +6,13 @@ import (
 )
 
 type StripedBroadcast struct {
-	b       Broadcast
+	b       StreamingBroadcast
 	stripes []SendChannel
 	lk      sync.Mutex
 	next    int // next stripe
 }
 
-func MakeStripedSender(ctx context.Context, b Broadcast, nstripes int) *StripedBroadcast {
+func MakeStripedSender(ctx context.Context, b StreamingBroadcast, nstripes int) *StripedBroadcast {
 	x := &StripedBroadcast{
 		b:       b,
 		stripes: make([]SendChannel, nstripes),

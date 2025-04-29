@@ -8,7 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
-type stream struct {
+type queue struct {
 	metrics  *DeliveryQueueMetrics
 	dialer   libnet.AddressDialer
 	from     ValidatorPublicInfo
@@ -17,7 +17,7 @@ type stream struct {
 	delivery chan Delivery
 }
 
-func newStream(
+func newQueue(
 	ctx context.Context,
 	metrics *DeliveryQueueMetrics,
 	dialer libnet.AddressDialer,
@@ -25,8 +25,8 @@ func newStream(
 	to ValidatorPublicInfo,
 	channel Channel,
 	capacity int,
-) *stream {
-	q := &stream{
+) *queue {
+	q := &queue{
 		metrics:  metrics,
 		dialer:   dialer,
 		from:     from,
@@ -38,15 +38,15 @@ func newStream(
 	return q
 }
 
-func (q *stream) Enqueue(ctx context.Context, delivery Delivery) {
+func (q *queue) Enqueue(ctx context.Context, delivery Delivery) {
 	q.delivery <- delivery
 }
 
-func (q *stream) Close() {
+func (q *queue) Close() {
 	close(q.delivery)
 }
 
-func (q *stream) loop(ctx context.Context) {
+func (q *queue) loop(ctx context.Context) {
 	var c *BroadcastClient // cached client
 	defer func() {
 		if c != nil {
@@ -90,7 +90,7 @@ func (q *stream) loop(ctx context.Context) {
 	}
 }
 
-func (q *stream) dial(ctx context.Context) (*BroadcastClient, error) {
+func (q *queue) dial(ctx context.Context) (*BroadcastClient, error) {
 	c, err := DialBroadcastClient(ctx, q.dialer, q.to.Address)
 	if err != nil {
 		return nil, err

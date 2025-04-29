@@ -20,8 +20,14 @@ type Message = proto.BroadcastMessage
 type MessageHash = proto.BroadcastMessageHash
 type Header = proto.BroadcastHeader
 
-// Broadcast describes the application-facing API for the broadcast system.
-type Broadcast interface {
+// BatchBroadcast provides a batch broadcast abstraction, where the sender knows the entire (bulk) payload ahead of time.
+type BatchBroadcast interface {
+	Send(context.Context, []byte)
+	Receive(context.Context) (Channel, []byte)
+}
+
+// StreamingBroadcast provides a streaming broadcast abstraction.
+type StreamingBroadcast interface {
 	// MakeChannel creates a new broadcast channel for sending.
 	MakeChannel(context.Context) SendChannel
 

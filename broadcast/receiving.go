@@ -13,7 +13,7 @@ type receiving struct {
 	channel   Channel
 	treeNodes MulticastTreeNodes
 	children  []ValidatorPublicInfo
-	streams   []*stream
+	streams   []*queue
 	//
 	lk        sync.Mutex
 	nextSeqNo int64
@@ -29,9 +29,9 @@ func newReceiving(
 	children []ValidatorPublicInfo,
 	deliveries []Delivery,
 ) *receiving {
-	streams := make([]*stream, len(children))
+	streams := make([]*queue, len(children))
 	for i := range children {
-		streams[i] = newStream(
+		streams[i] = newQueue(
 			ctx,
 			svc.metrics.DeliveryQueueMetrics(),
 			svc.net,

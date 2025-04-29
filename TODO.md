@@ -1,11 +1,9 @@
 MAIN
 - [x] authenticated HTTP means for submitting transactions
-- [x] expand master config with sections: validators, wallet gateway, parameters, etc.
 
 
 SOLO
 - [x] combine multiple nominated values
-- [ ] plumb through on nominated value?
 - [ ] test solo scp
 
 
