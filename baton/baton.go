@@ -13,7 +13,7 @@ import (
 
 type Baton struct {
 	coordinator *coord.CoordinatorService
-	broadcast   broadcast.BatchBroadcast
+	broadcast   broadcast.BulkBroadcast
 	mempool     *mempool.Mempool
 	scp         api.SCPController
 	wallet      *wallet.WalletGateway
@@ -22,7 +22,7 @@ type Baton struct {
 func NewBaton(
 	ctx context.Context,
 	coord *coord.CoordinatorService,
-	bcast broadcast.BatchBroadcast,
+	bcast broadcast.BulkBroadcast,
 	mp *mempool.Mempool,
 	scp api.SCPController,
 	w *wallet.WalletGateway,

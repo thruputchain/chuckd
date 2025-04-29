@@ -14,6 +14,7 @@ import (
 )
 
 type BroadcastService struct {
+	cfg      BroadcastConfig
 	net      libnet.Network
 	privInfo proto.ValidatorPrivateInfo
 	router   router.Router
@@ -30,7 +31,8 @@ type BroadcastService struct {
 	accepting map[Channel]*accepting
 	trees     *TreeCache
 	//
-	acceptCh chan *receiving
+	streamingAcceptCh chan *receiving
+	bulkAcceptCh      chan *receiving
 }
 
 func NewBroadcastService(
@@ -45,6 +47,7 @@ func NewBroadcastService(
 	log.Infof("starting broadcast service for %s", protoutil.ValidatorPublicShortString(privInfo.Public_info))
 	m := NewBroadcastMetrics(ctx)
 	s := &BroadcastService{
+		cfg:      cfg,
 		net:      n,
 		privInfo: privInfo,
 		router:   router,
@@ -59,7 +62,8 @@ func NewBroadcastService(
 		accepting: map[Channel]*accepting{},
 		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
 		//
-		acceptCh: make(chan *receiving),
+		streamingAcceptCh: make(chan *receiving),
+		bulkAcceptCh:      make(chan *receiving),
 	}
 	return s
 }
@@ -72,7 +76,11 @@ type broadcastAPI struct {
 	svc *BroadcastService
 }
 
-func (svc *BroadcastService) API() StreamingBroadcast {
+func (svc *BroadcastService) StreamingAPI() StreamingBroadcast {
+	return &broadcastAPI{svc: svc}
+}
+
+func (svc *BroadcastService) BulkAPI() BulkBroadcast {
 	return &broadcastAPI{svc: svc}
 }
 

@@ -37,7 +37,8 @@ func NewBroadcastBenchmark(
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
 		broadcast.BroadcastConfig{
-			UnusedMulticastTreeTTL: time.Minute,
+			UnusedMulticastTreeTTL: 3 * time.Second,
+			ChunkSize:              10e3,
 		},
 		libnet.TCPNet{},
 		runtime.NewRandFromRoot(),
@@ -61,7 +62,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 	// start benchmark sender
 	go func() {
 		for j := 0; j < bench.numIterations; j++ {
-			s := bench.broadcast.API().MakeChannel(ctx)
+			s := bench.broadcast.StreamingAPI().MakeChannel(ctx)
 		sendLoop:
 			for i := 0; i < bench.payPerChannel; i++ {
 				select {
@@ -89,7 +90,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 				break acceptLoop
 			default:
 			}
-			r := bench.broadcast.API().AcceptChannel()
+			r := bench.broadcast.StreamingAPI().AcceptChannel()
 			go func() {
 				defer r.Close()
 			receiveLoop:

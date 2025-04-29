@@ -98,7 +98,11 @@ func (a *accepting) accept(ctx context.Context) {
 	a.svc.lk.Unlock()
 
 	// notify app of accepted broadcast channel
-	a.svc.acceptCh <- r
+	if protoutil.ChannelIsStreaming(a.channel) {
+		a.svc.streamingAcceptCh <- r
+	} else {
+		a.svc.bulkAcceptCh <- r
+	}
 }
 
 func (a *accepting) expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {

@@ -20,10 +20,10 @@ type Message = proto.BroadcastMessage
 type MessageHash = proto.BroadcastMessageHash
 type Header = proto.BroadcastHeader
 
-// BatchBroadcast provides a batch broadcast abstraction, where the sender knows the entire (bulk) payload ahead of time.
-type BatchBroadcast interface {
-	Send(context.Context, []byte)
-	Receive(context.Context) (Channel, []byte)
+// BulkBroadcast provides a batch broadcast abstraction, where the sender knows the entire (bulk) payload ahead of time.
+type BulkBroadcast interface {
+	BulkSend(context.Context, []byte) (Channel, error)
+	BulkReceive(context.Context) (Channel, []byte, error)
 }
 
 // StreamingBroadcast provides a streaming broadcast abstraction.
