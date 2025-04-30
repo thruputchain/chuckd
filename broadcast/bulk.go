@@ -8,7 +8,7 @@ import (
 
 func (s *broadcastAPI) BulkSend(ctx context.Context, bulk []byte) (Channel, error) {
 
-	chunkSize := s.svc.cfg.ChunkSize
+	chunkSize := int(s.svc.cfg.Chunk_size)
 	batchCount := (len(bulk) + chunkSize - 1) / chunkSize
 	if batchCount != int(int32(batchCount)) {
 		panic("too many chunks")

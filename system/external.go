@@ -24,7 +24,7 @@ type ExternalServer struct {
 func NewExternalServer(
 	ctx context.Context,
 	rr *rand.Rand,
-	vcfg proto.ValidatorConfig,
+	cfg proto.Config,
 	treeFanOut int, // fanout of multicast trees
 ) *ExternalServer {
 
@@ -32,15 +32,15 @@ func NewExternalServer(
 		ctx,
 		discovery.DefaultDiscoveryConfig,
 		libnet.TCPNet{},
-		vcfg,
+		*cfg.Validator_config,
 	)
 	router := router.NewBasicRouter(ctx, discovery, treeFanOut)
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
-		broadcast.DefaultBroadcastConfig,
+		*cfg.Broadcast_config,
 		libnet.TCPNet{},
 		runtime.NewRandFromRoot(),
-		vcfg.Private_info,
+		cfg.Validator_config.Private_info,
 		router,
 		broadcast.AcceptEverything{},
 	)

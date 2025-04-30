@@ -1,6 +1,4 @@
 MAIN
-- [x] authenticated HTTP means for submitting transactions
-
 
 SOLO
 - [x] combine multiple nominated values

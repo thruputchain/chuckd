@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
@@ -14,7 +15,7 @@ import (
 )
 
 type BroadcastService struct {
-	cfg      BroadcastConfig
+	cfg      proto.BroadcastConfig
 	net      libnet.Network
 	privInfo proto.ValidatorPrivateInfo
 	router   router.Router
@@ -37,7 +38,7 @@ type BroadcastService struct {
 
 func NewBroadcastService(
 	ctx context.Context,
-	cfg BroadcastConfig,
+	cfg proto.BroadcastConfig,
 	n libnet.Network,
 	rr *rand.Rand,
 	privInfo proto.ValidatorPrivateInfo,
@@ -60,7 +61,7 @@ func NewBroadcastService(
 		sending:   map[Channel]*sending{},
 		receiving: map[Channel]*receiving{},
 		accepting: map[Channel]*accepting{},
-		trees:     NewTreeCache(cfg.UnusedMulticastTreeTTL),
+		trees:     NewTreeCache(time.Millisecond * time.Duration(cfg.Multicast_tree_ttl_msec)),
 		//
 		streamingAcceptCh: make(chan *receiving),
 		bulkAcceptCh:      make(chan *receiving),

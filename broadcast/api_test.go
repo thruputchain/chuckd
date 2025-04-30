@@ -7,7 +7,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/router"
@@ -139,9 +138,9 @@ func TestBulk(t *testing.T) {
 
 	payload := []byte{1, 2, 3}
 
-	cfg := BroadcastConfig{
-		UnusedMulticastTreeTTL: time.Second,
-		ChunkSize:              1, // three messages for the payload
+	cfg := proto.BroadcastConfig{
+		Multicast_tree_ttl_msec: 1e3,
+		Chunk_size:              1,
 	}
 
 	testnet := test.NewTestNetwork()

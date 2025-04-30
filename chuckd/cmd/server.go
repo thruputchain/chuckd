@@ -27,7 +27,7 @@ var (
 				srv := system.NewServer(
 					ctx,
 					runtime.NewRandFromRoot(),
-					*cfg.Validator_config,
+					*cfg,
 					serverTreeFanOut,
 				)
 				srv.Start(ctx, serverInternalServerAddress, serverExternalServerAddress)

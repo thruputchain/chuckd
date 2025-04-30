@@ -1,14 +1,10 @@
 package broadcast
 
-import "time"
+import (
+	proto "github.com/groundhogchain/protocol-go"
+)
 
-// XXX: move to xdr
-type BroadcastConfig struct {
-	UnusedMulticastTreeTTL time.Duration
-	ChunkSize              int // maximum chunk size for bulk/batch broadcasts
-}
-
-var DefaultBroadcastConfig = BroadcastConfig{
-	UnusedMulticastTreeTTL: time.Minute,
-	ChunkSize:              10e3,
+var DefaultBroadcastConfig = proto.BroadcastConfig{
+	Multicast_tree_ttl_msec: 2e3,
+	Chunk_size:              10e3,
 }

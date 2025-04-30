@@ -16,12 +16,12 @@ type Server struct {
 func NewServer(
 	ctx context.Context,
 	rr *rand.Rand,
-	vcfg proto.ValidatorConfig,
+	cfg proto.Config,
 	treeFanOut int, // fanout of multicast trees
 ) *Server {
 	return &Server{
 		internal: NewInternalServer(ctx, runtime.NewRandFromRand(rr)),
-		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), vcfg, treeFanOut),
+		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), cfg, treeFanOut),
 	}
 }
 

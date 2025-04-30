@@ -36,9 +36,9 @@ func NewBroadcastBenchmark(
 	router := router.NewFixedRouter(ctx, vcfg.Private_info.Public_info, vcfg.Known_validators, treeFanOut)
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
-		broadcast.BroadcastConfig{
-			UnusedMulticastTreeTTL: 3 * time.Second,
-			ChunkSize:              10e3,
+		proto.BroadcastConfig{
+			Multicast_tree_ttl_msec: 3000,
+			Chunk_size:              10e3,
 		},
 		libnet.TCPNet{},
 		runtime.NewRandFromRoot(),

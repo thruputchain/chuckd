@@ -32,6 +32,10 @@ data:
             "address": "chuckd-bench-3:9111"
           }
         ]
+      },
+      "broadcast_config": {
+        "multicast_tree_ttl_msec": 2000,
+        "chunk_size": 10000,
       }
     }
 ---
@@ -69,6 +73,10 @@ data:
             "address": "chuckd-bench-3:9111"
           }
         ]
+      },
+      "broadcast_config": {
+        "multicast_tree_ttl_msec": 2000,
+        "chunk_size": 10000,
       }
     }
 ---
@@ -106,6 +114,10 @@ data:
             "address": "chuckd-bench-3:9111"
           }
         ]
+      },
+      "broadcast_config": {
+        "multicast_tree_ttl_msec": 2000,
+        "chunk_size": 10000,
       }
     }
 ---
