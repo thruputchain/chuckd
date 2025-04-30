@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -88,7 +89,7 @@ func (j *jsonIn) Marshal(name string, xval xdr.XdrType) {
 // is in a pristine state--for example, it won't reset pointers to nil
 // if the corresponding JSON is null.  Moreover, it is somewhat strict
 // in expecting the JSON to conform to the XDR.
-func JsonToXdr(dst xdr.XdrAggregate, src []byte) (err error) {
+func JsonToXdr(dst xdr.XdrType, src []byte) (err error) {
 	defer func() {
 		if i := recover(); i != nil {
 			err = i.(error)
@@ -96,7 +97,7 @@ func JsonToXdr(dst xdr.XdrAggregate, src []byte) (err error) {
 	}()
 	var j jsonIn
 	json.Unmarshal(src, &j.obj)
-	dst.XdrRecurse(&j, "")
+	j.Marshal("", dst)
 	return nil
 }
 
@@ -185,8 +186,86 @@ func (j *jsonOut) Marshal(name string, val xdr.XdrType) {
 	}
 }
 
+func NativeToJson(v any) (json []byte, err error) {
+	var src xdr.XdrType
+	switch u := v.(type) {
+	case xdr.XdrType:
+		src = u
+	case bool:
+		x := xdr.XdrBool(u)
+		src = &x
+	case int32:
+		x := xdr.XdrInt32(u)
+		src = &x
+	case uint32:
+		x := xdr.XdrUint32(u)
+		src = &x
+	case int64:
+		x := xdr.XdrInt64(u)
+		src = &x
+	case uint64:
+		x := xdr.XdrUint64(u)
+		src = &x
+	case float32:
+		x := xdr.XdrFloat32(u)
+		src = &x
+	case float64:
+		x := xdr.XdrFloat64(u)
+		src = &x
+	case string:
+		x := xdr.XdrString{Str: &u, Bound: uint32(len(u))}
+		src = &x
+	case []byte:
+		x := xdr.XdrVecOpaque{Bytes: &u, Bound: uint32(len(u))}
+		src = &x
+	default:
+		vv := reflect.ValueOf(v)
+		switch {
+		case vv.Kind() == reflect.Array:
+			switch {
+			case vv.Type().Elem() == byteType: // [n]byte
+				b := vv.Slice(0, vv.Len()).Interface().([]byte)
+				src = xdr.XdrVecOpaque{Bytes: &b, Bound: uint32(vv.Len())}
+			default: // [n]T
+				XXX
+				src = xdrVecAny{Elems: XXX, Bound: uint32(vv.Len())}
+			}
+		case vv.Kind() == reflect.Slice:
+			switch {
+			case vv.Type().Elem() == byteType: // []byte
+				b := vv.Interface().([]byte)
+				src = xdr.XdrVecOpaque{Bytes: &b, Bound: uint32(vv.Len())}
+			default: // []T
+				XXX
+			}
+		case vv.Kind() == reflect.Interface:
+			XXX
+		default:
+			return []byte("NON_XDR"), nil // output invalid json!
+		}
+	}
+	return XdrToJson(src)
+}
+
+type xdrVecAny struct {
+	Elems *[]any
+	Bound uint32
+}
+
+func (xdrVecAny) XdrTypeName() string { return "opaque<>" } // doable
+
+func (v xdrVecAny) XdrPointer() interface{} { return v.Bytes } // ??? intro a special XdrType "any"
+
+func (v xdrVecAny) XdrValue() interface{} { return *v.Bytes } // ???
+
+func (v xdrVecAny) XdrMarshal(x xdr.XDR, name string) { x.Marshal(name, v) }
+
+var (
+	byteType = reflect.TypeOf(byte(0))
+)
+
 // Format an XDR structure as JSON.
-func XdrToJson(src xdr.XdrAggregate) (json []byte, err error) {
+func XdrToJson(src xdr.XdrType) (json []byte, err error) {
 	defer func() {
 		if i := recover(); i != nil {
 			json = nil
@@ -194,11 +273,11 @@ func XdrToJson(src xdr.XdrAggregate) (json []byte, err error) {
 		}
 	}()
 	j := &jsonOut{out: &bytes.Buffer{}}
-	j.aggregate(src)
+	j.Marshal("", src)
 	return j.out.Bytes(), nil
 }
 
-func MustXdrToJsonString(src xdr.XdrAggregate) string {
+func MustXdrToJsonString(src xdr.XdrType) string {
 	b, err := XdrToJson(src)
 	must.NoError(context.TODO(), err)
 	return string(b)
