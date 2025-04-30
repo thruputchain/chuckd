@@ -4,13 +4,13 @@ go 1.24.0
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/klauspost/reedsolomon v1.12.4
 	// github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	// github.com/pkg/errors v0.9.1
 	// github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.9.1
 	go.opentelemetry.io/otel v1.35.0
-
 )
 
 require (
@@ -42,7 +42,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
