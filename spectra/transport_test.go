@@ -24,16 +24,16 @@ func TestRoundtrip(t *testing.T) {
 
 	bcfg := proto.BroadcastConfig{
 		Multicast_tree_ttl_msec: 1e3,
-		Chunk_size:              1,
+		Chunk_size:              38,
 	}
 
-	tn := broadcast.NewBroadcast3TestNet(bcfg)
+	tn := broadcast.NewBroadcast3TCP(bcfg)
 	tn.Start()
 
 	scfg := proto.SpectraConfig{
 		Num_payload_channels: 2,
 		Num_parity_channels:  1,
-		Partial_ttl_msec:     1e3,
+		Partial_ttl_msec:     3e3,
 	}
 	rand0 := runtime.NewRandFromRand(tn.Rand[0])
 	rand1 := runtime.NewRandFromRand(tn.Rand[1])
@@ -43,7 +43,7 @@ func TestRoundtrip(t *testing.T) {
 	s1 := NewSpectraTransport(tn.Ctx, scfg, rand1, tn.B[1].BulkAPI())
 	s2 := NewSpectraTransport(tn.Ctx, scfg, rand2, tn.B[2].BulkAPI())
 
-	payload := []byte{1, 2, 3, 4, 5}
+	payload := []byte{1, 2, 3, 4, 5, 6}
 
 	go func() {
 		_, err := s0.BulkSend(tn.Ctx, payload)

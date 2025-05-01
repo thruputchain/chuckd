@@ -48,5 +48,9 @@ func (s *broadcastAPI) BulkReceive(ctx context.Context) (Channel, []byte, error)
 		payload = append(payload, chunk...)
 	}
 
+	if sha256.Sum256(payload) != rch.Channel().Batch_hash {
+		return rch.Channel(), nil, fmt.Errorf("bulk hash mismatch")
+	}
+
 	return rch.Channel(), payload, nil
 }

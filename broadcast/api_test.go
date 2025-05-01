@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 
 func TestStreaming(t *testing.T) {
 
-	tn := NewBroadcast3TestNet(DefaultBroadcastConfig)
+	tn := NewBroadcast3Testnet(DefaultBroadcastConfig)
 	tn.Start()
 
 	payload := []byte{1, 2, 3}
@@ -67,10 +67,13 @@ func TestBulk(t *testing.T) {
 		Chunk_size:              1,
 	}
 
-	tn := NewBroadcast3TestNet(cfg)
+	tn := NewBroadcast3Testnet(cfg)
 	tn.Start()
 
-	payload := []byte{1, 2, 3}
+	payload := make([]byte, 39)
+	for i := range payload {
+		payload[i] = byte(i)
+	}
 
 	go func() {
 		_, err := tn.B[0].BulkAPI().BulkSend(tn.Ctx, payload)
