@@ -34,7 +34,7 @@ type SpectraTransport struct {
 }
 
 type transmissionKey struct {
-	channel        broadcast.Channel
+	validatorID    proto.ValidatorID
 	transmissionID proto.SpectraTransmissionID
 }
 
@@ -225,7 +225,7 @@ func (x *SpectraTransport) process(_ context.Context, ch broadcast.Channel, h pr
 
 	// construct key
 	key := transmissionKey{
-		channel:        ch,
+		validatorID:    ch.Source_id,
 		transmissionID: h.Transmission_id,
 	}
 
@@ -305,7 +305,7 @@ func (x *SpectraTransport) process(_ context.Context, ch broadcast.Channel, h pr
 
 	// notify app
 	x.arrival <- transmissionArrival{
-		senderID:       key.channel.Channel_id,
+		senderID:       key.validatorID,
 		transmissionID: key.transmissionID,
 		bulk:           bulk,
 	}

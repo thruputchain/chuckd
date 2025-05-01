@@ -2,102 +2,32 @@ package broadcast
 
 import (
 	"bytes"
-	"context"
-	"math/rand"
 	"os"
 	"sync"
 	"testing"
 
 	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/router"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/test"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-var testCtx context.Context
-var testRR *rand.Rand
-var testVs []*proto.ValidatorPrivateInfo
-var testRouter router.Router
-
 func TestMain(m *testing.M) {
-
 	log.LogVerbosely()
 	runtime.SetRootSeed(0)
-	testCtx = context.Background()
-	testRR = runtime.NewRandFromRoot()
-
-	testVs = []*proto.ValidatorPrivateInfo{
-		protoutil.MustGenerateIdentity(testCtx, testRR, "alpha"),
-		protoutil.MustGenerateIdentity(testCtx, testRR, "beta"),
-		protoutil.MustGenerateIdentity(testCtx, testRR, "gamma"),
-	}
-	for i := range testVs {
-		log.Infof("test validator #%d: %s\n", i, protoutil.ValidatorPublicShortString(testVs[i].Public_info))
-	}
-
-	testRouter = &router.TestRouter{
-		Trees: map[router.TestTreeKey]*router.TestTreeNode{
-			// 0 -> 1, 0 -> 2
-			{VID: protoutil.ValidatorIDFromPublic(testVs[0].Public_info)}: {
-				V: testVs[0].Public_info,
-				Children: []*router.TestTreeNode{
-					{V: testVs[1].Public_info},
-					{V: testVs[2].Public_info},
-				},
-			},
-			// 1 -> 2 -> 0
-			{VID: protoutil.ValidatorIDFromPublic(testVs[1].Public_info)}: {
-				V: testVs[1].Public_info,
-				Children: []*router.TestTreeNode{
-					{
-						V: testVs[2].Public_info,
-						Children: []*router.TestTreeNode{
-							{V: testVs[0].Public_info},
-						},
-					},
-				},
-			},
-			// 2 -> 0 -> 1
-			{VID: protoutil.ValidatorIDFromPublic(testVs[2].Public_info)}: {
-				V: testVs[2].Public_info,
-				Children: []*router.TestTreeNode{
-					{
-						V: testVs[0].Public_info,
-						Children: []*router.TestTreeNode{
-							{V: testVs[1].Public_info},
-						},
-					},
-				},
-			},
-		},
-	}
-
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }
 
 func TestStreaming(t *testing.T) {
 
-	r0 := runtime.NewRandFromRoot()
-	r1 := runtime.NewRandFromRoot()
-	r2 := runtime.NewRandFromRoot()
-
-	testnet := test.NewTestNetwork()
-	b0 := NewBroadcastService(testCtx, DefaultBroadcastConfig, testnet, r0, *testVs[0], testRouter, AcceptEverything{})
-	b1 := NewBroadcastService(testCtx, DefaultBroadcastConfig, testnet, r1, *testVs[1], testRouter, AcceptEverything{})
-	b2 := NewBroadcastService(testCtx, DefaultBroadcastConfig, testnet, r2, *testVs[2], testRouter, AcceptEverything{})
-
-	b0.Start(testCtx, testVs[0].Public_info.Address)
-	b1.Start(testCtx, testVs[1].Public_info.Address)
-	b2.Start(testCtx, testVs[2].Public_info.Address)
+	tn := NewBroadcast3TestNet(DefaultBroadcastConfig)
+	tn.Start()
 
 	payload := []byte{1, 2, 3}
 
 	go func() {
-		sch := b0.StreamingAPI().MakeChannel(testCtx)
-		sch.Send(testCtx, payload)
+		sch := tn.B[0].StreamingAPI().MakeChannel(tn.Ctx)
+		sch.Send(tn.Ctx, payload)
 	}()
 
 	var wg sync.WaitGroup
@@ -105,8 +35,8 @@ func TestStreaming(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		rch := b1.StreamingAPI().AcceptChannel()
-		_, _, p, err := rch.Receive(testCtx)
+		rch := tn.B[1].StreamingAPI().AcceptChannel()
+		_, _, p, err := rch.Receive(tn.Ctx)
 		if err != nil {
 			t.Error(err)
 		}
@@ -117,8 +47,8 @@ func TestStreaming(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		rch := b2.StreamingAPI().AcceptChannel()
-		_, _, p, err := rch.Receive(testCtx)
+		rch := tn.B[2].StreamingAPI().AcceptChannel()
+		_, _, p, err := rch.Receive(tn.Ctx)
 		if err != nil {
 			t.Error(err)
 		}
@@ -132,28 +62,18 @@ func TestStreaming(t *testing.T) {
 
 func TestBulk(t *testing.T) {
 
-	r0 := runtime.NewRandFromRoot()
-	r1 := runtime.NewRandFromRoot()
-	r2 := runtime.NewRandFromRoot()
-
-	payload := []byte{1, 2, 3}
-
 	cfg := proto.BroadcastConfig{
 		Multicast_tree_ttl_msec: 1e3,
 		Chunk_size:              1,
 	}
 
-	testnet := test.NewTestNetwork()
-	b0 := NewBroadcastService(testCtx, cfg, testnet, r0, *testVs[0], testRouter, AcceptEverything{})
-	b1 := NewBroadcastService(testCtx, cfg, testnet, r1, *testVs[1], testRouter, AcceptEverything{})
-	b2 := NewBroadcastService(testCtx, cfg, testnet, r2, *testVs[2], testRouter, AcceptEverything{})
+	tn := NewBroadcast3TestNet(cfg)
+	tn.Start()
 
-	b0.Start(testCtx, testVs[0].Public_info.Address)
-	b1.Start(testCtx, testVs[1].Public_info.Address)
-	b2.Start(testCtx, testVs[2].Public_info.Address)
+	payload := []byte{1, 2, 3}
 
 	go func() {
-		_, err := b0.BulkAPI().BulkSend(testCtx, payload)
+		_, err := tn.B[0].BulkAPI().BulkSend(tn.Ctx, payload)
 		if err != nil {
 			t.Error(err)
 		}
@@ -164,7 +84,7 @@ func TestBulk(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		_, p, err := b1.BulkAPI().BulkReceive(testCtx)
+		_, p, err := tn.B[1].BulkAPI().BulkReceive(tn.Ctx)
 		if err != nil {
 			t.Error(err)
 		}
@@ -175,7 +95,7 @@ func TestBulk(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		_, p, err := b2.BulkAPI().BulkReceive(testCtx)
+		_, p, err := tn.B[2].BulkAPI().BulkReceive(tn.Ctx)
 		if err != nil {
 			t.Error(err)
 		}

@@ -22,12 +22,16 @@ type Header = proto.BroadcastHeader
 
 // BulkBroadcast provides a batch broadcast abstraction, where the sender knows the entire (bulk) payload ahead of time.
 type BulkBroadcast interface {
+	ValidatorID() proto.ValidatorID
+
 	BulkSend(context.Context, []byte) (Channel, error)
 	BulkReceive(context.Context) (Channel, []byte, error)
 }
 
 // StreamingBroadcast provides a streaming broadcast abstraction.
 type StreamingBroadcast interface {
+	ValidatorID() proto.ValidatorID
+
 	// MakeChannel creates a new broadcast channel for sending.
 	MakeChannel(context.Context) SendChannel
 

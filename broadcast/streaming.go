@@ -6,6 +6,10 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func (s *broadcastAPI) ValidatorID() proto.ValidatorID {
+	return s.svc.ValidatorID()
+}
+
 func (s *broadcastAPI) MakeChannel(ctx context.Context) SendChannel {
 	return s.makeChannel(ctx, -1, 0, proto.BroadcastBatchHash{})
 }
