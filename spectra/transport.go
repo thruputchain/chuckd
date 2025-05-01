@@ -16,8 +16,6 @@ import (
 	"github.com/klauspost/reedsolomon"
 )
 
-//XXX: zero size shards are not valid for encoding or decoding
-
 type SpectraTransport struct {
 	cfg proto.SpectraConfig
 	rr  *rand.Rand

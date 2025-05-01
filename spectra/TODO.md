@@ -1,0 +1,6 @@
+- [ ] tests
+  - [ ] end-to-end correctness
+  - [ ] zero-redundancy config
+  - [ ] payload size not divisible by payload channel count
+  - [ ] payload channels more than payload size
+- [ ] update k8s config with spectra section
