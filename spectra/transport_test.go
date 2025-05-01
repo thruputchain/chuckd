@@ -24,7 +24,7 @@ func TestRoundtrip(t *testing.T) {
 
 	bcfg := proto.BroadcastConfig{
 		Multicast_tree_ttl_msec: 1e3,
-		Chunk_size:              38,
+		Chunk_size:              1,
 	}
 
 	tn := broadcast.NewBroadcast3TCP(bcfg)

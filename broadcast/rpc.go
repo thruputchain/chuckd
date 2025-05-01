@@ -33,9 +33,9 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 	channel := delivery.Msg.Header.Channel
 
 	svc.lk.Lock()
-	defer svc.lk.Unlock()
 
 	if s := svc.sending[channel]; s != nil {
+		svc.lk.Unlock()
 		log.Errorf("discarding (sender) message %d on channel %s at %s from %s",
 			delivery.Msg.Header.Seqno,
 			protoutil.ChannelString(delivery.Msg.Header.Channel),
@@ -45,18 +45,21 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 		return nil // discard
 
 	} else if a := svc.accepting[channel]; a != nil {
+		svc.lk.Unlock()
 		a.deliver(ctx, delivery)
 
 	} else if r := svc.receiving[channel]; r != nil {
+		svc.lk.Unlock()
 		r.deliver(ctx, delivery) // deliver to app and schedule relay
 
 	} else {
 		// ask the application whether the broadcast is acceptable
 		if !svc.disc.IsAcceptable(channel, delivery.Msg.Header.Seqno, delivery.Msg.Payload) {
+			svc.lk.Unlock()
 			return nil // discard
 		}
 		svc.accepting[channel] = newAccepting(ctx, svc, delivery)
-
+		svc.lk.Unlock()
 	}
 	return nil
 }

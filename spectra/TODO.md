@@ -1,6 +1,5 @@
 - [ ] tests
   - [x] roundtrip correctness
-    - [ ] when chunk size < header+shard roundtrip test fails
   - [ ] zero-redundancy config
   - [ ] payload size not divisible by payload channel count
   - [ ] payload channels more than payload size

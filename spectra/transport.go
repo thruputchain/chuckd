@@ -3,7 +3,6 @@ package spectra
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/klauspost/reedsolomon"
@@ -203,11 +201,9 @@ func (x *SpectraTransport) receive(ctx context.Context) {
 		// receive shard
 		ch, bulk, err := x.bb.BulkReceive(ctx)
 		if err != nil {
-			fmt.Println("XXX", err)
 			log.Errorf("spectra bulk reception: %v", err)
 			break
 		}
-		fmt.Println("BULK", len(bulk), "AT", protoutil.ValidatorIDString(x.bb.ValidatorID()))
 
 		// decode header
 		if len(bulk) < headerSize {

@@ -61,10 +61,11 @@ func (x *receiving) Channel() Channel {
 	return x.channel
 }
 
-// called inside a service lock!
 func (x *receiving) deliver(ctx context.Context, delivery Delivery) {
 	msg := delivery.Msg
+
 	defer func() { x.deliverCh <- msg }()
+
 	defer x.relay(ctx, delivery)
 
 	x.lk.Lock()

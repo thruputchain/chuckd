@@ -33,7 +33,6 @@ func newAccepting(ctx context.Context, svc *BroadcastService, first Delivery) *a
 	return a
 }
 
-// called inside a service lock!
 func (a *accepting) deliver(_ context.Context, delivery Delivery) {
 	a.lk.Lock()
 	defer a.lk.Unlock()
