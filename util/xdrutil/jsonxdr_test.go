@@ -1,6 +1,7 @@
 package xdrutil
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -21,4 +22,25 @@ func TestXdrToJson(t *testing.T) {
 	if !reflect.DeepEqual(x, y) {
 		t.Errorf("expecting equality")
 	}
+}
+
+type testNonXdrType struct {
+	Primitive   int32
+	Unexported  bool
+	ByteArray   [3]byte
+	SomeXdr     proto.SHA256Hash
+	Complex     complex128
+	Pointer     *[]string
+	SliceString []string
+}
+
+func TestAnyToJson(t *testing.T) {
+	v := &testNonXdrType{
+		SliceString: []string{"abc", "def"},
+	}
+	s, err := AnyToJson(v)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(string(s))
 }
