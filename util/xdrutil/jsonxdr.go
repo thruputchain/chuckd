@@ -190,8 +190,6 @@ func (j *jsonOut) Marshal(name string, val xdr.XdrType) {
 
 func (j *jsonOut) marshalGo(name string, val any) {
 	switch u := (val).(type) {
-	// case xdr.XdrType:
-	// 	j.Marshal(name, u)
 	case bool:
 		x := xdr.XdrBool(u)
 		j.Marshal(name, &x)
@@ -215,7 +213,7 @@ func (j *jsonOut) marshalGo(name string, val any) {
 		j.Marshal(name, &x)
 	case string:
 		x := xdr.XdrString{Str: &u, Bound: uint32(len(u))}
-		j.Marshal(name, &x)
+		j.Marshal(name, x)
 	case []byte:
 		x := xdr.XdrVecOpaque{Bytes: &u, Bound: uint32(len(u))}
 		j.Marshal(name, &x)
@@ -263,13 +261,13 @@ func (j *jsonOut) aggregateGo(val reflect.Value) {
 	case val.Type().Kind() == reflect.Slice:
 		j.out.WriteString("[")
 		for i := 0; i < val.Len(); i++ {
-			j.marshalGo("", &xdrGo{Value: val.Index(i).Interface()})
+			j.marshalGo("", val.Index(i).Interface())
 		}
 		j.out.WriteString("\n" + oldIndent + "]")
 	case val.Type().Kind() == reflect.Array:
 		j.out.WriteString("[")
 		for i := 0; i < val.Len(); i++ {
-			j.marshalGo("", &xdrGo{Value: val.Index(i).Interface()})
+			j.marshalGo("", val.Index(i).Interface())
 		}
 		j.out.WriteString("\n" + oldIndent + "]")
 	case val.Type().Kind() == reflect.Struct:
