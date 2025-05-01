@@ -181,88 +181,132 @@ func (j *jsonOut) Marshal(name string, val xdr.XdrType) {
 			j.printField(name, "")
 			j.aggregate(v)
 		}
+	case *xdrGo:
+		j.marshalGo(name, v.Value)
 	default:
 		xdr.XdrPanic("XdrToJson can't handle type %T", val)
 	}
 }
 
-func NativeToJson(v any) (json []byte, err error) {
-	var src xdr.XdrType
-	switch u := v.(type) {
-	case xdr.XdrType:
-		src = u
+func (j *jsonOut) marshalGo(name string, val any) {
+	switch u := (val).(type) {
+	// case xdr.XdrType:
+	// 	j.Marshal(name, u)
 	case bool:
 		x := xdr.XdrBool(u)
-		src = &x
+		j.Marshal(name, &x)
 	case int32:
 		x := xdr.XdrInt32(u)
-		src = &x
+		j.Marshal(name, &x)
 	case uint32:
 		x := xdr.XdrUint32(u)
-		src = &x
+		j.Marshal(name, &x)
 	case int64:
 		x := xdr.XdrInt64(u)
-		src = &x
+		j.Marshal(name, &x)
 	case uint64:
 		x := xdr.XdrUint64(u)
-		src = &x
+		j.Marshal(name, &x)
 	case float32:
 		x := xdr.XdrFloat32(u)
-		src = &x
+		j.Marshal(name, &x)
 	case float64:
 		x := xdr.XdrFloat64(u)
-		src = &x
+		j.Marshal(name, &x)
 	case string:
 		x := xdr.XdrString{Str: &u, Bound: uint32(len(u))}
-		src = &x
+		j.Marshal(name, &x)
 	case []byte:
 		x := xdr.XdrVecOpaque{Bytes: &u, Bound: uint32(len(u))}
-		src = &x
+		j.Marshal(name, &x)
 	default:
-		vv := reflect.ValueOf(v)
+		vv := reflect.ValueOf(val)
 		switch {
-		case vv.Kind() == reflect.Array:
+		case vv.Kind() == reflect.Array || vv.Kind() == reflect.Slice:
 			switch {
-			case vv.Type().Elem() == byteType: // [n]byte
-				b := vv.Slice(0, vv.Len()).Interface().([]byte)
-				src = xdr.XdrVecOpaque{Bytes: &b, Bound: uint32(vv.Len())}
-			default: // [n]T
-				XXX
-				src = xdrVecAny{Elems: XXX, Bound: uint32(vv.Len())}
+			case vv.Type().Elem() == byteType: // []byte, [n]byte
+				j.printField(name, "\"")
+				enc := base64.NewEncoder(base64.StdEncoding, j.out)
+				aa := reflect.New(vv.Type()).Elem()
+				aa.Set(vv)
+				enc.Write(aa.Slice(0, aa.Len()).Bytes())
+				enc.Close()
+				j.out.WriteByte('"')
+			default: // []T, [n]T
+				j.printField(name, "")
+				j.aggregateGo(vv)
 			}
-		case vv.Kind() == reflect.Slice:
-			switch {
-			case vv.Type().Elem() == byteType: // []byte
-				b := vv.Interface().([]byte)
-				src = xdr.XdrVecOpaque{Bytes: &b, Bound: uint32(vv.Len())}
-			default: // []T
-				XXX
+		case vv.Kind() == reflect.Struct:
+			j.printField(name, "")
+			j.aggregateGo(vv)
+		case vv.Kind() == reflect.Interface || vv.Kind() == reflect.Pointer:
+			if vv.IsNil() {
+				j.printField(name, "null")
+			} else {
+				j.marshalGo(name, vv.Elem().Interface())
 			}
-		case vv.Kind() == reflect.Interface:
-			XXX
-		default:
-			return []byte("NON_XDR"), nil // output invalid json!
+		default: // complex64, etc
+			j.printField(name, "go:%v", val)
 		}
 	}
-	return XdrToJson(src)
 }
 
-type xdrVecAny struct {
-	Elems *[]any
-	Bound uint32
+func (j *jsonOut) aggregateGo(val reflect.Value) {
+	oldIndent := j.indent
+	defer func() {
+		j.needComma = true
+		j.indent = oldIndent
+	}()
+	j.indent = j.indent + "    "
+	j.needComma = false
+	switch {
+	case val.Type().Kind() == reflect.Slice:
+		j.out.WriteString("[")
+		for i := 0; i < val.Len(); i++ {
+			j.marshalGo("", &xdrGo{Value: val.Index(i).Interface()})
+		}
+		j.out.WriteString("\n" + oldIndent + "]")
+	case val.Type().Kind() == reflect.Array:
+		j.out.WriteString("[")
+		for i := 0; i < val.Len(); i++ {
+			j.marshalGo("", &xdrGo{Value: val.Index(i).Interface()})
+		}
+		j.out.WriteString("\n" + oldIndent + "]")
+	case val.Type().Kind() == reflect.Struct:
+		j.out.WriteString("{")
+		for i := 0; i < val.NumField(); i++ {
+			if val.Type().Field(i).IsExported() {
+				j.marshalGo(j.Sprintf("%s", val.Type().Field(i).Name), val.Field(i).Interface())
+			}
+		}
+		j.out.WriteString("\n" + oldIndent + "}")
+	}
 }
 
-func (xdrVecAny) XdrTypeName() string { return "opaque<>" } // doable
+type xdrGo struct {
+	Value any
+}
 
-func (v xdrVecAny) XdrPointer() interface{} { return v.Bytes } // ??? intro a special XdrType "any"
+func (v xdrGo) XdrTypeName() string { return "go:" + reflect.ValueOf(v.Value).Type().String() }
 
-func (v xdrVecAny) XdrValue() interface{} { return *v.Bytes } // ???
+func (v *xdrGo) XdrPointer() interface{} { return &v.Value }
 
-func (v xdrVecAny) XdrMarshal(x xdr.XDR, name string) { x.Marshal(name, v) }
+func (v xdrGo) XdrValue() interface{} { return v.Value }
+
+func (v *xdrGo) XdrMarshal(x xdr.XDR, name string) { x.Marshal(name, v) }
 
 var (
 	byteType = reflect.TypeOf(byte(0))
 )
+
+func AnyToJson(src any) (json []byte, err error) {
+	switch v := src.(type) {
+	case xdr.XdrType:
+		return XdrToJson(v)
+	default:
+		return XdrToJson(&xdrGo{Value: src})
+	}
+}
 
 // Format an XDR structure as JSON.
 func XdrToJson(src xdr.XdrType) (json []byte, err error) {
