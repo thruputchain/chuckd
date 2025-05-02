@@ -6,7 +6,7 @@ SOLO
 
 
 XDR
-- [ ] fix MarshalXdr to print non-aggregate values
+- [ ] implement SprintXDR (use xdr textual)
 
 
 INFRA & BENCHMARK

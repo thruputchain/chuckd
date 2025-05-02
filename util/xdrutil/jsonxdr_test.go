@@ -8,14 +8,22 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func TestXdrToJson(t *testing.T) {
-	x := proto.ValidatorPublicInfo{Address: "1.2.3.4"}
+func TestRoundtrip(t *testing.T) {
+	// x := proto.ValidatorPublicInfo{Address: "1.2.3.4"}
+	x := proto.BroadcastChannel{Batch_count: 111}
+	// x := proto.Config{
+	// 	Spectra_config: &proto.SpectraConfig{
+	// 		Partial_ttl_msec: 333,
+	// 	},
+	// }
 	s, err := XdrToJson(&x)
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println("XXX", string(s))
-	y := proto.ValidatorPublicInfo{}
+	// fmt.Println("XXX", string(s))
+	// y := proto.ValidatorPublicInfo{}
+	y := proto.BroadcastChannel{}
+	// y := proto.Config{}
 	err = JsonToXdr(&y, s)
 	if err != nil {
 		t.Error(err)
@@ -27,7 +35,8 @@ func TestXdrToJson(t *testing.T) {
 
 type testNonXdrType struct {
 	Bool           bool
-	Primitive      int32
+	Int32          int32
+	Int64          int64
 	Unexported     bool
 	ByteArray      [3]byte
 	SomeXdr        proto.SHA256Hash
@@ -54,7 +63,8 @@ func TestAnyToJson(t *testing.T) {
 	expected := `
 {
     "Bool": false,
-    "Primitive": 0,
+    "Int32": 0,
+    "Int64": "0",
     "Unexported": false,
     "ByteArray": "AAAA",
     "SomeXdr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -74,5 +84,5 @@ func TestAnyToJson(t *testing.T) {
 	if string(s) != expected {
 		t.Errorf("expecting %q, got %q", expected, string(s))
 	}
-	// fmt.Println(string(s))
+	fmt.Println(string(s))
 }

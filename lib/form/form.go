@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/xdrpp/goxdr/xdr"
 )
 
 type Form interface {
@@ -27,20 +26,11 @@ type Map = map[string]Form
 type None struct{}
 
 func SprintJSON(form Form) string {
-	switch x := form.(type) {
-	case xdr.XdrAggregate:
-		b, err := xdrutil.XdrToJson(x)
-		if err != nil {
-			panic(err)
-		}
-		return string(b)
-	default:
-		data, err := json.MarshalIndent(form, "", "   ")
-		if err != nil {
-			panic(err)
-		}
-		return string(data)
+	b, err := xdrutil.AnyToJson(form)
+	if err != nil {
+		panic(err)
 	}
+	return string(b)
 }
 
 func SprintJSONBytes(form Form) []byte {
