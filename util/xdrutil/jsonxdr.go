@@ -27,7 +27,7 @@ func mustString(i interface{}) string {
 
 func (j *jsonIn) get(name string) interface{} {
 	if len(name) == 0 {
-		xdr.XdrPanic("JsonToXdr: empty field name")
+		return j.obj
 	} else if name[0] == '[' {
 		a := j.obj.([]interface{})
 		if len(a) == 0 {
