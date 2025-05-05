@@ -62,7 +62,6 @@ func (b *Baton) startBaton(ctx context.Context) {
 		if r.Err != nil {
 			log.Fatalf("db not restored: %v", r.Err)
 		}
-		b.updateDbState(r.BlockHeight, r.BlockHash)
 	case <-b.extProp:
 		// ignore (externalizations are already recorded in the state)
 	}

@@ -12,6 +12,10 @@ func (ps proposals) Empty() bool {
 	return len(ps) == 0
 }
 
+func (ps proposals) BlockHeightBottom() proto.BlockHeight {
+	return ps[0].BlockHeight()
+}
+
 type proposal struct {
 	ext extProp
 }

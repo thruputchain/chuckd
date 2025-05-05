@@ -11,6 +11,11 @@ type Handler interface {
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error)
 	DialDb(context.Context) (DbCoordConn, error)
 	DialExec(context.Context)
+	Mempool
+}
+
+type Mempool interface {
+	LookupBatch(context.Context, proto.BatchHash) ([]proto.ProposedTransaction, bool)
 }
 
 type CatchupConn interface {

@@ -50,10 +50,21 @@ type catchupPending struct {
 
 // baton
 
-func (b *Baton) refillCatchup(ctx context.Context) bool {
+func (b *Baton) refillCatchup(ctx context.Context) {
 
 	b.lock()
 	defer b.unlock()
+
+	if b.scp.prop.Empty() {
+		return // scp state not known yet
+	}
+
+	dbTip := b.db.tipHeight
+	scpBottom := b.scp.prop.BlockHeightBottom()
+
+	if dbTip+1 >= scpBottom {
+		return // we are up to speed
+	}
 
 	XXX
 }

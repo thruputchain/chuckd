@@ -9,6 +9,9 @@ import (
 func (b *Baton) restoreDb(ctx context.Context) {
 	var r dbRestored
 	r.BlockHeight, r.BlockHash, r.Err = b.handler.RestoreDb(ctx)
+	if r.Err == nil {
+		b.updateDbState(r.BlockHeight, r.BlockHash)
+	}
 	b.dbRestored <- r
 }
 
