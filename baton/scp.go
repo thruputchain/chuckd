@@ -8,7 +8,15 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (x *Baton) CombineCandidates(slotIndex api.Slot, values []api.Value) api.Value {
+func (b *Baton) SCPHandler() api.SCPHandler {
+	return scpHandler{b}
+}
+
+type scpHandler struct {
+	baton *Baton
+}
+
+func (x scpHandler) CombineCandidates(slotIndex api.Slot, values []api.Value) api.Value {
 	proposals := make(protoutil.ProposalsBySize, 0, len(values))
 	for _, v := range values {
 		var p proto.Proposal
@@ -26,14 +34,31 @@ func (x *Baton) CombineCandidates(slotIndex api.Slot, values []api.Value) api.Va
 	}
 }
 
-func (x *Baton) ValidateValue(slotIndex api.Slot, value api.Value, nomination bool) api.ValidationLevel {
+func (x scpHandler) ValidateValue(slotIndex api.Slot, value api.Value, nomination bool) api.ValidationLevel {
 	panic("XXX")
 }
 
-func (x *Baton) ExtractValidValue(slotIndex api.Slot, value api.Value) *api.Value {
+func (x scpHandler) ExtractValidValue(slotIndex api.Slot, value api.Value) *api.Value {
 	return nil
 }
 
-func (x *Baton) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
-	panic("XXX")
+func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
+	var prop proto.Proposal
+	if err := xdrutil.UnmarshalXdr(&prop, value); err != nil {
+		return
+	}
+	// XXX: check integrity (signatures?)
+	// XXX: check valid (stacks on top of the existing ones)
+	// update state
+	extProp := externalizedProposal{Slot: slotIndex, Proposal: &prop}
+	x.baton.scp.lk.Lock()
+	defer x.baton.scp.lk.Unlock()
+	x.baton.scp.prop = append(x.baton.scp.prop, &proposal{ext: extProp})
+	// notify baton
+	x.baton.extProp <- extProp
+}
+
+type externalizedProposal struct {
+	Slot     api.Slot
+	Proposal *proto.Proposal
 }

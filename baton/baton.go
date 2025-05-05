@@ -1,47 +1,89 @@
-// Package baton implements the main orchestration logic between SCP, database, executors, and wallet.
 package baton
 
 import (
 	"context"
+	"log"
+	"sync"
 
-	"github.com/groundhogchain/chuckd/coord"
-	"github.com/groundhogchain/chuckd/mempool"
-	"github.com/groundhogchain/chuckd/scp/api"
-	"github.com/groundhogchain/chuckd/spectra"
-	"github.com/groundhogchain/chuckd/wallet"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
-type Baton struct {
-	coordinator *coord.CoordinatorService
-	spectra     *spectra.SpectraTransport
-	mempool     *mempool.Mempool
-	scp         api.SCPController
-	wallet      *wallet.WalletGateway
-}
-
-// XXX: hookup scp to the baton as handler, after initialization
-func NewBaton(
-	ctx context.Context,
-	coord *coord.CoordinatorService,
-	spectra *spectra.SpectraTransport,
-	mp *mempool.Mempool,
-	scp api.SCPController,
-	w *wallet.WalletGateway,
-) *Baton {
-	x := &Baton{
-		coordinator: coord,
-		spectra:     spectra,
-		mempool:     mp,
-		scp:         scp,
-		wallet:      w,
+func NewBaton(ctx context.Context, h Handler) *Baton {
+	b := &Baton{
+		handler:    h,
+		dbRestored: make(chan error, 1),
+		extProp:    make(chan externalizedProposal),
+		caughtUp:   make(chan ping),
 	}
-	go x.start(ctx)
-	return x
+	go b.startBaton(ctx)
+	// start mempool
+	// ...
+	return b
 }
 
-func (x *Baton) start(ctx context.Context) {
+type ping struct{}
 
-	// wait until databases are ready
+type Baton struct {
+	handler Handler
+	// callbacks
+	dbRestored chan error
+	extProp    chan externalizedProposal
+	caughtUp   chan ping
+	// states
+	lk sync.Mutex
+	db struct { // local db
+		lk          sync.Mutex
+		dbTipHeight proto.BlockHeight
+		dbTipHash   proto.BlockHash
+	}
+	catchup struct { // catching up
+		lk     sync.Mutex
+		blocks map[proto.ValidatorID]*catchupBlocks
+	}
+	scp struct { // scp view
+		lk   sync.Mutex
+		prop proposals
+	}
+	prop struct { // proposing
+		lk sync.Mutex
+	}
+}
 
-	panic("XXX")
+func (b *Baton) restoreDb(ctx context.Context) {
+	b.dbRestored <- b.handler.RestoreDb(ctx)
+}
+
+func (b *Baton) startBaton(ctx context.Context) {
+
+	// extProp is active right away
+
+	// restore db
+	go b.restoreDb(ctx)
+	select {
+	case err := <-b.dbRestored:
+		if err != nil {
+			log.Fatalf("db not restored: %v", err)
+		}
+	case <-b.extProp:
+		// ignore (externalizations are already recorded in the state)
+	}
+
+	// start proposer who depends only on the db state (and txs in mempool)
+	go b.startProposing(ctx)
+
+	for {
+
+		// commit to db if possible
+		XXX
+
+		// spawn more catchup routines, if necessary
+		b.refillCatchup(ctx)
+
+		select {
+		case <-b.caughtUp: // catchup blocks received
+		case <-b.extProp: // externalization
+		}
+
+		XXX
+	}
 }
