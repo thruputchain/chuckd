@@ -22,12 +22,12 @@ func (svc *CoordinatorService) dbIsReady() bool {
 // - all shards report the same block height and total shard count
 // - the shard count matches the reported count
 func (svc *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
-	byHeight := map[uint32]xdrutil.ShardCards{} // block_height -> shards
+	byHeight := map[uint64]xdrutil.ShardCards{} // block_height -> shards
 	for _, dbc := range svc.db {
 		byHeight[dbc.Block_height] = append(byHeight[dbc.Block_height], dbc)
 	}
 	var foundReady bool
-	var foundHeight uint32
+	var foundHeight uint64
 	var foundShards xdrutil.ShardCards
 	for height, shards := range byHeight {
 		shards.Sort()

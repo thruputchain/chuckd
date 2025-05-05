@@ -11,13 +11,13 @@ import (
 type Mempool struct {
 	batchTTL time.Duration
 	lk       sync.Mutex
-	batch    map[proto.BatchID]*batch
+	batch    map[proto.BatchHash]*batch
 }
 
 func NewMempool(ctx context.Context, batchTTL time.Duration) *Mempool {
 	mp := &Mempool{
 		batchTTL: batchTTL,
-		batch:    map[proto.BatchID]*batch{},
+		batch:    map[proto.BatchHash]*batch{},
 	}
 	go mp.supervise(ctx)
 	return mp
@@ -29,11 +29,11 @@ func (mp *Mempool) AddLoose(ctx context.Context, txs []proto.SignedTransaction) 
 	panic("XXX")
 }
 
-func (mp *Mempool) AddBatch(ctx context.Context, batchHeader proto.BatchHeader, txs []proto.SignedTransaction) {
+func (mp *Mempool) AddBatch(ctx context.Context, batchHeader proto.BatchHeader, txs []proto.ProposedTransaction) {
 	panic("XXX")
 }
 
-func (mp *Mempool) LookupBatch(ctx context.Context, batchID proto.BatchID) ([]proto.SignedTransaction, bool) {
+func (mp *Mempool) LookupBatch(ctx context.Context, batchID proto.BatchHash) ([]proto.ProposedTransaction, bool) {
 	panic("XXX")
 }
 
