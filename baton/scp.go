@@ -50,7 +50,7 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 	// XXX: check integrity (signatures?)
 	// XXX: check valid (stacks on top of the existing ones)
 	// update state
-	extProp := externalizedProposal{Slot: slotIndex, Proposal: &prop}
+	extProp := extProp{Slot: slotIndex, Proposal: &prop}
 	x.baton.scp.lk.Lock()
 	defer x.baton.scp.lk.Unlock()
 	x.baton.scp.prop = append(x.baton.scp.prop, &proposal{ext: extProp})
@@ -58,7 +58,7 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 	x.baton.extProp <- extProp
 }
 
-type externalizedProposal struct {
+type extProp struct {
 	Slot     api.Slot
 	Proposal *proto.Proposal
 }

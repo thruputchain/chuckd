@@ -7,7 +7,7 @@ import (
 )
 
 type Handler interface {
-	RestoreDb(context.Context) error // implemented by the coordinator service
+	RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, error) // implemented by the coordinator service
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error)
 	DialDb(context.Context) (DbCoordConn, error)
 	DialExec(context.Context)

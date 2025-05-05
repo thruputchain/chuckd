@@ -13,7 +13,7 @@ func (ps proposals) Empty() bool {
 }
 
 type proposal struct {
-	ext externalizedProposal
+	ext extProp
 }
 
 func (p *proposal) BlockHeight() proto.BlockHeight {

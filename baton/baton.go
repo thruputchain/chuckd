@@ -11,34 +11,36 @@ import (
 func NewBaton(ctx context.Context, h Handler) *Baton {
 	b := &Baton{
 		handler:    h,
-		dbRestored: make(chan error, 1),
-		extProp:    make(chan externalizedProposal),
-		caughtUp:   make(chan ping),
+		dbRestored: make(chan dbRestored, 1),
+		extProp:    make(chan extProp),
+		caughtUp:   make(chan caughtUp),
 	}
+	b.catchup.pending = map[proto.ValidatorID]*catchupPending{}
+	b.catchup.blocks = map[proto.ValidatorID]*catchupBlocks{}
+
 	go b.startBaton(ctx)
 	// start mempool
 	// ...
 	return b
 }
 
-type ping struct{}
-
 type Baton struct {
 	handler Handler
 	// callbacks
-	dbRestored chan error
-	extProp    chan externalizedProposal
-	caughtUp   chan ping
+	dbRestored chan dbRestored
+	extProp    chan extProp
+	caughtUp   chan caughtUp
 	// states
 	lk sync.Mutex
 	db struct { // local db
-		lk          sync.Mutex
-		dbTipHeight proto.BlockHeight
-		dbTipHash   proto.BlockHash
+		lk        sync.Mutex
+		tipHeight proto.BlockHeight
+		tipHash   proto.BlockHash
 	}
 	catchup struct { // catching up
-		lk     sync.Mutex
-		blocks map[proto.ValidatorID]*catchupBlocks
+		lk      sync.Mutex
+		pending map[proto.ValidatorID]*catchupPending // pending catchup requests
+		blocks  map[proto.ValidatorID]*catchupBlocks  // received catchup blocks
 	}
 	scp struct { // scp view
 		lk   sync.Mutex
@@ -49,10 +51,6 @@ type Baton struct {
 	}
 }
 
-func (b *Baton) restoreDb(ctx context.Context) {
-	b.dbRestored <- b.handler.RestoreDb(ctx)
-}
-
 func (b *Baton) startBaton(ctx context.Context) {
 
 	// extProp is active right away
@@ -60,10 +58,11 @@ func (b *Baton) startBaton(ctx context.Context) {
 	// restore db
 	go b.restoreDb(ctx)
 	select {
-	case err := <-b.dbRestored:
-		if err != nil {
-			log.Fatalf("db not restored: %v", err)
+	case r := <-b.dbRestored:
+		if r.Err != nil {
+			log.Fatalf("db not restored: %v", r.Err)
 		}
+		b.updateDbState(r.BlockHeight, r.BlockHash)
 	case <-b.extProp:
 		// ignore (externalizations are already recorded in the state)
 	}

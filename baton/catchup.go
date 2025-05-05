@@ -7,6 +7,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type caughtUp struct{}
+
 type catchupBlocks []stampedCatchupBlock
 
 func (bs catchupBlocks) Empty() bool {
@@ -40,6 +42,10 @@ func (b stampedCatchupBlock) BlockHeight() proto.BlockHeight {
 
 func (b stampedCatchupBlock) BlockHash() proto.BlockHash {
 	return b.block.Block_hash
+}
+
+type catchupPending struct {
+	onto proto.BlockHeight
 }
 
 // baton
