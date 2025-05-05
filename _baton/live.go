@@ -1,5 +1,5 @@
 // Package baton implements the main orchestration logic between SCP, database, executors, and wallet.
-package baton
+package _baton
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 type liveHandler struct {
 	coordinator *coord.CoordinatorService
 	spectra     *spectra.SpectraTransport
-	mempool     *mempool.Mempool
+	mempool     *mempool.ProposedMempool
 	scp         api.SCPController
 	wallet      *wallet.WalletGateway
 }
@@ -24,7 +24,7 @@ func NewLiveHandler(
 	ctx context.Context,
 	coord *coord.CoordinatorService,
 	spectra *spectra.SpectraTransport,
-	mp *mempool.Mempool,
+	mp *mempool.ProposedMempool,
 	scp api.SCPController,
 	w *wallet.WalletGateway,
 ) *liveHandler {

@@ -8,12 +8,12 @@ import (
 )
 
 type WalletService struct {
-	mp *mempool.Mempool
+	mp *mempool.TransactionMempool
 }
 
 func NewWalletService(
 	ctx context.Context,
-	mp *mempool.Mempool,
+	mp *mempool.TransactionMempool,
 ) *WalletService {
 	return &WalletService{
 		mp: mp,
@@ -26,7 +26,7 @@ func (svc *WalletService) Wallet_null(context.Context) error {
 
 func (svc *WalletService) Wallet_submit(ctx context.Context, submit proto.WalletSubmit) (proto.WalletAck, error) {
 
-	svc.mp.AddLoose(ctx, submit.Signed_transactions)
+	svc.mp.AddTxs(ctx, submit.Signed_transactions)
 
 	acks := []proto.WalletTransactionAck{}
 	for i := range submit.Signed_transactions {

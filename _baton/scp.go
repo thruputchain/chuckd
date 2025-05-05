@@ -1,4 +1,4 @@
-package baton
+package _baton
 
 import (
 	"github.com/groundhogchain/chuckd/lib/log"

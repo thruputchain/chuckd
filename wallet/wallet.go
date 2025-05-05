@@ -27,7 +27,7 @@ type WalletGateway struct {
 
 func NewWalletGateway(
 	ctx context.Context,
-	mp *mempool.Mempool,
+	mp *mempool.TransactionMempool,
 	httpaddr string,
 	jwtKey JWTSecretKey,
 	users []proto.WalletUser,

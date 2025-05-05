@@ -9,20 +9,31 @@ import (
 
 type batch struct {
 	header  proto.BatchHeader
-	started time.Time
-	ended   time.Time
-	lk      sync.Mutex
-	txs     []proto.SignedTransaction
+	created time.Time
+	txs     []proto.ProposedTransaction
+	//
+	lk sync.Mutex
+	// a batch is unpinned when the local validator will no longer need it for proposal or validation.
+	pinned bool
 }
 
-func newBatch(header proto.BatchHeader) *batch {
+func newBatch(header proto.BatchHeader, txs []proto.ProposedTransaction) *batch {
 	return &batch{
 		header:  header,
-		started: time.Now(),
+		created: time.Now(),
+		txs:     txs,
+		pinned:  true,
 	}
 }
 
-// IsComplete returns true when the hash of the set of known transactions equals the batch ID.
-func (b *batch) IsComplete() bool {
-	panic("XXX")
+func (b *batch) Unpin() {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	b.pinned = false
+}
+
+func (b *batch) Pinned() bool {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	return b.pinned
 }

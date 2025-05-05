@@ -1,4 +1,4 @@
-package baton
+package _baton
 
 import (
 	"context"
@@ -31,7 +31,6 @@ type Baton struct {
 	extProp    chan extProp
 	caughtUp   chan caughtUp
 	// states
-	lk sync.Mutex
 	db struct { // local db
 		lk        sync.Mutex
 		tipHeight proto.BlockHeight
