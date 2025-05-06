@@ -12,6 +12,13 @@ type Multiplex struct {
 	transport *spectra.SpectraTransport
 }
 
+func NewMultiplex(s *spectra.SpectraTransport) *Multiplex {
+	return &Multiplex{
+		transport: s,
+	}
+}
+
+// XXX: should batch messages be signed?
 func (x *Multiplex) SendBatch(ctx context.Context, batch proto.BatchMessage) {
 	panic("XXX")
 }

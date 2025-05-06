@@ -24,7 +24,7 @@ var (
 			return api.Invoke(func() {
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				srv := system.NewServer(
+				srv := system.NewSystem(
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg,

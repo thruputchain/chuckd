@@ -28,7 +28,6 @@ type WalletGateway struct {
 func NewWalletGateway(
 	ctx context.Context,
 	mp *mempool.TransactionMempool,
-	httpaddr string,
 	jwtKey JWTSecretKey,
 	users []proto.WalletUser,
 ) *WalletGateway {
@@ -52,7 +51,6 @@ func NewWalletGateway(
 	auth.Use(g.authMiddleware)
 	auth.POST("/submit", g.submitEndpoint)
 
-	go g.startHTTP(ctx, httpaddr)
 	return g
 }
 
@@ -60,7 +58,7 @@ func (g *WalletGateway) Service() proto.Wallet1 {
 	return g.svc
 }
 
-func (g *WalletGateway) startHTTP(_ context.Context, address string) {
+func (g *WalletGateway) StartHTTP(_ context.Context, address string) {
 	if err := g.r.Run(address); err != nil {
 		log.Fatalf("start wallet gateway http server: %v", err)
 	}

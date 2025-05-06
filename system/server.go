@@ -2,35 +2,31 @@ package system
 
 import (
 	"context"
-	"math/rand"
+	"net"
 
-	"github.com/groundhogchain/chuckd/runtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/xdrpp/goxdr/xdr"
 )
 
 type Server struct {
-	internal *InternalServer
-	external *ExternalServer
+	l   net.Listener
+	srv []xdr.XdrSrv
 }
 
-func NewServer(
-	ctx context.Context,
-	rr *rand.Rand,
-	cfg proto.Config,
-	treeFanOut int, // fanout of multicast trees
-) *Server {
-	return &Server{
-		internal: NewInternalServer(ctx, runtime.NewRandFromRand(rr)),
-		external: NewExternalServer(ctx, runtime.NewRandFromRand(rr), cfg, treeFanOut),
-	}
+func NewServer(ctx context.Context, srv ...xdr.XdrSrv) *Server {
+	return &Server{srv: srv}
 }
 
-func (s *Server) Start(ctx context.Context, inaddr string, exaddr string) {
-	s.internal.Start(ctx, inaddr)
-	s.external.Start(ctx, exaddr)
+func (s *Server) Start(ctx context.Context, address string) {
+	s.l = rpcutil.Start(
+		ctx,
+		libnet.TCPNet{},
+		address,
+		s.srv...,
+	)
 }
 
 func (s *Server) Close() {
-	s.internal.Close()
-	s.external.Close()
+	s.l.Close()
 }
