@@ -8,7 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/router"
+	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"

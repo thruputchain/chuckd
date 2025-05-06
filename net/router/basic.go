@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"math/rand"
 
-	"github.com/groundhogchain/chuckd/discovery"
+	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )

@@ -6,7 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/router"
+	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/test"
 	"github.com/groundhogchain/chuckd/util/protoutil"

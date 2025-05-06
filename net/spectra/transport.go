@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/broadcast"
+	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"

@@ -6,10 +6,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/groundhogchain/chuckd/broadcast"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/router"
+	"github.com/groundhogchain/chuckd/net/broadcast"
+	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"

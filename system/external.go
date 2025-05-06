@@ -6,10 +6,10 @@ import (
 	"math/rand"
 	"net"
 
-	"github.com/groundhogchain/chuckd/broadcast"
-	"github.com/groundhogchain/chuckd/discovery"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/router"
+	"github.com/groundhogchain/chuckd/net/broadcast"
+	"github.com/groundhogchain/chuckd/net/discovery"
+	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/broadcast"
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 )
