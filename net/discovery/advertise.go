@@ -20,12 +20,12 @@ func (s *DiscoveryService) advertise(ctx context.Context) {
 		log.Infof("advertising epoch %d begins", epoch)
 		s.advertiseToAll(ctx, epoch)
 		log.Infof("advertising epoch %d ends", epoch)
-		time.Sleep(s.cfg.AdvertiseInterval)
+		time.Sleep(time.Duration(s.cfg.Advertise_interval_msec) * time.Millisecond)
 	}
 }
 
 func (s *DiscoveryService) advertiseToAll(ctx context.Context, epoch int) {
-	limiter := make(chan struct{}, s.cfg.AdvertiseMaxPar)
+	limiter := make(chan struct{}, s.cfg.Advertise_par)
 	var wg sync.WaitGroup
 
 	snapshot := s.CachedSnapshots()

@@ -33,6 +33,14 @@ data:
           }
         ]
       },
+      "discovery_config": {
+        "advertise_interval_msec": 5000,
+        "advertise_par": 5,
+        "snapshot_ttl_msec": 7000,
+      },
+      "router_config": {
+        "tree_fan_out": 5,
+      },
       "spectra_config": {
         "num_payload_channels: 5,
         "num_parity_channels": 1,
@@ -41,6 +49,10 @@ data:
       "broadcast_config": {
         "multicast_tree_ttl_msec": 2000,
         "chunk_size": 10000,
+      },
+      "mempool_config": {
+        "proposed_batch_ttl_msec": 5000,
+        "transaction_ttl_msec": 120000,
       }
     }
 ---
@@ -79,6 +91,14 @@ data:
           }
         ]
       },
+      "discovery_config": {
+        "advertise_interval_msec": 5000,
+        "advertise_par": 5,
+        "snapshot_ttl_msec": 7000,
+      },
+      "router_config": {
+        "tree_fan_out": 5,
+      },
       "spectra_config": {
         "num_payload_channels: 5,
         "num_parity_channels": 1,
@@ -87,6 +107,10 @@ data:
       "broadcast_config": {
         "multicast_tree_ttl_msec": 2000,
         "chunk_size": 10000,
+      },
+      "mempool_config": {
+        "proposed_batch_ttl_msec": 5000,
+        "transaction_ttl_msec": 120000,
       }
     }
 ---
@@ -125,6 +149,14 @@ data:
           }
         ]
       },
+      "discovery_config": {
+        "advertise_interval_msec": 5000,
+        "advertise_par": 5,
+        "snapshot_ttl_msec": 7000,
+      },
+      "router_config": {
+        "tree_fan_out": 5,
+      },
       "spectra_config": {
         "num_payload_channels: 5,
         "num_parity_channels": 1,
@@ -133,6 +165,10 @@ data:
       "broadcast_config": {
         "multicast_tree_ttl_msec": 2000,
         "chunk_size": 10000,
+      },
+      "mempool_config": {
+        "proposed_batch_ttl_msec": 5000,
+        "transaction_ttl_msec": 120000,
       }
     }
 ---

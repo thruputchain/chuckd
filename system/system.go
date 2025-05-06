@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"math/rand"
+	"time"
 
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -38,7 +39,6 @@ func NewSystem(
 	ctx context.Context,
 	rr *rand.Rand,
 	cfg proto.Config,
-	treeFanOut int, // fanout of multicast trees
 ) *System {
 
 	sys := &System{}
@@ -47,12 +47,12 @@ func NewSystem(
 
 	sys.Discovery = discovery.NewDiscoveryService(
 		ctx,
-		discovery.DefaultDiscoveryConfig, // XXX: convert to proto
+		*cfg.Discovery_config,
 		libnet.TCPNet{},
 		*cfg.Validator_config,
 	)
 
-	sys.Router = router.NewBasicRouter(ctx, sys.Discovery, treeFanOut)
+	sys.Router = router.NewBasicRouter(ctx, sys.Discovery, int(cfg.Router_config.Tree_fan_out))
 
 	sys.Broadcast = broadcast.NewBroadcastService(
 		ctx,
@@ -73,10 +73,20 @@ func NewSystem(
 
 	sys.Multiplex = multiplex.NewMultiplex(sys.Spectra)
 
-	sys.Proposed = mempool.NewProposedMempool(ctx, batchTTLXXX)
-	sys.Transaction = mempool.NewTransactionMempool(ctx, txTTLXXX)
+	// XXX: SCP solo follower
+	// XXX: baton
+	// XXX: set baton as scp handler
 
-	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, jwtKeyXXX, usersXXX)
+	sys.Proposed = mempool.NewProposedMempool(
+		ctx,
+		time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec)*time.Millisecond,
+	)
+	sys.Transaction = mempool.NewTransactionMempool(
+		ctx,
+		time.Duration(cfg.Mempool_config.Transaction_ttl_msec)*time.Millisecond,
+	)
+
+	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
 	// XXX: driver for multiplex
 
@@ -90,14 +100,13 @@ func NewSystem(
 		proto.Broadcast1_Server{Srv: sys.Broadcast},
 	)
 
-	sys.Wallet.StartHTTP(ctx, walletHTTPAddrXXX)
-
 	return sys
 }
 
-func (s *System) Start(ctx context.Context, inaddr string, exaddr string) {
-	s.internal.Start(ctx, inaddr)
-	s.external.Start(ctx, exaddr)
+func (s *System) Start(ctx context.Context, inAddr string, exAddr string, walletAddr string) {
+	s.internal.Start(ctx, inAddr)
+	s.external.Start(ctx, exAddr)
+	s.Wallet.StartHTTP(ctx, walletAddr)
 }
 
 func (s *System) Close() {

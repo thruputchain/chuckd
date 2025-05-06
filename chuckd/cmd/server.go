@@ -28,9 +28,8 @@ var (
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg,
-					serverTreeFanOut,
 				)
-				srv.Start(ctx, serverInternalServerAddress, serverExternalServerAddress)
+				srv.Start(ctx, serverInternalAddress, serverExternalAddress, serverWalletAddress)
 				<-(chan int)(nil) // hang
 			})
 		},
@@ -38,16 +37,16 @@ var (
 )
 
 var (
-	serverInternalServerAddress string
-	serverExternalServerAddress string
-	serverTreeFanOut            int // maximum fanout for multicast trees
+	serverInternalAddress string
+	serverExternalAddress string
+	serverWalletAddress   string
 )
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.AddCommand(serverStartCmd)
-	serverStartCmd.Flags().StringVar(&serverInternalServerAddress, "inaddr", "localhost:7888", "bind address for internal apis")
-	serverStartCmd.Flags().StringVar(&serverExternalServerAddress, "exaddr", "localhost:9111", "bind address for external apis")
-	serverStartCmd.Flags().IntVar(&serverTreeFanOut, "fanout", 5, "maximum fanout of multicast trees")
+	serverStartCmd.Flags().StringVar(&serverInternalAddress, "inaddr", "localhost:7888", "bind address for internal apis")
+	serverStartCmd.Flags().StringVar(&serverExternalAddress, "exaddr", "localhost:9111", "bind address for external apis")
+	serverStartCmd.Flags().StringVar(&serverWalletAddress, "waddr", "localhost:6666", "bind address for wallet api")
 }

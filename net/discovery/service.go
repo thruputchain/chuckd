@@ -12,7 +12,7 @@ import (
 )
 
 type DiscoveryService struct {
-	cfg DiscoveryConfig
+	cfg proto.DiscoveryConfig
 	net libnet.Network
 	//
 	privInfo      proto.ValidatorPrivateInfo
@@ -31,7 +31,7 @@ type DiscoveryService struct {
 
 func NewDiscoveryService(
 	ctx context.Context,
-	cfg DiscoveryConfig,
+	cfg proto.DiscoveryConfig,
 	n libnet.Network,
 	vcfg proto.ValidatorConfig,
 ) *DiscoveryService {
@@ -114,7 +114,7 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 	defer s.cachedLk.Unlock()
 
 	// don't rebuild snapshots more frequently than once every 10 seconds
-	if time.Now().Sub(s.cachedStamp) < s.cfg.MinSnapshotTTL {
+	if time.Now().Sub(s.cachedStamp) < time.Duration(s.cfg.Snapshot_ttl_msec)*time.Millisecond {
 		return proto.KnownQuorumSets{
 			Quorum_set_snapshots: s.cachedSnapshots,
 			Validator_snapshots:  s.cachedValidators,

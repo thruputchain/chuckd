@@ -19,7 +19,7 @@ import (
 
 type WalletGateway struct {
 	svc    *WalletService
-	jwtKey JWTSecretKey
+	jwtKey proto.JWTSecretKey
 	r      *gin.Engine
 	lk     sync.Mutex
 	user   map[string]proto.WalletUser
@@ -28,7 +28,7 @@ type WalletGateway struct {
 func NewWalletGateway(
 	ctx context.Context,
 	mp *mempool.TransactionMempool,
-	jwtKey JWTSecretKey,
+	jwtKey proto.JWTSecretKey,
 	users []proto.WalletUser,
 ) *WalletGateway {
 
