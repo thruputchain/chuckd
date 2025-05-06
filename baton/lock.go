@@ -1,4 +1,4 @@
-package _baton
+package baton
 
 func (b *Baton) lock() {
 	b.db.lk.Lock()

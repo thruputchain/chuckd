@@ -1,6 +1,9 @@
 package coord
 
-import "github.com/groundhogchain/chuckd/util/xdrutil"
+import (
+	"github.com/groundhogchain/chuckd/util/xdrutil"
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 func (svc *CoordinatorService) waitForDbReady() xdrutil.ShardCards {
 	svc.dbLk.Lock()
@@ -22,12 +25,12 @@ func (svc *CoordinatorService) dbIsReady() bool {
 // - all shards report the same block height and total shard count
 // - the shard count matches the reported count
 func (svc *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
-	byHeight := map[uint64]xdrutil.ShardCards{} // block_height -> shards
+	byHeight := map[proto.BlockHeight]xdrutil.ShardCards{} // block_height -> shards
 	for _, dbc := range svc.db {
 		byHeight[dbc.Block_height] = append(byHeight[dbc.Block_height], dbc)
 	}
 	var foundReady bool
-	var foundHeight uint64
+	var foundHeight proto.BlockHeight
 	var foundShards xdrutil.ShardCards
 	for height, shards := range byHeight {
 		shards.Sort()

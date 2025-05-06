@@ -1,4 +1,4 @@
-package _baton
+package baton
 
 import (
 	"github.com/groundhogchain/chuckd/lib/log"
@@ -48,6 +48,7 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 		return
 	}
 	// XXX: check integrity (signatures?)
+	// XXX: check that SCP slot equals proposal's block hieght
 	// XXX: check valid (stacks on top of the existing ones)
 	// update state
 	extProp := extProp{Slot: slotIndex, Proposal: &prop}

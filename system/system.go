@@ -86,6 +86,7 @@ func NewSystem(
 		time.Duration(cfg.Mempool_config.Transaction_ttl_msec)*time.Millisecond,
 	)
 
+	// XXX: add wallet config to k8s
 	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
 	// XXX: driver for multiplex

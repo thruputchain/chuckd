@@ -1,4 +1,4 @@
-package _baton
+package baton
 
 import (
 	"context"

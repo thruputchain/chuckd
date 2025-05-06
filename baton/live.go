@@ -1,5 +1,5 @@
 // Package baton implements the main orchestration logic between SCP, database, executors, and wallet.
-package _baton
+package baton
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package _baton
+package baton
 
 import (
 	"context"
@@ -38,8 +38,8 @@ type Baton struct {
 	}
 	catchup struct { // catching up
 		lk      sync.Mutex
-		pending map[proto.ValidatorID]*catchupPending // pending catchup requests
-		blocks  map[proto.ValidatorID]*catchupBlocks  // received catchup blocks
+		pending map[proto.ValidatorID]*catchupRequests // pending catchup requests
+		blocks  map[proto.ValidatorID]*catchupBlocks   // received catchup blocks
 	}
 	scp struct { // scp view
 		lk   sync.Mutex
