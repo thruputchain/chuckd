@@ -298,6 +298,7 @@ func (x viewCatchupBlock) IsCatchup() bool                { return true }
 func (x viewCatchupBlock) IsDb() bool                     { return false }
 func (x viewCatchupBlock) ValidatableBlock() *ValidatableBlock {
 	return &ValidatableBlock{
+		FromCatchup:          true,
 		BlockHeight:          x.BlockHeight(),
 		BlockHash:            x.BlockHash(),
 		PrevBlockHash:        x.PrevBlockHash(),
@@ -327,14 +328,20 @@ func (x viewExternalizedBlock) IsCatchup() bool { return false }
 func (x viewExternalizedBlock) IsDb() bool      { return false }
 func (x viewExternalizedBlock) ValidatableBlock() *ValidatableBlock {
 	var txs []proto.ProposedTransaction
+	var fromCatchup bool
+	var fromConsensus bool
 	if x.IsMissingTransactions() {
+		fromCatchup = true
 		txs = x.catchup.block.Proposed_transactions
 	} else {
+		fromConsensus = true
 		for _, batchTxs := range x.batches {
 			txs = append(txs, batchTxs...)
 		}
 	}
 	return &ValidatableBlock{
+		FromCatchup:          fromCatchup,
+		FromConsensus:        fromConsensus,
 		BlockHeight:          x.BlockHeight(),
 		BlockHash:            x.BlockHash(),
 		PrevBlockHash:        x.PrevBlockHash(),

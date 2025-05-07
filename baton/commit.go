@@ -5,12 +5,16 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type committed struct{}
 
 type ValidatableBlock struct {
+	FromCatchup   bool
+	FromConsensus bool
+
 	BlockHeight          proto.BlockHeight
 	BlockHash            proto.BlockHash
 	PrevBlockHash        proto.BlockHash
@@ -25,10 +29,17 @@ func (b *Baton) startValidateAndCommit(ctx context.Context) {
 	}
 }
 
-// XXX: if the block is invalid or a duplicate has already been committed (?),
-// we must update the state to prevent it from retrying this block proposal (e.g. from catchup)
-
 func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) error {
+
+	b.db.lk.Lock()
+	tipID := b.db.tipID
+	tipHeight := b.db.tipHeight
+	b.db.lk.Unlock()
+
+	if tipHeight >= vb.BlockHeight {
+		// a block may be submitted for validation twice under a very unlikely race condition
+		return nil
+	}
 
 	// connect to db
 	db, err := b.handler.DialDb(ctx)
@@ -36,10 +47,6 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 		return err
 	}
 	defer db.Close()
-
-	b.db.lk.Lock()
-	tipID := b.db.tipID
-	b.db.lk.Unlock()
 
 	nextID := b.handler.GenerateBlockID(ctx)
 
@@ -77,7 +84,13 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 			if err != nil {
 				validated <- err
 			}
-			if rpcErr != proto.KRPCNone {
+			// XXX: validation failures are treated differently than retriable error conditions;
+			// confirm with Geoff this is the only error indicating an invalid block proposal
+			if rpcErr == proto.KRPCValidationFailure {
+				// update the state from preventing this block being retried
+				b.invalidProposalExternalized(ctx, vb)
+				validated <- fmt.Errorf("encountered invalid proposal")
+			} else if rpcErr != proto.KRPCNone {
 				validated <- fmt.Errorf("executor validate transaction rpc error: %v", rpcErr)
 			}
 			validated <- nil
@@ -153,4 +166,13 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	// purge nomination blocks
 	panic("XXX")
 
+}
+
+func (b *Baton) invalidProposalExternalized(ctx context.Context, vb *ValidatableBlock) {
+	if vb.FromCatchup {
+		b.purgeCatchup(ctx)
+	}
+	if vb.FromConsensus {
+		must.Panic(ctx, fmt.Errorf("invalid proposal externalized"))
+	}
 }
