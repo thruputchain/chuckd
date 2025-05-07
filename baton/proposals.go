@@ -12,18 +12,22 @@ func (ps proposals) IsEmpty() bool {
 }
 
 type proposal struct {
-	Slot     api.Slot
-	Proposal *proto.Proposal
+	slot  api.Slot
+	proto *proto.Proposal
 }
 
 func (p proposal) BlockHeight() proto.BlockHeight {
-	return p.Proposal.Block_height
+	return p.proto.Block_height
 }
 
 func (p proposal) BlockHash() proto.BlockHash {
-	return p.Proposal.Block_hash
+	return p.proto.Block_hash
+}
+
+func (p proposal) PrevBlockHash() proto.BlockHash {
+	return p.proto.Prev_block_hash
 }
 
 func (p proposal) Proto() *proto.Proposal {
-	return p.Proposal
+	return p.proto
 }

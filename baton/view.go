@@ -89,7 +89,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	return v, nil
 }
 
-func (b *Baton) fillBlocks(ctx context.Context, v *view) error {
+func (b *Baton) fillBlocks(_ context.Context, v *view) error {
 	for i := 1; i < len(v.blocks); i++ {
 		height := v.blocks[0].BlockHeight() + proto.BlockHeight(i)
 		switch u := v.blocks[i].(type) {
@@ -118,7 +118,7 @@ func (b *Baton) fillBlocks(ctx context.Context, v *view) error {
 	return nil
 }
 
-func (b *Baton) chainBlocks(ctx context.Context, v *view) error {
+func (b *Baton) chainBlocks(_ context.Context, v *view) error {
 	prev := v.blocks[0]
 	for i := 1; i < len(v.blocks); i++ {
 		switch u := v.blocks[i].(type) {
@@ -153,7 +153,7 @@ func (b *Baton) chainBlocks(ctx context.Context, v *view) error {
 	return nil
 }
 
-func (b *Baton) linkBlocks(ctx context.Context, v *view) error {
+func (b *Baton) linkBlocks(_ context.Context, v *view) error {
 	var start *int // first catchup block in a contiguous sequence of such
 	for i := 1; i < len(v.blocks); i++ {
 		switch v.blocks[i].(type) {
@@ -182,7 +182,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *view) error {
 	return nil
 }
 
-func (b *Baton) compileRequests(ctx context.Context, v *view) error {
+func (b *Baton) compileRequests(_ context.Context, v *view) error {
 	v.reqs = make([][]xid.ID, len(v.blocks))
 	for i := 1; i < len(v.blocks); i++ {
 		height := v.blocks[0].BlockHeight() + proto.BlockHeight(i)
@@ -197,6 +197,13 @@ type view struct {
 	reqs   [][]xid.ID // catchup requests already fired for this block
 }
 
+func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
+	if len(v.blocks) < 2 || !v.blocks[1].IsReadyToValidate() {
+		return nil
+	}
+	return v.blocks[1].ValidatableBlock()
+}
+
 type viewBlock interface {
 	BlockHash() proto.BlockHash
 	BlockHeight() proto.BlockHeight
@@ -206,6 +213,7 @@ type viewBlock interface {
 	IsSCP() bool
 	IsCatchup() bool
 	IsDb() bool
+	ValidatableBlock() *ValidatableBlock
 }
 
 type viewDbBlock struct {
@@ -213,14 +221,15 @@ type viewDbBlock struct {
 	height proto.BlockHeight
 }
 
-func (x viewDbBlock) BlockHash() proto.BlockHash     { return x.hash }
-func (x viewDbBlock) BlockHeight() proto.BlockHeight { return x.height }
-func (x viewDbBlock) PrevBlockHash() proto.BlockHash { panic("should not be called") }
-func (x viewDbBlock) IsReadyToValidate() bool        { return true }
-func (x viewDbBlock) IsMissing() bool                { return false }
-func (x viewDbBlock) IsSCP() bool                    { return false }
-func (x viewDbBlock) IsCatchup() bool                { return false }
-func (x viewDbBlock) IsDb() bool                     { return true }
+func (x viewDbBlock) BlockHash() proto.BlockHash          { return x.hash }
+func (x viewDbBlock) BlockHeight() proto.BlockHeight      { return x.height }
+func (x viewDbBlock) PrevBlockHash() proto.BlockHash      { panic("should not be called") }
+func (x viewDbBlock) IsReadyToValidate() bool             { panic("should not be called") }
+func (x viewDbBlock) IsMissing() bool                     { return false }
+func (x viewDbBlock) IsSCP() bool                         { return false }
+func (x viewDbBlock) IsCatchup() bool                     { return false }
+func (x viewDbBlock) IsDb() bool                          { return true }
+func (x viewDbBlock) ValidatableBlock() *ValidatableBlock { panic("should not be called") }
 
 type viewCatchupBlock struct {
 	linked    bool // all catchup blocks between db and first scp chain hashes correctly
@@ -235,6 +244,14 @@ func (x viewCatchupBlock) IsMissing() bool                { return false }
 func (x viewCatchupBlock) IsSCP() bool                    { return false }
 func (x viewCatchupBlock) IsCatchup() bool                { return true }
 func (x viewCatchupBlock) IsDb() bool                     { return false }
+func (x viewCatchupBlock) ValidatableBlock() *ValidatableBlock {
+	return &ValidatableBlock{
+		BlockHeight:          x.BlockHeight(),
+		BlockHash:            x.BlockHash(),
+		PrevBlockHash:        x.PrevBlockHash(),
+		ProposedTransactions: x.candidate.block.Proposed_transactions,
+	}
+}
 
 type viewSCPBlock struct {
 	proto   *proto.Proposal
@@ -256,16 +273,33 @@ func (x viewSCPBlock) IsMissing() bool { return false }
 func (x viewSCPBlock) IsSCP() bool     { return true }
 func (x viewSCPBlock) IsCatchup() bool { return false }
 func (x viewSCPBlock) IsDb() bool      { return false }
+func (x viewSCPBlock) ValidatableBlock() *ValidatableBlock {
+	var txs []proto.ProposedTransaction
+	if x.IsMissingTransactions() {
+		txs = x.catchup.block.Proposed_transactions
+	} else {
+		for _, batchTxs := range x.batches {
+			txs = append(txs, batchTxs...)
+		}
+	}
+	return &ValidatableBlock{
+		BlockHeight:          x.BlockHeight(),
+		BlockHash:            x.BlockHash(),
+		PrevBlockHash:        x.PrevBlockHash(),
+		ProposedTransactions: txs,
+	}
+}
 
 type viewMissing struct {
 	height proto.BlockHeight
 }
 
-func (x viewMissing) BlockHash() proto.BlockHash     { panic("must not call") }
-func (x viewMissing) BlockHeight() proto.BlockHeight { return x.height }
-func (x viewMissing) PrevBlockHash() proto.BlockHash { panic("must not call") }
-func (x viewMissing) IsReadyToValidate() bool        { return false }
-func (x viewMissing) IsMissing() bool                { return true }
-func (x viewMissing) IsSCP() bool                    { return false }
-func (x viewMissing) IsCatchup() bool                { return false }
-func (x viewMissing) IsDb() bool                     { return false }
+func (x viewMissing) BlockHash() proto.BlockHash          { panic("must not call") }
+func (x viewMissing) BlockHeight() proto.BlockHeight      { return x.height }
+func (x viewMissing) PrevBlockHash() proto.BlockHash      { panic("must not call") }
+func (x viewMissing) IsReadyToValidate() bool             { return false }
+func (x viewMissing) IsMissing() bool                     { return true }
+func (x viewMissing) IsSCP() bool                         { return false }
+func (x viewMissing) IsCatchup() bool                     { return false }
+func (x viewMissing) IsDb() bool                          { return false }
+func (x viewMissing) ValidatableBlock() *ValidatableBlock { panic("must not call") }

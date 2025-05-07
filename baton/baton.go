@@ -70,7 +70,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 	for {
 
 		// commit to db if possible
-		XXX
+		panic("XXX")
 
 		// spawn more catchup routines, if necessary
 		b.requestCatchup(ctx)
@@ -80,6 +80,6 @@ func (b *Baton) startBaton(ctx context.Context) {
 		case <-b.externalized: // externalization
 		}
 
-		XXX
+		panic("XXX")
 	}
 }

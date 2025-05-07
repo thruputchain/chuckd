@@ -5,5 +5,5 @@ import (
 )
 
 func (b *Baton) startProposing(ctx context.Context) {
-	XXX
+	panic("XXX")
 }

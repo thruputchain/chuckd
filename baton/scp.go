@@ -51,7 +51,7 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 	// XXX: check integrity (signatures?)
 
 	// check that SCP slot equals proposal's block height
-	if slotIndex != api.Slot(prop.Block_height) {
+	if slotIndex != prop.Block_height {
 		log.Errorf("scp slot index does not equal proposed block height")
 		return
 	}
@@ -59,9 +59,11 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 	// XXX: check valid (stacks on top of the existing ones)
 
 	// update state
-	externalized := proposal{Slot: slotIndex, Proposal: &prop}
 	x.baton.scp.lk.Lock()
 	defer x.baton.scp.lk.Unlock()
+
+	externalized := proposal{slot: slotIndex, proto: &prop}
+
 	x.baton.scp.prop = append(x.baton.scp.prop, externalized)
 
 	// notify baton
