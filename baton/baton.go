@@ -51,7 +51,7 @@ type Baton struct {
 
 func (b *Baton) startBaton(ctx context.Context) {
 
-	// extProp is active right away
+	// externalized chan is active right away
 
 	// restore db
 	go b.restoreDb(ctx)
@@ -65,7 +65,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 	}
 
 	// start proposer who depends only on the db state (and txs in mempool)
-	go b.startProposing(ctx)
+	go b.startNominating(ctx)
 
 	for {
 

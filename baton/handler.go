@@ -9,11 +9,15 @@ import (
 
 type Handler interface {
 	Time
+	Mempool
+
+	ChooseCatchupValidators(context.Context, int) []proto.ValidatorPublicInfo
+
 	RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, error) // implemented by the coordinator service
+
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error)
 	DialDb(context.Context) (DbCoordConn, error)
 	DialExec(context.Context)
-	Mempool
 }
 
 type Time interface {

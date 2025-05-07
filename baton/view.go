@@ -58,7 +58,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 		must.Assertf(ctx, prop.BlockHeight() > scpPrevHeight, "scp proposal heights not increasing")
 		scpPrevHeight = prop.BlockHeight()
 		//
-		v.blocks[int(prop.BlockHeight())-int(dbBlock.height)] = viewSCPBlock{
+		v.blocks[int(prop.BlockHeight())-int(dbBlock.height)] = viewExternalizedBlock{
 			proto:   prop.Proto(),
 			batches: b.fetchBatches(ctx, prop.Proto().Proposed_transaction_batches),
 		}
@@ -91,7 +91,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 
 func (b *Baton) fillBlocks(_ context.Context, v *view) error {
 	for i := 1; i < len(v.blocks); i++ {
-		height := v.blocks[0].BlockHeight() + proto.BlockHeight(i)
+		height := v.indexHeight(i)
 		switch u := v.blocks[i].(type) {
 		case nil:
 			if cb, ok := b.findCatchupBlocksAtHeight(height); ok {
@@ -99,7 +99,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *view) error {
 			} else {
 				v.blocks[i] = viewMissing{height: height}
 			}
-		case viewSCPBlock:
+		case viewExternalizedBlock:
 			// if the block is missing batches, catchup can still help
 			if u.IsMissingTransactions() {
 				if cb, ok := b.findCatchupBlocksAtHeight(height); ok {
@@ -127,7 +127,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *view) error {
 			if !prev.IsMissing() && prev.BlockHash() != u.PrevBlockHash() {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
-		case viewSCPBlock:
+		case viewExternalizedBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
@@ -153,7 +153,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *view) error {
 	return nil
 }
 
-func (b *Baton) linkBlocks(_ context.Context, v *view) error {
+func (b *Baton) linkBlocks(ctx context.Context, v *view) error {
 	var start *int // first catchup block in a contiguous sequence of such
 	for i := 1; i < len(v.blocks); i++ {
 		switch v.blocks[i].(type) {
@@ -166,7 +166,7 @@ func (b *Baton) linkBlocks(_ context.Context, v *view) error {
 				j := i // don't take a pointer to i, it changes
 				start = &j
 			}
-		case viewSCPBlock:
+		case viewExternalizedBlock:
 			if start != nil { // this scp block tops a contiguous sequence of catchup blocks; mark them linked
 				for k := *start; k < i; k++ {
 					cb := v.blocks[i].(viewCatchupBlock)
@@ -179,6 +179,7 @@ func (b *Baton) linkBlocks(_ context.Context, v *view) error {
 			panic("unreachable")
 		}
 	}
+	must.Assertf(ctx, start == nil, "view cannot be topped by a catchup block")
 	return nil
 }
 
@@ -202,6 +203,48 @@ func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
 		return nil
 	}
 	return v.blocks[1].ValidatableBlock()
+}
+
+func (v *view) indexHeight(i int) proto.BlockHeight {
+	return v.blocks[0].BlockHeight() + proto.BlockHeight(i)
+}
+
+func (v *view) NeededCatchupSpans() []catchupSpan {
+	spans := []catchupSpan{}
+	var start *int
+	for i := 1; i < len(v.blocks); i++ {
+		switch u := v.blocks[i].(type) {
+		case viewMissing:
+			if start == nil {
+				j := i
+				start = &j
+			}
+		case viewExternalizedBlock:
+			if u.IsReadyToValidate() {
+				if start != nil {
+					spans = append(spans, catchupSpan{from: v.indexHeight(*start), to: v.indexHeight(i)})
+					start = nil
+				}
+			} else {
+				if start == nil {
+					j := i
+					start = &j
+				}
+			}
+		case viewCatchupBlock:
+			if start != nil {
+				spans = append(spans, catchupSpan{from: v.indexHeight(*start), to: v.indexHeight(i)})
+				start = nil
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+	if start != nil {
+		spans = append(spans, catchupSpan{from: v.indexHeight(*start), to: v.indexHeight(len(v.blocks))})
+		start = nil
+	}
+	return spans
 }
 
 type viewBlock interface {
@@ -253,27 +296,27 @@ func (x viewCatchupBlock) ValidatableBlock() *ValidatableBlock {
 	}
 }
 
-type viewSCPBlock struct {
+type viewExternalizedBlock struct {
 	proto   *proto.Proposal
 	batches map[proto.BatchHash][]proto.ProposedTransaction
 	catchup *catchupBlock // a catchup block can be used if tx batches are missing
 }
 
-func (x viewSCPBlock) BlockHash() proto.BlockHash     { return x.proto.Block_hash }
-func (x viewSCPBlock) BlockHeight() proto.BlockHeight { return x.proto.Block_height }
-func (x viewSCPBlock) PrevBlockHash() proto.BlockHash { return x.proto.Prev_block_hash }
-func (x viewSCPBlock) IsReadyToValidate() bool {
+func (x viewExternalizedBlock) BlockHash() proto.BlockHash     { return x.proto.Block_hash }
+func (x viewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.proto.Block_height }
+func (x viewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.proto.Prev_block_hash }
+func (x viewExternalizedBlock) IsReadyToValidate() bool {
 	// if a catchup block is placed inside an scp block, then it must link against it by design
 	return (!x.IsMissingTransactions()) || x.catchup != nil
 }
-func (x viewSCPBlock) IsMissingTransactions() bool {
+func (x viewExternalizedBlock) IsMissingTransactions() bool {
 	return len(x.batches) != len(x.proto.Proposed_transaction_batches)
 }
-func (x viewSCPBlock) IsMissing() bool { return false }
-func (x viewSCPBlock) IsSCP() bool     { return true }
-func (x viewSCPBlock) IsCatchup() bool { return false }
-func (x viewSCPBlock) IsDb() bool      { return false }
-func (x viewSCPBlock) ValidatableBlock() *ValidatableBlock {
+func (x viewExternalizedBlock) IsMissing() bool { return false }
+func (x viewExternalizedBlock) IsSCP() bool     { return true }
+func (x viewExternalizedBlock) IsCatchup() bool { return false }
+func (x viewExternalizedBlock) IsDb() bool      { return false }
+func (x viewExternalizedBlock) ValidatableBlock() *ValidatableBlock {
 	var txs []proto.ProposedTransaction
 	if x.IsMissingTransactions() {
 		txs = x.catchup.block.Proposed_transactions

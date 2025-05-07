@@ -49,8 +49,12 @@ func (b catchupBlock) PrevBlockHash() proto.BlockHash {
 
 type catchupRequest struct {
 	validator proto.ValidatorID
-	from      proto.BlockHeight
-	to        proto.BlockHeight
+	span      catchupSpan
+}
+
+type catchupSpan struct {
+	from proto.BlockHeight
+	to   proto.BlockHeight
 }
 
 // baton
@@ -67,7 +71,7 @@ func (b *Baton) findCatchupBlocksAtHeight(h proto.BlockHeight) (catchupBlock, bo
 func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []xid.ID {
 	var reqs []xid.ID
 	for id, q := range b.catchup.pending {
-		if q.from <= h && h < q.to {
+		if q.span.from <= h && h < q.span.to {
 			reqs = append(reqs, id)
 		}
 	}
