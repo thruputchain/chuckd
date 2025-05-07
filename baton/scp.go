@@ -59,12 +59,12 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 	// XXX: check valid (stacks on top of the existing ones)
 
 	// update state
-	x.baton.scp.lk.Lock()
-	defer x.baton.scp.lk.Unlock()
+	x.baton.consensus.lk.Lock()
+	defer x.baton.consensus.lk.Unlock()
 
 	externalized := proposal{slot: slotIndex, proto: &prop}
 
-	x.baton.scp.prop = append(x.baton.scp.prop, externalized)
+	x.baton.consensus.prop = append(x.baton.consensus.prop, externalized)
 
 	// notify baton
 	x.baton.externalized <- externalized

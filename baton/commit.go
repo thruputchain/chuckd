@@ -1,0 +1,156 @@
+package baton
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/groundhogchain/chuckd/lib/log"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+type committed struct{}
+
+type ValidatableBlock struct {
+	BlockHeight          proto.BlockHeight
+	BlockHash            proto.BlockHash
+	PrevBlockHash        proto.BlockHash
+	ProposedTransactions []proto.ProposedTransaction
+}
+
+func (b *Baton) startValidateAndCommit(ctx context.Context) {
+	for {
+		if err := b.validateAndCommit(ctx, <-b.commit); err != nil {
+			log.Errorf("validate and commit: %v", err)
+		}
+	}
+}
+
+// XXX: if the block is invalid or a duplicate has already been committed (?),
+// we must update the state to prevent it from retrying this block proposal (e.g. from catchup)
+
+func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) error {
+
+	// connect to db
+	db, err := b.handler.DialDb(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	b.db.lk.Lock()
+	tipID := b.db.tipID
+	b.db.lk.Unlock()
+
+	nextID := b.handler.GenerateBlockID(ctx)
+
+	// db open snapshot
+	rpcErr, err := db.Dbcoord_open_snapshot(ctx, tipID, nextID)
+	if err != nil {
+		return err
+	}
+	if rpcErr != proto.KRPCNone {
+		return fmt.Errorf("db open snapshot rpc error: %v", rpcErr)
+	}
+
+	// connect to an available executor
+	exec, err := b.handler.DialExec(ctx)
+	if err != nil {
+		return err
+	}
+	defer exec.Close()
+
+	// executor open validation block
+	rpcErr, err = exec.Executorcoord_open_validation_block(ctx, nextID)
+	if err != nil {
+		return err
+	}
+	if rpcErr != proto.KRPCNone {
+		return fmt.Errorf("executor open validation block rpc error: %v", rpcErr)
+	}
+
+	// validate all transactions
+	validated := make(chan error, len(vb.ProposedTransactions))
+	for _, tx := range vb.ProposedTransactions {
+
+		go func(tx proto.ProposedTransaction) {
+			rpcErr, err := exec.Executorcoord_validate_transaction(ctx, nextID, tx)
+			if err != nil {
+				validated <- err
+			}
+			if rpcErr != proto.KRPCNone {
+				validated <- fmt.Errorf("executor validate transaction rpc error: %v", rpcErr)
+			}
+			validated <- nil
+		}(tx)
+	}
+	var verr error
+	for range vb.ProposedTransactions {
+		if err := <-validated; err != nil {
+			verr = err
+		}
+	}
+	if verr != nil {
+		// db abandon snapshot
+		db.Dbcoord_abandon_snapshot(ctx, nextID)
+		return fmt.Errorf("validation error: %v", verr)
+	}
+
+	// XXX: db must have a way of returning the current hash of the block, so we can verify
+
+	err = exec.Executorcoord_finish_block(ctx, nextID)
+	if err != nil {
+		db.Dbcoord_abandon_snapshot(ctx, nextID)
+		return fmt.Errorf("executor finish error: %v", verr)
+	}
+
+	// db commit snapshot
+	rpcErr, err = db.Dbcoord_commit_snapshot(ctx, nextID)
+	if err != nil {
+		return err
+	}
+	if rpcErr != proto.KRPCNone {
+		return fmt.Errorf("db commit snapshot rpc error: %v", rpcErr)
+	}
+
+	// notify baton
+	defer func() { b.committed <- committed{} }()
+
+	// update state
+	b.lock()
+	defer b.unlock()
+
+	// only this function writes to the state, and sequentially
+	b.db.tipHash = vb.BlockHash
+	b.db.tipHeight += 1
+	b.db.tipID = nextID
+
+	// purge catchup or consensus blocks no higher than the newly committed one
+	b.purgeBelowTip(ctx)
+
+	return nil
+}
+
+func (b *Baton) purgeBelowTip(_ context.Context) {
+
+	// purge catchup blocks
+	var catchup catchupBlocks
+	for _, cb := range b.catchup.blocks {
+		if cb.BlockHeight() > b.db.tipHeight {
+			catchup = append(catchup, cb)
+		}
+	}
+	b.catchup.blocks = catchup
+
+	// purge consensus blocks
+	var props proposals
+	for _, p := range b.consensus.prop {
+		if p.BlockHeight() > b.db.tipHeight {
+			props = append(props, p)
+		}
+	}
+	b.consensus.prop = props
+
+	// purge nomination blocks
+	panic("XXX")
+
+}

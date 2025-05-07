@@ -33,13 +33,13 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	}
 
 	// if there are no scp blocks, we are done
-	if b.scp.prop.IsEmpty() {
+	if b.consensus.prop.IsEmpty() {
 		v.blocks = []viewBlock{dbBlock}
 		v.reqs = [][]xid.ID{nil}
 		return v, nil
 	}
 
-	scpTopBlock := b.scp.prop[len(b.scp.prop)-1]
+	scpTopBlock := b.consensus.prop[len(b.consensus.prop)-1]
 	scpTopHeight := scpTopBlock.BlockHeight()
 	if scpTopHeight < dbBlock.height {
 		return nil, ErrConsensusBelowDb
@@ -62,7 +62,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	v.blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, prop := range b.scp.prop {
+	for _, prop := range b.consensus.prop {
 		// there can be gaps between scp blocks
 		must.Assertf(ctx, prop.BlockHeight() > scpPrevHeight, "scp proposal heights not increasing")
 		scpPrevHeight = prop.BlockHeight()

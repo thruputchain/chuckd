@@ -16,6 +16,8 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 		dbRestored:   make(chan dbRestored, 1),
 		externalized: make(chan proposal),
 		caughtUp:     make(chan caughtUp),
+		committed:    make(chan committed),
+		commit:       make(chan *ValidatableBlock),
 	}
 	b.catchup.pending = map[xid.ID]catchupRequest{}
 	b.catchup.blocks = nil
@@ -26,26 +28,30 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 
 type Baton struct {
 	handler Handler
-	// callbacks
+	// notifications to baton
 	dbRestored   chan dbRestored
 	externalized chan proposal
 	caughtUp     chan caughtUp
+	committed    chan committed
+	// notifications from baton
+	commit chan *ValidatableBlock
 	// states
-	db struct { // local db
+	db struct {
 		lk        sync.Mutex
 		tipHeight proto.BlockHeight
 		tipHash   proto.BlockHash
+		tipID     proto.BlockID
 	}
-	catchup struct { // catching up
+	catchup struct {
 		lk      sync.Mutex
 		pending map[xid.ID]catchupRequest // pending catchup requests
 		blocks  catchupBlocks             // received catchup blocks
 	}
-	scp struct { // scp view
+	consensus struct {
 		lk   sync.Mutex
 		prop proposals
 	}
-	prop struct { // proposing
+	nominate struct {
 		lk sync.Mutex
 	}
 }
@@ -65,8 +71,11 @@ func (b *Baton) startBaton(ctx context.Context) {
 		// ignore (externalizations are already recorded in the state)
 	}
 
-	// start proposer who depends only on the db state (and txs in mempool)
+	// start nominator who depends only on the db state (and txs in mempool)
 	go b.startNominating(ctx)
+
+	// start validate and commit thread
+	go b.startValidateAndCommit(ctx)
 
 	for {
 
@@ -93,15 +102,21 @@ func (b *Baton) startBaton(ctx context.Context) {
 			}
 		}
 
+		// validate and commit next block, if one is available and the validate and commit thread is not busy
+		if vb := v.NextBlockToValidateAndCommit(); vb != nil {
+			select {
+			case b.commit <- vb:
+			default:
+			}
+		}
+
 		// send catchup requests
 		b.requestCatchup(ctx, v.NeededHeightSpans())
-
-		// commit to db if possible
-		// panic("XXX")
 
 		select {
 		case <-b.caughtUp: // catchup blocks received
 		case <-b.externalized: // externalization received
+		case <-b.committed: // block committed to db
 		}
 
 		panic("XXX")
