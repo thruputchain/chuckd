@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/xid"
 )
 
 var (
-	ErrFaultyCatchup   = fmt.Errorf("faulty catchup")
-	ErrDbSCPDisagree   = fmt.Errorf("db and scp disagree") // unrecoverable
-	ErrSCPInconsistent = fmt.Errorf("scp blocks disagree") // unrecoverable
+	ErrConsensusBelowDb      = fmt.Errorf("scp is below db")     // unrecoverable
+	ErrDbFarBehind           = fmt.Errorf("db far behind scp")   // must resort to cold start
+	ErrFaultyCatchup         = fmt.Errorf("faulty catchup")      // must drop all catchup blocks and blacklist sources
+	ErrDbConsensusDisagree   = fmt.Errorf("db and scp disagree") // unrecoverable
+	ErrConsensusInconsistent = fmt.Errorf("scp blocks disagree") // unrecoverable
 )
 
 func (b *Baton) buildView(ctx context.Context) (*view, error) {
@@ -38,16 +39,24 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 		return v, nil
 	}
 
-	scpTopHeight := b.scp.prop[len(b.scp.prop)-1].BlockHeight()
-	if scpTopHeight <= dbBlock.height {
-		log.Errorf("scp height is below db")
-		v.blocks = []viewBlock{dbBlock}
-		return v, nil
+	scpTopBlock := b.scp.prop[len(b.scp.prop)-1]
+	scpTopHeight := scpTopBlock.BlockHeight()
+	if scpTopHeight < dbBlock.height {
+		return nil, ErrConsensusBelowDb
+	}
+	if scpTopHeight == dbBlock.height {
+		if scpTopBlock.BlockHash() == dbBlock.BlockHash() {
+			v.blocks = []viewBlock{dbBlock}
+			v.reqs = [][]xid.ID{nil}
+			return v, nil
+		} else {
+			return nil, ErrDbConsensusDisagree
+		}
 	}
 
 	n := int(scpTopHeight) + 1 - int(dbBlock.height)
 	if n > 10000 {
-		return nil, fmt.Errorf("db is too far behind scp")
+		return nil, ErrDbFarBehind
 	}
 	v.blocks = make([]viewBlock, n)
 	v.blocks[0] = dbBlock
@@ -94,7 +103,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *view) error {
 		height := v.indexHeight(i)
 		switch u := v.blocks[i].(type) {
 		case nil:
-			if cb, ok := b.findCatchupBlocksAtHeight(height); ok {
+			if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 				v.blocks[i] = viewCatchupBlock{candidate: cb, linked: false} // linked will be computed later
 			} else {
 				v.blocks[i] = viewMissing{height: height}
@@ -102,7 +111,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *view) error {
 		case viewExternalizedBlock:
 			// if the block is missing batches, catchup can still help
 			if u.IsMissingTransactions() {
-				if cb, ok := b.findCatchupBlocksAtHeight(height); ok {
+				if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
 					if cb.BlockHash() == u.BlockHash() && cb.PrevBlockHash() == u.PrevBlockHash() {
 						u.catchup = &cb
@@ -136,11 +145,11 @@ func (b *Baton) chainBlocks(_ context.Context, v *view) error {
 				}
 			case prev.IsDb():
 				if u.PrevBlockHash() != prev.BlockHash() {
-					return ErrDbSCPDisagree // unrecoverable
+					return ErrDbConsensusDisagree // unrecoverable
 				}
 			case prev.IsSCP():
 				if u.PrevBlockHash() != prev.BlockHash() {
-					return ErrSCPInconsistent // unrecoverable
+					return ErrConsensusInconsistent // unrecoverable
 				}
 			default:
 				panic("unreachable")
@@ -209,7 +218,7 @@ func (v *view) indexHeight(i int) proto.BlockHeight {
 	return v.blocks[0].BlockHeight() + proto.BlockHeight(i)
 }
 
-func (v *view) NeededCatchupSpans() []catchupSpan {
+func (v *view) NeededHeightSpans() []catchupSpan {
 	spans := []catchupSpan{}
 	var start *int
 	for i := 1; i < len(v.blocks); i++ {

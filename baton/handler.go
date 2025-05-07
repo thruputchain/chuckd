@@ -5,13 +5,18 @@ import (
 	"time"
 
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/xdrpp/goxdr/xdr"
 )
 
 type Handler interface {
 	Time
 	Mempool
 
-	ChooseCatchupValidators(context.Context, int) []proto.ValidatorPublicInfo
+	Signer() proto.ValidatorPublicInfo
+	SignXdr(xdr.XdrType) proto.Signature
+	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
+
+	ProvideCatchupSources(context.Context, int) []proto.ValidatorPublicInfo
 
 	RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, error) // implemented by the coordinator service
 
