@@ -5,6 +5,7 @@ import (
 	"time"
 
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/rs/xid"
 )
 
 type caughtUp struct{}
@@ -46,16 +47,15 @@ func (b catchupBlock) PrevBlockHash() proto.BlockHash {
 	return b.block.Prev_block_hash
 }
 
-type catchupRequests []catchupRequest
-
 type catchupRequest struct {
-	from proto.BlockHeight
-	to   proto.BlockHeight
+	validator proto.ValidatorID
+	from      proto.BlockHeight
+	to        proto.BlockHeight
 }
 
 // baton
 
-func (b *Baton) findCatchupAtHeight(h proto.BlockHeight) (catchupBlock, bool) {
+func (b *Baton) findCatchupBlocksAtHeight(h proto.BlockHeight) (catchupBlock, bool) {
 	for _, cbs := range b.catchup.blocks {
 		if cb, ok := cbs.Find(h); ok {
 			return cb, true
@@ -64,10 +64,20 @@ func (b *Baton) findCatchupAtHeight(h proto.BlockHeight) (catchupBlock, bool) {
 	return catchupBlock{}, false
 }
 
-func (b *Baton) refillCatchup(ctx context.Context) {
+func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []xid.ID {
+	var reqs []xid.ID
+	for id, q := range b.catchup.pending {
+		if q.from <= h && h < q.to {
+			reqs = append(reqs, id)
+		}
+	}
+	return reqs
+}
+
+func (b *Baton) requestCatchup(ctx context.Context) {
 
 	b.lock()
 	defer b.unlock()
 
-	XXX
+	panic("XXX")
 }

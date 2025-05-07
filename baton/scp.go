@@ -47,19 +47,23 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 	if err := xdrutil.UnmarshalXdr(&prop, value); err != nil {
 		return
 	}
+
 	// XXX: check integrity (signatures?)
-	// XXX: check that SCP slot equals proposal's block hieght
+
+	// check that SCP slot equals proposal's block height
+	if slotIndex != api.Slot(prop.Block_height) {
+		log.Errorf("scp slot index does not equal proposed block height")
+		return
+	}
+
 	// XXX: check valid (stacks on top of the existing ones)
+
 	// update state
-	extProp := extProp{Slot: slotIndex, Proposal: &prop}
+	externalized := proposal{Slot: slotIndex, Proposal: &prop}
 	x.baton.scp.lk.Lock()
 	defer x.baton.scp.lk.Unlock()
-	x.baton.scp.prop = append(x.baton.scp.prop, &proposal{ext: extProp})
-	// notify baton
-	x.baton.extProp <- extProp
-}
+	x.baton.scp.prop = append(x.baton.scp.prop, externalized)
 
-type extProp struct {
-	Slot     api.Slot
-	Proposal *proto.Proposal
+	// notify baton
+	x.baton.externalized <- externalized
 }

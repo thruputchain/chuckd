@@ -6,30 +6,29 @@ import (
 	"sync"
 
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/rs/xid"
 )
 
 func NewBaton(ctx context.Context, h Handler) *Baton {
 	b := &Baton{
-		handler:    h,
-		dbRestored: make(chan dbRestored, 1),
-		extProp:    make(chan extProp),
-		caughtUp:   make(chan caughtUp),
+		handler:      h,
+		dbRestored:   make(chan dbRestored, 1),
+		externalized: make(chan proposal),
+		caughtUp:     make(chan caughtUp),
 	}
-	b.catchup.pending = map[proto.ValidatorID]*catchupPending{}
-	b.catchup.blocks = map[proto.ValidatorID]*catchupBlocks{}
+	b.catchup.pending = map[xid.ID]catchupRequest{}
+	b.catchup.blocks = map[proto.ValidatorID]catchupBlocks{}
 
 	go b.startBaton(ctx)
-	// start mempool
-	// ...
 	return b
 }
 
 type Baton struct {
 	handler Handler
 	// callbacks
-	dbRestored chan dbRestored
-	extProp    chan extProp
-	caughtUp   chan caughtUp
+	dbRestored   chan dbRestored
+	externalized chan proposal
+	caughtUp     chan caughtUp
 	// states
 	db struct { // local db
 		lk        sync.Mutex
@@ -38,8 +37,8 @@ type Baton struct {
 	}
 	catchup struct { // catching up
 		lk      sync.Mutex
-		pending map[proto.ValidatorID]*catchupRequests // pending catchup requests
-		blocks  map[proto.ValidatorID]*catchupBlocks   // received catchup blocks
+		pending map[xid.ID]catchupRequest           // pending catchup requests
+		blocks  map[proto.ValidatorID]catchupBlocks // received catchup blocks
 	}
 	scp struct { // scp view
 		lk   sync.Mutex
@@ -61,7 +60,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 		if r.Err != nil {
 			log.Fatalf("db not restored: %v", r.Err)
 		}
-	case <-b.extProp:
+	case <-b.externalized:
 		// ignore (externalizations are already recorded in the state)
 	}
 
@@ -74,11 +73,11 @@ func (b *Baton) startBaton(ctx context.Context) {
 		XXX
 
 		// spawn more catchup routines, if necessary
-		b.refillCatchup(ctx)
+		b.requestCatchup(ctx)
 
 		select {
 		case <-b.caughtUp: // catchup blocks received
-		case <-b.extProp: // externalization
+		case <-b.externalized: // externalization
 		}
 
 		XXX

@@ -8,12 +8,13 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/rs/xid"
 )
 
 var (
 	ErrFaultyCatchup   = fmt.Errorf("faulty catchup")
-	ErrDbSCPDisagree   = fmt.Errorf("db and scp blocks disagree") // unrecoverable
-	ErrSCPInconsistent = fmt.Errorf("scp blocks inconsistent")    // unrecoverable
+	ErrDbSCPDisagree   = fmt.Errorf("db and scp disagree") // unrecoverable
+	ErrSCPInconsistent = fmt.Errorf("scp blocks disagree") // unrecoverable
 )
 
 func (b *Baton) buildView(ctx context.Context) (*view, error) {
@@ -33,7 +34,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	// if there are no scp blocks, we are done
 	if b.scp.prop.IsEmpty() {
 		v.blocks = []viewBlock{dbBlock}
-		v.reqs = XXX
+		v.reqs = [][]xid.ID{nil}
 		return v, nil
 	}
 
@@ -80,8 +81,12 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 		return nil, err
 	}
 
-	// compute v.reqs
-	XXX
+	// compute pending requests per block
+	if err := b.compileRequests(ctx, v); err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 func (b *Baton) fillBlocks(ctx context.Context, v *view) error {
@@ -89,15 +94,15 @@ func (b *Baton) fillBlocks(ctx context.Context, v *view) error {
 		height := v.blocks[0].BlockHeight() + proto.BlockHeight(i)
 		switch u := v.blocks[i].(type) {
 		case nil:
-			if cb, ok := b.findCatchupAtHeight(height); ok {
-				v.blocks[i] = viewCatchupBlock{candidate: cb, linked: false} // XXX: linked will be computed later
+			if cb, ok := b.findCatchupBlocksAtHeight(height); ok {
+				v.blocks[i] = viewCatchupBlock{candidate: cb, linked: false} // linked will be computed later
 			} else {
 				v.blocks[i] = viewMissing{height: height}
 			}
 		case viewSCPBlock:
 			// if the block is missing batches, catchup can still help
 			if u.IsMissingTransactions() {
-				if cb, ok := b.findCatchupAtHeight(height); ok {
+				if cb, ok := b.findCatchupBlocksAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
 					if cb.BlockHash() == u.BlockHash() && cb.PrevBlockHash() == u.PrevBlockHash() {
 						u.catchup = &cb
@@ -177,10 +182,19 @@ func (b *Baton) linkBlocks(ctx context.Context, v *view) error {
 	return nil
 }
 
+func (b *Baton) compileRequests(ctx context.Context, v *view) error {
+	v.reqs = make([][]xid.ID, len(v.blocks))
+	for i := 1; i < len(v.blocks); i++ {
+		height := v.blocks[0].BlockHeight() + proto.BlockHeight(i)
+		v.reqs[i] = b.findCatchupRequestsAtHeight(height)
+	}
+	return nil
+}
+
 type view struct {
 	stamp  time.Time
 	blocks []viewBlock
-	reqs   []int // number of catchup requests already fired for this block
+	reqs   [][]xid.ID // catchup requests already fired for this block
 }
 
 type viewBlock interface {
@@ -213,9 +227,9 @@ type viewCatchupBlock struct {
 	candidate catchupBlock
 }
 
-func (x viewCatchupBlock) BlockHash() proto.BlockHash     { return x.proto.Block_hash }
-func (x viewCatchupBlock) BlockHeight() proto.BlockHeight { return x.proto.Block_height }
-func (x viewCatchupBlock) PrevBlockHash() proto.BlockHash { return x.proto.Prev_block_hash }
+func (x viewCatchupBlock) BlockHash() proto.BlockHash     { return x.candidate.BlockHash() }
+func (x viewCatchupBlock) BlockHeight() proto.BlockHeight { return x.candidate.BlockHeight() }
+func (x viewCatchupBlock) PrevBlockHash() proto.BlockHash { return x.candidate.PrevBlockHash() }
 func (x viewCatchupBlock) IsReadyToValidate() bool        { return x.linked }
 func (x viewCatchupBlock) IsMissing() bool                { return false }
 func (x viewCatchupBlock) IsSCP() bool                    { return false }
