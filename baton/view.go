@@ -10,6 +10,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+var ErrFaultyCatchup = fmt.Errorf("faulty catchup")
+
 func (b *Baton) buildView(ctx context.Context) (*view, error) {
 
 	b.lock()
@@ -61,10 +63,6 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 
 	// place catchup blocks
 
-	// mark them computable only if they hash-link on both sides
-	// if catchup blocks fill slot gaps and don't link up, must throw away all catchup blocks
-	XXX
-
 	// try to fill every slot independently, one at a time, at the end check connectivity
 	for i := 1; i < n; i++ {
 		height := dbBlock.height + proto.BlockHeight(i)
@@ -77,13 +75,25 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 			}
 		case viewSCPBlock:
 			// if the block is missing batches, catchup can still help
-			// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-			XXX
+			if u.IsMissingTransactions() {
+				if cb, ok := b.findCatchupAtHeight(height); ok {
+					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
+					if cb.BlockHash() == u.BlockHash() && cb.PrevBlockHash() == u.PrevBlockHash() {
+						u.catchup = &cb
+					} else {
+						return nil, ErrFaultyCatchup
+					}
+				}
+			}
 		default:
 			panic("unreachable")
 		}
 	}
+
 	// for every catchup block, make sure hashes link below and above (if available)
+	XXX
+
+	// compute which catchup blocks form a "linked" chain above and below
 	XXX
 
 	// compute v.reqs
@@ -133,7 +143,11 @@ func (x viewSCPBlock) BlockHash() proto.BlockHash     { return x.proto.Block_has
 func (x viewSCPBlock) BlockHeight() proto.BlockHeight { return x.proto.Block_height }
 func (x viewSCPBlock) PrevBlockHash() proto.BlockHash { return x.proto.Prev_block_hash }
 func (x viewSCPBlock) IsComputable() bool {
-	return len(x.batches) == len(x.proto.Proposed_transaction_batches)
+	// if a catchup block is placed inside an scp block, then it must link against it by design
+	return (!x.IsMissingTransactions()) || x.catchup != nil
+}
+func (x viewSCPBlock) IsMissingTransactions() bool {
+	return len(x.batches) != len(x.proto.Proposed_transaction_batches)
 }
 
 type viewMissing struct {

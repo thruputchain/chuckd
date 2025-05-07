@@ -25,9 +25,13 @@ func (bs catchupBlocks) Find(h proto.BlockHeight) (catchupBlock, bool) {
 }
 
 type catchupBlock struct {
-	source proto.ValidatorConfig
+	source proto.ValidatorID
 	stamp  time.Time
 	block  *proto.CatchupBlock
+}
+
+func (b catchupBlock) Source() proto.ValidatorID {
+	return b.source
 }
 
 func (b catchupBlock) BlockHeight() proto.BlockHeight {
@@ -36,6 +40,10 @@ func (b catchupBlock) BlockHeight() proto.BlockHeight {
 
 func (b catchupBlock) BlockHash() proto.BlockHash {
 	return b.block.Block_hash
+}
+
+func (b catchupBlock) PrevBlockHash() proto.BlockHash {
+	return b.block.Prev_block_hash
 }
 
 type catchupRequests []catchupRequest
