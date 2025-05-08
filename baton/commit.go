@@ -51,17 +51,18 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	nextID := b.handler.GenerateBlockID(ctx)
 
 	// db open snapshot
-	rpcErr, err := db.Dbcoord_open_snapshot(ctx, tipID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, tipID, nextID)
 	if err != nil {
 		return err
 	}
-	if rpcErr != proto.KRPCNone {
-		return fmt.Errorf("db open snapshot rpc error: %v", rpcErr)
+	if dbResult != proto.DbResultOK {
+		return fmt.Errorf("db open snapshot error")
 	}
 
 	// connect to available executors
 	execs, err := b.handler.DialExecs(ctx)
 	if err != nil {
+		db.Dbcoord_abandon_snapshot(ctx, nextID)
 		return err
 	}
 	for _, exec := range execs {
@@ -75,36 +76,35 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	}
 	close(txCh)
 
-	validated := make(chan error, len(execs))
+	validatedCh := make(chan error, len(execs))
 	for _, exec := range execs {
 		go func(exec ExecCoordConn) {
 
 			// executor open validation block
-			rpcErr, err = exec.Executorcoord_open_validation_block(ctx, nextID)
+			execResult, err := exec.Executorcoord_open_validation_block(ctx, nextID)
 			if err != nil {
-				validated <- err
+				validatedCh <- err
 				return
 			}
-			if rpcErr != proto.KRPCNone {
-				validated <- fmt.Errorf("executor open validation block rpc error: %v", rpcErr)
+			if execResult != proto.ExecResultOK {
+				validatedCh <- fmt.Errorf("executor open validation block rpc error")
 				return
 			}
 
 			for tx := range txCh {
-				rpcErr, err := exec.Executorcoord_validate_transaction(ctx, nextID, *tx)
+				select {
+				case <-ctx.Done():
+					validatedCh <- fmt.Errorf("context cancelled")
+				default:
+				}
+
+				execResult, err := exec.Executorcoord_validate_transaction(ctx, nextID, *tx)
 				if err != nil {
-					validated <- err
+					validatedCh <- err
 					return
 				}
-				// XXX: validation failures are treated differently than retriable error conditions;
-				// confirm with Geoff this is the only error indicating an invalid block proposal
-				if rpcErr == proto.KRPCValidationFailure {
-					// update the state to prevent this vb being retried
-					b.invalidProposalExternalized(ctx, vb)
-					validated <- fmt.Errorf("encountered invalid proposal")
-					return
-				} else if rpcErr != proto.KRPCNone {
-					validated <- fmt.Errorf("executor validate transaction rpc error: %v", rpcErr)
+				if execResult != proto.ExecResultOK {
+					validatedCh <- fmt.Errorf("executor validate transaction rpc error")
 					return
 				}
 			}
@@ -112,17 +112,17 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 			// executor finish validation block
 			err = exec.Executorcoord_finish_block(ctx, nextID)
 			if err != nil {
-				validated <- fmt.Errorf("executor finish error: %v", err)
+				validatedCh <- fmt.Errorf("executor finish error: %v", err)
 				return
 			}
 
-			validated <- nil
+			validatedCh <- nil
 
 		}(exec)
 	}
 	var verr error
 	for range execs {
-		if err := <-validated; err != nil {
+		if err := <-validatedCh; err != nil {
 			verr = err
 		}
 	}
@@ -132,15 +132,18 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 		return fmt.Errorf("validation error: %v", verr)
 	}
 
-	// XXX: db must have a way of returning the current hash of the block, so we can verify
-
 	// db commit snapshot
-	rpcErr, err = db.Dbcoord_commit_snapshot(ctx, nextID)
+	dbBlockResult, err := db.Dbcoord_commit_snapshot(ctx, nextID)
 	if err != nil {
 		return err
 	}
-	if rpcErr != proto.KRPCNone {
-		return fmt.Errorf("db commit snapshot rpc error: %v", rpcErr)
+	if dbBlockResult.Result != proto.DbResultOK {
+		return fmt.Errorf("db commit snapshot rpc error")
+	}
+
+	// verify the block hash returned by the db matches
+	if *dbBlockResult.Block_hash() != vb.BlockHash {
+		return fmt.Errorf("block hash validation mismatch")
 	}
 
 	// notify baton
