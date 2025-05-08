@@ -76,6 +76,7 @@ type ExecCoordConn interface {
 }
 
 type Consensus interface {
+	// XXX: prev may be nil, if there is no known previous message
 	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
 }
 

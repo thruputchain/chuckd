@@ -11,10 +11,9 @@ import (
 )
 
 type nominate struct {
-	tipHeight   proto.BlockHeight
-	tipHash     proto.BlockHash
-	tipID       proto.BlockID
-	tipProposal *proto.Proposal
+	tipHeight proto.BlockHeight
+	tipHash   proto.BlockHash
+	tipID     proto.BlockID
 }
 
 // XXX: signal "nominate" when the db is up to speed, and we know the previous proposal
@@ -88,7 +87,8 @@ func (b *Baton) startNominating(ctx context.Context) {
 		nomCtx, nomCancel := context.WithCancel(ctx)
 		nomCh := make(chan bool, 1)
 		go func() {
-			nomCh <- b.handler.Nominate(nomCtx, nom.blockHeight, proposal, tip.tipProposal)
+			// XXX: prev may be nil, if there is no known previous message
+			nomCh <- b.handler.Nominate(nomCtx, nom.blockHeight, proposal, XXX)
 		}()
 
 		var outcome *bool
