@@ -15,14 +15,20 @@ type nominate struct {
 }
 
 // XXX: mark committed transactions when committing to db
-// XXX: abort nomination if consensus races ahead of us
 
 func (b *Baton) startNominating(ctx context.Context) {
+	var interruptingTip *nominate
 	for {
 
-		// nominate signals that our db is up to speed;
-		// there are no known externalizations above us
-		tip := <-b.nominate
+		var tip *nominate
+		if interruptingTip == nil {
+			// nominate signals that our db is up to speed, and
+			// there are no known externalizations above us
+			tip = waitAndDrain(b.nominate)
+		} else {
+			interruptingTip = nil
+			tip = drain(b.nominate, interruptingTip)
+		}
 
 		// pool all available transactions (our own + uncommitted from batches)
 		uncommittedTxs := b.handler.ListUncommitedTxs(ctx)
@@ -30,7 +36,7 @@ func (b *Baton) startNominating(ctx context.Context) {
 		// prioritize and pick the top, applying any limits on transactions per block
 		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
 
-		// start working on proposing a block, while being ready to cancel if a new block is externalized
+		// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
 		prepCtx, prepCancel := context.WithCancel(ctx)
 		nomCh := make(chan *nomination, 1)
 		go func() {
@@ -40,9 +46,11 @@ func (b *Baton) startNominating(ctx context.Context) {
 			}
 			nomCh <- nom
 		}()
+
 		var nom *nomination
 		select {
-		case XXX: // a block has been externalized
+		case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
+			prepCancel()
 		case nom = <-nomCh:
 		}
 		if nom == nil {

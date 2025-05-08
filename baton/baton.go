@@ -17,7 +17,7 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 		caughtUp:     make(chan caughtUp),
 		committed:    make(chan committed),
 		commit:       make(chan *ValidatableBlock),
-		nominate:     make(chan nominate),
+		nominate:     make(chan *nominate),
 	}
 	b.catchup.pending = map[ID64]catchupRequest{}
 	b.catchup.blocks = nil
@@ -35,7 +35,7 @@ type Baton struct {
 	committed    chan committed
 	// notifications from baton
 	commit   chan *ValidatableBlock
-	nominate chan nominate
+	nominate chan *nominate
 	// states
 	db struct {
 		lk        sync.Mutex
