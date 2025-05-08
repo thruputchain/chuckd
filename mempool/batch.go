@@ -4,24 +4,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type batch struct {
-	header  proto.BatchHeader
 	created time.Time
-	txs     []proto.ProposedTransaction
+	txs     []*proto.ProposedTransaction
 	//
 	lk sync.Mutex
 	// a batch is unpinned when the local validator will no longer need it for proposal or validation.
 	pinned bool
 }
 
-func newBatch(header proto.BatchHeader, txs []proto.ProposedTransaction) *batch {
+func newBatch(txs []proto.ProposedTransaction) *batch {
 	return &batch{
-		header:  header,
 		created: time.Now(),
-		txs:     txs,
+		txs:     protoutil.RepackageProposedTransactions(txs),
 		pinned:  true,
 	}
 }

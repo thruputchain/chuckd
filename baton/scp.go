@@ -17,7 +17,7 @@ type scpHandler struct {
 }
 
 func (x scpHandler) CombineCandidates(slotIndex api.Slot, values []api.Value) api.Value {
-	proposals := make(protoutil.ProposalsBySize, 0, len(values))
+	proposals := make(protoutil.ProposalsByHash, 0, len(values))
 	for _, v := range values {
 		var p proto.Proposal
 		if err := xdrutil.UnmarshalXdr(&p, v); err != nil {

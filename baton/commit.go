@@ -18,7 +18,7 @@ type ValidatableBlock struct {
 	BlockHeight          proto.BlockHeight
 	BlockHash            proto.BlockHash
 	PrevBlockHash        proto.BlockHash
-	ProposedTransactions []proto.ProposedTransaction
+	ProposedTransactions []*proto.ProposedTransaction
 }
 
 func (b *Baton) startValidateAndCommit(ctx context.Context) {
@@ -69,7 +69,7 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	}
 
 	// validate all transactions
-	txCh := make(chan proto.ProposedTransaction, len(vb.ProposedTransactions))
+	txCh := make(chan *proto.ProposedTransaction, len(vb.ProposedTransactions))
 	for _, tx := range vb.ProposedTransactions {
 		txCh <- tx
 	}
@@ -91,7 +91,7 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 			}
 
 			for tx := range txCh {
-				rpcErr, err := exec.Executorcoord_validate_transaction(ctx, nextID, tx)
+				rpcErr, err := exec.Executorcoord_validate_transaction(ctx, nextID, *tx)
 				if err != nil {
 					validated <- err
 					return

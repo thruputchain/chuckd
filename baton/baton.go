@@ -7,7 +7,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/rs/xid"
 )
 
 func NewBaton(ctx context.Context, h Handler) *Baton {
@@ -18,8 +17,9 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 		caughtUp:     make(chan caughtUp),
 		committed:    make(chan committed),
 		commit:       make(chan *ValidatableBlock),
+		nominate:     make(chan nominate),
 	}
-	b.catchup.pending = map[xid.ID]catchupRequest{}
+	b.catchup.pending = map[ID64]catchupRequest{}
 	b.catchup.blocks = nil
 
 	go b.startBaton(ctx)
@@ -34,7 +34,8 @@ type Baton struct {
 	caughtUp     chan caughtUp
 	committed    chan committed
 	// notifications from baton
-	commit chan *ValidatableBlock
+	commit   chan *ValidatableBlock
+	nominate chan nominate
 	// states
 	db struct {
 		lk        sync.Mutex
@@ -44,14 +45,14 @@ type Baton struct {
 	}
 	catchup struct {
 		lk      sync.Mutex
-		pending map[xid.ID]catchupRequest // pending catchup requests
-		blocks  catchupBlocks             // received catchup blocks
+		pending map[ID64]catchupRequest // pending catchup requests
+		blocks  catchupBlocks           // received catchup blocks
 	}
 	consensus struct {
 		lk   sync.Mutex
 		prop proposals
 	}
-	nominate struct {
+	nominator struct {
 		lk sync.Mutex
 	}
 }
@@ -71,7 +72,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 		// ignore (externalizations are already recorded in the state)
 	}
 
-	// XXX: start nominator who depends on the db state and the latest externalized value (?)
+	// start nominator who depends on the db state
 	go b.startNominating(ctx)
 
 	// start validate and commit thread

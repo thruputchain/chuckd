@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/rs/xid"
 )
 
 var (
@@ -35,7 +35,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	// if there are no scp blocks, we are done
 	if b.consensus.prop.IsEmpty() {
 		v.blocks = []viewBlock{dbBlock}
-		v.reqs = [][]xid.ID{nil}
+		v.reqs = [][]ID64{nil}
 		return v, nil
 	}
 
@@ -47,7 +47,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	if scpTopHeight == dbBlock.height {
 		if scpTopBlock.BlockHash() == dbBlock.BlockHash() {
 			v.blocks = []viewBlock{dbBlock}
-			v.reqs = [][]xid.ID{nil}
+			v.reqs = [][]ID64{nil}
 			return v, nil
 		} else {
 			return nil, ErrDbConsensusDisagree
@@ -193,7 +193,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *view) error {
 }
 
 func (b *Baton) compileRequests(_ context.Context, v *view) error {
-	v.reqs = make([][]xid.ID, len(v.blocks))
+	v.reqs = make([][]ID64, len(v.blocks))
 	for i := 1; i < len(v.blocks); i++ {
 		height := v.blocks[0].BlockHeight() + proto.BlockHeight(i)
 		v.reqs[i] = b.findCatchupRequestsAtHeight(height)
@@ -204,7 +204,7 @@ func (b *Baton) compileRequests(_ context.Context, v *view) error {
 type view struct {
 	stamp  time.Time
 	blocks []viewBlock
-	reqs   [][]xid.ID // catchup requests already fired for this block
+	reqs   [][]ID64 // catchup requests already fired for this block
 }
 
 func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
@@ -302,13 +302,13 @@ func (x viewCatchupBlock) ValidatableBlock() *ValidatableBlock {
 		BlockHeight:          x.BlockHeight(),
 		BlockHash:            x.BlockHash(),
 		PrevBlockHash:        x.PrevBlockHash(),
-		ProposedTransactions: x.candidate.block.Proposed_transactions,
+		ProposedTransactions: x.candidate.txs,
 	}
 }
 
 type viewExternalizedBlock struct {
 	proto   *proto.Proposal
-	batches map[proto.BatchHash][]proto.ProposedTransaction
+	batches map[proto.BatchHash][]*proto.ProposedTransaction
 	catchup *catchupBlock // a catchup block can be used if tx batches are missing
 }
 
@@ -327,12 +327,12 @@ func (x viewExternalizedBlock) IsSCP() bool     { return true }
 func (x viewExternalizedBlock) IsCatchup() bool { return false }
 func (x viewExternalizedBlock) IsDb() bool      { return false }
 func (x viewExternalizedBlock) ValidatableBlock() *ValidatableBlock {
-	var txs []proto.ProposedTransaction
+	var txs []*proto.ProposedTransaction
 	var fromCatchup bool
 	var fromConsensus bool
 	if x.IsMissingTransactions() {
 		fromCatchup = true
-		txs = x.catchup.block.Proposed_transactions
+		txs = protoutil.RepackageProposedTransactions(x.catchup.block.Proposed_transactions)
 	} else {
 		fromConsensus = true
 		for _, batchTxs := range x.batches {

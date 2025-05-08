@@ -2,9 +2,11 @@ package mempool
 
 import (
 	"context"
+	"crypto/sha256"
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -23,13 +25,14 @@ func NewProposedMempool(ctx context.Context, batchTTL time.Duration) *ProposedMe
 	return mp
 }
 
-func (mp *ProposedMempool) AddBatch(ctx context.Context, batchHeader proto.BatchHeader, txs []proto.ProposedTransaction) {
+func (mp *ProposedMempool) AddBatch(ctx context.Context, txs proto.BatchTransactions) {
+	hash := sha256.Sum256(xdrutil.MarshalXdr(&txs))
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
-	mp.batch[batchHeader.Batch_hash] = newBatch(batchHeader, txs)
+	mp.batch[hash] = newBatch(txs.Transactions)
 }
 
-func (mp *ProposedMempool) LookupBatch(ctx context.Context, batchHash proto.BatchHash) ([]proto.ProposedTransaction, bool) {
+func (mp *ProposedMempool) LookupBatch(ctx context.Context, batchHash proto.BatchHash) ([]*proto.ProposedTransaction, bool) {
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
 	b, ok := mp.batch[batchHash]

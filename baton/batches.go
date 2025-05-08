@@ -8,13 +8,13 @@ import (
 
 func (b *Baton) fetchBatches(
 	ctx context.Context,
-	headers []proto.BatchHeader,
-) map[proto.BatchHash][]proto.ProposedTransaction {
-	fetched := map[proto.BatchHash][]proto.ProposedTransaction{}
-	for _, h := range headers {
-		batch, ok := b.handler.LookupBatch(ctx, h.Batch_hash)
+	hashes []proto.BatchHash,
+) map[proto.BatchHash][]*proto.ProposedTransaction {
+	fetched := map[proto.BatchHash][]*proto.ProposedTransaction{}
+	for _, h := range hashes {
+		batch, ok := b.handler.LookupBatch(ctx, h)
 		if ok {
-			fetched[h.Batch_hash] = batch
+			fetched[h] = batch
 		}
 	}
 	return fetched

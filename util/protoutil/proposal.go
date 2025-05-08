@@ -1,33 +1,36 @@
 package protoutil
 
 import (
+	"crypto/sha256"
 	"sort"
 
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func ProposalSize(p *proto.Proposal) int {
-	s := 0
-	for _, b := range p.Proposed_transaction_batches {
-		s += int(b.Batch_size)
+func proposalHashNumber(p *proto.Proposal) int64 {
+	hash := sha256.Sum256(p.Block_hash[:]) // rehash to prevent dos
+	// convert first 8 bytes to int64
+	var result int64
+	for i := 0; i < 8; i++ {
+		result |= int64(hash[i]) << (i * 8)
 	}
-	return s
+	return result
 }
 
-type ProposalsBySize []*proto.Proposal
+type ProposalsByHash []*proto.Proposal
 
-func (ps ProposalsBySize) Len() int {
+func (ps ProposalsByHash) Len() int {
 	return len(ps)
 }
 
-func (ps ProposalsBySize) Less(i, j int) bool {
-	return ProposalSize(ps[j]) < ProposalSize(ps[i])
+func (ps ProposalsByHash) Less(i, j int) bool {
+	return proposalHashNumber(ps[j]) < proposalHashNumber(ps[i])
 }
 
-func (ps ProposalsBySize) Swap(i, j int) {
+func (ps ProposalsByHash) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
-func (ps ProposalsBySize) Sort() {
+func (ps ProposalsByHash) Sort() {
 	sort.Sort(ps)
 }

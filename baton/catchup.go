@@ -8,7 +8,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/rs/xid"
 )
 
 type caughtUp struct{}
@@ -32,6 +31,7 @@ type catchupBlock struct {
 	source proto.ValidatorID
 	stamp  time.Time
 	block  *proto.CatchupBlock
+	txs    []*proto.ProposedTransaction
 }
 
 func (b catchupBlock) Source() proto.ValidatorID {
@@ -66,8 +66,8 @@ func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (catchupBlock, boo
 	return b.catchup.blocks.Find(h)
 }
 
-func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []xid.ID {
-	var reqs []xid.ID
+func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []ID64 {
+	var reqs []ID64
 	for id, q := range b.catchup.pending {
 		for _, span := range q.spans {
 			if span.from <= h && h < span.to {
@@ -95,13 +95,13 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 	must.Assertf(ctx, len(src) > 0, "no catchup sources")
 
 	// mark pending request
-	id := xid.New()
+	id := b.handler.GenerateID64(ctx)
 	b.catchup.pending[id] = catchupRequest{
 		validator: protoutil.ValidatorIDFromPublic(src[0]),
 		spans:     spans,
 	}
 
-	go func(src proto.ValidatorPublicInfo, id xid.ID, spans []catchupSpan) {
+	go func(src proto.ValidatorPublicInfo, id ID64, spans []catchupSpan) {
 
 		var result catchupBlocks
 
@@ -160,6 +160,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 				source: protoutil.ValidatorIDFromPublic(src),
 				stamp:  now,
 				block:  &blk,
+				txs:    protoutil.RepackageProposedTransactions(blk.Proposed_transactions),
 			})
 		}
 

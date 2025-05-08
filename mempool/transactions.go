@@ -43,7 +43,7 @@ func (mp *TransactionMempool) AddTx(ctx context.Context, tx *proto.SignedTransac
 	mp.tx[k] = &transaction{created: time.Now(), proto: tx}
 }
 
-func (mp *TransactionMempool) List(ctx context.Context) []*proto.SignedTransaction {
+func (mp *TransactionMempool) ListTxs(ctx context.Context) []*proto.SignedTransaction {
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
 	txs := []*proto.SignedTransaction{}

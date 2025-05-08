@@ -10,7 +10,9 @@ import (
 
 type Handler interface {
 	Time
-	Mempool
+	BatchMempool
+	TransactionMempool
+	CommittedTransactionMempool
 
 	Signer() proto.ValidatorPublicInfo
 	SignXdr(xdr.XdrType) proto.Signature
@@ -19,8 +21,10 @@ type Handler interface {
 	ProvideCatchupSources(context.Context, int) []proto.ValidatorPublicInfo
 
 	RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, proto.BlockID, error) // implemented by the coordinator service
+
 	// XXX: 64-bit block ids are too small for preventing collisions with large block counts
 	GenerateBlockID(context.Context) proto.BlockID
+	GenerateID64(context.Context) ID64
 
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error)
 
@@ -28,14 +32,30 @@ type Handler interface {
 
 	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/proposal task.
 	DialExecs(context.Context) ([]ExecCoordConn, error)
+
+	PrioritizeTxs(context.Context, []*proto.SignedTransaction) []*proto.SignedTransaction
 }
+
+type ID64 int64
 
 type Time interface {
 	Now() time.Time
 }
 
-type Mempool interface {
-	LookupBatch(context.Context, proto.BatchHash) ([]proto.ProposedTransaction, bool)
+// BatchMempool provides batches of proposed transactions by other validators.
+type BatchMempool interface {
+	LookupBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
+}
+
+// TransactionMempool provides all uncommitted transactions, our own and those of other validators.
+type TransactionMempool interface {
+	ListUncommitedTxs(context.Context) []*proto.SignedTransaction
+}
+
+// CommittedTransactionMempool keeps the hashes of committed transaction for some TTL.
+type CommittedTransactionMempool interface {
+	AddCommittedTx(context.Context, proto.SignedTransactionHash)
+	IsCommittedTx(context.Context, proto.SignedTransactionHash) bool
 }
 
 type CatchupConn interface {
