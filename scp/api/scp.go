@@ -1,6 +1,10 @@
 package api
 
-import proto "github.com/groundhogchain/protocol-go"
+import (
+	"context"
+
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 type Slot = proto.SoloSlotIndex
 type NodeID = proto.ValidatorID
@@ -41,12 +45,10 @@ type SCPHandler interface {
 
 type SCPController interface {
 	// Submit a value to consider for slotIndex
-	// prev is the value from slotIndex-1
-	Nominate(slotIndex Slot, value Value, prev Value) bool
-	// prev is used to pick a leader
-
-	// stops nomination for a slot
-	StopNomination(slotIndex Slot)
+	// prev is the value from slotIndex-1.
+	// prev is used to pick a leader.
+	// Nomination is blocking and can be aborted using the context.
+	Nominate(ctx context.Context, slotIndex Slot, value Value, prev Value) bool
 
 	// Local QuorumSet interface (can be dynamically updated)
 	UpdateQuorumSet(proto.QuorumSet)

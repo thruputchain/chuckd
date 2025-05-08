@@ -2,19 +2,24 @@ package baton
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type nominate struct {
-	tipHeight proto.BlockHeight
-	tipHash   proto.BlockHash
-	tipID     proto.BlockID
+	tipHeight   proto.BlockHeight
+	tipHash     proto.BlockHash
+	tipID       proto.BlockID
+	tipProposal *proto.Proposal
 }
 
+// XXX: signal "nominate" when the db is up to speed, and we know the previous proposal
 // XXX: mark committed transactions when committing to db
+// XXX: skip validation on commit path, when committing our own proposal
 
 func (b *Baton) startNominating(ctx context.Context) {
 	var interruptingTip *nominate
@@ -38,26 +43,64 @@ func (b *Baton) startNominating(ctx context.Context) {
 
 		// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
 		prepCtx, prepCancel := context.WithCancel(ctx)
-		nomCh := make(chan *nomination, 1)
+		prepCh := make(chan *nomination, 1)
 		go func() {
 			nom, err := b.prepareNomination(prepCtx, tip, txsToNominate)
 			if err != nil {
 				log.Errorf("preparing nomination: %v", err)
 			}
-			nomCh <- nom
+			prepCh <- nom
 		}()
 
 		var nom *nomination
 		select {
 		case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
-			prepCancel()
-		case nom = <-nomCh:
+		case nom = <-prepCh:
 		}
+		prepCancel()
 		if nom == nil {
 			break
 		}
 
-		// XXX
+		// construct proposed block
+		batch := proto.BatchTransactions{
+			Transactions: nom.proposedTxs,
+		}
+		batchHash := proto.BatchHash(sha256.Sum256(xdrutil.MarshalXdr(&batch)))
+		proposal := &proto.Proposal{
+			Block_height:                 nom.blockHeight,
+			Block_hash:                   nom.blockHash,
+			Prev_block_hash:              nom.prevBlockHash,
+			Proposed_transaction_batches: []proto.BatchHash{batchHash},
+		}
+
+		// disseminate batches; this is non-blocking (no network ops)
+		b.handler.Disseminate(ctx, &proto.BatchMessage{Batch_transactions: batch})
+
+		// record our latest proposal so we can skip validation on the commit path
+		// must be done before nomination begins
+		b.nominator.lk.Lock()
+		b.nominator.latestBlockID = nom.dbBlockID
+		b.nominator.latestProposal = proposal
+		b.nominator.lk.Unlock()
+
+		// nominate to consensus
+		nomCtx, nomCancel := context.WithCancel(ctx)
+		nomCh := make(chan bool, 1)
+		go func() {
+			nomCh <- b.handler.Nominate(nomCtx, nom.blockHeight, proposal, tip.tipProposal)
+		}()
+
+		var outcome *bool
+		select {
+		case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
+		case r := <-nomCh:
+			outcome = &r
+		}
+		nomCancel()
+		if outcome == nil {
+			break
+		}
 	}
 }
 
@@ -66,19 +109,19 @@ type nomination struct {
 	blockHeight   proto.BlockHeight
 	blockHash     proto.BlockHash
 	prevBlockHash proto.BlockHash
-	txs           []*proto.ProposedTransaction
+	proposedTxs   []proto.ProposedTransaction
 	batches       []*proto.BatchTransactions
 }
 
 type proposed struct {
 	err error
-	txs []*proto.ProposedTransaction
+	txs []proto.ProposedTransaction
 }
 
 // prepareNomination can be aborted by cancelling the context.
 func (b *Baton) prepareNomination(
 	ctx context.Context,
-	tip nominate,
+	tip *nominate,
 	txs []*proto.SignedTransaction,
 ) (*nomination, error) {
 
@@ -132,7 +175,7 @@ func (b *Baton) prepareNomination(
 				return
 			}
 
-			proposedTxs := []*proto.ProposedTransaction{}
+			proposedTxs := []proto.ProposedTransaction{}
 			for tx := range txCh {
 				select {
 				case <-ctx.Done():
@@ -151,7 +194,7 @@ func (b *Baton) prepareNomination(
 				}
 				proposedTxs = append(
 					proposedTxs,
-					&proto.ProposedTransaction{
+					proto.ProposedTransaction{
 						Signed_tx:                      *tx,
 						Nondeterministic_proposal_data: *proposeResult.Proposal_data(),
 					},
@@ -169,7 +212,7 @@ func (b *Baton) prepareNomination(
 
 		}(exec)
 	}
-	var proposedTxs []*proto.ProposedTransaction
+	var proposedTxs []proto.ProposedTransaction
 	var verr error
 	for range execs {
 		if pd := <-proposedCh; pd.err != nil {
@@ -198,7 +241,7 @@ func (b *Baton) prepareNomination(
 		blockHeight:   tip.tipHeight + 1,
 		blockHash:     *dbBlockResult.Block_hash(),
 		prevBlockHash: tip.tipHash,
-		txs:           proposedTxs,
+		proposedTxs:   proposedTxs,
 		batches:       nil, // filled later
 	}, nil
 }

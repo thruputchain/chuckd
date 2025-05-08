@@ -13,6 +13,8 @@ type Handler interface {
 	BatchMempool
 	TransactionMempool
 	CommittedTransactionMempool
+	Dissemination
+	Consensus
 
 	Signer() proto.ValidatorPublicInfo
 	SignXdr(xdr.XdrType) proto.Signature
@@ -71,4 +73,12 @@ type DbCoordConn interface {
 type ExecCoordConn interface {
 	proto.ExecutorCoord1
 	Close() error
+}
+
+type Consensus interface {
+	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
+}
+
+type Dissemination interface {
+	Disseminate(ctx context.Context, value xdr.XdrType)
 }

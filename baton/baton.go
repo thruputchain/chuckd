@@ -53,7 +53,9 @@ type Baton struct {
 		prop proposals
 	}
 	nominator struct {
-		lk sync.Mutex
+		lk             sync.Mutex
+		latestProposal *proto.Proposal
+		latestBlockID  proto.BlockID
 	}
 }
 
