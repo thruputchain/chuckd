@@ -26,8 +26,8 @@ type Handler interface {
 
 	DialDb(context.Context) (DbCoordConn, error)
 
-	// DialExec must block if no executor is available in the pool.
-	DialExec(context.Context) (ExecCoordConn, error)
+	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/proposal task.
+	DialExecs(context.Context) ([]ExecCoordConn, error)
 }
 
 type Time interface {

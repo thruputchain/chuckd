@@ -59,45 +59,69 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 		return fmt.Errorf("db open snapshot rpc error: %v", rpcErr)
 	}
 
-	// connect to an available executor
-	exec, err := b.handler.DialExec(ctx)
+	// connect to available executors
+	execs, err := b.handler.DialExecs(ctx)
 	if err != nil {
 		return err
 	}
-	defer exec.Close()
-
-	// executor open validation block
-	rpcErr, err = exec.Executorcoord_open_validation_block(ctx, nextID)
-	if err != nil {
-		return err
-	}
-	if rpcErr != proto.KRPCNone {
-		return fmt.Errorf("executor open validation block rpc error: %v", rpcErr)
+	for _, exec := range execs {
+		defer exec.Close()
 	}
 
 	// validate all transactions
-	validated := make(chan error, len(vb.ProposedTransactions))
+	txCh := make(chan proto.ProposedTransaction, len(vb.ProposedTransactions))
 	for _, tx := range vb.ProposedTransactions {
+		txCh <- tx
+	}
+	close(txCh)
 
-		go func(tx proto.ProposedTransaction) {
-			rpcErr, err := exec.Executorcoord_validate_transaction(ctx, nextID, tx)
+	validated := make(chan error, len(execs))
+	for _, exec := range execs {
+		go func(exec ExecCoordConn) {
+
+			// executor open validation block
+			rpcErr, err = exec.Executorcoord_open_validation_block(ctx, nextID)
 			if err != nil {
 				validated <- err
+				return
 			}
-			// XXX: validation failures are treated differently than retriable error conditions;
-			// confirm with Geoff this is the only error indicating an invalid block proposal
-			if rpcErr == proto.KRPCValidationFailure {
-				// update the state from preventing this block being retried
-				b.invalidProposalExternalized(ctx, vb)
-				validated <- fmt.Errorf("encountered invalid proposal")
-			} else if rpcErr != proto.KRPCNone {
-				validated <- fmt.Errorf("executor validate transaction rpc error: %v", rpcErr)
+			if rpcErr != proto.KRPCNone {
+				validated <- fmt.Errorf("executor open validation block rpc error: %v", rpcErr)
+				return
 			}
+
+			for tx := range txCh {
+				rpcErr, err := exec.Executorcoord_validate_transaction(ctx, nextID, tx)
+				if err != nil {
+					validated <- err
+					return
+				}
+				// XXX: validation failures are treated differently than retriable error conditions;
+				// confirm with Geoff this is the only error indicating an invalid block proposal
+				if rpcErr == proto.KRPCValidationFailure {
+					// update the state to prevent this vb being retried
+					b.invalidProposalExternalized(ctx, vb)
+					validated <- fmt.Errorf("encountered invalid proposal")
+					return
+				} else if rpcErr != proto.KRPCNone {
+					validated <- fmt.Errorf("executor validate transaction rpc error: %v", rpcErr)
+					return
+				}
+			}
+
+			// executor finish validation block
+			err = exec.Executorcoord_finish_block(ctx, nextID)
+			if err != nil {
+				validated <- fmt.Errorf("executor finish error: %v", err)
+				return
+			}
+
 			validated <- nil
-		}(tx)
+
+		}(exec)
 	}
 	var verr error
-	for range vb.ProposedTransactions {
+	for range execs {
 		if err := <-validated; err != nil {
 			verr = err
 		}
@@ -109,12 +133,6 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	}
 
 	// XXX: db must have a way of returning the current hash of the block, so we can verify
-
-	err = exec.Executorcoord_finish_block(ctx, nextID)
-	if err != nil {
-		db.Dbcoord_abandon_snapshot(ctx, nextID)
-		return fmt.Errorf("executor finish error: %v", verr)
-	}
 
 	// db commit snapshot
 	rpcErr, err = db.Dbcoord_commit_snapshot(ctx, nextID)

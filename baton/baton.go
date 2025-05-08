@@ -71,7 +71,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 		// ignore (externalizations are already recorded in the state)
 	}
 
-	// start nominator who depends only on the db state (and txs in mempool)
+	// XXX: start nominator who depends on the db state and the latest externalized value (?)
 	go b.startNominating(ctx)
 
 	// start validate and commit thread
@@ -113,12 +113,11 @@ func (b *Baton) startBaton(ctx context.Context) {
 		// send catchup requests
 		b.requestCatchup(ctx, v.NeededHeightSpans())
 
+		// wait until something happens
 		select {
 		case <-b.caughtUp: // catchup blocks received
 		case <-b.externalized: // externalization received
 		case <-b.committed: // block committed to db
 		}
-
-		panic("XXX")
 	}
 }
