@@ -51,14 +51,25 @@ func (b *Baton) startNominating(ctx context.Context) {
 			prepCh <- nom
 		}()
 
+		// wait for nomination preparation or for a new tip interruption
 		var nom *nomination
-		select {
-		case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
-		case nom = <-prepCh:
+	WaitPrepReadyOrInterrupt:
+		for {
+			select {
+			case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
+				// the baton may send a nomination signal pointing at the same tip; it must be ignored
+				if interruptingTip.tipHash == tip.tipHash {
+					continue // ignore interruptions from the same tip!
+				} else {
+					break WaitPrepReadyOrInterrupt
+				}
+			case nom = <-prepCh:
+				break WaitPrepReadyOrInterrupt
+			}
 		}
 		prepCancel()
-		if nom == nil {
-			break
+		if nom == nil { // we were interrupted
+			continue
 		}
 
 		// construct proposed block
