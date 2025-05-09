@@ -55,7 +55,7 @@ type Baton struct {
 	nominator struct {
 		lk             sync.Mutex
 		latestProposal *proto.Proposal
-		latestBlockID  proto.BlockID
+		latestBlockID  *proto.BlockID
 	}
 }
 
@@ -108,9 +108,14 @@ func (b *Baton) startBaton(ctx context.Context) {
 		// validate and commit next block, if one is available and the validate and commit thread is not busy
 		if vb := v.NextBlockToValidateAndCommit(); vb != nil {
 			select {
-			case b.commit <- vb:
+			case b.commit <- vb: // signal may be ignored, if we are currently committing
 			default:
 			}
+		}
+
+		// start nomination, if the db there are no externalizations above the db tip
+		if nom := v.ReadyToNominate(); nom != nil {
+			b.nominate <- nom // signal interrupts any ongoing nomination
 		}
 
 		// send catchup requests

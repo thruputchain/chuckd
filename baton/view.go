@@ -30,6 +30,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	dbBlock := viewDbBlock{
 		hash:   b.db.tipHash,
 		height: b.db.tipHeight,
+		id:     b.db.tipID,
 	}
 
 	// if there are no scp blocks, we are done
@@ -207,6 +208,18 @@ type view struct {
 	reqs   [][]ID64 // catchup requests already fired for this block
 }
 
+func (v *view) ReadyToNominate() *nominate {
+	if len(v.blocks) != 1 {
+		return nil
+	}
+	db := v.blocks[0].(viewDbBlock)
+	return &nominate{
+		tipHeight: db.height,
+		tipHash:   db.hash,
+		tipID:     db.id,
+	}
+}
+
 func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
 	if len(v.blocks) < 2 || !v.blocks[1].IsReadyToValidate() {
 		return nil
@@ -271,6 +284,7 @@ type viewBlock interface {
 type viewDbBlock struct {
 	hash   proto.BlockHash
 	height proto.BlockHeight
+	id     proto.BlockID
 }
 
 func (x viewDbBlock) BlockHash() proto.BlockHash          { return x.hash }

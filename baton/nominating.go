@@ -90,7 +90,7 @@ func (b *Baton) startNominating(ctx context.Context) {
 		// record our latest proposal so we can skip validation on the commit path
 		// must be done before nomination begins
 		b.nominator.lk.Lock()
-		b.nominator.latestBlockID = nom.dbBlockID
+		b.nominator.latestBlockID = &nom.dbBlockID
 		b.nominator.latestProposal = proposal
 		b.nominator.lk.Unlock()
 
@@ -98,8 +98,10 @@ func (b *Baton) startNominating(ctx context.Context) {
 		nomCtx, nomCancel := context.WithCancel(ctx)
 		nomCh := make(chan bool, 1)
 		go func() {
-			// XXX: prev may be nil, if there is no known previous message
-			nomCh <- b.handler.Nominate(nomCtx, nom.blockHeight, proposal, XXX)
+			prevSummary := proto.PrevProposalSummary{
+				Block_hash: nom.prevBlockHash,
+			}
+			nomCh <- b.handler.Nominate(nomCtx, nom.blockHeight, proposal, &prevSummary)
 		}()
 
 		var outcome *bool
