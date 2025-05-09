@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/log"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -240,14 +239,5 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	if b.nominator.latestProposal != nil && b.nominator.latestProposal.Block_height <= b.db.tipHeight {
 		b.nominator.latestProposal = nil
 		b.nominator.latestBlockID = nil
-	}
-}
-
-func (b *Baton) invalidProposalExternalized(ctx context.Context, vb *ValidatableBlock) {
-	if vb.FromCatchup {
-		b.purgeCatchup(ctx)
-	}
-	if vb.FromConsensus {
-		must.Panic(ctx, fmt.Errorf("invalid proposal externalized"))
 	}
 }

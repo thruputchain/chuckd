@@ -10,10 +10,12 @@
 - [x] nominate (starts after db)
   - [x] can nil be passed as previous value to Nominate?; or can i simply use the previous block hash?
 - [x] catchup
-- [ ] handle scp
 - [x] validate and commit
-  - [ ] garbage collect
+  - [x] garbage collect
   - [x] mark committed txs
+- [ ] handle scp
 
+- [ ] implement mock
+- [ ] implement SCP controller 
 - [ ] implement catchup service!
 - [ ] implement mempools

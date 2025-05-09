@@ -33,7 +33,7 @@ type Baton struct {
 	externalized chan proposal
 	caughtUp     chan caughtUp
 	committed    chan committed
-	// notifications from baton
+	// signals from baton
 	commit   chan *ValidatableBlock
 	nominate chan *nominate
 	// states
