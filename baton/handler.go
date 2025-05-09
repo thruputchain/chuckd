@@ -51,7 +51,8 @@ type BatchMempool interface {
 
 // TransactionMempool provides all uncommitted transactions, our own and those of other validators.
 type TransactionMempool interface {
-	ListUncommitedTxs(context.Context) []*proto.SignedTransaction
+	ListTxs(context.Context) []*proto.SignedTransaction
+	RemoveTx(context.Context, proto.SignedTransactionHash)
 }
 
 // CommittedTransactionMempool keeps the hashes of committed transaction for some TTL.
@@ -76,7 +77,6 @@ type ExecCoordConn interface {
 }
 
 type Consensus interface {
-	// XXX: prev may be nil, if there is no known previous message
 	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
 }
 

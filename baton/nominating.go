@@ -16,8 +16,6 @@ type nominate struct {
 	tipID     proto.BlockID
 }
 
-// XXX: signal "nominate" when the db is up to speed, and we know the previous proposal
-// XXX: mark committed transactions when committing to db
 // XXX: skip validation on commit path, when committing our own proposal
 
 func (b *Baton) startNominating(ctx context.Context) {
@@ -34,8 +32,14 @@ func (b *Baton) startNominating(ctx context.Context) {
 			tip = drain(b.nominate, interruptingTip)
 		}
 
-		// pool all available transactions (our own + uncommitted from batches)
-		uncommittedTxs := b.handler.ListUncommitedTxs(ctx)
+		// pool all available transactions (our own + from batches) excluding already committed ones
+		uncommittedTxs := []*proto.SignedTransaction{}
+		for _, stx := range b.handler.ListTxs(ctx) {
+			hash := sha256.Sum256(xdrutil.MarshalXdr(stx))
+			if !b.handler.IsCommittedTx(ctx, hash) {
+				uncommittedTxs = append(uncommittedTxs, stx)
+			}
+		}
 
 		// prioritize and pick the top, applying any limits on transactions per block
 		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)

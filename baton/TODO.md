@@ -3,7 +3,7 @@
 
 - [ ] cache result of validating proposals during nomination; skip re-validation during commit, after externalization
 - [x] signal "nominate" when the db is up to speed, and we know the previous proposal
-- [ ] mark committed transactions when committing to db
+- [x] mark committed transactions when committing to db
 - [ ] skip validation on commit path, when committing our own proposal
 
 

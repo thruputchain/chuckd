@@ -2,10 +2,12 @@ package baton
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -144,6 +146,13 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	// verify the block hash returned by the db matches
 	if *dbBlockResult.Block_hash() != vb.BlockHash {
 		return fmt.Errorf("block hash validation mismatch")
+	}
+
+	// record committed transactions to prevent replay
+	for _, ptx := range vb.ProposedTransactions {
+		hash := sha256.Sum256(xdrutil.MarshalXdr(&ptx.Signed_tx))
+		b.handler.AddCommittedTx(ctx, hash)
+		b.handler.RemoveTx(ctx, hash)
 	}
 
 	// notify baton
