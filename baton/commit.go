@@ -21,27 +21,55 @@ type ValidatableBlock struct {
 	BlockHash            proto.BlockHash
 	PrevBlockHash        proto.BlockHash
 	ProposedTransactions []*proto.ProposedTransaction
+
+	DbTipHeight proto.BlockHeight
+	DbTipHash   proto.BlockHash
+	DbTipID     proto.BlockID
+
+	NominationProposal *proto.Proposal
+	NominationBlockID  *proto.BlockID
 }
 
 func (b *Baton) startValidateAndCommit(ctx context.Context) {
 	for {
-		if err := b.validateAndCommit(ctx, <-b.commit); err != nil {
+		if err := b.doCommit(ctx, <-b.commit); err != nil {
 			log.Errorf("validate and commit: %v", err)
 		}
 	}
 }
 
-func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) error {
-
-	b.db.lk.Lock()
-	tipID := b.db.tipID
-	tipHeight := b.db.tipHeight
-	b.db.lk.Unlock()
-
-	if tipHeight >= vb.BlockHeight {
-		// a block may be submitted for validation twice under a very unlikely race condition
-		return nil
+func (b *Baton) doCommit(ctx context.Context, vb *ValidatableBlock) error {
+	if vb.NominationBlockID != nil {
+		return b.commitNomination(ctx, vb)
+	} else {
+		return b.validateAndCommit(ctx, vb)
 	}
+}
+
+func (b *Baton) commitNomination(ctx context.Context, vb *ValidatableBlock) error {
+
+	// connect to db
+	db, err := b.handler.DialDb(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	nextID := *vb.NominationBlockID
+
+	// db open snapshot
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTipID, nextID)
+	if err != nil {
+		return err
+	}
+	if dbResult != proto.DbResultOK {
+		return fmt.Errorf("db open snapshot error")
+	}
+
+	return b.finalizeCommit(ctx, vb, nextID, db)
+}
+
+func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) error {
 
 	// connect to db
 	db, err := b.handler.DialDb(ctx)
@@ -53,7 +81,7 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	nextID := b.handler.GenerateBlockID(ctx)
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, tipID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTipID, nextID)
 	if err != nil {
 		return err
 	}
@@ -134,6 +162,16 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 		return fmt.Errorf("validation error: %v", verr)
 	}
 
+	return b.finalizeCommit(ctx, vb, nextID, db)
+}
+
+func (b *Baton) finalizeCommit(
+	ctx context.Context,
+	vb *ValidatableBlock,
+	nextID proto.BlockID,
+	db DbCoordConn,
+) error {
+
 	// db commit snapshot
 	dbBlockResult, err := db.Dbcoord_commit_snapshot(ctx, nextID)
 	if err != nil {
@@ -162,9 +200,13 @@ func (b *Baton) validateAndCommit(ctx context.Context, vb *ValidatableBlock) err
 	b.lock()
 	defer b.unlock()
 
+	if b.db.tipHeight+1 != vb.BlockHeight {
+		panic("bug")
+	}
+
 	// only this function writes to the state, and sequentially
 	b.db.tipHash = vb.BlockHash
-	b.db.tipHeight += 1
+	b.db.tipHeight = vb.BlockHeight
 	b.db.tipID = nextID
 
 	// purge catchup or consensus blocks no higher than the newly committed one

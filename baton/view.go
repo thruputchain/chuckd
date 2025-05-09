@@ -24,7 +24,9 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	defer b.unlock()
 
 	v := &view{
-		stamp: b.handler.Now(),
+		stamp:                   b.handler.Now(),
+		latestNominatedProposal: b.nominator.latestProposal,
+		latestNominatedBlockID:  b.nominator.latestBlockID,
 	}
 
 	dbBlock := viewDbBlock{
@@ -203,9 +205,11 @@ func (b *Baton) compileRequests(_ context.Context, v *view) error {
 }
 
 type view struct {
-	stamp  time.Time
-	blocks []viewBlock
-	reqs   [][]ID64 // catchup requests already fired for this block
+	stamp                   time.Time
+	blocks                  []viewBlock
+	reqs                    [][]ID64 // catchup requests already fired for this block
+	latestNominatedProposal *proto.Proposal
+	latestNominatedBlockID  *proto.BlockID
 }
 
 func (v *view) ReadyToNominate() *nominate {
@@ -221,10 +225,25 @@ func (v *view) ReadyToNominate() *nominate {
 }
 
 func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
+
 	if len(v.blocks) < 2 || !v.blocks[1].IsReadyToValidate() {
 		return nil
 	}
-	return v.blocks[1].ValidatableBlock()
+	vb := v.blocks[1].ValidatableBlock()
+
+	// db state
+	db := v.blocks[0].(viewDbBlock)
+	vb.DbTipHeight = db.height
+	vb.DbTipHash = db.hash
+	vb.DbTipID = db.id
+
+	// are we committing a block that we have nominated?
+	if v.latestNominatedProposal != nil && v.latestNominatedProposal.Block_hash == vb.BlockHash {
+		vb.NominationProposal = v.latestNominatedProposal
+		vb.NominationBlockID = v.latestNominatedBlockID
+	}
+
+	return vb
 }
 
 func (v *view) indexHeight(i int) proto.BlockHeight {

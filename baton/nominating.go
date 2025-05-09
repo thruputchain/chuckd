@@ -16,8 +16,6 @@ type nominate struct {
 	tipID     proto.BlockID
 }
 
-// XXX: skip validation on commit path, when committing our own proposal
-
 func (b *Baton) startNominating(ctx context.Context) {
 	var interruptingTip *nominate
 	for {
