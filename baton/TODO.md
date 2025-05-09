@@ -11,9 +11,9 @@
   - [x] can nil be passed as previous value to Nominate?; or can i simply use the previous block hash?
 - [x] catchup
 - [ ] handle scp
-- [ ] validate and commit
+- [x] validate and commit
   - [ ] garbage collect
-  - [ ] mark committed txs
+  - [x] mark committed txs
 
 - [ ] implement catchup service!
-- [ ] garbage collection
+- [ ] implement mempools

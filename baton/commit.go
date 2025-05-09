@@ -40,6 +40,7 @@ func (b *Baton) startValidateAndCommit(ctx context.Context) {
 
 func (b *Baton) doCommit(ctx context.Context, vb *ValidatableBlock) error {
 	if vb.NominationBlockID != nil {
+		// skip validation when committing our own nomination
 		return b.commitNomination(ctx, vb)
 	} else {
 		return b.validateAndCommit(ctx, vb)
@@ -236,8 +237,10 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	b.consensus.prop = props
 
 	// purge nomination blocks
-	panic("XXX")
-
+	if b.nominator.latestProposal != nil && b.nominator.latestProposal.Block_height <= b.db.tipHeight {
+		b.nominator.latestProposal = nil
+		b.nominator.latestBlockID = nil
+	}
 }
 
 func (b *Baton) invalidProposalExternalized(ctx context.Context, vb *ValidatableBlock) {
