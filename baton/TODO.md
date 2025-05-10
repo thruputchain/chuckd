@@ -4,6 +4,7 @@
 - [x] signal "nominate" when the db is up to speed, and we know the previous proposal
 - [x] mark committed transactions when committing to db
 
+- [ ] does a proposal need to be signed by the source nominator?
 
 
 - [x] restore db

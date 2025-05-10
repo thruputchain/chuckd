@@ -1,6 +1,8 @@
 package baton
 
 import (
+	"context"
+
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -16,7 +18,7 @@ type scpHandler struct {
 	baton *Baton
 }
 
-func (x scpHandler) CombineCandidates(slotIndex api.Slot, values []api.Value) api.Value {
+func (x scpHandler) CombineCandidates(ctx context.Context, slotIndex api.Slot, values []api.Value) api.Value {
 	proposals := make(protoutil.ProposalsByHash, 0, len(values))
 	for _, v := range values {
 		var p proto.Proposal
@@ -34,21 +36,69 @@ func (x scpHandler) CombineCandidates(slotIndex api.Slot, values []api.Value) ap
 	}
 }
 
-func (x scpHandler) ValidateValue(slotIndex api.Slot, value api.Value, nomination bool) api.ValidationLevel {
-	panic("XXX")
+func (x scpHandler) ValidateValue(ctx context.Context, slotIndex api.Slot, value api.Value, nomination bool) api.ValidationLevel {
+
+	var prop proto.Proposal
+	err := xdrutil.UnmarshalXdr(&prop, value)
+	if err != nil {
+		return api.InvalidValue
+	}
+
+	x.baton.lock()
+	dbID := x.baton.db.tipID
+	dbHeight := x.baton.db.tipHeight
+	dbHash := x.baton.db.tipHash
+	noExternalizations := x.baton.consensus.ext.IsEmpty()
+	x.baton.unlock()
+
+	if prop.Block_height <= dbHeight {
+		return api.InvalidValue
+	}
+	if prop.Block_height > dbHeight+1 {
+		return api.MaybeValidValue
+	}
+	if prop.Prev_block_hash != dbHash {
+		return api.InvalidValue
+	}
+	if !noExternalizations {
+		return api.InvalidValue // there are newer externalizations
+	}
+
+	ptxs := []*proto.ProposedTransaction{}
+	for _, b := range prop.Proposed_transaction_batches {
+		x.baton.handler.LookupBatch(ctx, b)
+	}
+
+	vb := &ValidatableBlock{
+		BlockHeight:          prop.Block_height,
+		BlockHash:            prop.Block_hash,
+		PrevBlockHash:        prop.Prev_block_hash,
+		ProposedTransactions: ptxs,
+		DbTipHeight:          dbHeight,
+		DbTipHash:            dbHash,
+		DbTipID:              dbID,
+	}
+
+	blockID, err := x.baton.validateClose(ctx, vb)
+
+	// cache validated blocks
+	x.baton.consensus.lk.Lock()
+	x.baton.consensus.validatedProposal[prop.Block_hash] = &prop
+	x.baton.consensus.validatedBlockID[prop.Block_hash] = &blockID
+	x.baton.consensus.lk.Unlock()
+
+	return api.FullyValidValue
 }
 
-func (x scpHandler) ExtractValidValue(slotIndex api.Slot, value api.Value) *api.Value {
+func (x scpHandler) ExtractValidValue(ctx context.Context, slotIndex api.Slot, value api.Value) *api.Value {
 	return nil
 }
 
-func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
+func (x scpHandler) OnExternalizedValue(ctx context.Context, slotIndex api.Slot, value api.Value) {
 	var prop proto.Proposal
 	if err := xdrutil.UnmarshalXdr(&prop, value); err != nil {
 		return
 	}
-
-	// XXX: check integrity (signatures?)
 
 	// check that SCP slot equals proposal's block height
 	if slotIndex != prop.Block_height {
@@ -56,15 +106,18 @@ func (x scpHandler) OnExternalizedValue(slotIndex api.Slot, value api.Value) {
 		return
 	}
 
-	// XXX: check valid (stacks on top of the existing ones)
-
-	// update state
 	x.baton.consensus.lk.Lock()
-	defer x.baton.consensus.lk.Unlock()
+
+	// XXX: check valid (stacks on top of the existing ones)
+	XXX
+
+	// add proposal
 
 	externalized := proposal{slot: slotIndex, proto: &prop}
 
-	x.baton.consensus.prop = append(x.baton.consensus.prop, externalized)
+	x.baton.consensus.ext = append(x.baton.consensus.ext, externalized)
+
+	x.baton.consensus.lk.Unlock()
 
 	// notify baton
 	x.baton.externalized <- externalized

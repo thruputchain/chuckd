@@ -92,8 +92,8 @@ func (b *Baton) startNominating(ctx context.Context) {
 		// record our latest proposal so we can skip validation on the commit path
 		// must be done before nomination begins
 		b.nominator.lk.Lock()
-		b.nominator.latestBlockID = &nom.dbBlockID
-		b.nominator.latestProposal = proposal
+		b.nominator.nominatedBlockID = &nom.dbBlockID
+		b.nominator.nominatedProposal = proposal
 		b.nominator.lk.Unlock()
 
 		// nominate to consensus

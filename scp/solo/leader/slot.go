@@ -101,7 +101,7 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 				delete(s.svc.slot, s.index)
 				s.svc.lk.Unlock()
 
-				combined := s.svc.handler.CombineCandidates(s.index, s.candidates)
+				combined := s.svc.handler.CombineCandidates(ctx, s.index, s.candidates)
 				s.svc.externalize(ctx, nomination.Slot_index, combined)
 			}
 		}

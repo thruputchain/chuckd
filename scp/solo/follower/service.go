@@ -44,7 +44,7 @@ func (svc *SoloFollowerService) Solofollower_validate(ctx context.Context, signe
 		return proto.SoloInvalidValue, nil
 	}
 
-	return svc.handler.ValidateValue(signed.Validate.Slot_index, signed.Validate.Value, true), nil
+	return svc.handler.ValidateValue(ctx, signed.Validate.Slot_index, signed.Validate.Value, true), nil
 }
 
 func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, signed proto.SoloSignedExternalized) error {
@@ -54,6 +54,6 @@ func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, s
 		return nil
 	}
 
-	svc.handler.OnExternalizedValue(signed.Externalized.Slot_index, signed.Externalized.Value)
+	svc.handler.OnExternalizedValue(ctx, signed.Externalized.Slot_index, signed.Externalized.Value)
 	return nil
 }

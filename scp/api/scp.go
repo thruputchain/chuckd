@@ -9,14 +9,21 @@ import (
 type Slot = proto.SoloSlotIndex
 type NodeID = proto.ValidatorID
 type Value = proto.SoloValue
+
 type ValidationLevel = proto.SoloValidationLevel
+
+const (
+	InvalidValue    = proto.SoloInvalidValue
+	MaybeValidValue = proto.SoloMaybeValidValue
+	FullyValidValue = proto.SoloFullyValidValue
+)
 
 // when to accept a nomination? validated by majority?
 
 type SCPHandler interface {
 
 	// combine multiple candidates into a composite value
-	CombineCandidates(Slot, []Value) Value
+	CombineCandidates(context.Context, Slot, []Value) Value
 
 	// ValidateValue is called on each message received before any processing
 	// is done. It should be used to filter out values that are not compatible
@@ -29,18 +36,18 @@ type SCPHandler interface {
 	// will abstain from emitting its position.
 	// validation can be *more* restrictive during nomination as needed
 	// NB: validation levels are ordered
-	ValidateValue(slotIndex Slot, value Value, nomination bool) ValidationLevel
+	ValidateValue(ctx context.Context, slotIndex Slot, value Value, nomination bool) ValidationLevel
 
 	// ExtractValidValue transforms the value, if possible to a different
 	// value that the local node would agree to (fully validated).
 	// This is used during nomination when encountering an invalid value (ie
 	// validateValue did not return `FullyValidatedValue` for this value).
 	// returning nil means no valid value could be extracted.
-	ExtractValidValue(slotIndex Slot, value Value) *Value
+	ExtractValidValue(ctx context.Context, slotIndex Slot, value Value) *Value
 
 	// OnExternalizedValue is is called at most once per slot when the slot
 	// externalizes its value
-	OnExternalizedValue(slotIndex Slot, value Value)
+	OnExternalizedValue(ctx context.Context, slotIndex Slot, value Value)
 }
 
 type SCPController interface {

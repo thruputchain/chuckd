@@ -24,9 +24,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	defer b.unlock()
 
 	v := &view{
-		stamp:                   b.handler.Now(),
-		latestNominatedProposal: b.nominator.latestProposal,
-		latestNominatedBlockID:  b.nominator.latestBlockID,
+		stamp: b.handler.Now(),
 	}
 
 	dbBlock := viewDbBlock{
@@ -36,13 +34,13 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	}
 
 	// if there are no scp blocks, we are done
-	if b.consensus.prop.IsEmpty() {
+	if b.consensus.ext.IsEmpty() {
 		v.blocks = []viewBlock{dbBlock}
 		v.reqs = [][]ID64{nil}
 		return v, nil
 	}
 
-	scpTopBlock := b.consensus.prop[len(b.consensus.prop)-1]
+	scpTopBlock := b.consensus.ext[len(b.consensus.ext)-1]
 	scpTopHeight := scpTopBlock.BlockHeight()
 	if scpTopHeight < dbBlock.height {
 		return nil, ErrConsensusBelowDb
@@ -65,7 +63,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	v.blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, prop := range b.consensus.prop {
+	for _, prop := range b.consensus.ext {
 		// there can be gaps between scp blocks
 		must.Assertf(ctx, prop.BlockHeight() > scpPrevHeight, "scp proposal heights not increasing")
 		scpPrevHeight = prop.BlockHeight()
@@ -97,6 +95,8 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	if err := b.compileRequests(ctx, v); err != nil {
 		return nil, err
 	}
+
+	v.nextToCommit = v.nextBlockToCommit(b)
 
 	return v, nil
 }
@@ -205,11 +205,10 @@ func (b *Baton) compileRequests(_ context.Context, v *view) error {
 }
 
 type view struct {
-	stamp                   time.Time
-	blocks                  []viewBlock
-	reqs                    [][]ID64 // catchup requests already fired for this block
-	latestNominatedProposal *proto.Proposal
-	latestNominatedBlockID  *proto.BlockID
+	stamp        time.Time
+	blocks       []viewBlock
+	reqs         [][]ID64 // catchup requests already fired for this block
+	nextToCommit *ValidatableBlock
 }
 
 func (v *view) ReadyToNominate() *nominate {
@@ -224,7 +223,11 @@ func (v *view) ReadyToNominate() *nominate {
 	}
 }
 
-func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
+func (v *view) NextBlockToCommit() *ValidatableBlock {
+	return v.nextToCommit
+}
+
+func (v *view) nextBlockToCommit(b *Baton) *ValidatableBlock {
 
 	if len(v.blocks) < 2 || !v.blocks[1].IsReadyToValidate() {
 		return nil
@@ -238,9 +241,14 @@ func (v *view) NextBlockToValidateAndCommit() *ValidatableBlock {
 	vb.DbTipID = db.id
 
 	// are we committing a block that we have nominated?
-	if v.latestNominatedProposal != nil && v.latestNominatedProposal.Block_hash == vb.BlockHash {
-		vb.NominationProposal = v.latestNominatedProposal
-		vb.NominationBlockID = v.latestNominatedBlockID
+	if b.nominator.nominatedProposal != nil && b.nominator.nominatedProposal.Block_hash == vb.BlockHash {
+		vb.AlreadyValidatedProposal = b.nominator.nominatedProposal
+		vb.AlreadyValidatedBlockID = b.nominator.nominatedBlockID
+	} else
+	// are we committing a block that we have already validated?
+	if avp, ok := b.consensus.validatedProposal[vb.BlockHash]; ok {
+		vb.AlreadyValidatedProposal = avp
+		vb.AlreadyValidatedBlockID = b.consensus.validatedBlockID[vb.BlockHash]
 	}
 
 	return vb

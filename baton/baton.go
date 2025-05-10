@@ -21,6 +21,8 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 	}
 	b.catchup.pending = map[ID64]catchupRequest{}
 	b.catchup.blocks = nil
+	b.consensus.validatedProposal = map[proto.BlockHash]*proto.Proposal{}
+	b.consensus.validatedBlockID = map[proto.BlockHash]*proto.BlockID{}
 
 	go b.startBaton(ctx)
 	return b
@@ -30,12 +32,12 @@ type Baton struct {
 	handler Handler
 	// notifications to baton
 	dbRestored   chan dbRestored
-	externalized chan proposal
+	externalized chan proposal // from scp handler
 	caughtUp     chan caughtUp
 	committed    chan committed
 	// signals from baton
-	commit   chan *ValidatableBlock
-	nominate chan *nominate
+	commit   chan *ValidatableBlock // to commit process
+	nominate chan *nominate         // to nomination process
 	// states
 	db struct {
 		lk        sync.Mutex
@@ -49,13 +51,15 @@ type Baton struct {
 		blocks  catchupBlocks           // received catchup blocks
 	}
 	consensus struct {
-		lk   sync.Mutex
-		prop proposals
+		lk                sync.Mutex
+		ext               proposals
+		validatedProposal map[proto.BlockHash]*proto.Proposal
+		validatedBlockID  map[proto.BlockHash]*proto.BlockID
 	}
 	nominator struct {
-		lk             sync.Mutex
-		latestProposal *proto.Proposal
-		latestBlockID  *proto.BlockID
+		lk                sync.Mutex
+		nominatedProposal *proto.Proposal
+		nominatedBlockID  *proto.BlockID
 	}
 }
 
@@ -106,7 +110,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 		}
 
 		// validate and commit next block, if one is available and the validate and commit thread is not busy
-		if vb := v.NextBlockToValidateAndCommit(); vb != nil {
+		if vb := v.NextBlockToCommit(); vb != nil {
 			select {
 			case b.commit <- vb: // signal may be ignored, if we are currently committing
 			default:
