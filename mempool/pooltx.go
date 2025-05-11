@@ -6,11 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TransactionMempool struct {
+	time  libtime.Time
 	txTTL time.Duration
 	lk    sync.Mutex
 	tx    map[proto.SHA256Hash]*transaction
@@ -21,8 +23,13 @@ type transaction struct {
 	proto   *proto.SignedTransaction
 }
 
-func NewTransactionMempool(ctx context.Context, txTTL time.Duration) *TransactionMempool {
+func NewTransactionMempoolReal(ctx context.Context, txTTL time.Duration) *TransactionMempool {
+	return NewTransactionMempool(ctx, libtime.RealTime{}, txTTL)
+}
+
+func NewTransactionMempool(ctx context.Context, time libtime.Time, txTTL time.Duration) *TransactionMempool {
 	mp := &TransactionMempool{
+		time:  time,
 		txTTL: txTTL,
 		tx:    map[proto.SHA256Hash]*transaction{},
 	}
@@ -40,7 +47,7 @@ func (mp *TransactionMempool) AddTx(ctx context.Context, tx *proto.SignedTransac
 	k := sha256.Sum256(xdrutil.MarshalXdr(tx))
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
-	mp.tx[k] = &transaction{created: time.Now(), proto: tx}
+	mp.tx[k] = &transaction{created: mp.time.Now(), proto: tx}
 }
 
 func (mp *TransactionMempool) ListTxs(ctx context.Context) []*proto.SignedTransaction {
@@ -62,8 +69,8 @@ func (mp *TransactionMempool) Remove(ctx context.Context, tx *proto.SignedTransa
 
 func (mp *TransactionMempool) supervise(_ context.Context) {
 	for {
-		time.Sleep(mp.txTTL)
-		now := time.Now()
+		mp.time.Sleep(mp.txTTL)
+		now := mp.time.Now()
 		mp.lk.Lock()
 		for k, tx := range mp.tx {
 			if now.Sub(tx.created) > mp.txTTL {

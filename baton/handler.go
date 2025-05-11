@@ -2,14 +2,14 @@ package baton
 
 import (
 	"context"
-	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
 
 type Handler interface {
-	Time
+	libtime.Time
 	BatchMempool
 	TransactionMempool
 	CommittedTransactionMempool
@@ -39,10 +39,6 @@ type Handler interface {
 }
 
 type ID64 int64
-
-type Time interface {
-	Now() time.Time
-}
 
 // BatchMempool provides batches of proposed transactions by other validators.
 type BatchMempool interface {

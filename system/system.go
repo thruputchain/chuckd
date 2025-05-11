@@ -26,7 +26,7 @@ type System struct {
 	Spectra   *spectra.SpectraTransport
 	Multiplex *multiplex.Multiplex // XXX: needs a driver for receiving!
 	//
-	Proposed    *mempool.ProposedMempool
+	Proposed    *mempool.BatchMempool
 	Transaction *mempool.TransactionMempool
 	//
 	Wallet *wallet.WalletGateway
@@ -77,11 +77,11 @@ func NewSystem(
 	// XXX: baton
 	// XXX: set baton as scp handler
 
-	sys.Proposed = mempool.NewProposedMempool(
+	sys.Proposed = mempool.NewBatchMempoolReal(
 		ctx,
 		time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec)*time.Millisecond,
 	)
-	sys.Transaction = mempool.NewTransactionMempool(
+	sys.Transaction = mempool.NewTransactionMempoolReal(
 		ctx,
 		time.Duration(cfg.Mempool_config.Transaction_ttl_msec)*time.Millisecond,
 	)
