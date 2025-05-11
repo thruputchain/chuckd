@@ -22,6 +22,8 @@ type TestHandler struct {
 	*mempool.CommittedMempool
 	//
 	*TestDb
+	*TestExec
+	*TestCatchup
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -55,18 +57,21 @@ func NewTestHandler(
 	//
 ) *TestHandler {
 	time := libtime.NewTestTime(now)
-	return &TestHandler{
+	h := &TestHandler{
 		rand:               rand,
 		signer:             signer,
 		TestTime:           time,
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
-		TestDb:             NewTestDb(tipHeight, tipHash, tipID),
 		nominateIn:         make(chan nominateIn),
 		nominateOut:        make(chan bool),
 		catchupSources:     catchupSources,
 	}
+	h.TestDb = NewTestDb(tipHeight, tipHash, tipID)
+	h.TestExec = NewTestExec(h.TestDb)
+	h.TestCatchup = NewTestCatchup()
+	return h
 }
 
 func (h *TestHandler) Disseminate(ctx context.Context, value xdr.XdrType) {
@@ -132,15 +137,15 @@ func (h *TestHandler) GenerateID64(context.Context) ID64 {
 }
 
 func (h *TestHandler) DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error) {
-	XXX
+	return h.TestCatchup, nil
 }
 
 func (h *TestHandler) DialDb(context.Context) (DbCoordConn, error) {
-	XXX
+	return h.TestDb, nil
 }
 
 func (h *TestHandler) DialExecs(context.Context) ([]ExecCoordConn, error) {
-	XXX
+	return h.TestExec, nil
 }
 
 func (h *TestHandler) PrioritizeTxs(ctx context.Context, txs []*proto.SignedTransaction) []*proto.SignedTransaction {
