@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -20,30 +21,51 @@ type TestHandler struct {
 	*mempool.TransactionMempool
 	*mempool.CommittedMempool
 	//
+	*TestDb
+	//
+	rlk  sync.Mutex
+	rand *rand.Rand
+	//
 	dlk          sync.Mutex
 	disseminated []xdr.XdrType
 	//
 	nominateIn  chan nominateIn
 	nominateOut chan bool
+	//
+	clk            sync.Mutex
+	catchupSources []proto.ValidatorPublicInfo
 }
 
 func NewTestHandler(
 	ctx context.Context,
+	rand *rand.Rand,
+	//
 	now time.Time,
 	signer proto.ValidatorPrivateInfo,
+	//
 	batchTTL time.Duration,
 	txTTL time.Duration,
 	committedTTL time.Duration,
+	//
+	tipHeight proto.BlockHeight,
+	tipHash proto.BlockHash,
+	tipID proto.BlockID,
+	//
+	catchupSources []proto.ValidatorPublicInfo,
+	//
 ) *TestHandler {
 	time := libtime.NewTestTime(now)
 	return &TestHandler{
+		rand:               rand,
 		signer:             signer,
 		TestTime:           time,
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
+		TestDb:             NewTestDb(tipHeight, tipHash, tipID),
 		nominateIn:         make(chan nominateIn),
 		nominateOut:        make(chan bool),
+		catchupSources:     catchupSources,
 	}
 }
 
@@ -83,4 +105,44 @@ func (h *TestHandler) SignXdr(v xdr.XdrType) proto.Signature {
 
 func (h *TestHandler) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
 	return protoutil.VerifyXdr(signer, value, sig)
+}
+
+func (h *TestHandler) GetCatchupSources(context.Context) []proto.ValidatorPublicInfo {
+	h.clk.Lock()
+	defer h.clk.Unlock()
+	return h.catchupSources
+}
+
+func (h *TestHandler) SetCatchupSources(cs []proto.ValidatorPublicInfo) {
+	h.clk.Lock()
+	defer h.clk.Unlock()
+	h.catchupSources = cs
+}
+
+func (h *TestHandler) GenerateBlockID(context.Context) proto.BlockID {
+	h.rlk.Lock()
+	defer h.rlk.Unlock()
+	return h.rand.Uint64()
+}
+
+func (h *TestHandler) GenerateID64(context.Context) ID64 {
+	h.rlk.Lock()
+	defer h.rlk.Unlock()
+	return ID64(h.rand.Int63())
+}
+
+func (h *TestHandler) DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error) {
+	XXX
+}
+
+func (h *TestHandler) DialDb(context.Context) (DbCoordConn, error) {
+	XXX
+}
+
+func (h *TestHandler) DialExecs(context.Context) ([]ExecCoordConn, error) {
+	XXX
+}
+
+func (h *TestHandler) PrioritizeTxs(ctx context.Context, txs []*proto.SignedTransaction) []*proto.SignedTransaction {
+	return txs
 }

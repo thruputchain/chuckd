@@ -91,7 +91,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 	b.catchup.lk.Lock()
 	defer b.catchup.lk.Unlock()
 
-	src := b.handler.ProvideCatchupSources(ctx, 1)
+	src := b.handler.GetCatchupSources(ctx)
 	must.Assertf(ctx, len(src) > 0, "no catchup sources")
 
 	// mark pending request

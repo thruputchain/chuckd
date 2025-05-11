@@ -20,7 +20,7 @@ type Handler interface {
 	SignXdr(xdr.XdrType) proto.Signature
 	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
 
-	ProvideCatchupSources(context.Context, int) []proto.ValidatorPublicInfo
+	GetCatchupSources(context.Context) []proto.ValidatorPublicInfo
 
 	RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, proto.BlockID, error) // implemented by the coordinator service
 
