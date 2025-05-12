@@ -7,10 +7,10 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, nextID proto.BlockID) error {
+func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, blockID proto.BlockID) error {
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTip.ID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTip.ID, blockID)
 	if err != nil {
 		return err
 	}
@@ -21,8 +21,12 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 	// connect to available executors
 	execs, err := b.handler.DialExecs(ctx)
 	if err != nil {
-		db.Dbcoord_abandon_snapshot(ctx, nextID)
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return err
+	}
+	if len(execs) == 0 {
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
+		return ErrNoExecs
 	}
 	for _, exec := range execs {
 		defer exec.Close()
@@ -40,7 +44,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 		go func(exec ExecCoordConn) {
 
 			// executor open validation block
-			execResult, err := exec.Executorcoord_open_validation_block(ctx, nextID)
+			execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
 			if err != nil {
 				validatedCh <- err
 				return
@@ -57,7 +61,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 				default:
 				}
 
-				execResult, err := exec.Executorcoord_validate_transaction(ctx, nextID, *tx)
+				execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
 				if err != nil {
 					validatedCh <- err
 					return
@@ -69,7 +73,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 			}
 
 			// executor finish validation block
-			err = exec.Executorcoord_finish_block(ctx, nextID)
+			err = exec.Executorcoord_finish_block(ctx, blockID)
 			if err != nil {
 				validatedCh <- fmt.Errorf("executor finish error: %v", err)
 				return
@@ -87,7 +91,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 	}
 	if verr != nil {
 		// db abandon snapshot
-		db.Dbcoord_abandon_snapshot(ctx, nextID)
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return fmt.Errorf("validation error: %v", verr)
 	}
 
@@ -102,13 +106,13 @@ func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) error 
 	}
 	defer db.Close()
 
-	blkID := b.handler.GenerateBlockID(ctx)
+	blockID := b.handler.GenerateBlockID(ctx)
 
-	if err = b.validate(ctx, vb, db, blkID); err != nil {
+	if err = b.validate(ctx, vb, db, blockID); err != nil {
 		return err
 	}
 
-	return b.finalizeCommit(ctx, vb, blkID, db)
+	return b.finalizeCommit(ctx, vb, blockID, db)
 }
 
 func (b *Baton) validateClose(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
@@ -119,13 +123,13 @@ func (b *Baton) validateClose(ctx context.Context, vb *ValidatableBlock) (proto.
 	}
 	defer db.Close()
 
-	blkID := b.handler.GenerateBlockID(ctx)
+	blockID := b.handler.GenerateBlockID(ctx)
 
-	if err = b.validate(ctx, vb, db, blkID); err != nil {
+	if err = b.validate(ctx, vb, db, blockID); err != nil {
 		return 0, err
 	}
 
-	return blkID, b.finalizeClose(ctx, vb, blkID, db)
+	return blockID, b.finalizeClose(ctx, vb, blockID, db)
 }
 
 func (b *Baton) finalizeClose(

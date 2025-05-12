@@ -42,17 +42,19 @@ func (b *Baton) startNominating(ctx context.Context) {
 
 		// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
 		prepCtx, prepCancel := context.WithCancel(ctx)
-		prepCh := make(chan *nomination, 1)
+		prepCh := make(chan *prepared, 1)
 		go func() {
 			nom, err := b.prepareNomination(prepCtx, signal, txsToNominate)
 			if err != nil {
 				log.Errorf("preparing nomination: %v", err)
+				prepCh <- &prepared{error: err}
+			} else {
+				prepCh <- &prepared{nomination: nom}
 			}
-			prepCh <- nom
 		}()
 
 		// wait for nomination preparation or for a new tip interruption
-		var nom *nomination
+		var prep *prepared
 	WaitPrepReadyOrInterrupt:
 		for {
 			select {
@@ -63,14 +65,20 @@ func (b *Baton) startNominating(ctx context.Context) {
 				} else {
 					break WaitPrepReadyOrInterrupt
 				}
-			case nom = <-prepCh:
+			case prep = <-prepCh:
 				break WaitPrepReadyOrInterrupt
 			}
 		}
 		prepCancel()
-		if nom == nil { // we were interrupted
+		if prep == nil { // we were interrupted
 			continue
 		}
+		if prep.error != nil {
+			// XXX: handle ErrNoExecs
+			continue
+		}
+
+		nom := prep.nomination
 
 		// construct proposed block
 		batch := proto.BatchTransactions{
@@ -122,6 +130,11 @@ func (b *Baton) startNominating(ctx context.Context) {
 	}
 }
 
+type prepared struct {
+	error
+	*nomination
+}
+
 type nomination struct {
 	dbBlockID     proto.BlockID
 	blockHeight   proto.BlockHeight
@@ -150,10 +163,10 @@ func (b *Baton) prepareNomination(
 	}
 	defer db.Close()
 
-	nextID := b.handler.GenerateBlockID(ctx)
+	blockID := b.handler.GenerateBlockID(ctx)
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, tip.tip.ID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, tip.tip.ID, blockID)
 	if err != nil {
 		return nil, err
 	}
@@ -164,8 +177,12 @@ func (b *Baton) prepareNomination(
 	// connect to available executors
 	execs, err := b.handler.DialExecs(ctx)
 	if err != nil {
-		db.Dbcoord_abandon_snapshot(ctx, nextID)
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, err
+	}
+	if len(execs) == 0 {
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
+		return nil, ErrNoExecs
 	}
 	for _, exec := range execs {
 		defer exec.Close()
@@ -183,7 +200,7 @@ func (b *Baton) prepareNomination(
 		go func(exec ExecCoordConn) {
 
 			// executor open proposal block
-			execResult, err := exec.Executorcoord_open_proposal_block(ctx, nextID)
+			execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
 			if err != nil {
 				proposedCh <- proposed{err: err}
 				return
@@ -201,7 +218,7 @@ func (b *Baton) prepareNomination(
 				default:
 				}
 
-				proposeResult, err := exec.Executorcoord_propose_transaction(ctx, nextID, *tx)
+				proposeResult, err := exec.Executorcoord_propose_transaction(ctx, blockID, *tx)
 				if err != nil {
 					proposedCh <- proposed{err: err}
 					return
@@ -220,7 +237,7 @@ func (b *Baton) prepareNomination(
 			}
 
 			// executor finish proposal block
-			err = exec.Executorcoord_finish_block(ctx, nextID)
+			err = exec.Executorcoord_finish_block(ctx, blockID)
 			if err != nil {
 				proposedCh <- proposed{err: fmt.Errorf("executor finish error: %v", err)}
 				return
@@ -241,21 +258,21 @@ func (b *Baton) prepareNomination(
 	}
 	if verr != nil {
 		// db abandon snapshot
-		db.Dbcoord_abandon_snapshot(ctx, nextID)
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, fmt.Errorf("proposal error: %v", verr)
 	}
 
-	// db commit snapshot
-	dbBlockResult, err := db.Dbcoord_commit_snapshot(ctx, nextID)
+	// db close snapshot
+	dbBlockResult, err := db.Dbcoord_close_snapshot(ctx, blockID)
 	if err != nil {
 		return nil, err
 	}
 	if dbBlockResult.Result != proto.DbResultOK {
-		return nil, fmt.Errorf("db commit snapshot rpc error")
+		return nil, fmt.Errorf("db close snapshot rpc error")
 	}
 
 	return &nomination{
-		dbBlockID:     nextID,
+		dbBlockID:     blockID,
 		blockHeight:   tip.tip.Height + 1,
 		blockHash:     *dbBlockResult.Block_hash(),
 		prevBlockHash: tip.tip.Hash,

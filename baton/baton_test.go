@@ -31,6 +31,7 @@ func TestExt(t *testing.T) {
 	tick := time.Second
 
 	rig.AddTx(ctx, rig.MakeSignedTx(ctx)) // user submits tx
+	rig.StageExecs(1)
 
 	baton.Start(ctx)
 

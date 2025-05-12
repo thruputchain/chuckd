@@ -27,7 +27,7 @@ type TestRig struct {
 	*TestSCP
 	//
 	xlk       sync.Mutex
-	nextExecs []ExecCoordConn
+	nextExecs [][]ExecCoordConn
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -151,7 +151,7 @@ func (h *TestRig) DialDb(context.Context) (DbCoordConn, error) {
 	return h.TestDb, nil
 }
 
-func (h *TestRig) Control_PrepNextExecs(n int) []*TestExec {
+func (h *TestRig) StageExecs(n int) []*TestExec {
 	testExecs := make([]*TestExec, n)
 	execs := make([]ExecCoordConn, n)
 	for i := range testExecs {
@@ -160,15 +160,16 @@ func (h *TestRig) Control_PrepNextExecs(n int) []*TestExec {
 	}
 	h.xlk.Lock()
 	defer h.xlk.Unlock()
-	h.nextExecs = execs
+	h.nextExecs = append(h.nextExecs, execs)
 	return testExecs
 }
 
-func (h *TestRig) DialExecs(context.Context) ([]ExecCoordConn, error) {
+func (h *TestRig) DialExecs(ctx context.Context) ([]ExecCoordConn, error) {
 	h.xlk.Lock()
 	defer h.xlk.Unlock()
-	execs := h.nextExecs
-	h.nextExecs = nil
+	must.Assertf(ctx, len(h.nextExecs) > 0, "no staged execs")
+	execs := h.nextExecs[0]
+	h.nextExecs = h.nextExecs[1:]
 	return execs, nil
 }
 

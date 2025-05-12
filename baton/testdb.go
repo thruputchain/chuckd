@@ -60,9 +60,9 @@ func (db *TestDb) assertOpen(ctx context.Context, id proto.BlockID) {
 func (db *TestDb) mutate(ctx context.Context, id proto.BlockID, mut []byte) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
-	block, ok := db.id[id]
-	must.Assertf(ctx, ok && block.open > 0, "block is not open")
-	block.hash = sha256.Sum256(append(block.hash[:], mut...))
+	snap, ok := db.id[id]
+	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
+	snap.hash = sha256.Sum256(append(snap.hash[:], mut...))
 }
 
 func (db *TestDb) Dbcoord_null(ctx context.Context) error {
