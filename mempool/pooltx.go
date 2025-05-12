@@ -60,8 +60,7 @@ func (mp *TransactionMempool) ListTxs(ctx context.Context) []*proto.SignedTransa
 	return txs
 }
 
-func (mp *TransactionMempool) Remove(ctx context.Context, tx *proto.SignedTransaction) {
-	k := sha256.Sum256(xdrutil.MarshalXdr(tx))
+func (mp *TransactionMempool) RemoveTx(ctx context.Context, k proto.SignedTransactionHash) {
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
 	delete(mp.tx, k)

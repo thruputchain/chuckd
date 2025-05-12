@@ -23,9 +23,11 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 	b.catchup.blocks = nil
 	b.consensus.validatedProposal = map[proto.BlockHash]*proto.Proposal{}
 	b.consensus.validatedBlockID = map[proto.BlockHash]*proto.BlockID{}
-
-	go b.startBaton(ctx)
 	return b
+}
+
+func (b *Baton) Start(ctx context.Context) {
+	go b.startBaton(ctx)
 }
 
 type Baton struct {

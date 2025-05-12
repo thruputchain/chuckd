@@ -36,33 +36,33 @@ type SCPHandler interface {
 	// will abstain from emitting its position.
 	// validation can be *more* restrictive during nomination as needed
 	// NB: validation levels are ordered
-	ValidateValue(ctx context.Context, slotIndex Slot, value Value, nomination bool) ValidationLevel
+	ValidateValue(ctx context.Context, slot Slot, value Value, nomination bool) ValidationLevel
 
 	// ExtractValidValue transforms the value, if possible to a different
 	// value that the local node would agree to (fully validated).
 	// This is used during nomination when encountering an invalid value (ie
 	// validateValue did not return `FullyValidatedValue` for this value).
 	// returning nil means no valid value could be extracted.
-	ExtractValidValue(ctx context.Context, slotIndex Slot, value Value) *Value
+	ExtractValidValue(ctx context.Context, slot Slot, value Value) *Value
 
 	// OnExternalizedValue is is called at most once per slot when the slot
 	// externalizes its value
-	OnExternalizedValue(ctx context.Context, slotIndex Slot, value Value)
+	OnExternalizedValue(ctx context.Context, slot Slot, value Value)
 }
 
 type SCPController interface {
-	// Submit a value to consider for slotIndex
-	// prev is the value from slotIndex-1.
+	// Submit a value to consider for slot
+	// prev is the value from slot-1.
 	// prev is used to pick a leader.
 	// Nomination is blocking and can be aborted using the context.
-	Nominate(ctx context.Context, slotIndex Slot, value Value, prev Value) bool
+	Nominate(ctx context.Context, slot Slot, value Value, prev Value) bool
 
 	// Local QuorumSet interface (can be dynamically updated)
 	UpdateQuorumSet(proto.QuorumSet)
 	GetQuorumSet() proto.QuorumSet
 	NodeID() NodeID
 
-	// Purges all data relative to all the slots whose slotIndex is smaller
+	// Purges all data relative to all the slots whose slot is smaller
 	// than the specified `maxSlotIndex` except for slotToKeep slot.
 	PurgeSlots(maxSlotIndex Slot, slotToKeep Slot)
 

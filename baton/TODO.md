@@ -1,3 +1,10 @@
+- [ ] nominate signal without transactions to nominate?
+- [ ] txs cannot be submitted if older than txTTL
+- [ ] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
+
+
+
+
 - [ ] does a proposal need to be signed by the source nominator?
 - [ ] implement test handler
 

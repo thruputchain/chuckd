@@ -14,7 +14,8 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-type TestHandler struct {
+type TestRig struct {
+	user   proto.ValidatorSecretKey
 	signer proto.ValidatorPrivateInfo
 	*libtime.TestTime
 	*mempool.BatchMempool
@@ -22,6 +23,7 @@ type TestHandler struct {
 	*mempool.CommittedMempool
 	*TestDb
 	*TestCatchup
+	*TestSCP
 	//
 	xlk       sync.Mutex
 	nextExecs []ExecCoordConn
@@ -36,25 +38,23 @@ type TestHandler struct {
 	nominateOut chan bool
 }
 
-func NewTestHandler(
+func NewTestRig(
 	ctx context.Context,
 	rand *rand.Rand,
-	//
 	now time.Time,
-	signer proto.ValidatorPrivateInfo,
-	//
 	batchTTL time.Duration,
 	txTTL time.Duration,
 	committedTTL time.Duration,
-	//
-	tipHeight proto.BlockHeight,
-	tipHash proto.BlockHash,
-	tipID proto.BlockID,
-) *TestHandler {
+) *TestRig {
+	user, err := protoutil.GenerateIdentity(rand, "test_user")
+	must.NoError(ctx, err)
+	signer, err := protoutil.GenerateIdentity(rand, "test_validator")
+	must.NoError(ctx, err)
 	time := libtime.NewTestTime(now)
-	h := &TestHandler{
+	h := &TestRig{
 		rand:               rand,
-		signer:             signer,
+		user:               user.Secret_key,
+		signer:             *signer,
 		TestTime:           time,
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
@@ -62,14 +62,18 @@ func NewTestHandler(
 		nominateIn:         make(chan nominateIn),
 		nominateOut:        make(chan bool),
 	}
-	h.TestDb = NewTestDb(tipHeight, tipHash, tipID)
+	h.TestDb = NewTestDb(0, proto.BlockHash{}, 0)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
 	h.TestCatchup = NewTestCatchup(*catchupSigner)
 	return h
 }
 
-func (h *TestHandler) Disseminate(ctx context.Context, value xdr.XdrType) {
+func (h *TestRig) Bind(b *Baton) {
+	h.TestSCP = NewTestSCP(b.SCPHandler())
+}
+
+func (h *TestRig) Disseminate(ctx context.Context, value xdr.XdrType) {
 	h.dlk.Lock()
 	defer h.dlk.Unlock()
 	h.disseminated = append(h.disseminated, value)
@@ -81,17 +85,17 @@ type nominateIn struct {
 	Prev  xdr.XdrType
 }
 
-func (h *TestHandler) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
+func (h *TestRig) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
 	h.nominateIn <- nominateIn{Slot: slot, Value: value, Prev: prev}
 	return <-h.nominateOut
 }
 
-func (h *TestHandler) Control_WaitNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestRig) Control_WaitNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
 	x := <-h.nominateIn
 	return x.Slot, x.Value, x.Prev
 }
 
-func (h *TestHandler) Control_GetNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestRig) Control_GetNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
 	select {
 	case x := <-h.nominateIn:
 		return x.Slot, x.Value, x.Prev
@@ -101,47 +105,47 @@ func (h *TestHandler) Control_GetNextNomination(ctx context.Context) (slot int64
 	panic("unreachable")
 }
 
-func (h *TestHandler) SignalNomination(result bool) {
+func (h *TestRig) SignalNomination(result bool) {
 	h.nominateOut <- result
 }
 
-func (h *TestHandler) Signer() proto.ValidatorPublicInfo {
+func (h *TestRig) Signer() proto.ValidatorPublicInfo {
 	return h.signer.Public_info
 }
 
-func (h *TestHandler) SignXdr(v xdr.XdrType) proto.Signature {
+func (h *TestRig) SignXdr(v xdr.XdrType) proto.Signature {
 	return protoutil.SignXdr(h.signer.Secret_key, v)
 }
 
-func (h *TestHandler) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+func (h *TestRig) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
 	return protoutil.VerifyXdr(signer, value, sig)
 }
 
-func (h *TestHandler) GetCatchupSources(context.Context) []proto.ValidatorPublicInfo {
+func (h *TestRig) GetCatchupSources(context.Context) []proto.ValidatorPublicInfo {
 	return []proto.ValidatorPublicInfo{h.TestCatchup.Signer.Public_info}
 }
 
-func (h *TestHandler) GenerateBlockID(context.Context) proto.BlockID {
+func (h *TestRig) GenerateBlockID(context.Context) proto.BlockID {
 	h.rlk.Lock()
 	defer h.rlk.Unlock()
 	return h.rand.Uint64()
 }
 
-func (h *TestHandler) GenerateID64(context.Context) ID64 {
+func (h *TestRig) GenerateID64(context.Context) ID64 {
 	h.rlk.Lock()
 	defer h.rlk.Unlock()
 	return ID64(h.rand.Int63())
 }
 
-func (h *TestHandler) DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error) {
+func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error) {
 	return h.TestCatchup, nil
 }
 
-func (h *TestHandler) DialDb(context.Context) (DbCoordConn, error) {
+func (h *TestRig) DialDb(context.Context) (DbCoordConn, error) {
 	return h.TestDb, nil
 }
 
-func (h *TestHandler) Control_PrepNextExecs(n int) []*TestExec {
+func (h *TestRig) Control_PrepNextExecs(n int) []*TestExec {
 	testExecs := make([]*TestExec, n)
 	execs := make([]ExecCoordConn, n)
 	for i := range testExecs {
@@ -154,7 +158,7 @@ func (h *TestHandler) Control_PrepNextExecs(n int) []*TestExec {
 	return testExecs
 }
 
-func (h *TestHandler) DialExecs(context.Context) ([]ExecCoordConn, error) {
+func (h *TestRig) DialExecs(context.Context) ([]ExecCoordConn, error) {
 	h.xlk.Lock()
 	defer h.xlk.Unlock()
 	execs := h.nextExecs
@@ -162,6 +166,6 @@ func (h *TestHandler) DialExecs(context.Context) ([]ExecCoordConn, error) {
 	return execs, nil
 }
 
-func (h *TestHandler) PrioritizeTxs(ctx context.Context, txs []*proto.SignedTransaction) []*proto.SignedTransaction {
+func (h *TestRig) PrioritizeTxs(ctx context.Context, txs []*proto.SignedTransaction) []*proto.SignedTransaction {
 	return txs
 }
