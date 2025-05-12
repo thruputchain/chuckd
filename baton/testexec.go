@@ -61,6 +61,7 @@ func (x *TestExec) Executorcoord_open_proposal_block(ctx context.Context, blockI
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	must.Assertf(ctx, x.openedID == nil, "executor block already open")
+	x.openedID = &blockID
 	return proto.ExecResultOK, nil
 }
 
@@ -69,6 +70,7 @@ func (x *TestExec) Executorcoord_open_validation_block(ctx context.Context, bloc
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	must.Assertf(ctx, x.openedID == nil, "executor block already open")
+	x.openedID = &blockID
 	return proto.ExecResultOK, nil
 }
 

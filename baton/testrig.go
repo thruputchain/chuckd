@@ -61,8 +61,8 @@ func NewTestRig(
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
-		nominateIn:         make(chan nominateIn),
-		nominateOut:        make(chan bool),
+		nominateIn:         make(chan nominateIn, 1),
+		nominateOut:        make(chan bool, 1),
 	}
 	h.TestDb = NewTestDb(0, proto.BlockHash{}, 0)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
@@ -96,12 +96,12 @@ func (h *TestRig) Nominate(ctx context.Context, slot int64, value xdr.XdrType, p
 	return <-h.nominateOut
 }
 
-func (h *TestRig) Control_WaitNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestRig) WaitNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
 	x := <-h.nominateIn
 	return x.Slot, x.Value, x.Prev
 }
 
-func (h *TestRig) Control_GetNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestRig) GetNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
 	select {
 	case x := <-h.nominateIn:
 		return x.Slot, x.Value, x.Prev

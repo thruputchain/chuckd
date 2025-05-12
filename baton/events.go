@@ -8,3 +8,10 @@ type EventNominating struct {
 	NumTx      int
 	Proposal   *proto.Proposal
 }
+
+type EventNominated struct {
+	Nominated any
+	Tip       Tip
+	NumTx     int
+	Proposal  *proto.Proposal
+}

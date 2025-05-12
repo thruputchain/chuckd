@@ -14,6 +14,7 @@ func TestExt(t *testing.T) {
 
 	log.LogVerbosely()
 	runtime.SetRootSeed(0)
+	runtime.CaptureInterrupts()
 
 	roundDuration := time.Second
 	ctx := context.Background()
@@ -38,6 +39,9 @@ func TestExt(t *testing.T) {
 	nominating := rig.ReceiveEvent(ctx).Event.(EventNominating)
 
 	rig.PassTime(tick)
+
+	rig.SignalNomination(true)
+	rig.WaitNextNomination(ctx)
 
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating.Proposal))
 

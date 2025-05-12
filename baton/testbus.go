@@ -18,7 +18,9 @@ type TestEnvelope struct {
 }
 
 func NewTestBus() *TestBus {
-	return &TestBus{}
+	return &TestBus{
+		emitted: make(chan TestEnvelope, 1),
+	}
 }
 
 func (b *TestBus) SendEvent(s time.Time, event any) {

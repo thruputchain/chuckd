@@ -127,6 +127,8 @@ func (b *Baton) startNominating(ctx context.Context) {
 		if outcome == nil {
 			break
 		}
+
+		b.handler.Emit(ctx, EventNominated{Tip: signal.tip, NumTx: len(uncommittedTxs), Proposal: proposal})
 	}
 }
 

@@ -6,6 +6,7 @@
 - [*] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
 
 
+- [ ] db_open should split into db_create and db_open
 
 
 - [ ] does a proposal need to be signed by the source nominator?
