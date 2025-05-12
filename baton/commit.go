@@ -99,6 +99,8 @@ func (b *Baton) finalizeCommit(
 	// purge catchup or consensus blocks no higher than the newly committed one
 	b.purgeBelowTip(ctx)
 
+	b.handler.Emit(ctx, EventCommitted{ValidatableBlock: vb, BlockID: blockID})
+
 	return nil
 }
 

@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -10,40 +11,53 @@ import (
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
-func TestExt(t *testing.T) {
-
+func TestMain(m *testing.M) {
 	log.LogVerbosely()
 	runtime.SetRootSeed(0)
 	runtime.CaptureInterrupts()
+	exitCode := m.Run()
+	os.Exit(exitCode)
+}
 
-	roundDuration := time.Second
+func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
+	tick := time.Second
 	ctx := context.Background()
 	rig := NewTestRig(
 		ctx,
 		runtime.NewRandFromRoot(),
 		time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
-		3*roundDuration, // batchTTL
-		3*roundDuration, // txTTL
-		5*roundDuration, // committedTTL
+		3*tick, // batchTTL
+		3*tick, // txTTL
+		5*tick, // committedTTL
 	)
 	baton := NewBaton(ctx, rig)
 	rig.Bind(baton)
+	return ctx, rig, baton, tick
+}
 
-	tick := time.Second
+func TestNominateCommit(t *testing.T) {
 
+	ctx, rig, baton, tick := testSetup()
+
+	// stage 1: nominate 1
 	rig.AddTx(ctx, rig.MakeSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
-
 	baton.Start(ctx)
-
-	nominating := rig.ReceiveEvent(ctx).Event.(EventNominating)
-
-	rig.PassTime(tick)
-
+	nominating_1 := rig.ReceiveEvent(ctx).Event.(EventNominating)
 	rig.SignalNomination(true)
 	rig.WaitNextNomination(ctx)
+	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
+	rig.PassTime(tick)
 
-	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating.Proposal))
+	// stage 2: commit already validated 1 (and nominate 2 in parallel)
+	rig.StageExecs(1)
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Proposal)) // trigger commit
+	_ = rig.ReceiveEvent(ctx).Event.(EventCommitted)
+	rig.SignalNomination(true)
+	rig.WaitNextNomination(ctx)
+	_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
+	rig.PassTime(tick)
 
-	select {}
+	// select {}
 }

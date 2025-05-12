@@ -15,3 +15,9 @@ type EventNominated struct {
 	NumTx     int
 	Proposal  *proto.Proposal
 }
+
+type EventCommitted struct {
+	Committed any
+	*ValidatableBlock
+	proto.BlockID
+}
