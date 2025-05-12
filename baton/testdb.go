@@ -19,7 +19,7 @@ type testDbSnapshot struct {
 	height    proto.BlockHeight
 	hash      proto.BlockHash
 	id        proto.BlockID
-	open      int
+	open      bool
 	committed bool
 }
 
@@ -31,7 +31,7 @@ func NewTestDb(height proto.BlockHeight, hash proto.BlockHash, id proto.BlockID)
 		height:    height,
 		hash:      hash,
 		id:        id,
-		open:      0,
+		open:      false,
 		committed: true,
 	}
 	db.id[id] = db.tip
@@ -53,7 +53,7 @@ func (db *TestDb) assertOpen(ctx context.Context, id proto.BlockID) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	block, ok := db.id[id]
-	must.Assertf(ctx, ok && block.open > 0, "block is not open")
+	must.Assertf(ctx, ok && block.open, "block is not open")
 }
 
 // mutate is called by TestExec
@@ -61,7 +61,7 @@ func (db *TestDb) mutate(ctx context.Context, id proto.BlockID, mut []byte) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
-	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
+	must.Assertf(ctx, ok && snap.open, "block is not open")
 	snap.hash = sha256.Sum256(append(snap.hash[:], mut...))
 }
 
@@ -69,7 +69,19 @@ func (db *TestDb) Dbcoord_null(ctx context.Context) error {
 	return nil
 }
 
-func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID) (proto.DbResult, error) {
+func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
+	db.lk.Lock()
+	defer db.lk.Unlock()
+
+	snap := db.id[id]
+	must.Assertf(ctx, snap != nil, "block not found")
+	must.Assertf(ctx, !snap.open, "block already open")
+	snap.open = true
+
+	return proto.DbResultOK, nil
+}
+
+func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID) (proto.DbResult, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 
@@ -77,9 +89,9 @@ func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, parentID proto.Bloc
 	must.Assertf(ctx, ok, "missing parent block")
 	child := &testDbSnapshot{
 		height:    parent.height + 1,
-		hash:      proto.BlockHash{}, // 0
+		hash:      proto.BlockHash{},
 		id:        id,
-		open:      1,
+		open:      true,
 		committed: false,
 	}
 	must.Assertf(ctx, db.id[id] == nil, "block id already allocated")
@@ -92,9 +104,9 @@ func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID)
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok, "unknown block")
-	must.Assertf(ctx, snap.open > 0, "block not open")
+	must.Assertf(ctx, snap.open, "block not open")
 	must.Assertf(ctx, !snap.committed, "block already committed")
-	snap.open -= 1
+	snap.open = false
 	snap.committed = true
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
 	*result.Block_hash() = snap.hash
@@ -106,8 +118,8 @@ func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) 
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok, "unknown block")
-	must.Assertf(ctx, snap.open > 0, "block not open")
-	snap.open -= 1
+	must.Assertf(ctx, snap.open, "block not open")
+	snap.open = false
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
 	*result.Block_hash() = snap.hash
 	return result, nil
@@ -118,9 +130,9 @@ func (db *TestDb) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok, "unknown block")
-	must.Assertf(ctx, snap.open > 0, "block is not open")
+	must.Assertf(ctx, snap.open, "block is not open")
 	must.Assertf(ctx, !snap.committed, "abandoning committed block")
-	snap.open -= 1
+	snap.open = false
 	delete(db.id, id)
 	return proto.DbResultOK, nil
 }

@@ -38,10 +38,10 @@ func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock
 	}
 	defer db.Close()
 
-	nextID := *vb.AlreadyValidatedBlockID
+	blockID := *vb.AlreadyValidatedBlockID
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTip.ID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, blockID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock
 		return fmt.Errorf("db open snapshot error")
 	}
 
-	return b.finalizeCommit(ctx, vb, nextID, db)
+	return b.finalizeCommit(ctx, vb, blockID, db)
 }
 
 func (b *Baton) finalizeCommit(

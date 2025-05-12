@@ -9,13 +9,13 @@ import (
 
 func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, blockID proto.BlockID) error {
 
-	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTip.ID, blockID)
+	// db create snapshot
+	dbResult, err := db.Dbcoord_create_snapshot(ctx, vb.DbTip.ID, blockID)
 	if err != nil {
 		return err
 	}
 	if dbResult != proto.DbResultOK {
-		return fmt.Errorf("db open snapshot error")
+		return fmt.Errorf("db create snapshot error")
 	}
 
 	// connect to available executors

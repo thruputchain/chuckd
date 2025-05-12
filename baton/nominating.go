@@ -167,13 +167,13 @@ func (b *Baton) prepareNomination(
 
 	blockID := b.handler.GenerateBlockID(ctx)
 
-	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, tip.tip.ID, blockID)
+	// db create snapshot
+	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.tip.ID, blockID)
 	if err != nil {
 		return nil, err
 	}
 	if dbResult != proto.DbResultOK {
-		return nil, fmt.Errorf("db open snapshot rpc error")
+		return nil, fmt.Errorf("db create snapshot rpc error")
 	}
 
 	// connect to available executors
