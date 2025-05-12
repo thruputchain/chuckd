@@ -88,6 +88,10 @@ func (b *Baton) purgeCatchup(_ context.Context) {
 
 func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 
+	if len(spans) == 0 {
+		return
+	}
+
 	b.catchup.lk.Lock()
 	defer b.catchup.lk.Unlock()
 

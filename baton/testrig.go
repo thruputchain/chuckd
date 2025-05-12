@@ -17,6 +17,7 @@ import (
 type TestRig struct {
 	user   proto.ValidatorSecretKey
 	signer proto.ValidatorPrivateInfo
+	*TestBus
 	*libtime.TestTime
 	*mempool.BatchMempool
 	*mempool.TransactionMempool
@@ -55,6 +56,7 @@ func NewTestRig(
 		rand:               rand,
 		user:               user.Secret_key,
 		signer:             *signer,
+		TestBus:            NewTestBus(),
 		TestTime:           time,
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
@@ -71,6 +73,10 @@ func NewTestRig(
 
 func (h *TestRig) Bind(b *Baton) {
 	h.TestSCP = NewTestSCP(b.SCPHandler())
+}
+
+func (h *TestRig) Emit(ctx context.Context, event any) {
+	h.TestBus.Add(h.TestTime.Now(), event)
 }
 
 func (h *TestRig) Disseminate(ctx context.Context, value xdr.XdrType) {

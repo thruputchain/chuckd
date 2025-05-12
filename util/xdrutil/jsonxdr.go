@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/xdrpp/goxdr/xdr"
@@ -217,6 +218,8 @@ func (j *jsonOut) marshalGo(name string, val any) {
 	case []byte:
 		x := xdr.XdrVecOpaque{Bytes: &u, Bound: uint32(len(u))}
 		j.Marshal(name, &x)
+	case time.Time:
+		j.printField(name, "%v", u)
 	default:
 		vv := reflect.ValueOf(val)
 		switch {
@@ -244,7 +247,7 @@ func (j *jsonOut) marshalGo(name string, val any) {
 				j.marshalGo(name, vv.Elem().Interface())
 			}
 		default: // complex64, etc
-			j.printField(name, "go:%v", val)
+			j.printField(name, "%v", val)
 		}
 	}
 }

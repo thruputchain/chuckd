@@ -1,6 +1,9 @@
 - [ ] nominate signal without transactions to nominate?
+  - creates empty block in db
+  - sends empty batch
 - [ ] txs cannot be submitted if older than txTTL
-- [ ] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
+  - enforced by expiration in txpool and batchpool
+- [*] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
 
 
 

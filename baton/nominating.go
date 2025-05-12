@@ -39,6 +39,8 @@ func (b *Baton) startNominating(ctx context.Context) {
 			}
 		}
 
+		b.handler.Emit(ctx, EventNominating{TipHeight: tip.tipHeight, TipHash: tip.tipHash, TipID: tip.tipID, NumTx: len(uncommittedTxs)})
+
 		// prioritize and pick the top, applying any limits on transactions per block
 		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
 
@@ -85,6 +87,9 @@ func (b *Baton) startNominating(ctx context.Context) {
 			Prev_block_hash:              nom.prevBlockHash,
 			Proposed_transaction_batches: []proto.BatchHash{batchHash},
 		}
+
+		// save batches
+		b.handler.AddBatch(ctx, batch)
 
 		// disseminate batches; this is non-blocking (no network ops)
 		b.handler.Disseminate(ctx, &proto.BatchMessage{Batch_transactions: batch})

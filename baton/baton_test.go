@@ -5,19 +5,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/runtime"
 )
 
 func TestExt(t *testing.T) {
 
+	log.LogVerbosely()
+	runtime.SetRootSeed(0)
+
 	roundDuration := time.Second
 	ctx := context.Background()
-	runtime.SetRootSeed(0)
 	rig := NewTestRig(
 		ctx,
 		runtime.NewRandFromRoot(),
 		time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
-		5*roundDuration, // batchTTL
+		3*roundDuration, // batchTTL
 		3*roundDuration, // txTTL
 		5*roundDuration, // committedTTL
 	)
@@ -28,5 +31,6 @@ func TestExt(t *testing.T) {
 	rig.AddTx(ctx, rig.MakeSignedTx(ctx))
 
 	baton.Start(ctx)
-	// XXX
+
+	select {}
 }

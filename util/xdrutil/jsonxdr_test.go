@@ -68,7 +68,7 @@ func TestAnyToJson(t *testing.T) {
     "Unexported": false,
     "ByteArray": "AAAA",
     "SomeXdr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-    "Complex": go:(0+0i),
+    "Complex": (0+0i),
     "MissingPointer": null,
     "PresentPointer": "prezo",
     "SliceString": [

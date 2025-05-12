@@ -36,12 +36,15 @@ type Handler interface {
 	DialExecs(context.Context) ([]ExecCoordConn, error)
 
 	PrioritizeTxs(context.Context, []*proto.SignedTransaction) []*proto.SignedTransaction
+
+	Emit(ctx context.Context, event any)
 }
 
 type ID64 int64
 
 // BatchMempool provides batches of proposed transactions by other validators.
 type BatchMempool interface {
+	AddBatch(context.Context, proto.BatchTransactions)
 	LookupBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
 }
 
