@@ -42,10 +42,11 @@ type Baton struct {
 	nominate chan *nominate         // to nomination process
 	// states
 	db struct {
-		lk        sync.Mutex
-		tipHeight proto.BlockHeight
-		tipHash   proto.BlockHash
-		tipID     proto.BlockID
+		lk  sync.Mutex
+		tip Tip
+		// XXX tipHeight proto.BlockHeight
+		// tipHash   proto.BlockHash
+		// tipID     proto.BlockID
 	}
 	catchup struct {
 		lk      sync.Mutex

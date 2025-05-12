@@ -10,7 +10,7 @@ import (
 func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, nextID proto.BlockID) error {
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTipID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTip.ID, nextID)
 	if err != nil {
 		return err
 	}

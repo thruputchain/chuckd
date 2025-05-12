@@ -11,23 +11,21 @@ import (
 )
 
 type nominate struct {
-	tipHeight proto.BlockHeight
-	tipHash   proto.BlockHash
-	tipID     proto.BlockID
+	tip Tip
 }
 
 func (b *Baton) startNominating(ctx context.Context) {
-	var interruptingTip *nominate
+	var interrupt *nominate
 	for {
 
-		var tip *nominate
-		if interruptingTip == nil {
+		var signal *nominate
+		if interrupt == nil {
 			// nominate signals that our db is up to speed, and
 			// there are no known externalizations above us
-			tip = waitAndDrain(b.nominate)
+			signal = waitAndDrain(b.nominate)
 		} else {
-			interruptingTip = nil
-			tip = drain(b.nominate, interruptingTip)
+			interrupt = nil
+			signal = drain(b.nominate, interrupt)
 		}
 
 		// pool all available transactions (our own + from batches) excluding already committed ones
@@ -39,7 +37,7 @@ func (b *Baton) startNominating(ctx context.Context) {
 			}
 		}
 
-		b.handler.Emit(ctx, EventNominating{TipHeight: tip.tipHeight, TipHash: tip.tipHash, TipID: tip.tipID, NumTx: len(uncommittedTxs)})
+		b.handler.Emit(ctx, EventNominating{Tip: signal.tip, NumTx: len(uncommittedTxs)})
 
 		// prioritize and pick the top, applying any limits on transactions per block
 		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
@@ -48,7 +46,7 @@ func (b *Baton) startNominating(ctx context.Context) {
 		prepCtx, prepCancel := context.WithCancel(ctx)
 		prepCh := make(chan *nomination, 1)
 		go func() {
-			nom, err := b.prepareNomination(prepCtx, tip, txsToNominate)
+			nom, err := b.prepareNomination(prepCtx, signal, txsToNominate)
 			if err != nil {
 				log.Errorf("preparing nomination: %v", err)
 			}
@@ -60,9 +58,9 @@ func (b *Baton) startNominating(ctx context.Context) {
 	WaitPrepReadyOrInterrupt:
 		for {
 			select {
-			case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
+			case interrupt = <-b.nominate: // a block has been externalized, abort nomination
 				// the baton may send a nomination signal pointing at the same tip; it must be ignored
-				if interruptingTip.tipHash == tip.tipHash {
+				if interrupt.tip.Hash == signal.tip.Hash {
 					continue // ignore interruptions from the same tip!
 				} else {
 					break WaitPrepReadyOrInterrupt
@@ -113,7 +111,7 @@ func (b *Baton) startNominating(ctx context.Context) {
 
 		var outcome *bool
 		select {
-		case interruptingTip = <-b.nominate: // a block has been externalized, abort nomination
+		case interrupt = <-b.nominate: // a block has been externalized, abort nomination
 		case r := <-nomCh:
 			outcome = &r
 		}
@@ -155,7 +153,7 @@ func (b *Baton) prepareNomination(
 	nextID := b.handler.GenerateBlockID(ctx)
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, tip.tipID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, tip.tip.ID, nextID)
 	if err != nil {
 		return nil, err
 	}
@@ -258,9 +256,9 @@ func (b *Baton) prepareNomination(
 
 	return &nomination{
 		dbBlockID:     nextID,
-		blockHeight:   tip.tipHeight + 1,
+		blockHeight:   tip.tip.Height + 1,
 		blockHash:     *dbBlockResult.Block_hash(),
-		prevBlockHash: tip.tipHash,
+		prevBlockHash: tip.tip.Hash,
 		proposedTxs:   proposedTxs,
 		batches:       nil, // filled later
 	}, nil

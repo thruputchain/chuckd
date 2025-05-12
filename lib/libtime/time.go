@@ -40,7 +40,7 @@ func (tt *TestTime) Now() time.Time {
 	return tt.now
 }
 
-func (tt *TestTime) Add(d time.Duration) {
+func (tt *TestTime) PassTime(d time.Duration) {
 	tt.lk.Lock()
 	defer tt.lk.Unlock()
 	tt.now = tt.now.Add(d)

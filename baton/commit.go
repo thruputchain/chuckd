@@ -41,7 +41,7 @@ func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock
 	nextID := *vb.AlreadyValidatedBlockID
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTipID, nextID)
+	dbResult, err := db.Dbcoord_open_snapshot(ctx, vb.DbTip.ID, nextID)
 	if err != nil {
 		return err
 	}
@@ -55,12 +55,12 @@ func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock
 func (b *Baton) finalizeCommit(
 	ctx context.Context,
 	vb *ValidatableBlock,
-	blkID proto.BlockID,
+	blockID proto.BlockID,
 	db DbCoordConn,
 ) error {
 
 	// db commit snapshot
-	dbBlockResult, err := db.Dbcoord_commit_snapshot(ctx, blkID)
+	dbBlockResult, err := db.Dbcoord_commit_snapshot(ctx, blockID)
 	if err != nil {
 		return err
 	}
@@ -87,14 +87,14 @@ func (b *Baton) finalizeCommit(
 	b.lock()
 	defer b.unlock()
 
-	if b.db.tipHeight+1 != vb.BlockHeight {
+	if b.db.tip.Height+1 != vb.BlockHeight {
 		panic("bug")
 	}
 
 	// only this function writes to the state, and sequentially
-	b.db.tipHash = vb.BlockHash
-	b.db.tipHeight = vb.BlockHeight
-	b.db.tipID = blkID
+	b.db.tip.Hash = vb.BlockHash
+	b.db.tip.Height = vb.BlockHeight
+	b.db.tip.ID = blockID
 
 	// purge catchup or consensus blocks no higher than the newly committed one
 	b.purgeBelowTip(ctx)
@@ -107,7 +107,7 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	// purge catchup blocks
 	var catchup catchupBlocks
 	for _, cb := range b.catchup.blocks {
-		if cb.BlockHeight() > b.db.tipHeight {
+		if cb.BlockHeight() > b.db.tip.Height {
 			catchup = append(catchup, cb)
 		}
 	}
@@ -116,7 +116,7 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	// purge consensus blocks
 	var props proposals
 	for _, p := range b.consensus.ext {
-		if p.BlockHeight() > b.db.tipHeight {
+		if p.BlockHeight() > b.db.tip.Height {
 			props = append(props, p)
 		}
 	}
@@ -124,14 +124,14 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 
 	// purge validations
 	for h, p := range b.consensus.validatedProposal {
-		if p.Block_height <= b.db.tipHeight {
+		if p.Block_height <= b.db.tip.Height {
 			delete(b.consensus.validatedProposal, h)
 			delete(b.consensus.validatedBlockID, h)
 		}
 	}
 
 	// purge nomination blocks
-	if b.nominator.nominatedProposal != nil && b.nominator.nominatedProposal.Block_height <= b.db.tipHeight {
+	if b.nominator.nominatedProposal != nil && b.nominator.nominatedProposal.Block_height <= b.db.tip.Height {
 		b.nominator.nominatedProposal = nil
 		b.nominator.nominatedBlockID = nil
 	}

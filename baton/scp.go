@@ -45,19 +45,17 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	}
 
 	x.baton.lock()
-	dbID := x.baton.db.tipID
-	dbHeight := x.baton.db.tipHeight
-	dbHash := x.baton.db.tipHash
+	dbTip := x.baton.db.tip
 	noExternalizations := x.baton.consensus.ext.IsEmpty()
 	x.baton.unlock()
 
-	if prop.Block_height <= dbHeight {
+	if prop.Block_height <= dbTip.Height {
 		return api.InvalidValue
 	}
-	if prop.Block_height > dbHeight+1 {
+	if prop.Block_height > dbTip.Height+1 {
 		return api.MaybeValidValue
 	}
-	if prop.Prev_block_hash != dbHash {
+	if prop.Prev_block_hash != dbTip.Hash {
 		return api.InvalidValue
 	}
 	if !noExternalizations {
@@ -74,9 +72,7 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 		BlockHash:            prop.Block_hash,
 		PrevBlockHash:        prop.Prev_block_hash,
 		ProposedTransactions: ptxs,
-		DbTipHeight:          dbHeight,
-		DbTipHash:            dbHash,
-		DbTipID:              dbID,
+		DbTip:                dbTip,
 	}
 
 	blockID, err := x.baton.validateClose(ctx, vb)

@@ -2,30 +2,24 @@ package baton
 
 import (
 	"context"
-
-	proto "github.com/groundhogchain/protocol-go"
 )
 
 func (b *Baton) restoreDb(ctx context.Context) {
 	var r dbRestored
-	r.BlockHeight, r.BlockHash, r.BlockID, r.Err = b.handler.RestoreDb(ctx)
+	r.Tip.Height, r.Tip.Hash, r.Tip.ID, r.Err = b.handler.RestoreDb(ctx)
 	if r.Err == nil {
-		b.updateDbState(r.BlockHeight, r.BlockHash, r.BlockID)
+		b.updateDbState(r.Tip)
 	}
 	b.dbRestored <- r
 }
 
 type dbRestored struct {
-	BlockHeight proto.BlockHeight
-	BlockHash   proto.BlockHash
-	BlockID     proto.BlockID
-	Err         error
+	Tip Tip
+	Err error
 }
 
-func (b *Baton) updateDbState(height proto.BlockHeight, hash proto.BlockHash, id proto.BlockID) {
+func (b *Baton) updateDbState(tip Tip) {
 	b.db.lk.Lock()
 	defer b.db.lk.Unlock()
-	b.db.tipHeight = height
-	b.db.tipHash = hash
-	b.db.tipID = id
+	b.db.tip = tip
 }

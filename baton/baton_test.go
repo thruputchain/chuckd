@@ -27,10 +27,13 @@ func TestExt(t *testing.T) {
 	baton := NewBaton(ctx, rig)
 	rig.Bind(baton)
 
-	// add user tx
-	rig.AddTx(ctx, rig.MakeSignedTx(ctx))
+	tick := time.Second
+
+	rig.AddTx(ctx, rig.MakeSignedTx(ctx)) // user submits tx
 
 	baton.Start(ctx)
+
+	rig.PassTime(tick)
 
 	select {}
 }

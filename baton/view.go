@@ -28,9 +28,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	}
 
 	dbBlock := viewDbBlock{
-		hash:   b.db.tipHash,
-		height: b.db.tipHeight,
-		id:     b.db.tipID,
+		tip: b.db.tip,
 	}
 
 	// if there are no scp blocks, we are done
@@ -42,10 +40,10 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 
 	scpTopBlock := b.consensus.ext[len(b.consensus.ext)-1]
 	scpTopHeight := scpTopBlock.BlockHeight()
-	if scpTopHeight < dbBlock.height {
+	if scpTopHeight < dbBlock.tip.Height {
 		return nil, ErrConsensusBelowDb
 	}
-	if scpTopHeight == dbBlock.height {
+	if scpTopHeight == dbBlock.tip.Height {
 		if scpTopBlock.BlockHash() == dbBlock.BlockHash() {
 			v.blocks = []viewBlock{dbBlock}
 			v.reqs = [][]ID64{nil}
@@ -55,7 +53,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 		}
 	}
 
-	n := int(scpTopHeight) + 1 - int(dbBlock.height)
+	n := int(scpTopHeight) + 1 - int(dbBlock.tip.Height)
 	if n > 10000 {
 		return nil, ErrDbFarBehind
 	}
@@ -68,7 +66,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 		must.Assertf(ctx, prop.BlockHeight() > scpPrevHeight, "scp proposal heights not increasing")
 		scpPrevHeight = prop.BlockHeight()
 		//
-		v.blocks[int(prop.BlockHeight())-int(dbBlock.height)] = viewExternalizedBlock{
+		v.blocks[int(prop.BlockHeight())-int(dbBlock.tip.Height)] = viewExternalizedBlock{
 			proto:   prop.Proto(),
 			batches: b.fetchBatches(ctx, prop.Proto().Proposed_transaction_batches),
 		}
@@ -217,9 +215,7 @@ func (v *view) ReadyToNominate() *nominate {
 	}
 	db := v.blocks[0].(viewDbBlock)
 	return &nominate{
-		tipHeight: db.height,
-		tipHash:   db.hash,
-		tipID:     db.id,
+		tip: db.tip,
 	}
 }
 
@@ -236,9 +232,7 @@ func (v *view) nextBlockToCommit(b *Baton) *ValidatableBlock {
 
 	// db state
 	db := v.blocks[0].(viewDbBlock)
-	vb.DbTipHeight = db.height
-	vb.DbTipHash = db.hash
-	vb.DbTipID = db.id
+	vb.DbTip = db.tip
 
 	// are we committing a block that we have nominated?
 	if b.nominator.nominatedProposal != nil && b.nominator.nominatedProposal.Block_hash == vb.BlockHash {
@@ -309,13 +303,11 @@ type viewBlock interface {
 }
 
 type viewDbBlock struct {
-	hash   proto.BlockHash
-	height proto.BlockHeight
-	id     proto.BlockID
+	tip Tip
 }
 
-func (x viewDbBlock) BlockHash() proto.BlockHash          { return x.hash }
-func (x viewDbBlock) BlockHeight() proto.BlockHeight      { return x.height }
+func (x viewDbBlock) BlockHash() proto.BlockHash          { return x.tip.Hash }
+func (x viewDbBlock) BlockHeight() proto.BlockHeight      { return x.tip.Height }
 func (x viewDbBlock) PrevBlockHash() proto.BlockHash      { panic("should not be called") }
 func (x viewDbBlock) IsReadyToValidate() bool             { panic("should not be called") }
 func (x viewDbBlock) IsMissing() bool                     { return false }
