@@ -6,6 +6,9 @@
 - [*] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
 
 
+- [ ] test
+  - [ ] capture disseminations
+
 - [ ] does a proposal need to be signed by the source nominator?
 
 

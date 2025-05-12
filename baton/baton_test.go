@@ -49,15 +49,30 @@ func TestNominateCommit(t *testing.T) {
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
 
-	// stage 2: commit already validated 1 (and nominate 2 in parallel)
+	// stage 2: commit already validated 1
 	rig.StageExecs(1)
-	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Proposal)) // trigger commit
+	rig.AddTx(ctx, rig.MakeSignedTx(ctx))                                    // txs for stage 3
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Proposal)) // trigger commit, trigger stage 3
 	_ = rig.ReceiveEvent(ctx).Event.(EventCommitted)
+
+	// stage 3: nominate 2
 	rig.SignalNomination(true)
 	rig.WaitNextNomination(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
 
-	// select {}
+}
+
+func TestValidateCommit(t *testing.T) {
+
+	// ctx, rig, baton, tick := testSetup()
+
+	// // stage 1: validate 1
+	// rig.StageExecs(1)
+	// baton.Start(ctx)
+
+	// proposal := rig.MakeProposal(ctx)
+	// rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(proposal))
+
 }

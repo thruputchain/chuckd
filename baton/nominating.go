@@ -39,6 +39,9 @@ func (b *Baton) startNominating(ctx context.Context) {
 
 		// prioritize and pick the top, applying any limits on transactions per block
 		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
+		if len(txsToNominate) == 0 {
+			continue
+		}
 
 		// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
 		prepCtx, prepCancel := context.WithCancel(ctx)
