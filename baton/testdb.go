@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"crypto/sha256"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -47,11 +48,21 @@ func (db *TestDb) DbCoord() DbCoordConn {
 	return db
 }
 
-func (db *TestDb) AssertOpen(ctx context.Context, id proto.BlockID) {
+// assertOpen is called by TestExec
+func (db *TestDb) assertOpen(ctx context.Context, id proto.BlockID) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	block, ok := db.id[id]
 	must.Assertf(ctx, ok && block.open > 0, "block is not open")
+}
+
+// mutate is called by TestExec
+func (db *TestDb) mutate(ctx context.Context, id proto.BlockID, mut []byte) {
+	db.lk.Lock()
+	defer db.lk.Unlock()
+	block, ok := db.id[id]
+	must.Assertf(ctx, ok && block.open > 0, "block is not open")
+	block.hash = sha256.Sum256(append(block.hash[:], mut...))
 }
 
 func (db *TestDb) Dbcoord_null(ctx context.Context) error {
@@ -86,7 +97,7 @@ func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID)
 	snap.open -= 1
 	snap.committed = true
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
-	*result.Block_hash() = snap.hash //XXX: executor ops must mutate the hash
+	*result.Block_hash() = snap.hash
 	return result, nil
 }
 
@@ -98,7 +109,7 @@ func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) 
 	must.Assertf(ctx, snap.open > 0, "block not open")
 	snap.open -= 1
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
-	*result.Block_hash() = snap.hash //XXX: executor ops must mutate the hash
+	*result.Block_hash() = snap.hash
 	return result, nil
 }
 

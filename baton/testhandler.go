@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -15,15 +16,15 @@ import (
 
 type TestHandler struct {
 	signer proto.ValidatorPrivateInfo
-	//
 	*libtime.TestTime
 	*mempool.BatchMempool
 	*mempool.TransactionMempool
 	*mempool.CommittedMempool
-	//
 	*TestDb
-	*TestExec
 	*TestCatchup
+	//
+	xlk       sync.Mutex
+	nextExecs []ExecCoordConn
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -33,9 +34,6 @@ type TestHandler struct {
 	//
 	nominateIn  chan nominateIn
 	nominateOut chan bool
-	//
-	clk            sync.Mutex
-	catchupSources []proto.ValidatorPublicInfo
 }
 
 func NewTestHandler(
@@ -52,9 +50,6 @@ func NewTestHandler(
 	tipHeight proto.BlockHeight,
 	tipHash proto.BlockHash,
 	tipID proto.BlockID,
-	//
-	catchupSources []proto.ValidatorPublicInfo,
-	//
 ) *TestHandler {
 	time := libtime.NewTestTime(now)
 	h := &TestHandler{
@@ -66,11 +61,11 @@ func NewTestHandler(
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
 		nominateIn:         make(chan nominateIn),
 		nominateOut:        make(chan bool),
-		catchupSources:     catchupSources,
 	}
 	h.TestDb = NewTestDb(tipHeight, tipHash, tipID)
-	h.TestExec = NewTestExec(h.TestDb)
-	h.TestCatchup = NewTestCatchup()
+	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
+	must.NoError(ctx, err)
+	h.TestCatchup = NewTestCatchup(*catchupSigner)
 	return h
 }
 
@@ -91,9 +86,19 @@ func (h *TestHandler) Nominate(ctx context.Context, slot int64, value xdr.XdrTyp
 	return <-h.nominateOut
 }
 
-func (h *TestHandler) NextNomination() (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestHandler) Control_WaitNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
 	x := <-h.nominateIn
 	return x.Slot, x.Value, x.Prev
+}
+
+func (h *TestHandler) Control_GetNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+	select {
+	case x := <-h.nominateIn:
+		return x.Slot, x.Value, x.Prev
+	default:
+		must.Assertf(ctx, false, "no nomination available")
+	}
+	panic("unreachable")
 }
 
 func (h *TestHandler) SignalNomination(result bool) {
@@ -113,15 +118,7 @@ func (h *TestHandler) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrTy
 }
 
 func (h *TestHandler) GetCatchupSources(context.Context) []proto.ValidatorPublicInfo {
-	h.clk.Lock()
-	defer h.clk.Unlock()
-	return h.catchupSources
-}
-
-func (h *TestHandler) SetCatchupSources(cs []proto.ValidatorPublicInfo) {
-	h.clk.Lock()
-	defer h.clk.Unlock()
-	h.catchupSources = cs
+	return []proto.ValidatorPublicInfo{h.TestCatchup.Signer.Public_info}
 }
 
 func (h *TestHandler) GenerateBlockID(context.Context) proto.BlockID {
@@ -144,8 +141,25 @@ func (h *TestHandler) DialDb(context.Context) (DbCoordConn, error) {
 	return h.TestDb, nil
 }
 
+func (h *TestHandler) Control_PrepNextExecs(n int) []*TestExec {
+	testExecs := make([]*TestExec, n)
+	execs := make([]ExecCoordConn, n)
+	for i := range testExecs {
+		testExecs[i] = NewTestExec(h.TestDb)
+		execs[i] = testExecs[i]
+	}
+	h.xlk.Lock()
+	defer h.xlk.Unlock()
+	h.nextExecs = execs
+	return testExecs
+}
+
 func (h *TestHandler) DialExecs(context.Context) ([]ExecCoordConn, error) {
-	return h.TestExec, nil
+	h.xlk.Lock()
+	defer h.xlk.Unlock()
+	execs := h.nextExecs
+	h.nextExecs = nil
+	return execs, nil
 }
 
 func (h *TestHandler) PrioritizeTxs(ctx context.Context, txs []*proto.SignedTransaction) []*proto.SignedTransaction {
