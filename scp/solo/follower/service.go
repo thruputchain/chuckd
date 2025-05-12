@@ -54,6 +54,6 @@ func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, s
 		return nil
 	}
 
-	svc.handler.OnExternalizedValue(ctx, signed.Externalized.Slot_index, signed.Externalized.Value)
+	svc.handler.ExternalizedValue(ctx, signed.Externalized.Slot_index, signed.Externalized.Value)
 	return nil
 }

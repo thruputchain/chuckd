@@ -44,9 +44,6 @@ type Baton struct {
 	db struct {
 		lk  sync.Mutex
 		tip Tip
-		// XXX tipHeight proto.BlockHeight
-		// tipHash   proto.BlockHash
-		// tipID     proto.BlockID
 	}
 	catchup struct {
 		lk      sync.Mutex

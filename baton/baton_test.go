@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 func TestExt(t *testing.T) {
@@ -33,7 +34,11 @@ func TestExt(t *testing.T) {
 
 	baton.Start(ctx)
 
+	nominating := rig.ReceiveEvent(ctx).Event.(EventNominating)
+
 	rig.PassTime(tick)
+
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating.Proposal))
 
 	select {}
 }

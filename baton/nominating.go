@@ -37,8 +37,6 @@ func (b *Baton) startNominating(ctx context.Context) {
 			}
 		}
 
-		b.handler.Emit(ctx, EventNominating{Tip: signal.tip, NumTx: len(uncommittedTxs)})
-
 		// prioritize and pick the top, applying any limits on transactions per block
 		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
 
@@ -98,6 +96,8 @@ func (b *Baton) startNominating(ctx context.Context) {
 		b.nominator.nominatedBlockID = &nom.dbBlockID
 		b.nominator.nominatedProposal = proposal
 		b.nominator.lk.Unlock()
+
+		b.handler.Emit(ctx, EventNominating{Tip: signal.tip, NumTx: len(uncommittedTxs), Proposal: proposal})
 
 		// nominate to consensus
 		nomCtx, nomCancel := context.WithCancel(ctx)

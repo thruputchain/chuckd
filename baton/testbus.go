@@ -1,7 +1,7 @@
 package baton
 
 import (
-	"sync"
+	"context"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/form"
@@ -9,8 +9,7 @@ import (
 )
 
 type TestBus struct {
-	lk      sync.Mutex
-	emitted []TestEnvelope
+	emitted chan TestEnvelope
 }
 
 type TestEnvelope struct {
@@ -22,10 +21,12 @@ func NewTestBus() *TestBus {
 	return &TestBus{}
 }
 
-func (b *TestBus) Add(s time.Time, event any) {
+func (b *TestBus) SendEvent(s time.Time, event any) {
 	env := TestEnvelope{Stamp: s, Event: event}
 	log.Infof("envelope: %s", form.SprintJSON(env))
-	b.lk.Lock()
-	defer b.lk.Unlock()
-	b.emitted = append(b.emitted, env)
+	b.emitted <- env
+}
+
+func (b *TestBus) ReceiveEvent(ctx context.Context) TestEnvelope {
+	return <-b.emitted
 }

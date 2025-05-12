@@ -76,7 +76,7 @@ func (h *TestRig) Bind(b *Baton) {
 }
 
 func (h *TestRig) Emit(ctx context.Context, event any) {
-	h.TestBus.Add(h.TestTime.Now(), event)
+	h.TestBus.SendEvent(h.TestTime.Now(), event)
 }
 
 func (h *TestRig) Disseminate(ctx context.Context, value xdr.XdrType) {

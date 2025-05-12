@@ -45,9 +45,9 @@ type SCPHandler interface {
 	// returning nil means no valid value could be extracted.
 	ExtractValidValue(ctx context.Context, slot Slot, value Value) *Value
 
-	// OnExternalizedValue is is called at most once per slot when the slot
+	// ExternalizedValue is is called at most once per slot when the slot
 	// externalizes its value
-	OnExternalizedValue(ctx context.Context, slot Slot, value Value)
+	ExternalizedValue(ctx context.Context, slot Slot, value Value)
 }
 
 type SCPController interface {

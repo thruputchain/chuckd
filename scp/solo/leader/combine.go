@@ -28,4 +28,4 @@ func (UnionCombiner) ExtractValidValue(ctx context.Context, slotIndex api.Slot, 
 	return nil
 }
 
-func (UnionCombiner) OnExternalizedValue(ctx context.Context, slotIndex api.Slot, value api.Value) {}
+func (UnionCombiner) ExternalizedValue(ctx context.Context, slotIndex api.Slot, value api.Value) {}

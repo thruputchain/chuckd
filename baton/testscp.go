@@ -26,6 +26,6 @@ func (x *TestSCP) ExtractValidValue(ctx context.Context, slot api.Slot, value ap
 	return x.scpHandler.ExtractValidValue(ctx, slot, value)
 }
 
-func (x *TestSCP) OnExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
-	x.scpHandler.OnExternalizedValue(ctx, slot, value)
+func (x *TestSCP) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
+	x.scpHandler.ExternalizedValue(ctx, slot, value)
 }

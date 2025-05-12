@@ -90,7 +90,7 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value 
 	return nil
 }
 
-func (x scpHandler) OnExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
+func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
 	var prop proto.Proposal
 	if err := xdrutil.UnmarshalXdr(&prop, value); err != nil {
 		return
