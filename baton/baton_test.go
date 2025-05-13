@@ -59,8 +59,8 @@ func TestNominateCommit(t *testing.T) {
 	rig.StageExecs(1)
 	baton.Start(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(EventNominating)
+	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	rig.WaitNextNomination(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
 
@@ -74,9 +74,9 @@ func TestNominateCommit(t *testing.T) {
 	}
 
 	// stage 3: nominate [2]
-	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
-	rig.WaitNextNomination(ctx)
+	rig.WaitNomination(ctx)
+	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
 

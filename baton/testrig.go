@@ -35,8 +35,8 @@ type TestRig struct {
 	dlk          sync.Mutex
 	disseminated []xdr.XdrType
 	//
-	nominateIn  chan nominateIn
-	nominateOut chan bool
+	nominateRequest  chan nominateIn
+	nominateResponse chan bool
 }
 
 func NewTestRig(
@@ -61,8 +61,8 @@ func NewTestRig(
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
-		nominateIn:         make(chan nominateIn, 1),
-		nominateOut:        make(chan bool, 1),
+		nominateRequest:    make(chan nominateIn, 1),
+		nominateResponse:   make(chan bool, 1),
 	}
 	h.TestDb = NewTestDb(Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
@@ -91,28 +91,20 @@ type nominateIn struct {
 	Prev  xdr.XdrType
 }
 
+// Nominate is called by Baton
 func (h *TestRig) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
-	h.nominateIn <- nominateIn{Slot: slot, Value: value, Prev: prev}
-	return <-h.nominateOut
+	h.nominateRequest <- nominateIn{Slot: slot, Value: value, Prev: prev}
+	return <-h.nominateResponse
 }
 
-func (h *TestRig) WaitNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
-	x := <-h.nominateIn
+// WaitNomination waits until Baton calls Nominate
+func (h *TestRig) WaitNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+	x := <-h.nominateRequest
 	return x.Slot, x.Value, x.Prev
 }
 
-func (h *TestRig) GetNextNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
-	select {
-	case x := <-h.nominateIn:
-		return x.Slot, x.Value, x.Prev
-	default:
-		must.Assertf(ctx, false, "no nomination available")
-	}
-	panic("unreachable")
-}
-
 func (h *TestRig) SignalNomination(result bool) {
-	h.nominateOut <- result
+	h.nominateResponse <- result
 }
 
 func (h *TestRig) Signer() proto.ValidatorPublicInfo {
