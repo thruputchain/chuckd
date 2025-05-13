@@ -1,6 +1,8 @@
 - [x] txs cannot be submitted if older than txTTL
   - enforced by expiration in txpool and batchpool
+
 - [*] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
+  - [ ] assert in tests
 
 
 - [ ] test

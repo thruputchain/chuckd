@@ -95,6 +95,8 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 		return fmt.Errorf("validation error: %v", verr)
 	}
 
+	b.handler.Emit(ctx, EventValidated{ValidatableBlock: vb, BlockID: blockID})
+
 	return nil
 }
 
@@ -129,10 +131,10 @@ func (b *Baton) validateClose(ctx context.Context, vb *ValidatableBlock) (proto.
 		return 0, err
 	}
 
-	return blockID, b.finalizeClose(ctx, vb, blockID, db)
+	return blockID, b.finalizeValidateClose(ctx, vb, blockID, db)
 }
 
-func (b *Baton) finalizeClose(
+func (b *Baton) finalizeValidateClose(
 	ctx context.Context,
 	vb *ValidatableBlock,
 	nextID proto.BlockID,

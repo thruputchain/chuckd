@@ -3,11 +3,13 @@ package baton
 import (
 	"context"
 	"os"
+	goruntime "runtime"
 	"testing"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
@@ -35,11 +37,24 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 	return ctx, rig, baton, tick
 }
 
+func TestPoolExpiry(t *testing.T) {
+	ctx, rig, _, tick := testSetup()
+
+	proposal, batch := rig.GenProposal(ctx, 1)
+	rig.AddBatch(ctx, *batch)
+	rig.PassTime(tick * 5)
+	goruntime.Gosched()
+	_, ok := rig.LookupBatch(ctx, proposal.Proposed_transaction_batches[0])
+	if ok {
+		t.Errorf("expecting batch to be missing")
+	}
+}
+
 func TestNominateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
 
-	// stage 1: nominate 1
+	// stage 1: nominate [1]
 	rig.AddTx(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
 	baton.Start(ctx)
@@ -49,13 +64,16 @@ func TestNominateCommit(t *testing.T) {
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
 
-	// stage 2: commit already validated 1
+	// stage 2: commit already validated [1]
 	rig.StageExecs(1)
 	rig.AddTx(ctx, rig.GenSignedTx(ctx))                                     // txs for stage 3
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Proposal)) // trigger commit, trigger stage 3
-	_ = rig.ReceiveEvent(ctx).Event.(EventCommitted)
+	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
+	if committed.AlreadyValidatedBlockID == nil {
+		t.Fatalf("expecting commit of already validated block")
+	}
 
-	// stage 3: nominate 2
+	// stage 3: nominate [2]
 	rig.SignalNomination(true)
 	rig.WaitNextNomination(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
@@ -64,15 +82,33 @@ func TestNominateCommit(t *testing.T) {
 
 }
 
-// func TestValidateCommit(t *testing.T) {
+func TestValidateCommit(t *testing.T) {
 
-// 	ctx, rig, baton, tick := testSetup()
+	ctx, rig, baton, tick := testSetup()
 
-// 	// stage 1: validate 1
-// 	rig.StageExecs(1)
-// 	baton.Start(ctx)
+	// stage 1: validate [1]
+	rig.StageExecs(1)
+	baton.Start(ctx)
+	proposal, batch := rig.GenProposal(ctx, 2)
+	rig.AddBatch(ctx, *batch)
+	vlevel := rig.ValidateValue(ctx, proposal.Block_height, xdrutil.MarshalXdr(proposal), true)
+	if vlevel != api.FullyValidValue {
+		t.Fatalf("expecting fully valid level")
+	}
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
+	rig.PassTime(tick)
 
-// 	proposal := rig.MakeProposal(ctx)
-// 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(proposal))
+	// stage 2: commit already validated [1]
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(proposal))
+	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
+	if committed.AlreadyValidatedBlockID == nil {
+		t.Fatalf("expecting commit of already validated block")
+	}
+	rig.PassTime(3 * tick)
+	goruntime.Gosched()
+	_, ok := rig.LookupBatch(ctx, proposal.Proposed_transaction_batches[0])
+	if ok {
+		t.Fatalf("batch not removed after expiry")
+	}
 
-// }
+}

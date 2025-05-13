@@ -46,7 +46,7 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 
 	x.baton.lock()
 	dbTip := x.baton.db.tip
-	noExternalizations := x.baton.consensus.ext.IsEmpty()
+	pendingExternalizations := !x.baton.consensus.ext.IsEmpty()
 	x.baton.unlock()
 
 	if prop.Block_height <= dbTip.Height {
@@ -58,13 +58,17 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	if prop.Prev_block_hash != dbTip.Hash {
 		return api.InvalidValue
 	}
-	if !noExternalizations {
+	if pendingExternalizations {
 		return api.InvalidValue // there are newer externalizations
 	}
 
 	ptxs := []*proto.ProposedTransaction{}
 	for _, b := range prop.Proposed_transaction_batches {
-		x.baton.handler.LookupBatch(ctx, b)
+		btxs, ok := x.baton.handler.LookupBatch(ctx, b)
+		if !ok {
+			return api.MaybeValidValue
+		}
+		ptxs = append(ptxs, btxs...)
 	}
 
 	vb := &ValidatableBlock{

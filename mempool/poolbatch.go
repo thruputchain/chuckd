@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -36,14 +37,18 @@ func (mp *BatchMempool) AddBatch(ctx context.Context, txs proto.BatchTransaction
 	hash := sha256.Sum256(xdrutil.MarshalXdr(&txs))
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
-	mp.batch[hash] = newBatch(txs.Transactions)
+	mp.batch[hash] = newBatch(mp.time.Now(), txs.Transactions)
 }
 
 func (mp *BatchMempool) LookupBatch(ctx context.Context, batchHash proto.BatchHash) ([]*proto.ProposedTransaction, bool) {
 	mp.lk.Lock()
 	defer mp.lk.Unlock()
 	b, ok := mp.batch[batchHash]
-	return b.txs, ok
+	if ok {
+		return b.txs, true
+	} else {
+		return nil, false
+	}
 }
 
 func (mp *BatchMempool) supervise(_ context.Context) {
@@ -52,10 +57,22 @@ func (mp *BatchMempool) supervise(_ context.Context) {
 		now := mp.time.Now()
 		mp.lk.Lock()
 		for k, b := range mp.batch {
-			if !b.Pinned() && now.Sub(b.created) > mp.batchTTL {
+			if now.Sub(b.created) > mp.batchTTL {
 				delete(mp.batch, k)
 			}
 		}
 		mp.lk.Unlock()
+	}
+}
+
+type batch struct {
+	created time.Time
+	txs     []*proto.ProposedTransaction
+}
+
+func newBatch(created time.Time, txs []proto.ProposedTransaction) *batch {
+	return &batch{
+		created: created,
+		txs:     protoutil.RepackageProposedTransactions(txs),
 	}
 }
