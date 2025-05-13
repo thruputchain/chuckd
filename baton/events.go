@@ -22,6 +22,12 @@ type EventCommitted struct {
 	proto.BlockID
 }
 
+type EventValidating struct {
+	Validating any
+	*ValidatableBlock
+	proto.BlockID
+}
+
 type EventValidated struct {
 	Validated any
 	*ValidatableBlock

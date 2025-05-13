@@ -74,6 +74,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 		if r.Err != nil {
 			log.Fatalf("db not restored: %v", r.Err)
 		}
+		log.Debugf("<-b.dbRestored")
 	case <-b.externalized:
 		// ignore (externalizations are already recorded in the state)
 	}
@@ -84,7 +85,6 @@ func (b *Baton) startBaton(ctx context.Context) {
 	// start validate and commit thread
 	go b.startValidateAndCommit(ctx)
 
-	log.Debugf("<-b.START")
 	for {
 
 		// build view
@@ -125,7 +125,9 @@ func (b *Baton) startBaton(ctx context.Context) {
 		}
 
 		// send catchup requests
-		b.requestCatchup(ctx, v.NeededHeightSpans())
+		if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
+			b.requestCatchup(ctx, needed)
+		}
 
 		// wait until something happens
 		select {

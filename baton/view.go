@@ -252,35 +252,42 @@ func (v *view) indexHeight(i int) proto.BlockHeight {
 	return v.blocks[0].BlockHeight() + proto.BlockHeight(i)
 }
 
-func (v *view) NeededHeightSpans() []Span {
-	spans := []Span{}
+func (v *view) NeededUnrequestedSpans() Spans {
+	spans := Spans{}
 	var start *int
 	for i := 1; i < len(v.blocks); i++ {
-		switch u := v.blocks[i].(type) {
-		case viewMissing:
-			if start == nil {
-				j := i
-				start = &j
-			}
-		case viewExternalizedBlock:
-			if u.IsReadyToValidate() {
-				if start != nil {
-					spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
-					start = nil
-				}
-			} else {
-				if start == nil {
-					j := i
-					start = &j
-				}
-			}
-		case viewCatchupBlock:
+		if len(v.reqs[i]) > 0 {
 			if start != nil {
 				spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
 				start = nil
 			}
-		default:
-			panic("unreachable")
+		} else {
+			switch u := v.blocks[i].(type) {
+			case viewMissing:
+				if start == nil {
+					j := i
+					start = &j
+				}
+			case viewExternalizedBlock:
+				if u.IsReadyToValidate() {
+					if start != nil {
+						spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
+						start = nil
+					}
+				} else {
+					if start == nil {
+						j := i
+						start = &j
+					}
+				}
+			case viewCatchupBlock:
+				if start != nil {
+					spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
+					start = nil
+				}
+			default:
+				panic("unreachable")
+			}
 		}
 	}
 	if start != nil {

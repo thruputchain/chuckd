@@ -86,13 +86,6 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 	b.catchup.lk.Lock()
 	defer b.catchup.lk.Unlock()
 
-	// filter out any spans already requested
-	panic("XXX")
-
-	if len(spans) == 0 {
-		return
-	}
-
 	src := b.handler.GetCatchupSources(ctx)
 	must.Assertf(ctx, len(src) > 0, "no catchup sources")
 

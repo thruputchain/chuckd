@@ -17,6 +17,10 @@ func (s Span) IsNotEmpty() bool {
 
 type Spans []Span
 
+func (ss Spans) IsNotEmpty() bool {
+	return len(ss) > 0 // assumes no empty spans inside
+}
+
 func (ss Spans) Len() int           { return len(ss) }
 func (ss Spans) Less(i, j int) bool { return ss[i].From < ss[j].From }
 func (ss Spans) Swap(i, j int)      { ss[i], ss[j] = ss[j], ss[i] }
@@ -42,4 +46,3 @@ func SumSpans(spans ...Span) (sum Spans) {
 	}
 	return sum
 }
-

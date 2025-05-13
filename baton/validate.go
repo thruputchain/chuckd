@@ -9,6 +9,8 @@ import (
 
 func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, blockID proto.BlockID) error {
 
+	b.handler.Emit(ctx, EventValidating{ValidatableBlock: vb, BlockID: blockID})
+
 	// db create snapshot
 	dbResult, err := db.Dbcoord_create_snapshot(ctx, vb.DbTip.ID, blockID)
 	if err != nil {

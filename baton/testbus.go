@@ -19,7 +19,7 @@ type TestEnvelope struct {
 
 func NewTestBus() *TestBus {
 	return &TestBus{
-		emitted: make(chan TestEnvelope, 1),
+		emitted: make(chan TestEnvelope),
 	}
 }
 

@@ -75,8 +75,8 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 3: nominate [2]
 	rig.SignalNomination(true)
-	rig.WaitNextNomination(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
+	rig.WaitNextNomination(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
 
@@ -92,10 +92,11 @@ func TestValidateCommit(t *testing.T) {
 	block := rig.GenProposal(ctx, 2)
 	rig.AddBatch(ctx, block.Batch)
 	vlevel := rig.ValidateValue(ctx, block.Proposal.Block_height, xdrutil.MarshalXdr(&block.Proposal), true)
-	if vlevel != api.FullyValidValue {
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
+	if <-vlevel != api.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
-	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
@@ -114,8 +115,6 @@ func TestValidateCommit(t *testing.T) {
 
 }
 
-// XXX: gt -race -run TestCatchupCommit
-// ExternalizedValue races right after baton loop starts, and the <-externalized comes again before requestCatchup finishes
 func TestCatchupCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
@@ -128,11 +127,10 @@ func TestCatchupCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.StageExecs(1) // for validation and commit
 	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Proposal))
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
 	if committed.BlockHeight != 1 {
 		t.Errorf("expecting committed height 1")
 	}
-
-	select {}
 }
