@@ -205,7 +205,7 @@ func (b *Baton) compileRequests(_ context.Context, v *view) error {
 type view struct {
 	stamp        time.Time
 	blocks       []viewBlock
-	reqs         [][]ID64 // catchup requests already fired for this block
+	reqs         [][]ID64 // catchup requests already fired for this block // XXX: never used
 	nextToCommit *ValidatableBlock
 }
 
@@ -252,8 +252,8 @@ func (v *view) indexHeight(i int) proto.BlockHeight {
 	return v.blocks[0].BlockHeight() + proto.BlockHeight(i)
 }
 
-func (v *view) NeededHeightSpans() []catchupSpan {
-	spans := []catchupSpan{}
+func (v *view) NeededHeightSpans() []Span {
+	spans := []Span{}
 	var start *int
 	for i := 1; i < len(v.blocks); i++ {
 		switch u := v.blocks[i].(type) {
@@ -265,7 +265,7 @@ func (v *view) NeededHeightSpans() []catchupSpan {
 		case viewExternalizedBlock:
 			if u.IsReadyToValidate() {
 				if start != nil {
-					spans = append(spans, catchupSpan{from: v.indexHeight(*start), to: v.indexHeight(i)})
+					spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
 					start = nil
 				}
 			} else {
@@ -276,7 +276,7 @@ func (v *view) NeededHeightSpans() []catchupSpan {
 			}
 		case viewCatchupBlock:
 			if start != nil {
-				spans = append(spans, catchupSpan{from: v.indexHeight(*start), to: v.indexHeight(i)})
+				spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
 				start = nil
 			}
 		default:
@@ -284,7 +284,7 @@ func (v *view) NeededHeightSpans() []catchupSpan {
 		}
 	}
 	if start != nil {
-		spans = append(spans, catchupSpan{from: v.indexHeight(*start), to: v.indexHeight(len(v.blocks))})
+		spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(len(v.blocks))})
 		start = nil
 	}
 	return spans

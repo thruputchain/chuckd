@@ -37,6 +37,8 @@ func NewTestTime(now time.Time) *TestTime {
 }
 
 func (tt *TestTime) Now() time.Time {
+	tt.lk.Lock()
+	defer tt.lk.Unlock()
 	return tt.now
 }
 

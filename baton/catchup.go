@@ -52,12 +52,7 @@ func (b catchupBlock) PrevBlockHash() proto.BlockHash {
 
 type catchupRequest struct {
 	validator proto.ValidatorID
-	spans     []catchupSpan
-}
-
-type catchupSpan struct {
-	from proto.BlockHeight
-	to   proto.BlockHeight
+	spans     []Span
 }
 
 // baton
@@ -70,7 +65,7 @@ func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []ID64 {
 	var reqs []ID64
 	for id, q := range b.catchup.pending {
 		for _, span := range q.spans {
-			if span.from <= h && h < span.to {
+			if span.From <= h && h < span.To {
 				reqs = append(reqs, id)
 			}
 		}
@@ -86,14 +81,17 @@ func (b *Baton) purgeCatchup(_ context.Context) {
 	b.catchup.blocks = nil
 }
 
-func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
+func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
+
+	b.catchup.lk.Lock()
+	defer b.catchup.lk.Unlock()
+
+	// filter out any spans already requested
+	panic("XXX")
 
 	if len(spans) == 0 {
 		return
 	}
-
-	b.catchup.lk.Lock()
-	defer b.catchup.lk.Unlock()
 
 	src := b.handler.GetCatchupSources(ctx)
 	must.Assertf(ctx, len(src) > 0, "no catchup sources")
@@ -105,7 +103,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 		spans:     spans,
 	}
 
-	go func(src proto.ValidatorPublicInfo, id ID64, spans []catchupSpan) {
+	go func(src proto.ValidatorPublicInfo, id ID64, spans []Span) {
 
 		var result catchupBlocks
 
@@ -138,8 +136,8 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 			Spans:     make([]proto.CatchupSpan, len(spans)),
 		}
 		for i, span := range spans {
-			req.Spans[i].From_block_height = span.from
-			req.Spans[i].To_block_height = span.to
+			req.Spans[i].From_block_height = span.From
+			req.Spans[i].To_block_height = span.To
 		}
 		signed := proto.SignedCatchupBlocksRequest{
 			Signer:    b.handler.Signer(),

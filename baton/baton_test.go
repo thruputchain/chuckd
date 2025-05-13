@@ -106,6 +106,7 @@ func TestValidateCommit(t *testing.T) {
 	}
 	rig.PassTime(3 * tick)
 	goruntime.Gosched()
+	time.Sleep(time.Millisecond) //XXX: flaky -race
 	_, ok := rig.LookupBatch(ctx, block.Proposal.Proposed_transaction_batches[0])
 	if ok {
 		t.Fatalf("batch not removed after expiry")
@@ -113,12 +114,14 @@ func TestValidateCommit(t *testing.T) {
 
 }
 
+// XXX: gt -race -run TestCatchupCommit
+// ExternalizedValue races right after baton loop starts, and the <-externalized comes again before requestCatchup finishes
 func TestCatchupCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
 
-	block1 := rig.GenProposal(ctx, 2)
-	block2 := rig.GenProposalOntoBlock(ctx, 2, block1)
+	block1 := rig.GenProposal(ctx, 1)
+	block2 := rig.GenProposalOntoBlock(ctx, 1, block1)
 	rig.AddBatch(ctx, block2.Batch) // prevent catchup request for [2]
 	rig.StageCatchup(block1.Catchup)
 
@@ -130,4 +133,6 @@ func TestCatchupCommit(t *testing.T) {
 	if committed.BlockHeight != 1 {
 		t.Errorf("expecting committed height 1")
 	}
+
+	select {}
 }

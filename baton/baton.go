@@ -2,9 +2,9 @@ package baton
 
 import (
 	"context"
-	"log"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -84,6 +84,7 @@ func (b *Baton) startBaton(ctx context.Context) {
 	// start validate and commit thread
 	go b.startValidateAndCommit(ctx)
 
+	log.Debugf("<-b.START")
 	for {
 
 		// build view
@@ -95,14 +96,15 @@ func (b *Baton) startBaton(ctx context.Context) {
 			case nil:
 				must.Assertf(ctx, v != nil, "")
 			case ErrConsensusBelowDb: // unrecoverable
-				log.Fatal("consensus height is below db; unrecoverable")
+				log.Fatalf("consensus height is below db; unrecoverable")
 			case ErrDbFarBehind: // must resort to cold start
 				log.Fatalf("db is far behind consensus; needs a cold start")
 			case ErrDbConsensusDisagree: // unrecoverable
-				log.Fatal("consensus and db disagree; unrecoverable")
+				log.Fatalf("consensus and db disagree; unrecoverable")
 			case ErrConsensusInconsistent: // unrecoverable
-				log.Fatal("consensus is inconsistent; unrecoverable")
+				log.Fatalf("consensus is inconsistent; unrecoverable")
 			case ErrFaultyCatchup: // must drop all catchup blocks and blacklist sources
+				log.Errorf("purging faulty catchup")
 				b.purgeCatchup(ctx) // go back and retry building the view
 			default:
 				panic("unexpected")
@@ -128,8 +130,11 @@ func (b *Baton) startBaton(ctx context.Context) {
 		// wait until something happens
 		select {
 		case <-b.caughtUp: // catchup blocks received
+			log.Debugf("<-b.caughtUp")
 		case <-b.externalized: // externalization received
+			log.Debugf("<-b.externalized")
 		case <-b.committed: // block committed to db
+			log.Debugf("<-b.committed")
 		}
 	}
 }
