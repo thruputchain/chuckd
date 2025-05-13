@@ -2,7 +2,6 @@ package baton
 
 import (
 	"context"
-	"crypto/sha256"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -12,36 +11,38 @@ import (
 type TestDb struct {
 	lk  sync.Mutex
 	id  map[proto.BlockID]*testDbSnapshot
-	tip *testDbSnapshot
+	top *testDbSnapshot
 }
 
 type testDbSnapshot struct {
-	height    proto.BlockHeight
-	hash      proto.BlockHash
-	id        proto.BlockID
+	tip       Tip
 	open      bool
 	committed bool
 }
 
-func NewTestDb(height proto.BlockHeight, hash proto.BlockHash, id proto.BlockID) *TestDb {
+func NewTestDb(tip Tip) *TestDb {
 	db := &TestDb{
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
-	db.tip = &testDbSnapshot{
-		height:    height,
-		hash:      hash,
-		id:        id,
+	db.top = &testDbSnapshot{
+		tip:       tip,
 		open:      false,
 		committed: true,
 	}
-	db.id[id] = db.tip
+	db.id[tip.ID] = db.top
 	return db
+}
+
+func (db *TestDb) GetTip() Tip {
+	db.lk.Lock()
+	defer db.lk.Unlock()
+	return db.top.tip
 }
 
 func (db *TestDb) RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, proto.BlockID, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
-	return db.tip.height, db.tip.hash, db.tip.id, nil
+	return db.top.tip.Height, db.top.tip.Hash, db.top.tip.ID, nil
 }
 
 func (db *TestDb) DbCoord() DbCoordConn {
@@ -56,13 +57,20 @@ func (db *TestDb) assertOpen(ctx context.Context, id proto.BlockID) {
 	must.Assertf(ctx, ok && block.open, "block is not open")
 }
 
-// mutate is called by TestExec
-func (db *TestDb) mutate(ctx context.Context, id proto.BlockID, mut []byte) {
+func (db *TestDb) addProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open, "block is not open")
-	snap.hash = sha256.Sum256(append(snap.hash[:], mut...))
+	snap.tip.Hash = blendPropopsedTx(snap.tip.Hash, ptx)
+}
+
+func (db *TestDb) addSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
+	db.lk.Lock()
+	defer db.lk.Unlock()
+	snap, ok := db.id[id]
+	must.Assertf(ctx, ok && snap.open, "block is not open")
+	snap.tip.Hash = blendSignedTx(snap.tip.Hash, stx)
 }
 
 func (db *TestDb) Dbcoord_null(ctx context.Context) error {
@@ -88,9 +96,11 @@ func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.Bl
 	parent, ok := db.id[parentID]
 	must.Assertf(ctx, ok, "missing parent block")
 	child := &testDbSnapshot{
-		height:    parent.height + 1,
-		hash:      proto.BlockHash{},
-		id:        id,
+		tip: Tip{
+			Height: parent.tip.Height + 1,
+			Hash:   parent.tip.Hash,
+			ID:     id,
+		},
 		open:      true,
 		committed: false,
 	}
@@ -109,7 +119,7 @@ func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID)
 	snap.open = false
 	snap.committed = true
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
-	*result.Block_hash() = snap.hash
+	*result.Block_hash() = snap.tip.Hash
 	return result, nil
 }
 
@@ -121,7 +131,7 @@ func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) 
 	must.Assertf(ctx, snap.open, "block not open")
 	snap.open = false
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
-	*result.Block_hash() = snap.hash
+	*result.Block_hash() = snap.tip.Hash
 	return result, nil
 }
 

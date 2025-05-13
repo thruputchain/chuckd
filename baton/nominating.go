@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -84,10 +85,7 @@ func (b *Baton) startNominating(ctx context.Context) {
 		nom := prep.nomination
 
 		// construct proposed block
-		batch := proto.BatchTransactions{
-			Transactions: nom.proposedTxs,
-		}
-		batchHash := proto.BatchHash(sha256.Sum256(xdrutil.MarshalXdr(&batch)))
+		batch, batchHash := protoutil.PrepareBatch(nom.proposedTxs)
 		proposal := &proto.Proposal{
 			Block_height:                 nom.blockHeight,
 			Block_hash:                   nom.blockHash,

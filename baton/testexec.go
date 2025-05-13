@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -32,12 +31,9 @@ func (x *TestExec) Executorcoord_propose_transaction(ctx context.Context, blockI
 	x.lk.Lock()
 	must.Assertf(ctx, x.openedID != nil && *x.openedID == blockID, "exec block not open")
 	x.lk.Unlock()
-	x.db.mutate(ctx, blockID, xdrutil.MarshalXdr(&stx))
+	x.db.addSignedTx(ctx, blockID, &stx)
 	result := proto.ExecProposeResult{Result: proto.ExecResultOK}
-	*result.Proposal_data() = proto.NondeterministicProposalData{
-		Nondeterministic_bits:      []byte{0xff},
-		Nondeterministic_bit_count: 8,
-	}
+	*result.Proposal_data() = testNondeterministicData
 	return result, nil
 }
 
@@ -52,7 +48,7 @@ func (x *TestExec) Executorcoord_validate_transaction(ctx context.Context, block
 	x.lk.Lock()
 	must.Assertf(ctx, x.openedID != nil && *x.openedID == blockID, "exec block not open")
 	x.lk.Unlock()
-	x.db.mutate(ctx, blockID, xdrutil.MarshalXdr(&ptx))
+	x.db.addProposedTx(ctx, blockID, &ptx)
 	return proto.ExecResultOK, nil
 }
 

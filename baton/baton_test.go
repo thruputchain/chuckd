@@ -40,7 +40,7 @@ func TestNominateCommit(t *testing.T) {
 	ctx, rig, baton, tick := testSetup()
 
 	// stage 1: nominate 1
-	rig.AddTx(ctx, rig.MakeSignedTx(ctx)) // user submits tx
+	rig.AddTx(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
 	baton.Start(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(EventNominating)
@@ -51,7 +51,7 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 2: commit already validated 1
 	rig.StageExecs(1)
-	rig.AddTx(ctx, rig.MakeSignedTx(ctx))                                    // txs for stage 3
+	rig.AddTx(ctx, rig.GenSignedTx(ctx))                                     // txs for stage 3
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Proposal)) // trigger commit, trigger stage 3
 	_ = rig.ReceiveEvent(ctx).Event.(EventCommitted)
 
@@ -64,15 +64,15 @@ func TestNominateCommit(t *testing.T) {
 
 }
 
-func TestValidateCommit(t *testing.T) {
+// func TestValidateCommit(t *testing.T) {
 
-	// ctx, rig, baton, tick := testSetup()
+// 	ctx, rig, baton, tick := testSetup()
 
-	// // stage 1: validate 1
-	// rig.StageExecs(1)
-	// baton.Start(ctx)
+// 	// stage 1: validate 1
+// 	rig.StageExecs(1)
+// 	baton.Start(ctx)
 
-	// proposal := rig.MakeProposal(ctx)
-	// rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(proposal))
+// 	proposal := rig.MakeProposal(ctx)
+// 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(proposal))
 
-}
+// }

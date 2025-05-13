@@ -64,7 +64,7 @@ func NewTestRig(
 		nominateIn:         make(chan nominateIn, 1),
 		nominateOut:        make(chan bool, 1),
 	}
-	h.TestDb = NewTestDb(0, proto.BlockHash{}, 0)
+	h.TestDb = NewTestDb(Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
 	h.TestCatchup = NewTestCatchup(*catchupSigner)
