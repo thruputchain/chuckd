@@ -67,7 +67,7 @@ func NewTestRig(
 	h.TestDb = NewTestDb(Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
-	h.TestCatchup = NewTestCatchup(*catchupSigner)
+	h.TestCatchup = NewTestCatchup(time, *catchupSigner)
 	return h
 }
 

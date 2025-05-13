@@ -4,39 +4,50 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestCatchup struct {
+	time   libtime.Time
 	Signer proto.ValidatorPrivateInfo
 	lk     sync.Mutex
-	next   *proto.CatchupBlocksResult
+	result [][]proto.CatchupBlock
 }
 
-func NewTestCatchup(signer proto.ValidatorPrivateInfo) *TestCatchup {
-	return &TestCatchup{Signer: signer}
+func NewTestCatchup(time libtime.Time, signer proto.ValidatorPrivateInfo) *TestCatchup {
+	return &TestCatchup{time: time, Signer: signer}
 }
 
 func (x *TestCatchup) Catchup_null(context.Context) error {
 	return nil
 }
 
-func (x *TestCatchup) Control_SetNextCatchupResult(result proto.CatchupBlocksResult) {
+func (x *TestCatchup) StageCatchup(blocks ...proto.CatchupBlock) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	x.next = &result
+	x.result = append(x.result, blocks)
 }
 
 func (x *TestCatchup) Catchup_blocks(ctx context.Context, req proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
+	log.Debugf("catchup requested %s", form.SprintJSON(req))
 	x.lk.Lock()
 	defer x.lk.Unlock()
+	must.Assertf(ctx, len(x.result) > 0, "no staged catchup blocks")
+	result := proto.CatchupBlocksResult{
+		Timestamp: x.time.Now().UnixNano(),
+		Blocks:    x.result[0],
+	}
 	r := proto.SignedCatchupBlocksResult{
 		Signer:    x.Signer.Public_info,
-		Signature: protoutil.SignXdr(x.Signer.Secret_key, x.next),
-		Result:    *x.next,
+		Signature: protoutil.SignXdr(x.Signer.Secret_key, &result),
+		Result:    result,
 	}
-	x.next = nil
+	x.result = x.result[1:]
 	return r, nil
 }
 

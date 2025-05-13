@@ -31,9 +31,22 @@ var testNondeterministicData = proto.NondeterministicProposalData{
 	Nondeterministic_bit_count: 8,
 }
 
+type TestBlock struct {
+	Proposal proto.Proposal
+	Batch    proto.BatchTransactions
+	Catchup  proto.CatchupBlock
+}
+
+func (h *TestRig) GenProposal(ctx context.Context, ntxs int) *TestBlock {
+	return h.GenProposalOntoTip(ctx, ntxs, h.TestDb.GetTip())
+}
+
+func (h *TestRig) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
+	return h.GenProposalOntoTip(ctx, ntxs, Tip{Height: onto.Proposal.Block_height, Hash: onto.Proposal.Block_hash})
+}
+
 // GenProposal generates a proposal onto the current db tip.
-func (h *TestRig) GenProposal(ctx context.Context, ntxs int) (*proto.Proposal, *proto.BatchTransactions) {
-	onto := h.TestDb.GetTip()
+func (h *TestRig) GenProposalOntoTip(ctx context.Context, ntxs int, onto Tip) *TestBlock {
 	txs := make([]proto.ProposedTransaction, ntxs)
 	hash := onto.Hash
 	for i := range txs {
@@ -44,12 +57,21 @@ func (h *TestRig) GenProposal(ctx context.Context, ntxs int) (*proto.Proposal, *
 		hash = blendPropopsedTx(hash, &txs[i])
 	}
 	batch, batchHash := protoutil.PrepareBatch(txs)
-	return &proto.Proposal{
-		Block_height:                 onto.Height + 1,
-		Block_hash:                   hash,
-		Prev_block_hash:              onto.Hash,
-		Proposed_transaction_batches: []proto.BatchHash{batchHash},
-	}, &batch
+	return &TestBlock{
+		Proposal: proto.Proposal{
+			Block_height:                 onto.Height + 1,
+			Block_hash:                   hash,
+			Prev_block_hash:              onto.Hash,
+			Proposed_transaction_batches: []proto.BatchHash{batchHash},
+		},
+		Batch: batch,
+		Catchup: proto.CatchupBlock{
+			Block_height:          onto.Height + 1,
+			Block_hash:            hash,
+			Prev_block_hash:       onto.Hash,
+			Proposed_transactions: txs,
+		},
+	}
 }
 
 func blendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {

@@ -179,9 +179,9 @@ func (b *Baton) linkBlocks(ctx context.Context, v *view) error {
 		case viewExternalizedBlock:
 			if start != nil { // this scp block tops a contiguous sequence of catchup blocks; mark them linked
 				for k := *start; k < i; k++ {
-					cb := v.blocks[i].(viewCatchupBlock)
+					cb := v.blocks[k].(viewCatchupBlock)
 					cb.linked = true
-					v.blocks[i] = cb
+					v.blocks[k] = cb
 				}
 				start = nil
 			}

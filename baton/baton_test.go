@@ -40,11 +40,11 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 func TestPoolExpiry(t *testing.T) {
 	ctx, rig, _, tick := testSetup()
 
-	proposal, batch := rig.GenProposal(ctx, 1)
-	rig.AddBatch(ctx, *batch)
+	block := rig.GenProposal(ctx, 1)
+	rig.AddBatch(ctx, block.Batch)
 	rig.PassTime(tick * 5)
 	goruntime.Gosched()
-	_, ok := rig.LookupBatch(ctx, proposal.Proposed_transaction_batches[0])
+	_, ok := rig.LookupBatch(ctx, block.Proposal.Proposed_transaction_batches[0])
 	if ok {
 		t.Errorf("expecting batch to be missing")
 	}
@@ -89,9 +89,9 @@ func TestValidateCommit(t *testing.T) {
 	// stage 1: validate [1]
 	rig.StageExecs(1)
 	baton.Start(ctx)
-	proposal, batch := rig.GenProposal(ctx, 2)
-	rig.AddBatch(ctx, *batch)
-	vlevel := rig.ValidateValue(ctx, proposal.Block_height, xdrutil.MarshalXdr(proposal), true)
+	block := rig.GenProposal(ctx, 2)
+	rig.AddBatch(ctx, block.Batch)
+	vlevel := rig.ValidateValue(ctx, block.Proposal.Block_height, xdrutil.MarshalXdr(&block.Proposal), true)
 	if vlevel != api.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
@@ -99,16 +99,35 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(proposal))
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block.Proposal))
 	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
 	rig.PassTime(3 * tick)
 	goruntime.Gosched()
-	_, ok := rig.LookupBatch(ctx, proposal.Proposed_transaction_batches[0])
+	_, ok := rig.LookupBatch(ctx, block.Proposal.Proposed_transaction_batches[0])
 	if ok {
 		t.Fatalf("batch not removed after expiry")
 	}
 
+}
+
+func TestCatchupCommit(t *testing.T) {
+
+	ctx, rig, baton, _ := testSetup()
+
+	block1 := rig.GenProposal(ctx, 2)
+	block2 := rig.GenProposalOntoBlock(ctx, 2, block1)
+	rig.AddBatch(ctx, block2.Batch) // prevent catchup request for [2]
+	rig.StageCatchup(block1.Catchup)
+
+	baton.Start(ctx)
+	rig.StageExecs(1) // for validation and commit
+	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Proposal))
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
+	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
+	if committed.BlockHeight != 1 {
+		t.Errorf("expecting committed height 1")
+	}
 }

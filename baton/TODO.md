@@ -1,12 +1,10 @@
-- [x] txs cannot be submitted if older than txTTL
-  - enforced by expiration in txpool and batchpool
-
-- [*] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
-  - [ ] assert in tests
-
+- [ ] should catchup blocks be requested for externalizations with missing batches?
+  - can externalization arrive before batches in normal flow?
 
 - [ ] test
+  - [x] txs cannot be submitted if older than txTTL; enforced by expiration in txpool and batchpool
   - [ ] capture disseminations
+  - [ ] ensure committed transactions are marked regardless of the commit path (catchup, cached, etc)
 
 
 - [ ] does a proposal need to be signed by the source nominator?

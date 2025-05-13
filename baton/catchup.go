@@ -159,12 +159,12 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []catchupSpan) {
 		}
 
 		now := b.handler.Now()
-		for _, blk := range reply.Result.Blocks {
+		for _, block := range reply.Result.Blocks {
 			result = append(result, catchupBlock{
 				source: protoutil.ValidatorIDFromPublic(src),
 				stamp:  now,
-				block:  &blk,
-				txs:    protoutil.RepackageProposedTransactions(blk.Proposed_transactions),
+				block:  &block,
+				txs:    protoutil.RepackageProposedTransactions(block.Proposed_transactions),
 			})
 		}
 
