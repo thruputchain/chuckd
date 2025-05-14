@@ -41,9 +41,9 @@ type synchronize func()
 func (b *Baton) startBaton(ctx context.Context) {
 
 	// restore db
-	tip, err := b.restoreDb(ctx)
+	var err error
+	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
-	b.tip = tip
 
 	for {
 		// build view

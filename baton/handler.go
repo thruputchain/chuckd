@@ -23,7 +23,7 @@ type Handler interface {
 
 	GetCatchupSources(context.Context) []proto.ValidatorPublicInfo
 
-	RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, proto.BlockID, error) // implemented by the coordinator service
+	RestoreDb(context.Context) (Tip, error) // implemented by the coordinator service
 
 	// XXX: 64-bit block ids are too small for preventing collisions with large block counts
 	GenerateBlockID(context.Context) proto.BlockID
