@@ -68,11 +68,6 @@ func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.B
 	return proposal, nom.dbBlockID, nil
 }
 
-type prepared struct {
-	error
-	*nomination
-}
-
 type nomination struct {
 	dbBlockID     proto.BlockID
 	blockHeight   proto.BlockHeight

@@ -20,25 +20,22 @@ var (
 
 func (b *Baton) buildView(ctx context.Context) (*view, error) {
 
-	b.lock()
-	defer b.unlock()
-
 	v := &view{
 		stamp: b.handler.Now(),
 	}
 
 	dbBlock := viewDbBlock{
-		tip: b.db.tip,
+		tip: b.tip,
 	}
 
 	// if there are no scp blocks, we are done
-	if len(b.consensus.ext) == 0 {
+	if len(b.externalized) == 0 {
 		v.blocks = []viewBlock{dbBlock}
 		v.reqs = [][]ID64{nil}
 		return v, nil
 	}
 
-	scpTopBlock := b.consensus.ext[len(b.consensus.ext)-1]
+	scpTopBlock := b.externalized[len(b.externalized)-1]
 	scpTopHeight := scpTopBlock.Block_height
 	if scpTopHeight < dbBlock.tip.Height {
 		return nil, ErrConsensusBelowDb
@@ -61,7 +58,7 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	v.blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, proposal := range b.consensus.ext {
+	for _, proposal := range b.externalized {
 		// there can be gaps between scp blocks
 		must.Assertf(ctx, proposal.Block_height > scpPrevHeight, "scp proposal heights not increasing")
 		scpPrevHeight = proposal.Block_height
@@ -235,7 +232,7 @@ func (v *view) nextBlockToCommit(b *Baton) *ValidatableBlock {
 	vb.DbTip = db.tip
 
 	// are we committing a block that we have already validated?
-	if vtd, ok := b.consensus.validated[vb.BlockHash]; ok {
+	if vtd, ok := b.validated[vb.BlockHash]; ok {
 		vb.AlreadyValidatedProposal = vtd.Proposal
 		vb.AlreadyValidatedBlockID = &vtd.BlockID
 	}
