@@ -10,8 +10,14 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type nominate struct {
-	tip Tip
+func canNominate(nominate *Tip, nominating *nominating) bool {
+	if nominate == nil {
+		return false
+	}
+	if nominating == nil {
+		return true
+	}
+	return nominate.Height > nominating.Height
 }
 
 func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.BlockID, error) {
@@ -57,13 +63,12 @@ func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.B
 	b.handler.Disseminate(ctx, &proto.BatchMessage{Batch_transactions: batch})
 
 	// nominate to consensus
-	go func() {
-		prevSummary := proto.PrevProposalSummary{
-			Block_hash: nom.prevBlockHash,
-		}
-		b.handler.Nominate(ctx, nom.blockHeight, proposal, &prevSummary) // ignore result
-		b.handler.Emit(ctx, EventNominated{Tip: tip, NumTx: len(txsToNominate), Proposal: proposal})
-	}()
+	prevSummary := proto.PrevProposalSummary{
+		Block_hash: nom.prevBlockHash,
+	}
+	// block until nomination is over
+	b.handler.Nominate(ctx, nom.blockHeight, proposal, &prevSummary) // ignore result
+	b.handler.Emit(ctx, EventNominated{Tip: tip, NumTx: len(txsToNominate), Proposal: proposal})
 
 	return proposal, nom.dbBlockID, nil
 }
