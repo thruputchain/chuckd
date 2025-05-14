@@ -89,7 +89,7 @@ func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (
 	return proto.DbResultOK, nil
 }
 
-func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID) (proto.DbResult, error) {
+func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) (proto.DbResult, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 

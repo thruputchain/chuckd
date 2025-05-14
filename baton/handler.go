@@ -35,7 +35,8 @@ type Handler interface {
 	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/proposal task.
 	DialExecs(context.Context) ([]ExecCoordConn, error)
 
-	PrioritizeTxs(context.Context, []*proto.SignedTransaction) []*proto.SignedTransaction
+	PrioritizeRejectTxs(context.Context, []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction)
+	RejectedTx(context.Context, *proto.RejectedTransaction)
 
 	Emit(ctx context.Context, event any)
 }

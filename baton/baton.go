@@ -94,33 +94,36 @@ WaitDb:
 
 		// start nomination, if the db there are no externalizations above the db tip
 		if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
-			log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
 			// cancel prior unfinished nominations
 			if b.nominating != nil {
 				b.nominating.CancelFunc()
 				b.nominating = nil
 			}
-			nomCtx, nomCancel := context.WithCancel(ctx)
-			b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
-			go func() {
-				proposal, blockID, err := b.nominate(nomCtx, *nominate)
-				if err != nil {
-					log.Errorf("nominate: %v", err)
-				}
-				b.synchronize <- func() {
-					log.Debugf("end nominating onto %v", form.SprintJSON(nominate))
-					must.Assertf(ctx, b.nominating != nil, "race nominating")
-					b.nominating.CancelFunc()
-					b.nominating = nil
-
-					if err != nil { // nomination failed
-						return
+			uncommittedTxs := b.gatherUncommittedTxs(ctx)
+			if len(uncommittedTxs) > 0 {
+				log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
+				nomCtx, nomCancel := context.WithCancel(ctx)
+				b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
+				go func() {
+					proposal, blockID, err := b.nominate(nomCtx, *nominate, uncommittedTxs)
+					if err != nil {
+						log.Errorf("nominate: %v", err)
 					}
+					b.synchronize <- func() {
+						log.Debugf("end nominating onto %v", form.SprintJSON(nominate))
+						must.Assertf(ctx, b.nominating != nil, "race nominating")
+						b.nominating.CancelFunc()
+						b.nominating = nil
 
-					b.nominated = &nominated{Proposal: proposal}
-					b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
-				}
-			}()
+						if err != nil { // nomination failed
+							return
+						}
+
+						b.nominated = &nominated{Proposal: proposal}
+						b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+					}
+				}()
+			}
 		}
 
 		// send catchup requests
