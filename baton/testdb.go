@@ -39,10 +39,10 @@ func (db *TestDb) GetTip() Tip {
 	return db.top.tip
 }
 
-func (db *TestDb) RestoreDb(context.Context) (proto.BlockHeight, proto.BlockHash, proto.BlockID, error) {
+func (db *TestDb) RestoreDb(context.Context) (Tip, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
-	return db.top.tip.Height, db.top.tip.Hash, db.top.tip.ID, nil
+	return db.top.tip, nil
 }
 
 func (db *TestDb) DbCoord() DbCoordConn {
