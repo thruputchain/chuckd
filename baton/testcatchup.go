@@ -4,9 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -34,7 +32,6 @@ func (x *TestCatchup) StageCatchup(blocks ...proto.CatchupBlock) {
 }
 
 func (x *TestCatchup) Catchup_blocks(ctx context.Context, req proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
-	log.Debugf("catchup requested %s", form.SprintJSON(req))
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	must.Assertf(ctx, len(x.result) > 0, "no staged catchup blocks")

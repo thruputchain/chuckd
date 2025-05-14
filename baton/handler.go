@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	proto "github.com/groundhogchain/protocol-go"
@@ -42,6 +43,8 @@ type Handler interface {
 }
 
 type ID64 int64
+
+func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }
 
 // BatchMempool provides batches of proposed transactions by other validators.
 type BatchMempool interface {
