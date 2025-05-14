@@ -165,6 +165,8 @@ func (h *TestRig) DialExecs(ctx context.Context) ([]ExecCoordConn, error) {
 	return execs, nil
 }
 
-func (h *TestRig) PrioritizeTxs(ctx context.Context, txs []*proto.SignedTransaction) []*proto.SignedTransaction {
-	return txs
+func (h *TestRig) PrioritizeRejectTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
+	return txs, nil
 }
+
+func (h *TestRig) RejectedTx(context.Context, *proto.RejectedTransaction) {}

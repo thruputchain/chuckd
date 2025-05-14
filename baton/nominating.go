@@ -5,10 +5,13 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
+
+var ErrNothingToNominate = fmt.Errorf("nothing to nominate")
 
 type nominating struct {
 	Tip
@@ -36,8 +39,7 @@ func canNominate(nominate *Tip, nominating *nominating, nominated *nominated) bo
 	panic("unreachable")
 }
 
-func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.BlockID, error) {
-
+func (b *Baton) gatherUncommittedTxs(ctx context.Context) []*proto.SignedTransaction {
 	// pool all available transactions (our own + from batches) excluding already committed ones
 	uncommittedTxs := []*proto.SignedTransaction{}
 	for _, stx := range b.handler.ListTxs(ctx) {
@@ -46,11 +48,23 @@ func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.B
 			uncommittedTxs = append(uncommittedTxs, stx)
 		}
 	}
+	return uncommittedTxs
+}
+
+func (b *Baton) nominate(ctx context.Context, tip Tip, uncommittedTxs []*proto.SignedTransaction) (*proto.Proposal, proto.BlockID, error) {
+
+	must.Assertf(ctx, len(uncommittedTxs) > 0, "nominating no uncommited txs")
 
 	// prioritize and pick the top, applying any limits on transactions per block
-	txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
+	txsToNominate, rejectedTxs := b.handler.PrioritizeRejectTxs(ctx, uncommittedTxs)
+	for _, rtx := range rejectedTxs {
+		hash := sha256.Sum256(xdrutil.MarshalXdr(&rtx.Transaction))
+		b.handler.AddCommittedTx(ctx, hash) // adding to committed so they are not tried again
+		b.handler.RemoveTx(ctx, hash)
+		b.handler.RejectedTx(ctx, rtx)
+	}
 	if len(txsToNominate) == 0 {
-		return nil, 0, fmt.Errorf("nothing to nominate")
+		return nil, 0, ErrNothingToNominate
 	}
 
 	// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
@@ -120,7 +134,7 @@ func (b *Baton) prepareNomination(
 	blockID := b.handler.GenerateBlockID(ctx)
 
 	// db create snapshot
-	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.ID, blockID)
+	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.ID, blockID, proto.KBlockExecutionModeProposal)
 	if err != nil {
 		return nil, err
 	}

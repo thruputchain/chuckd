@@ -19,7 +19,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 	b.handler.Emit(ctx, EventValidating{ValidatableBlock: vb, BlockID: blockID})
 
 	// db create snapshot
-	dbResult, err := db.Dbcoord_create_snapshot(ctx, vb.DbTip.ID, blockID)
+	dbResult, err := db.Dbcoord_create_snapshot(ctx, vb.DbTip.ID, blockID, proto.KBlockExecutionModeValidation)
 	if err != nil {
 		return err
 	}
