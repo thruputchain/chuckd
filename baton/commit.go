@@ -100,4 +100,9 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 			delete(b.validated, h)
 		}
 	}
+
+	// purge nominations
+	if b.nominated != nil && b.nominated.Block_height <= b.tip.Height {
+		b.nominated = nil
+	}
 }

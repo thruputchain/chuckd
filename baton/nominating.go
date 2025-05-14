@@ -10,14 +10,30 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func canNominate(nominate *Tip, nominating *nominating) bool {
+type nominating struct {
+	Tip
+	context.CancelFunc
+}
+
+type nominated struct {
+	*proto.Proposal
+}
+
+func canNominate(nominate *Tip, nominating *nominating, nominated *nominated) bool {
 	if nominate == nil {
 		return false
 	}
-	if nominating == nil {
+	switch {
+	case nominating == nil && nominated == nil:
 		return true
+	case nominating == nil && nominated != nil:
+		return nominate.Height > nominated.Block_height
+	case nominating != nil && nominated == nil:
+		return nominate.Height > nominating.Height
+	case nominating != nil && nominated != nil:
+		return nominate.Height > nominating.Height && nominate.Height > nominated.Block_height
 	}
-	return nominate.Height > nominating.Height
+	panic("unreachable")
 }
 
 func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.BlockID, error) {
