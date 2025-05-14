@@ -136,7 +136,6 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	}
 }
 
-// XXX
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
@@ -147,6 +146,7 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.StageExecs(1) // for validation and commit
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block1.Proposal))
+	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)

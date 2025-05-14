@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/log"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -110,6 +112,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 }
 
 func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
+	log.Debugf("validating and committing %v@%d", form.SprintJSON(vb.BlockHash), vb.BlockHeight)
 
 	db, err := b.handler.DialDb(ctx)
 	if err != nil {

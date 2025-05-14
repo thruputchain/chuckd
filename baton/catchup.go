@@ -10,42 +10,42 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type catchupBlocks []catchupBlock
+type catchupBlocks []CatchupBlock
 
 func (bs catchupBlocks) IsEmpty() bool {
 	return len(bs) == 0
 }
 
-func (bs catchupBlocks) Find(h proto.BlockHeight) (catchupBlock, bool) {
+func (bs catchupBlocks) Find(h proto.BlockHeight) (CatchupBlock, bool) {
 	for _, cb := range bs {
 		if cb.BlockHeight() == h {
 			return cb, true
 		}
 	}
-	return catchupBlock{}, false
+	return CatchupBlock{}, false
 }
 
-type catchupBlock struct {
-	source proto.ValidatorID
-	stamp  time.Time
-	block  *proto.CatchupBlock
-	txs    []*proto.ProposedTransaction
+type CatchupBlock struct {
+	Source proto.ValidatorID
+	Stamp  time.Time
+	Block  *proto.CatchupBlock
+	Txs    []*proto.ProposedTransaction
 }
 
-func (b catchupBlock) Source() proto.ValidatorID {
-	return b.source
+func (b CatchupBlock) Provider() proto.ValidatorID {
+	return b.Source
 }
 
-func (b catchupBlock) BlockHeight() proto.BlockHeight {
-	return b.block.Block_height
+func (b CatchupBlock) BlockHeight() proto.BlockHeight {
+	return b.Block.Block_height
 }
 
-func (b catchupBlock) BlockHash() proto.BlockHash {
-	return b.block.Block_hash
+func (b CatchupBlock) BlockHash() proto.BlockHash {
+	return b.Block.Block_hash
 }
 
-func (b catchupBlock) PrevBlockHash() proto.BlockHash {
-	return b.block.Prev_block_hash
+func (b CatchupBlock) PrevBlockHash() proto.BlockHash {
+	return b.Block.Prev_block_hash
 }
 
 type catchupRequest struct {
@@ -55,7 +55,7 @@ type catchupRequest struct {
 
 // baton
 
-func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (catchupBlock, bool) {
+func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (CatchupBlock, bool) {
 	return b.catchupBlocks.Find(h)
 }
 
@@ -134,11 +134,11 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
-			result = append(result, catchupBlock{
-				source: protoutil.ValidatorIDFromPublic(src),
-				stamp:  now,
-				block:  &block,
-				txs:    protoutil.RepackageProposedTransactions(block.Proposed_transactions),
+			result = append(result, CatchupBlock{
+				Source: protoutil.ValidatorIDFromPublic(src),
+				Stamp:  now,
+				Block:  &block,
+				Txs:    protoutil.RepackageProposedTransactions(block.Proposed_transactions),
 			})
 		}
 

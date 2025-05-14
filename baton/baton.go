@@ -57,13 +57,13 @@ WaitDb:
 	}
 
 	for {
-		log.Debugf("baton loop")
-
 		// build view
 		v := b.buildCleanView(ctx)
+		log.Debugf("view %v", form.SprintJSON(v))
 
 		// validate and commit next block, if one is available and no commit is in progress
 		if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
+			log.Debugf("committing height %v hash %v", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 			b.committing = true
 			go func() {
 				blockID, err := b.commit(ctx, vb)
