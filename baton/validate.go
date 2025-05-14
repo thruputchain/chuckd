@@ -7,6 +7,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type validated struct {
+	*proto.Proposal
+	proto.BlockID
+}
+
+var ErrNotValid = fmt.Errorf("proposal not valid")
+
 func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, blockID proto.BlockID) error {
 
 	b.handler.Emit(ctx, EventValidating{ValidatableBlock: vb, BlockID: blockID})
@@ -65,11 +72,11 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 
 				execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
 				if err != nil {
-					validatedCh <- err
+					validatedCh <- err // networking error
 					return
 				}
 				if execResult != proto.ExecResultOK {
-					validatedCh <- fmt.Errorf("executor validate transaction rpc error")
+					validatedCh <- ErrNotValid
 					return
 				}
 			}
@@ -87,14 +94,14 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 	}
 	var verr error
 	for range execs {
-		if err := <-validatedCh; err != nil {
+		if err := <-validatedCh; verr == nil || err == ErrNotValid { // prioritize ErrNotValid over networking errors
 			verr = err
 		}
 	}
 	if verr != nil {
 		// db abandon snapshot
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return fmt.Errorf("validation error: %v", verr)
+		return verr
 	}
 
 	b.handler.Emit(ctx, EventValidated{ValidatableBlock: vb, BlockID: blockID})
@@ -102,18 +109,18 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 	return nil
 }
 
-func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) error {
+func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
 
 	db, err := b.handler.DialDb(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer db.Close()
 
 	blockID := b.handler.GenerateBlockID(ctx)
 
 	if err = b.validate(ctx, vb, db, blockID); err != nil {
-		return err
+		return 0, err
 	}
 
 	return b.finalizeCommit(ctx, vb, blockID, db)

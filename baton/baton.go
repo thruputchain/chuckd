@@ -11,18 +11,14 @@ import (
 
 func NewBaton(ctx context.Context, h Handler) *Baton {
 	b := &Baton{
-		handler:      h,
-		dbRestored:   make(chan dbRestored, 1),
-		externalized: make(chan proposal),
-		caughtUp:     make(chan caughtUp),
-		committed:    make(chan committed),
-		commit:       make(chan *ValidatableBlock),
-		nominate:     make(chan *nominate),
+		handler:     h,
+		dbRestored:  make(chan dbRestored, 1),
+		synchronize: make(chan synchronize, 1),
+		caughtUp:    make(chan caughtUp),
 	}
 	b.catchup.pending = map[ID64]catchupRequest{}
 	b.catchup.blocks = nil
-	b.consensus.validatedProposal = map[proto.BlockHash]*proto.Proposal{}
-	b.consensus.validatedBlockID = map[proto.BlockHash]*proto.BlockID{}
+	b.consensus.validated = map[proto.BlockHash]validated{}
 	return b
 }
 
@@ -33,15 +29,13 @@ func (b *Baton) Start(ctx context.Context) {
 type Baton struct {
 	handler Handler
 	// notifications to baton
-	dbRestored   chan dbRestored
-	externalized chan proposal // from scp handler
-	caughtUp     chan caughtUp
-	committed    chan committed
-	// signals from baton
-	commit   chan *ValidatableBlock // to commit process
-	nominate chan *nominate         // to nomination process
-	// states
-	db struct {
+	dbRestored  chan dbRestored
+	synchronize chan synchronize
+	caughtUp    chan caughtUp
+	// state
+	committing bool
+	nominating context.CancelFunc
+	db         struct {
 		lk  sync.Mutex
 		tip Tip
 	}
@@ -51,21 +45,16 @@ type Baton struct {
 		blocks  catchupBlocks           // received catchup blocks
 	}
 	consensus struct {
-		lk                sync.Mutex
-		ext               proposals
-		validatedProposal map[proto.BlockHash]*proto.Proposal
-		validatedBlockID  map[proto.BlockHash]*proto.BlockID
-	}
-	nominator struct {
-		lk                sync.Mutex
-		nominatedProposal *proto.Proposal
-		nominatedBlockID  *proto.BlockID
+		ext       []*proto.Proposal
+		validated map[proto.BlockHash]validated
 	}
 }
 
+type synchronize func()
+
 func (b *Baton) startBaton(ctx context.Context) {
 
-	// externalized chan is active right away
+	// synchronize chan is active right away
 
 	// restore db
 	go b.restoreDb(ctx)
@@ -75,15 +64,9 @@ func (b *Baton) startBaton(ctx context.Context) {
 			log.Fatalf("db not restored: %v", r.Err)
 		}
 		log.Debugf("<-b.dbRestored")
-	case <-b.externalized:
-		// ignore (externalizations are already recorded in the state)
+	case <-b.synchronize:
+		// XXX: ignore ???
 	}
-
-	// start nominator who depends on the db state
-	go b.startNominating(ctx)
-
-	// start validate and commit thread
-	go b.startValidateAndCommit(ctx)
 
 	for {
 
@@ -111,32 +94,75 @@ func (b *Baton) startBaton(ctx context.Context) {
 			}
 		}
 
-		// validate and commit next block, if one is available and the validate and commit thread is not busy
-		if vb := v.NextBlockToCommit(); vb != nil {
-			select {
-			case b.commit <- vb: // signal may be ignored, if we are currently committing
-			default:
-			}
+		// validate and commit next block, if one is available and no commit is in progress
+		if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
+			b.committing = true
+			go func() {
+				blockID, err := b.commit(ctx, vb)
+				if err != nil {
+					log.Errorf("commit: %v", err)
+				}
+				b.synchronize <- func() {
+					must.Assertf(ctx, b.committing, "race committing")
+					b.committing = false
+
+					if err != nil { // commit failed
+						return
+					}
+
+					if b.db.tip.Height+1 != vb.BlockHeight {
+						panic("bug")
+					}
+
+					b.db.tip.Hash = vb.BlockHash
+					b.db.tip.Height = vb.BlockHeight
+					b.db.tip.ID = blockID
+
+					// purge catchup or consensus blocks no higher than the newly committed one
+					b.purgeBelowTip(ctx)
+				}
+			}()
 		}
 
 		// start nomination, if the db there are no externalizations above the db tip
 		if nom := v.ReadyToNominate(); nom != nil {
-			b.nominate <- nom // signal interrupts any ongoing nomination
+			// cancel prior unfinished nominations
+			if b.nominating != nil {
+				b.nominating()
+				b.nominating = nil
+			}
+			nomCtx, nomCancel := context.WithCancel(ctx)
+			b.nominating = nomCancel
+			go func() {
+				proposal, blockID, err := b.nominate(nomCtx, nom.tip)
+				if err != nil {
+					log.Errorf("nominate: %v", err)
+				}
+				b.synchronize <- func() {
+					must.Assertf(ctx, b.nominating != nil, "race nominating")
+					b.nominating = nil
+
+					if err != nil { // nomination failed
+						return
+					}
+
+					b.consensus.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+				}
+			}()
 		}
 
 		// send catchup requests
 		if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
+			XXX // next up to "synchronize"
 			b.requestCatchup(ctx, needed)
 		}
 
 		// wait until something happens
 		select {
+		case synchronize := <-b.synchronize:
+			synchronize()
 		case <-b.caughtUp: // catchup blocks received
 			log.Debugf("<-b.caughtUp")
-		case <-b.externalized: // externalization received
-			log.Debugf("<-b.externalized")
-		case <-b.committed: // block committed to db
-			log.Debugf("<-b.committed")
 		}
 	}
 }

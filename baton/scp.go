@@ -44,50 +44,68 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 		return api.InvalidValue
 	}
 
-	x.baton.lock()
-	dbTip := x.baton.db.tip
-	pendingExternalizations := !x.baton.consensus.ext.IsEmpty()
-	x.baton.unlock()
+	reply := make(chan api.ValidationLevel, 1)
+	x.baton.synchronize <- func() {
+		x.baton.validateValue(ctx, &prop, reply)
+	}
+	return <-reply
+}
 
-	if prop.Block_height <= dbTip.Height {
-		return api.InvalidValue
+func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, reply chan<- api.ValidationLevel) {
+
+	dbTip := b.db.tip
+
+	if proposal.Block_height <= dbTip.Height {
+		reply <- api.InvalidValue
+		return
 	}
-	if prop.Block_height > dbTip.Height+1 {
-		return api.MaybeValidValue
+	if proposal.Block_height > dbTip.Height+1 {
+		reply <- api.MaybeValidValue
+		return
 	}
-	if prop.Prev_block_hash != dbTip.Hash {
-		return api.InvalidValue
+	if proposal.Prev_block_hash != dbTip.Hash {
+		reply <- api.InvalidValue
+		return
 	}
-	if pendingExternalizations {
-		return api.InvalidValue // there are newer externalizations
+	if len(b.consensus.ext) > 0 {
+		reply <- api.InvalidValue // there are newer externalizations
+		return
 	}
 
 	ptxs := []*proto.ProposedTransaction{}
-	for _, b := range prop.Proposed_transaction_batches {
-		btxs, ok := x.baton.handler.LookupBatch(ctx, b)
+	for _, batch := range proposal.Proposed_transaction_batches {
+		btxs, ok := b.handler.LookupBatch(ctx, batch)
 		if !ok {
-			return api.MaybeValidValue
+			reply <- api.MaybeValidValue
+			return
 		}
 		ptxs = append(ptxs, btxs...)
 	}
 
 	vb := &ValidatableBlock{
-		BlockHeight:          prop.Block_height,
-		BlockHash:            prop.Block_hash,
-		PrevBlockHash:        prop.Prev_block_hash,
+		BlockHeight:          proposal.Block_height,
+		BlockHash:            proposal.Block_hash,
+		PrevBlockHash:        proposal.Prev_block_hash,
 		ProposedTransactions: ptxs,
 		DbTip:                dbTip,
 	}
 
-	blockID, err := x.baton.validateClose(ctx, vb)
-
-	// cache validated blocks
-	x.baton.consensus.lk.Lock()
-	x.baton.consensus.validatedProposal[prop.Block_hash] = &prop
-	x.baton.consensus.validatedBlockID[prop.Block_hash] = &blockID
-	x.baton.consensus.lk.Unlock()
-
-	return api.FullyValidValue
+	go func() {
+		blockID, err := b.validateClose(ctx, vb)
+		if err == ErrNotValid {
+			reply <- api.InvalidValue
+			return
+		}
+		if err != nil {
+			reply <- api.MaybeValidValue
+			return
+		}
+		reply <- api.FullyValidValue
+		b.synchronize <- func() {
+			// cache validated blocks
+			b.consensus.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+		}
+	}()
 }
 
 func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value api.Value) *api.Value {
@@ -95,43 +113,36 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value 
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
-	var prop proto.Proposal
-	if err := xdrutil.UnmarshalXdr(&prop, value); err != nil {
+
+	var proposal proto.Proposal
+	if err := xdrutil.UnmarshalXdr(&proposal, value); err != nil {
 		return
 	}
 
 	// check that SCP slot equals proposal's block height
-	if slot != prop.Block_height {
+	if slot != proposal.Block_height {
 		log.Errorf("scp slot index does not equal proposed block height")
 		return
 	}
 
-	// check validity and update state
-	x.baton.consensus.lk.Lock()
-
-	externalized := proposal{slot: slot, proto: &prop}
-	ok := isValidExternalization(externalized, x.baton.consensus.ext)
-	if ok {
-		x.baton.consensus.ext = append(x.baton.consensus.ext, externalized)
-	}
-
-	x.baton.consensus.lk.Unlock()
-
-	// notify baton
-	if ok {
-		x.baton.externalized <- externalized
+	x.baton.synchronize <- func() {
+		// check validity and update state
+		ok := isValidExternalization(&proposal, x.baton.consensus.ext)
+		if ok {
+			x.baton.consensus.ext = append(x.baton.consensus.ext, &proposal)
+		}
 	}
 }
 
-func isValidExternalization(prop proposal, ps proposals) bool {
+func isValidExternalization(p *proto.Proposal, ps []*proto.Proposal) bool {
 	if len(ps) == 0 {
 		return true
 	}
 	last := ps[len(ps)-1]
-	if prop.BlockHeight() <= last.BlockHeight() {
+	if p.Block_height <= last.Block_height {
 		return false
 	}
-	if prop.BlockHeight() == last.BlockHeight()+1 && prop.PrevBlockHash() != last.BlockHash() {
+	if p.Block_height == last.Block_height+1 && p.Prev_block_hash != last.Block_hash {
 		return false
 	}
 	return true

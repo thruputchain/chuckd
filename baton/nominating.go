@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -15,122 +14,58 @@ type nominate struct {
 	tip Tip
 }
 
-func (b *Baton) startNominating(ctx context.Context) {
-	var interrupt *nominate
-	for {
+func (b *Baton) nominate(ctx context.Context, tip Tip) (*proto.Proposal, proto.BlockID, error) {
 
-		var signal *nominate
-		if interrupt == nil {
-			// nominate signals that our db is up to speed, and
-			// there are no known externalizations above us
-			signal = waitAndDrain(b.nominate)
-		} else {
-			interrupt = nil
-			signal = drain(b.nominate, interrupt)
+	// pool all available transactions (our own + from batches) excluding already committed ones
+	uncommittedTxs := []*proto.SignedTransaction{}
+	for _, stx := range b.handler.ListTxs(ctx) {
+		hash := sha256.Sum256(xdrutil.MarshalXdr(stx))
+		if !b.handler.IsCommittedTx(ctx, hash) {
+			uncommittedTxs = append(uncommittedTxs, stx)
 		}
-
-		// pool all available transactions (our own + from batches) excluding already committed ones
-		uncommittedTxs := []*proto.SignedTransaction{}
-		for _, stx := range b.handler.ListTxs(ctx) {
-			hash := sha256.Sum256(xdrutil.MarshalXdr(stx))
-			if !b.handler.IsCommittedTx(ctx, hash) {
-				uncommittedTxs = append(uncommittedTxs, stx)
-			}
-		}
-
-		// prioritize and pick the top, applying any limits on transactions per block
-		txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
-		if len(txsToNominate) == 0 {
-			continue
-		}
-
-		// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
-		prepCtx, prepCancel := context.WithCancel(ctx)
-		prepCh := make(chan *prepared, 1)
-		go func() {
-			nom, err := b.prepareNomination(prepCtx, signal, txsToNominate)
-			if err != nil {
-				log.Errorf("preparing nomination: %v", err)
-				prepCh <- &prepared{error: err}
-			} else {
-				prepCh <- &prepared{nomination: nom}
-			}
-		}()
-
-		// wait for nomination preparation or for a new tip interruption
-		var prep *prepared
-	WaitPrepReadyOrInterrupt:
-		for {
-			select {
-			case interrupt = <-b.nominate: // a block has been externalized, abort nomination
-				// the baton may send a nomination signal pointing at the same tip; it must be ignored
-				if interrupt.tip.Hash == signal.tip.Hash {
-					continue // ignore interruptions from the same tip!
-				} else {
-					break WaitPrepReadyOrInterrupt
-				}
-			case prep = <-prepCh:
-				break WaitPrepReadyOrInterrupt
-			}
-		}
-		prepCancel()
-		if prep == nil { // we were interrupted
-			continue
-		}
-		if prep.error != nil {
-			// XXX: handle ErrNoExecs
-			continue
-		}
-
-		nom := prep.nomination
-
-		// construct proposed block
-		batch, batchHash := protoutil.PrepareBatch(nom.proposedTxs)
-		proposal := &proto.Proposal{
-			Block_height:                 nom.blockHeight,
-			Block_hash:                   nom.blockHash,
-			Prev_block_hash:              nom.prevBlockHash,
-			Proposed_transaction_batches: []proto.BatchHash{batchHash},
-		}
-
-		// save batches
-		b.handler.AddBatch(ctx, batch)
-
-		// disseminate batches; this is non-blocking (no network ops)
-		b.handler.Disseminate(ctx, &proto.BatchMessage{Batch_transactions: batch})
-
-		// record our latest proposal so we can skip validation on the commit path
-		// must be done before nomination begins
-		b.nominator.lk.Lock()
-		b.nominator.nominatedBlockID = &nom.dbBlockID
-		b.nominator.nominatedProposal = proposal
-		b.nominator.lk.Unlock()
-
-		b.handler.Emit(ctx, EventNominating{Tip: signal.tip, NumTx: len(uncommittedTxs), Proposal: proposal})
-
-		// nominate to consensus
-		nomCtx, nomCancel := context.WithCancel(ctx)
-		nomCh := make(chan bool, 1)
-		go func() {
-			prevSummary := proto.PrevProposalSummary{
-				Block_hash: nom.prevBlockHash,
-			}
-			nomCh <- b.handler.Nominate(nomCtx, nom.blockHeight, proposal, &prevSummary)
-		}()
-
-		var outcome *bool
-		select {
-		case interrupt = <-b.nominate: // a block has been externalized, abort nomination
-		case r := <-nomCh:
-			outcome = &r
-		}
-		nomCancel()
-		if outcome == nil {
-			break
-		}
-
-		b.handler.Emit(ctx, EventNominated{Tip: signal.tip, NumTx: len(uncommittedTxs), Proposal: proposal})
 	}
+
+	// prioritize and pick the top, applying any limits on transactions per block
+	txsToNominate := b.handler.PrioritizeTxs(ctx, uncommittedTxs)
+	if len(txsToNominate) == 0 {
+		return nil, 0, fmt.Errorf("nothing to nominate")
+	}
+
+	// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
+	nom, err := b.prepareNomination(ctx, tip, txsToNominate)
+	if err != nil {
+		// XXX: ctx may be cancelled
+		// XXX: ErrNoExecs
+		return nil, 0, err
+	}
+
+	// construct proposed block
+	batch, batchHash := protoutil.PrepareBatch(nom.proposedTxs)
+	proposal := &proto.Proposal{
+		Block_height:                 nom.blockHeight,
+		Block_hash:                   nom.blockHash,
+		Prev_block_hash:              nom.prevBlockHash,
+		Proposed_transaction_batches: []proto.BatchHash{batchHash},
+	}
+
+	b.handler.Emit(ctx, EventNominating{Tip: tip, NumTx: len(txsToNominate), Proposal: proposal})
+
+	// save batches
+	b.handler.AddBatch(ctx, batch)
+
+	// disseminate batches; this is non-blocking (no network ops)
+	b.handler.Disseminate(ctx, &proto.BatchMessage{Batch_transactions: batch})
+
+	// nominate to consensus
+	go func() {
+		prevSummary := proto.PrevProposalSummary{
+			Block_hash: nom.prevBlockHash,
+		}
+		b.handler.Nominate(ctx, nom.blockHeight, proposal, &prevSummary) // ignore result
+		b.handler.Emit(ctx, EventNominated{Tip: tip, NumTx: len(txsToNominate), Proposal: proposal})
+	}()
+
+	return proposal, nom.dbBlockID, nil
 }
 
 type prepared struct {
@@ -155,7 +90,7 @@ type proposed struct {
 // prepareNomination can be aborted by cancelling the context.
 func (b *Baton) prepareNomination(
 	ctx context.Context,
-	tip *nominate,
+	tip Tip,
 	txs []*proto.SignedTransaction,
 ) (*nomination, error) {
 
@@ -169,7 +104,7 @@ func (b *Baton) prepareNomination(
 	blockID := b.handler.GenerateBlockID(ctx)
 
 	// db create snapshot
-	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.tip.ID, blockID)
+	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.ID, blockID)
 	if err != nil {
 		return nil, err
 	}
@@ -276,9 +211,9 @@ func (b *Baton) prepareNomination(
 
 	return &nomination{
 		dbBlockID:     blockID,
-		blockHeight:   tip.tip.Height + 1,
+		blockHeight:   tip.Height + 1,
 		blockHash:     *dbBlockResult.Block_hash(),
-		prevBlockHash: tip.tip.Hash,
+		prevBlockHash: tip.Hash,
 		proposedTxs:   proposedTxs,
 		batches:       nil, // filled later
 	}, nil
