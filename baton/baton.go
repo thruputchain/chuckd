@@ -40,21 +40,10 @@ type synchronize func()
 
 func (b *Baton) startBaton(ctx context.Context) {
 
-	// synchronize chan is active right away with potential calls from scp
-
 	// restore db
-	restored := make(chan synchronize)
-	go b.restoreDb(ctx, restored)
-WaitDb:
-	for {
-		select {
-		case restored := <-restored:
-			restored()
-			break WaitDb
-		case <-b.synchronize:
-			// ignore scp (externalized or validate value) until db is restored
-		}
-	}
+	tip, err := b.restoreDb(ctx)
+	must.Assertf(ctx, err == nil, "db not restored: %v", err)
+	b.tip = tip
 
 	for {
 		// build view
