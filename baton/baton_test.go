@@ -64,6 +64,7 @@ func TestNominateCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
 	rig.PassTime(tick)
+	log.Debugf("XXX")
 
 	// stage 2: commit already validated [1]
 	rig.StageExecs(1)

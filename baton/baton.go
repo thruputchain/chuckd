@@ -28,6 +28,7 @@ type Baton struct {
 	// state
 	committing      bool
 	nominating      *nominating
+	nominated       *nominated
 	tip             Tip
 	catchupRequests map[ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks           // received catchup blocks
@@ -36,11 +37,6 @@ type Baton struct {
 }
 
 type synchronize func()
-
-type nominating struct {
-	Tip
-	context.CancelFunc
-}
 
 func (b *Baton) startBaton(ctx context.Context) {
 
@@ -97,7 +93,7 @@ WaitDb:
 		}
 
 		// start nomination, if the db there are no externalizations above the db tip
-		if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating) {
+		if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
 			log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
 			// cancel prior unfinished nominations
 			if b.nominating != nil {
@@ -121,6 +117,7 @@ WaitDb:
 						return
 					}
 
+					b.nominated = &nominated{Proposal: proposal}
 					b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
 				}
 			}()
