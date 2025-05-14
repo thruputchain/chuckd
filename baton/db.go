@@ -2,24 +2,16 @@ package baton
 
 import (
 	"context"
+
+	"github.com/groundhogchain/chuckd/lib/must"
 )
 
-func (b *Baton) restoreDb(ctx context.Context) {
-	var r dbRestored
-	r.Tip.Height, r.Tip.Hash, r.Tip.ID, r.Err = b.handler.RestoreDb(ctx)
-	if r.Err == nil {
-		b.updateDbState(r.Tip)
+func (b *Baton) restoreDb(ctx context.Context, restored chan<- synchronize) {
+	var tip Tip
+	var err error
+	tip.Height, tip.Hash, tip.ID, err = b.handler.RestoreDb(ctx)
+	restored <- func() {
+		must.Assertf(ctx, err == nil, "db not restored: %v", err)
+		b.tip = tip
 	}
-	b.dbRestored <- r
-}
-
-type dbRestored struct {
-	Tip Tip
-	Err error
-}
-
-func (b *Baton) updateDbState(tip Tip) {
-	b.db.lk.Lock()
-	defer b.db.lk.Unlock()
-	b.db.tip = tip
 }

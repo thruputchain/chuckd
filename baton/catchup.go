@@ -10,8 +10,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type caughtUp struct{}
-
 type catchupBlocks []catchupBlock
 
 func (bs catchupBlocks) IsEmpty() bool {
@@ -58,12 +56,12 @@ type catchupRequest struct {
 // baton
 
 func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (catchupBlock, bool) {
-	return b.catchup.blocks.Find(h)
+	return b.catchupBlocks.Find(h)
 }
 
 func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []ID64 {
 	var reqs []ID64
-	for id, q := range b.catchup.pending {
+	for id, q := range b.catchupRequests {
 		for _, span := range q.spans {
 			if span.From <= h && h < span.To {
 				reqs = append(reqs, id)
@@ -74,24 +72,17 @@ func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []ID64 {
 }
 
 func (b *Baton) purgeCatchup(_ context.Context) {
-
-	b.catchup.lk.Lock()
-	defer b.catchup.lk.Unlock()
-
-	b.catchup.blocks = nil
+	b.catchupBlocks = nil
 }
 
 func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
-
-	b.catchup.lk.Lock()
-	defer b.catchup.lk.Unlock()
 
 	src := b.handler.GetCatchupSources(ctx)
 	must.Assertf(ctx, len(src) > 0, "no catchup sources")
 
 	// mark pending request
 	id := b.handler.GenerateID64(ctx)
-	b.catchup.pending[id] = catchupRequest{
+	b.catchupRequests[id] = catchupRequest{
 		validator: protoutil.ValidatorIDFromPublic(src[0]),
 		spans:     spans,
 	}
@@ -101,20 +92,12 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		var result catchupBlocks
 
 		defer func() {
-			if len(result) > 0 {
-				b.caughtUp <- caughtUp{}
+			b.synchronize <- func() {
+				// unmark pending request
+				delete(b.catchupRequests, id)
+				// update known catchup blocks
+				b.catchupBlocks = append(b.catchupBlocks, result...)
 			}
-		}()
-
-		defer func() {
-			b.catchup.lk.Lock()
-			defer b.catchup.lk.Unlock()
-
-			// unmark pending request
-			delete(b.catchup.pending, id)
-
-			// update known catchup blocks
-			b.catchup.blocks = append(b.catchup.blocks, result...)
 		}()
 
 		c, err := b.handler.DialCatchup(ctx, src)

@@ -53,7 +53,7 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 
 func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, reply chan<- api.ValidationLevel) {
 
-	dbTip := b.db.tip
+	dbTip := b.tip
 
 	if proposal.Block_height <= dbTip.Height {
 		reply <- api.InvalidValue
@@ -67,7 +67,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 		reply <- api.InvalidValue
 		return
 	}
-	if len(b.consensus.ext) > 0 {
+	if len(b.externalized) > 0 {
 		reply <- api.InvalidValue // there are newer externalizations
 		return
 	}
@@ -103,7 +103,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 		reply <- api.FullyValidValue
 		b.synchronize <- func() {
 			// cache validated blocks
-			b.consensus.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+			b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
 		}
 	}()
 }
@@ -127,9 +127,9 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value 
 
 	x.baton.synchronize <- func() {
 		// check validity and update state
-		ok := isValidExternalization(&proposal, x.baton.consensus.ext)
+		ok := isValidExternalization(&proposal, x.baton.externalized)
 		if ok {
-			x.baton.consensus.ext = append(x.baton.consensus.ext, &proposal)
+			x.baton.externalized = append(x.baton.externalized, &proposal)
 		}
 	}
 }

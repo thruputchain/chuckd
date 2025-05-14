@@ -2,7 +2,6 @@ package baton
 
 import (
 	"context"
-	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -10,16 +9,12 @@ import (
 )
 
 func NewBaton(ctx context.Context, h Handler) *Baton {
-	b := &Baton{
-		handler:     h,
-		dbRestored:  make(chan dbRestored, 1),
-		synchronize: make(chan synchronize, 1),
-		caughtUp:    make(chan caughtUp),
+	return &Baton{
+		handler:         h,
+		synchronize:     make(chan synchronize, 1),
+		catchupRequests: map[ID64]catchupRequest{},
+		validated:       map[proto.BlockHash]validated{},
 	}
-	b.catchup.pending = map[ID64]catchupRequest{}
-	b.catchup.blocks = nil
-	b.consensus.validated = map[proto.BlockHash]validated{}
-	return b
 }
 
 func (b *Baton) Start(ctx context.Context) {
@@ -27,45 +22,36 @@ func (b *Baton) Start(ctx context.Context) {
 }
 
 type Baton struct {
-	handler Handler
-	// notifications to baton
-	dbRestored  chan dbRestored
+	handler     Handler
 	synchronize chan synchronize
-	caughtUp    chan caughtUp
 	// state
-	committing bool
-	nominating context.CancelFunc
-	db         struct {
-		lk  sync.Mutex
-		tip Tip
-	}
-	catchup struct {
-		lk      sync.Mutex
-		pending map[ID64]catchupRequest // pending catchup requests
-		blocks  catchupBlocks           // received catchup blocks
-	}
-	consensus struct {
-		ext       []*proto.Proposal
-		validated map[proto.BlockHash]validated
-	}
+	committing      bool
+	nominating      context.CancelFunc
+	tip             Tip
+	catchupRequests map[ID64]catchupRequest // pending catchup requests
+	catchupBlocks   catchupBlocks           // received catchup blocks
+	externalized    []*proto.Proposal
+	validated       map[proto.BlockHash]validated
 }
 
 type synchronize func()
 
 func (b *Baton) startBaton(ctx context.Context) {
 
-	// synchronize chan is active right away
+	// synchronize chan is active right away with potential calls from scp
 
 	// restore db
-	go b.restoreDb(ctx)
-	select {
-	case r := <-b.dbRestored:
-		if r.Err != nil {
-			log.Fatalf("db not restored: %v", r.Err)
+	restored := make(chan synchronize)
+	go b.restoreDb(ctx, restored)
+WaitDb:
+	for {
+		select {
+		case restored := <-restored:
+			restored()
+			break WaitDb
+		case <-b.synchronize:
+			// ignore scp (externalized or validate value) until db is restored
 		}
-		log.Debugf("<-b.dbRestored")
-	case <-b.synchronize:
-		// XXX: ignore ???
 	}
 
 	for {
@@ -110,13 +96,13 @@ func (b *Baton) startBaton(ctx context.Context) {
 						return
 					}
 
-					if b.db.tip.Height+1 != vb.BlockHeight {
+					if b.tip.Height+1 != vb.BlockHeight {
 						panic("bug")
 					}
 
-					b.db.tip.Hash = vb.BlockHash
-					b.db.tip.Height = vb.BlockHeight
-					b.db.tip.ID = blockID
+					b.tip.Hash = vb.BlockHash
+					b.tip.Height = vb.BlockHeight
+					b.tip.ID = blockID
 
 					// purge catchup or consensus blocks no higher than the newly committed one
 					b.purgeBelowTip(ctx)
@@ -146,14 +132,13 @@ func (b *Baton) startBaton(ctx context.Context) {
 						return
 					}
 
-					b.consensus.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+					b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
 				}
 			}()
 		}
 
 		// send catchup requests
 		if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
-			XXX // next up to "synchronize"
 			b.requestCatchup(ctx, needed)
 		}
 
@@ -161,8 +146,6 @@ func (b *Baton) startBaton(ctx context.Context) {
 		select {
 		case synchronize := <-b.synchronize:
 			synchronize()
-		case <-b.caughtUp: // catchup blocks received
-			log.Debugf("<-b.caughtUp")
 		}
 	}
 }

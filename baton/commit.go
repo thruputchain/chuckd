@@ -78,26 +78,26 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 
 	// purge catchup blocks
 	var catchup catchupBlocks
-	for _, cb := range b.catchup.blocks {
-		if cb.BlockHeight() > b.db.tip.Height {
+	for _, cb := range b.catchupBlocks {
+		if cb.BlockHeight() > b.tip.Height {
 			catchup = append(catchup, cb)
 		}
 	}
-	b.catchup.blocks = catchup
+	b.catchupBlocks = catchup
 
 	// purge consensus blocks
 	var props []*proto.Proposal
-	for _, p := range b.consensus.ext {
-		if p.Block_height > b.db.tip.Height {
+	for _, p := range b.externalized {
+		if p.Block_height > b.tip.Height {
 			props = append(props, p)
 		}
 	}
-	b.consensus.ext = props
+	b.externalized = props
 
 	// purge validations
-	for h, p := range b.consensus.validated {
-		if p.Block_height <= b.db.tip.Height {
-			delete(b.consensus.validated, h)
+	for h, p := range b.validated {
+		if p.Block_height <= b.tip.Height {
+			delete(b.validated, h)
 		}
 	}
 }
