@@ -5,22 +5,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type committed struct{}
-
-func (b *Baton) startValidateAndCommit(ctx context.Context) {
-	for {
-		if err := b.doCommit(ctx, <-b.commit); err != nil {
-			log.Errorf("validate and commit: %v", err)
-		}
-	}
-}
-
-func (b *Baton) doCommit(ctx context.Context, vb *ValidatableBlock) error {
+func (b *Baton) commit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
 	if vb.AlreadyValidatedBlockID != nil {
 		// skip validation when committing our own nomination
 		return b.commitAlreadyValidated(ctx, vb)
@@ -29,12 +19,12 @@ func (b *Baton) doCommit(ctx context.Context, vb *ValidatableBlock) error {
 	}
 }
 
-func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock) error {
+func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
 
 	// connect to db
 	db, err := b.handler.DialDb(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer db.Close()
 
@@ -43,10 +33,10 @@ func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock
 	// db open snapshot
 	dbResult, err := db.Dbcoord_open_snapshot(ctx, blockID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if dbResult != proto.DbResultOK {
-		return fmt.Errorf("db open snapshot error")
+		return 0, fmt.Errorf("db open snapshot error")
 	}
 
 	return b.finalizeCommit(ctx, vb, blockID, db)
@@ -57,21 +47,20 @@ func (b *Baton) finalizeCommit(
 	vb *ValidatableBlock,
 	blockID proto.BlockID,
 	db DbCoordConn,
-) error {
+) (proto.BlockID, error) {
 
 	// db commit snapshot
 	dbBlockResult, err := db.Dbcoord_commit_snapshot(ctx, blockID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if dbBlockResult.Result != proto.DbResultOK {
-		return fmt.Errorf("db commit snapshot rpc error")
+		return 0, fmt.Errorf("db commit snapshot rpc error")
 	}
 
 	// verify the block hash returned by the db matches
-	if *dbBlockResult.Block_hash() != vb.BlockHash {
-		return fmt.Errorf("block hash validation mismatch")
-	}
+	must.Assertf(ctx, *dbBlockResult.Block_hash() == vb.BlockHash,
+		"db block hash changed after a prior proposal or validation")
 
 	// record committed transactions to prevent replay
 	for _, ptx := range vb.ProposedTransactions {
@@ -80,28 +69,9 @@ func (b *Baton) finalizeCommit(
 		b.handler.RemoveTx(ctx, hash)
 	}
 
-	// notify baton
-	defer func() { b.committed <- committed{} }()
-
-	// update state
-	b.lock()
-	defer b.unlock()
-
-	if b.db.tip.Height+1 != vb.BlockHeight {
-		panic("bug")
-	}
-
-	// only this function writes to the state, and sequentially
-	b.db.tip.Hash = vb.BlockHash
-	b.db.tip.Height = vb.BlockHeight
-	b.db.tip.ID = blockID
-
-	// purge catchup or consensus blocks no higher than the newly committed one
-	b.purgeBelowTip(ctx)
-
 	b.handler.Emit(ctx, EventCommitted{ValidatableBlock: vb, BlockID: blockID})
 
-	return nil
+	return blockID, nil
 }
 
 func (b *Baton) purgeBelowTip(_ context.Context) {
@@ -116,25 +86,18 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	b.catchup.blocks = catchup
 
 	// purge consensus blocks
-	var props proposals
+	var props []*proto.Proposal
 	for _, p := range b.consensus.ext {
-		if p.BlockHeight() > b.db.tip.Height {
+		if p.Block_height > b.db.tip.Height {
 			props = append(props, p)
 		}
 	}
 	b.consensus.ext = props
 
 	// purge validations
-	for h, p := range b.consensus.validatedProposal {
+	for h, p := range b.consensus.validated {
 		if p.Block_height <= b.db.tip.Height {
-			delete(b.consensus.validatedProposal, h)
-			delete(b.consensus.validatedBlockID, h)
+			delete(b.consensus.validated, h)
 		}
-	}
-
-	// purge nomination blocks
-	if b.nominator.nominatedProposal != nil && b.nominator.nominatedProposal.Block_height <= b.db.tip.Height {
-		b.nominator.nominatedProposal = nil
-		b.nominator.nominatedBlockID = nil
 	}
 }

@@ -115,7 +115,7 @@ func TestValidateCommit(t *testing.T) {
 
 }
 
-func TestCatchupCommit(t *testing.T) {
+func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
 
@@ -133,4 +133,24 @@ func TestCatchupCommit(t *testing.T) {
 	if committed.BlockHeight != 1 {
 		t.Errorf("expecting committed height 1")
 	}
+}
+
+// XXX
+func TestCatchupMissingTxsCommit(t *testing.T) {
+
+	ctx, rig, baton, _ := testSetup()
+
+	block1 := rig.GenProposal(ctx, 1)
+	rig.StageCatchup(block1.Catchup)
+
+	baton.Start(ctx)
+	rig.StageExecs(1) // for validation and commit
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block1.Proposal))
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
+	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
+	if committed.BlockHeight != 1 {
+		t.Errorf("expecting committed height 1")
+	}
+
 }

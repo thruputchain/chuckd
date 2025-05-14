@@ -32,19 +32,19 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	}
 
 	// if there are no scp blocks, we are done
-	if b.consensus.ext.IsEmpty() {
+	if len(b.consensus.ext) == 0 {
 		v.blocks = []viewBlock{dbBlock}
 		v.reqs = [][]ID64{nil}
 		return v, nil
 	}
 
 	scpTopBlock := b.consensus.ext[len(b.consensus.ext)-1]
-	scpTopHeight := scpTopBlock.BlockHeight()
+	scpTopHeight := scpTopBlock.Block_height
 	if scpTopHeight < dbBlock.tip.Height {
 		return nil, ErrConsensusBelowDb
 	}
 	if scpTopHeight == dbBlock.tip.Height {
-		if scpTopBlock.BlockHash() == dbBlock.BlockHash() {
+		if scpTopBlock.Block_hash == dbBlock.BlockHash() {
 			v.blocks = []viewBlock{dbBlock}
 			v.reqs = [][]ID64{nil}
 			return v, nil
@@ -61,14 +61,14 @@ func (b *Baton) buildView(ctx context.Context) (*view, error) {
 	v.blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, prop := range b.consensus.ext {
+	for _, proposal := range b.consensus.ext {
 		// there can be gaps between scp blocks
-		must.Assertf(ctx, prop.BlockHeight() > scpPrevHeight, "scp proposal heights not increasing")
-		scpPrevHeight = prop.BlockHeight()
+		must.Assertf(ctx, proposal.Block_height > scpPrevHeight, "scp proposal heights not increasing")
+		scpPrevHeight = proposal.Block_height
 		//
-		v.blocks[int(prop.BlockHeight())-int(dbBlock.tip.Height)] = viewExternalizedBlock{
-			proto:   prop.Proto(),
-			batches: b.fetchBatches(ctx, prop.Proto().Proposed_transaction_batches),
+		v.blocks[int(proposal.Block_height)-int(dbBlock.tip.Height)] = viewExternalizedBlock{
+			proposal: proposal,
+			batches:  b.fetchBatches(ctx, proposal.Proposed_transaction_batches),
 		}
 	}
 
@@ -234,15 +234,10 @@ func (v *view) nextBlockToCommit(b *Baton) *ValidatableBlock {
 	db := v.blocks[0].(viewDbBlock)
 	vb.DbTip = db.tip
 
-	// are we committing a block that we have nominated?
-	if b.nominator.nominatedProposal != nil && b.nominator.nominatedProposal.Block_hash == vb.BlockHash {
-		vb.AlreadyValidatedProposal = b.nominator.nominatedProposal
-		vb.AlreadyValidatedBlockID = b.nominator.nominatedBlockID
-	} else
 	// are we committing a block that we have already validated?
-	if avp, ok := b.consensus.validatedProposal[vb.BlockHash]; ok {
-		vb.AlreadyValidatedProposal = avp
-		vb.AlreadyValidatedBlockID = b.consensus.validatedBlockID[vb.BlockHash]
+	if vtd, ok := b.consensus.validated[vb.BlockHash]; ok {
+		vb.AlreadyValidatedProposal = vtd.Proposal
+		vb.AlreadyValidatedBlockID = &vtd.BlockID
 	}
 
 	return vb
@@ -347,20 +342,20 @@ func (x viewCatchupBlock) ValidatableBlock() *ValidatableBlock {
 }
 
 type viewExternalizedBlock struct {
-	proto   *proto.Proposal
-	batches map[proto.BatchHash][]*proto.ProposedTransaction
-	catchup *catchupBlock // a catchup block can be used if tx batches are missing
+	proposal *proto.Proposal
+	batches  map[proto.BatchHash][]*proto.ProposedTransaction
+	catchup  *catchupBlock // a catchup block can be used if tx batches are missing
 }
 
-func (x viewExternalizedBlock) BlockHash() proto.BlockHash     { return x.proto.Block_hash }
-func (x viewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.proto.Block_height }
-func (x viewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.proto.Prev_block_hash }
+func (x viewExternalizedBlock) BlockHash() proto.BlockHash     { return x.proposal.Block_hash }
+func (x viewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.proposal.Block_height }
+func (x viewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.proposal.Prev_block_hash }
 func (x viewExternalizedBlock) IsReadyToValidate() bool {
 	// if a catchup block is placed inside an scp block, then it must link against it by design
 	return (!x.IsMissingTransactions()) || x.catchup != nil
 }
 func (x viewExternalizedBlock) IsMissingTransactions() bool {
-	return len(x.batches) != len(x.proto.Proposed_transaction_batches)
+	return len(x.batches) != len(x.proposal.Proposed_transaction_batches)
 }
 func (x viewExternalizedBlock) IsMissing() bool { return false }
 func (x viewExternalizedBlock) IsSCP() bool     { return true }
