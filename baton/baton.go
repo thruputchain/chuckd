@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -26,7 +27,7 @@ type Baton struct {
 	synchronize chan synchronize
 	// state
 	committing      bool
-	nominating      context.CancelFunc
+	nominating      *nominating
 	tip             Tip
 	catchupRequests map[ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks           // received catchup blocks
@@ -35,6 +36,11 @@ type Baton struct {
 }
 
 type synchronize func()
+
+type nominating struct {
+	Tip
+	context.CancelFunc
+}
 
 func (b *Baton) startBaton(ctx context.Context) {
 
@@ -55,30 +61,10 @@ WaitDb:
 	}
 
 	for {
+		log.Debugf("baton loop")
 
 		// build view
-		v := (*view)(nil)
-		for v == nil {
-			var err error
-			v, err = b.buildView(ctx)
-			switch err {
-			case nil:
-				must.Assertf(ctx, v != nil, "")
-			case ErrConsensusBelowDb: // unrecoverable
-				log.Fatalf("consensus height is below db; unrecoverable")
-			case ErrDbFarBehind: // must resort to cold start
-				log.Fatalf("db is far behind consensus; needs a cold start")
-			case ErrDbConsensusDisagree: // unrecoverable
-				log.Fatalf("consensus and db disagree; unrecoverable")
-			case ErrConsensusInconsistent: // unrecoverable
-				log.Fatalf("consensus is inconsistent; unrecoverable")
-			case ErrFaultyCatchup: // must drop all catchup blocks and blacklist sources
-				log.Errorf("purging faulty catchup")
-				b.purgeCatchup(ctx) // go back and retry building the view
-			default:
-				panic("unexpected")
-			}
-		}
+		v := b.buildCleanView(ctx)
 
 		// validate and commit next block, if one is available and no commit is in progress
 		if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
@@ -111,21 +97,24 @@ WaitDb:
 		}
 
 		// start nomination, if the db there are no externalizations above the db tip
-		if nom := v.ReadyToNominate(); nom != nil {
+		if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating) {
+			log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
 			// cancel prior unfinished nominations
 			if b.nominating != nil {
-				b.nominating()
+				b.nominating.CancelFunc()
 				b.nominating = nil
 			}
 			nomCtx, nomCancel := context.WithCancel(ctx)
-			b.nominating = nomCancel
+			b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
 			go func() {
-				proposal, blockID, err := b.nominate(nomCtx, nom.tip)
+				proposal, blockID, err := b.nominate(nomCtx, *nominate)
 				if err != nil {
 					log.Errorf("nominate: %v", err)
 				}
 				b.synchronize <- func() {
+					log.Debugf("end nominating onto %v", form.SprintJSON(nominate))
 					must.Assertf(ctx, b.nominating != nil, "race nominating")
+					b.nominating.CancelFunc()
 					b.nominating = nil
 
 					if err != nil { // nomination failed

@@ -44,6 +44,7 @@ func TestPoolExpiry(t *testing.T) {
 	rig.AddBatch(ctx, block.Batch)
 	rig.PassTime(tick * 5)
 	goruntime.Gosched()
+	time.Sleep(time.Millisecond) // XXX: flaky
 	_, ok := rig.LookupBatch(ctx, block.Proposal.Proposed_transaction_batches[0])
 	if ok {
 		t.Errorf("expecting batch to be missing")

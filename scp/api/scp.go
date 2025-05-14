@@ -54,7 +54,7 @@ type SCPController interface {
 	// Submit a value to consider for slot
 	// prev is the value from slot-1.
 	// prev is used to pick a leader.
-	// Nomination is blocking and can be aborted using the context.
+	// Nomination blocks until the round is over, and can be aborted using the context.
 	Nominate(ctx context.Context, slot Slot, value Value, prev Value) bool
 
 	// Local QuorumSet interface (can be dynamically updated)
