@@ -12,7 +12,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type vhash = [32]byte
+type vhash = [32]byte // hash of nomoinated value
 
 type slot struct {
 	started    time.Time
@@ -81,29 +81,39 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 					s.validated[h] = hv
 				}
 				hv[vid] = true
+
 			}(v)
 		}
 		wg.Wait()
 
-		// externalize and garbage collect
+		// update candidates for slot
 		s.lk.Lock()
-		confirmed := len(s.validated[h]) >= len(s.validated[h])/2+1
-		s.candidates = append(s.candidates, nomination.Value)
-		s.lk.Unlock()
+		defer s.lk.Unlock()
 
-		// if confirmed and the round timer has expired, combine and externalize
-		if confirmed {
-			if time.Now().Sub(s.started) > s.timeout {
-
-				s.svc.lk.Lock()
-				// if a minority of malicious nodes tries to revive the slot,
-				// they will fail for lack of majority validation.
-				delete(s.svc.slot, s.index)
-				s.svc.lk.Unlock()
-
-				combined := s.svc.handler.CombineCandidates(ctx, s.index, s.candidates)
-				s.svc.externalize(ctx, nomination.Slot_index, combined)
-			}
+		if len(s.validated[h]) >= len(s.svc.quorum)/2+1 { // confirm on majority
+			s.candidates = append(s.candidates, nomination.Value)
 		}
 	}()
+}
+
+func (svc *SoloLeaderService) flush(ctx context.Context) {
+	for {
+		time.Sleep(svc.slotTimeout)
+		now := time.Now()
+
+		// externalize and garbage collect slots
+		svc.lk.Lock()
+		var readySlots []*slot
+		for _, slot := range svc.slot {
+			if len(slot.candidates) > 0 && now.Sub(slot.started) > slot.timeout {
+				readySlots = append(readySlots, slot)
+				delete(svc.slot, slot.index)
+			}
+		}
+		svc.lk.Unlock()
+		for _, slot := range readySlots {
+			combined := svc.handler.CombineCandidates(ctx, slot.index, slot.candidates)
+			svc.externalize(ctx, slot.index, combined)
+		}
+	}
 }

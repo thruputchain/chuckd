@@ -28,11 +28,13 @@ func NewSoloServerService(
 	ctx context.Context,
 	n libnet.Network,
 	h api.SCPHandler,
+	// slots don't externalize before the timeout to allow room for competing nominations
+	// slotTimeout should be much smaller, say 1/12, than overall externalization time
 	slotTimeout time.Duration,
 	self proto.ValidatorPrivateInfo,
 	quorum []proto.ValidatorPublicInfo,
 ) *SoloLeaderService {
-	return &SoloLeaderService{
+	svc := &SoloLeaderService{
 		net:         n,
 		handler:     h,
 		slotTimeout: slotTimeout,
@@ -40,6 +42,8 @@ func NewSoloServerService(
 		quorum:      quorum,
 		slot:        map[proto.SoloSlotIndex]*slot{},
 	}
+	go svc.flush(ctx)
+	return svc
 }
 
 func (svc *SoloLeaderService) Start(ctx context.Context, address string) {
@@ -70,6 +74,7 @@ func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nominatio
 }
 
 func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.SoloSlotIndex, value proto.SoloValue) {
+	log.Infof("solo externalizing slot %d", slotIndex)
 
 	var wg sync.WaitGroup
 	for _, v := range svc.quorum {
@@ -80,7 +85,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 			// XXX: use cached/persistent connections
 			c, err := dial.DialSoloFollowerClient(ctx, svc.net, v.Address)
 			if err != nil {
-				log.Errorf("solo node %s not reachable for externalization: %s", protoutil.ValidatorPublicShortString(v), err)
+				log.Errorf("solo follower %s not reachable for externalization: %s", protoutil.ValidatorPublicShortString(v), err)
 				return
 			}
 

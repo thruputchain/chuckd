@@ -5,6 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/solo/leader"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +28,7 @@ var (
 				srv := leader.NewSoloServerService(
 					ctx,
 					libnet.TCPNet{},
-					leader.UnionCombiner{},
+					leader.NewRandomChoiceCombiner(ctx, runtime.NewRandFromRoot()),
 					time.Millisecond*time.Duration(soloSlotTimeoutMillisecond),
 					cfg.Validator_config.Private_info,
 					cfg.Validator_config.Known_validators,
