@@ -21,7 +21,7 @@ type SoloFollowerService struct {
 	handler api.SCPHandler
 }
 
-func NewSoloClientService(
+func NewSoloFollowerService(
 	ctx context.Context,
 	n libnet.Network,
 	leader proto.ValidatorPublicInfo,

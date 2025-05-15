@@ -18,18 +18,18 @@ type slot struct {
 	started    time.Time
 	svc        *SoloLeaderService
 	index      proto.SoloSlotIndex
-	timeout    time.Duration
+	delay      time.Duration
 	lk         sync.Mutex
 	validated  map[vhash]map[proto.ValidatorID]bool
 	candidates []proto.SoloValue
 }
 
-func newSlot(svc *SoloLeaderService, index proto.SoloSlotIndex, slotTimeout time.Duration) *slot {
+func newSlot(svc *SoloLeaderService, index proto.SoloSlotIndex, slotDelay time.Duration) *slot {
 	return &slot{
 		started:   time.Now(),
 		svc:       svc,
 		index:     index,
-		timeout:   slotTimeout,
+		delay:     slotDelay,
 		validated: map[vhash]map[proto.ValidatorID]bool{},
 	}
 }
@@ -98,14 +98,14 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 
 func (svc *SoloLeaderService) flush(ctx context.Context) {
 	for {
-		time.Sleep(svc.slotTimeout)
+		time.Sleep(svc.slotDelay)
 		now := time.Now()
 
 		// externalize and garbage collect slots
 		svc.lk.Lock()
 		var readySlots []*slot
 		for _, slot := range svc.slot {
-			if len(slot.candidates) > 0 && now.Sub(slot.started) > slot.timeout {
+			if len(slot.candidates) > 0 && now.Sub(slot.started) > slot.delay {
 				readySlots = append(readySlots, slot)
 				delete(svc.slot, slot.index)
 			}

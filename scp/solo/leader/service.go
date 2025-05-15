@@ -15,32 +15,32 @@ import (
 )
 
 type SoloLeaderService struct {
-	net         libnet.Network
-	handler     api.SCPHandler
-	slotTimeout time.Duration
-	self        proto.ValidatorPrivateInfo
-	quorum      []proto.ValidatorPublicInfo
-	lk          sync.Mutex
-	slot        map[proto.SoloSlotIndex]*slot
+	net       libnet.Network
+	handler   api.SCPHandler
+	slotDelay time.Duration
+	self      proto.ValidatorPrivateInfo
+	quorum    []proto.ValidatorPublicInfo
+	lk        sync.Mutex
+	slot      map[proto.SoloSlotIndex]*slot
 }
 
-func NewSoloServerService(
+func NewSoloLeaderService(
 	ctx context.Context,
 	n libnet.Network,
 	h api.SCPHandler,
 	// slots don't externalize before the timeout to allow room for competing nominations
-	// slotTimeout should be much smaller, say 1/12, than overall externalization time
-	slotTimeout time.Duration,
+	// slotDelay should be much smaller, say 1/12, than overall externalization time
+	slotDelay time.Duration,
 	self proto.ValidatorPrivateInfo,
 	quorum []proto.ValidatorPublicInfo,
 ) *SoloLeaderService {
 	svc := &SoloLeaderService{
-		net:         n,
-		handler:     h,
-		slotTimeout: slotTimeout,
-		self:        self,
-		quorum:      quorum,
-		slot:        map[proto.SoloSlotIndex]*slot{},
+		net:       n,
+		handler:   h,
+		slotDelay: slotDelay,
+		self:      self,
+		quorum:    quorum,
+		slot:      map[proto.SoloSlotIndex]*slot{},
 	}
 	go svc.flush(ctx)
 	return svc
@@ -66,7 +66,7 @@ func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nominatio
 	slotIndex := nomination.Nomination.Slot_index
 	s, ok := svc.slot[slotIndex]
 	if !ok {
-		s = newSlot(svc, slotIndex, svc.slotTimeout)
+		s = newSlot(svc, slotIndex, svc.slotDelay)
 		svc.slot[slotIndex] = s
 	}
 	s.nominate(ctx, nomination.Nomination)

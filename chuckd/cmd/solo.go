@@ -25,7 +25,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
 				cfg := LoadConfig(ctx)
-				srv := leader.NewSoloServerService(
+				srv := leader.NewSoloLeaderService(
 					ctx,
 					libnet.TCPNet{},
 					leader.NewRandomChoiceCombiner(ctx, runtime.NewRandFromRoot()),
