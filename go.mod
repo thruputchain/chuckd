@@ -5,13 +5,13 @@ go 1.24.0
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/klauspost/reedsolomon v1.12.4
-	github.com/rs/xid v1.6.0
 	// github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	// github.com/pkg/errors v0.9.1
 	// github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.9.1
 	go.opentelemetry.io/otel v1.35.0
+	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
 )
 
 require (

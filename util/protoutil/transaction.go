@@ -2,10 +2,26 @@ package protoutil
 
 import proto "github.com/groundhogchain/protocol-go"
 
-func RepackageProposedTransactions(ts []proto.ProposedTransaction) []*proto.ProposedTransaction {
-	ps := make([]*proto.ProposedTransaction, len(ts))
+func Pack[T any](ts []*T) []T {
+	ps := make([]T, len(ts))
+	for i, t := range ts {
+		ps[i] = *t
+	}
+	return ps
+}
+
+func Unpack[T any](ts []T) []*T {
+	ps := make([]*T, len(ts))
 	for i, t := range ts {
 		ps[i] = &t
 	}
 	return ps
+}
+
+func PackProposedTransactions(ts []*proto.ProposedTransaction) []proto.ProposedTransaction {
+	return Pack(ts)
+}
+
+func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.ProposedTransaction {
+	return Unpack(ts)
 }

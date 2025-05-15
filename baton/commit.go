@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -72,6 +73,12 @@ func (b *Baton) finalizeCommit(
 		b.handler.RemoveTx(ctx, hash)
 	}
 
+	b.handler.Committed(ctx, &proto.CatchupBlock{
+		Block_height:          vb.BlockHeight,
+		Block_hash:            vb.BlockHash,
+		Prev_block_hash:       vb.PrevBlockHash,
+		Proposed_transactions: protoutil.PackProposedTransactions(vb.ProposedTransactions),
+	})
 	b.handler.Emit(ctx, EventCommitted{ValidatableBlock: vb, BlockID: blockID})
 
 	return blockID, nil

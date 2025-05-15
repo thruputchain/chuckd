@@ -176,3 +176,5 @@ func (h *TestRig) PrioritizeRejectTxs(ctx context.Context, txs []*proto.SignedTr
 }
 
 func (h *TestRig) RejectedTx(context.Context, *proto.RejectedTransaction) {}
+
+func (h *TestRig) Committed(context.Context, *proto.CatchupBlock) {}

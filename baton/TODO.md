@@ -2,8 +2,6 @@
   - can externalization arrive before batches in normal flow?
 
 
-- [ ] implement SCP controller 
-- [ ] implement catchup service!
 - [ ] implement live handler
 - [ ] plumb mempools in system
 - [ ] plumb baton in system

@@ -11,6 +11,9 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type Span = protoutil.Span[proto.BlockHeight]
+type Spans = protoutil.Spans[proto.BlockHeight]
+
 var (
 	ErrConsensusBelowDb      = fmt.Errorf("scp is below db")     // unrecoverable
 	ErrDbFarBehind           = fmt.Errorf("db far behind scp")   // must resort to cold start
@@ -390,7 +393,7 @@ func (x ViewExternalizedBlock) ValidatableBlock() *ValidatableBlock {
 	var fromConsensus bool
 	if x.IsMissingTransactions() {
 		fromCatchup = true
-		txs = protoutil.RepackageProposedTransactions(x.Catchup.Block.Proposed_transactions)
+		txs = protoutil.UnpackProposedTransactions(x.Catchup.Block.Proposed_transactions)
 	} else {
 		fromConsensus = true
 		for _, batchTxs := range x.Batches {

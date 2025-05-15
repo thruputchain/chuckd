@@ -147,6 +147,10 @@ func (db *TestDb) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID
 	return proto.DbResultOK, nil
 }
 
+func (db *TestDb) Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbCatchupResult, error) {
+	panic("not used here")
+}
+
 func (db *TestDb) Close() error {
 	return nil
 }

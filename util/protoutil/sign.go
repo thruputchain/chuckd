@@ -8,6 +8,12 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
+type Signer interface {
+	Signer() proto.ValidatorPublicInfo
+	SignXdr(xdr.XdrType) proto.Signature
+	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
+}
+
 func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 	signatureBytes := ed25519.Sign(secretKey[:], msg)
 	var signature proto.Signature

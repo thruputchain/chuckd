@@ -73,6 +73,6 @@ type batch struct {
 func newBatch(created time.Time, txs []proto.ProposedTransaction) *batch {
 	return &batch{
 		created: created,
-		txs:     protoutil.RepackageProposedTransactions(txs),
+		txs:     protoutil.UnpackProposedTransactions(txs),
 	}
 }

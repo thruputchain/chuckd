@@ -139,7 +139,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 				Source: protoutil.ValidatorIDFromPublic(src),
 				Stamp:  now,
 				Block:  &block,
-				Txs:    protoutil.RepackageProposedTransactions(block.Proposed_transactions),
+				Txs:    protoutil.UnpackProposedTransactions(block.Proposed_transactions),
 			})
 		}
 

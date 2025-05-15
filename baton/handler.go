@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
@@ -16,10 +17,7 @@ type Handler interface {
 	CommittedTransactionMempool
 	Dissemination
 	Consensus
-
-	Signer() proto.ValidatorPublicInfo
-	SignXdr(xdr.XdrType) proto.Signature
-	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
+	protoutil.Signer
 
 	GetCatchupSources(context.Context) []proto.ValidatorPublicInfo
 
@@ -38,6 +36,8 @@ type Handler interface {
 
 	PrioritizeRejectTxs(context.Context, []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction)
 	RejectedTx(context.Context, *proto.RejectedTransaction)
+
+	Committed(context.Context, *proto.CatchupBlock)
 
 	Emit(ctx context.Context, event any)
 }
