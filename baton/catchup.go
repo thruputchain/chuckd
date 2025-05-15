@@ -92,12 +92,13 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		var result catchupBlocks
 
 		defer func() {
-			b.synchronize <- func() {
-				// unmark pending request
-				delete(b.catchupRequests, id)
-				// update known catchup blocks
-				b.catchupBlocks = append(b.catchupBlocks, result...)
-			}
+			b.lock(ctx)
+			defer b.unlock(ctx)
+
+			// unmark pending request
+			delete(b.catchupRequests, id)
+			// update known catchup blocks
+			b.catchupBlocks = append(b.catchupBlocks, result...)
 		}()
 
 		c, err := b.handler.DialCatchup(ctx, src)

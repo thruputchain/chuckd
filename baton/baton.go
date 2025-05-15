@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
@@ -12,7 +13,7 @@ import (
 func NewBaton(ctx context.Context, h Handler) *Baton {
 	return &Baton{
 		handler:         h,
-		synchronize:     make(chan synchronize, 1),
+		scp:             make(chan struct{}),
 		catchupRequests: map[ID64]catchupRequest{},
 		validated:       map[proto.BlockHash]validated{},
 	}
@@ -23,8 +24,9 @@ func (b *Baton) Start(ctx context.Context) {
 }
 
 type Baton struct {
-	handler     Handler
-	synchronize chan synchronize
+	handler Handler
+	scp     chan struct{}
+	lk      sync.Mutex
 	// state
 	committing      bool
 	nominating      *nominating
@@ -36,7 +38,14 @@ type Baton struct {
 	validated       map[proto.BlockHash]validated
 }
 
-type synchronize func()
+func (b *Baton) lock(_ context.Context) {
+	b.lk.Lock()
+}
+
+func (b *Baton) unlock(ctx context.Context) {
+	b.drive(ctx)
+	b.lk.Unlock()
+}
 
 func (b *Baton) startBaton(ctx context.Context) {
 
@@ -45,85 +54,91 @@ func (b *Baton) startBaton(ctx context.Context) {
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 
+	// kick
+	b.lock(ctx)
+	b.unlock(ctx)
+
 	for {
-		// build view
-		v := b.buildCleanView(ctx)
-		log.Debugf("view %v", form.SprintJSON(v))
+		b.scp <- struct{}{}
+	}
+}
 
-		// validate and commit next block, if one is available and no commit is in progress
-		if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-			log.Debugf("committing height %v hash %v", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
-			b.committing = true
-			go func() {
-				blockID, err := b.commit(ctx, vb)
-				if err != nil {
-					log.Errorf("commit: %v", err)
-				}
-				b.synchronize <- func() {
-					must.Assertf(ctx, b.committing, "race committing")
-					b.committing = false
+func (b *Baton) drive(ctx context.Context) {
+	// build view
+	v := b.buildCleanView(ctx)
+	log.Debugf("view %v", form.SprintJSON(v))
 
-					if err != nil { // commit failed
-						return
-					}
+	// validate and commit next block, if one is available and no commit is in progress
+	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
+		log.Debugf("committing height %v hash %v", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
+		b.committing = true
+		go func() {
+			blockID, err := b.commit(ctx, vb)
+			if err != nil {
+				log.Errorf("commit: %v", err)
+			}
 
-					if b.tip.Height+1 != vb.BlockHeight {
-						panic("bug")
-					}
+			b.lock(ctx)
+			defer b.unlock(ctx)
 
-					b.tip.Hash = vb.BlockHash
-					b.tip.Height = vb.BlockHeight
-					b.tip.ID = blockID
+			must.Assertf(ctx, b.committing, "race committing")
+			b.committing = false
 
-					// purge catchup or consensus blocks no higher than the newly committed one
-					b.purgeBelowTip(ctx)
-				}
-			}()
+			if err != nil { // commit failed
+				return
+			}
+
+			if b.tip.Height+1 != vb.BlockHeight {
+				panic("bug")
+			}
+
+			b.tip.Hash = vb.BlockHash
+			b.tip.Height = vb.BlockHeight
+			b.tip.ID = blockID
+
+			// purge catchup or consensus blocks no higher than the newly committed one
+			b.purgeBelowTip(ctx)
+		}()
+	}
+
+	// start nomination, if the db there are no externalizations above the db tip
+	if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
+		// cancel prior unfinished nominations
+		if b.nominating != nil {
+			b.nominating.CancelFunc()
+			b.nominating = nil
 		}
+		uncommittedTxs := b.gatherUncommittedTxs(ctx)
+		if len(uncommittedTxs) > 0 {
+			log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
+			nomCtx, nomCancel := context.WithCancel(ctx)
+			b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
+			go func() {
+				proposal, blockID, err := b.nominate(nomCtx, *nominate, uncommittedTxs)
+				if err != nil {
+					log.Errorf("nominate: %v", err)
+				}
 
-		// start nomination, if the db there are no externalizations above the db tip
-		if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
-			// cancel prior unfinished nominations
-			if b.nominating != nil {
+				b.lock(ctx)
+				defer b.unlock(ctx)
+
+				log.Debugf("end nominating onto %v", form.SprintJSON(nominate))
+				must.Assertf(ctx, b.nominating != nil, "race nominating")
 				b.nominating.CancelFunc()
 				b.nominating = nil
-			}
-			uncommittedTxs := b.gatherUncommittedTxs(ctx)
-			if len(uncommittedTxs) > 0 {
-				log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
-				nomCtx, nomCancel := context.WithCancel(ctx)
-				b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
-				go func() {
-					proposal, blockID, err := b.nominate(nomCtx, *nominate, uncommittedTxs)
-					if err != nil {
-						log.Errorf("nominate: %v", err)
-					}
-					b.synchronize <- func() {
-						log.Debugf("end nominating onto %v", form.SprintJSON(nominate))
-						must.Assertf(ctx, b.nominating != nil, "race nominating")
-						b.nominating.CancelFunc()
-						b.nominating = nil
 
-						if err != nil { // nomination failed
-							return
-						}
+				if err != nil { // nomination failed
+					return
+				}
 
-						b.nominated = &nominated{Proposal: proposal}
-						b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
-					}
-				}()
-			}
+				b.nominated = &nominated{Proposal: proposal}
+				b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+			}()
 		}
+	}
 
-		// send catchup requests
-		if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
-			b.requestCatchup(ctx, needed)
-		}
-
-		// wait until something happens
-		select {
-		case synchronize := <-b.synchronize:
-			synchronize()
-		}
+	// send catchup requests
+	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
+		b.requestCatchup(ctx, needed)
 	}
 }

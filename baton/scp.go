@@ -19,6 +19,8 @@ type scpHandler struct {
 }
 
 func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values []api.Value) api.Value {
+	<-x.baton.scp
+
 	proposals := make(protoutil.ProposalsByHash, 0, len(values))
 	for _, v := range values {
 		var p proto.Proposal
@@ -37,6 +39,7 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values
 }
 
 func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.Value, nomination bool) api.ValidationLevel {
+	<-x.baton.scp
 
 	var prop proto.Proposal
 	err := xdrutil.UnmarshalXdr(&prop, value)
@@ -45,13 +48,14 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	}
 
 	reply := make(chan api.ValidationLevel, 1)
-	x.baton.synchronize <- func() {
-		x.baton.validateValue(ctx, &prop, reply)
-	}
+	x.baton.validateValue(ctx, &prop, reply)
 	return <-reply
 }
 
 func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, reply chan<- api.ValidationLevel) {
+
+	b.lock(ctx)
+	defer b.unlock(ctx)
 
 	dbTip := b.tip
 
@@ -101,18 +105,22 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 			return
 		}
 		reply <- api.FullyValidValue
-		b.synchronize <- func() {
-			// cache validated blocks
-			b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
-		}
+
+		b.lock(ctx)
+		defer b.unlock(ctx)
+
+		// cache validated blocks
+		b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
 	}()
 }
 
 func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value api.Value) *api.Value {
+	<-x.baton.scp
 	return nil
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
+	<-x.baton.scp
 
 	var proposal proto.Proposal
 	if err := xdrutil.UnmarshalXdr(&proposal, value); err != nil {
@@ -125,12 +133,13 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value 
 		return
 	}
 
-	x.baton.synchronize <- func() {
-		// check validity and update state
-		ok := isValidExternalization(&proposal, x.baton.externalized)
-		if ok {
-			x.baton.externalized = append(x.baton.externalized, &proposal)
-		}
+	x.baton.lock(ctx)
+	defer x.baton.unlock(ctx)
+
+	// check validity and update state
+	ok := isValidExternalization(&proposal, x.baton.externalized)
+	if ok {
+		x.baton.externalized = append(x.baton.externalized, &proposal)
 	}
 }
 
