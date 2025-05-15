@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/pebble"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -14,13 +15,14 @@ import (
 )
 
 type CatchupService struct {
-	signer protoutil.Signer
-	time   libtime.Time
-	net    libnet.Network
-	dialDb DialDb
-	ttl    time.Duration // ttl of cached catchup blocks
-	lk     sync.Mutex
-	block  map[proto.BlockHeight]stampedCatchupBlock
+	signer  protoutil.Signer
+	time    libtime.Time
+	net     libnet.Network
+	dialDb  DialDb
+	ttl     time.Duration // ttl of cached catchup blocks
+	shallow *pebble.DB    // shallow cache
+	lk      sync.Mutex
+	block   map[proto.BlockHeight]stampedCatchupBlock
 }
 
 type DialDb interface {
@@ -45,6 +47,8 @@ func NewCatchupService(
 	dialDb DialDb,
 	ttl time.Duration,
 ) *CatchupService {
+
+	// pebble.Open(cacheDir, &pebble.Options{})
 	svc := &CatchupService{
 		signer: signer,
 		time:   time,

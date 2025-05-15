@@ -1,5 +1,6 @@
 ROADMAP
 
+- [ ] pebble db in catchup cache
 - [ ] cached connections
 - [ ] tcp connection discipline and timeouts
 - [ ] timeouts on all rpc calls

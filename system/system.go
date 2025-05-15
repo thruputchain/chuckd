@@ -5,8 +5,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/discovery"
@@ -14,6 +16,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/net/spectra"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/wallet"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -26,8 +29,11 @@ type System struct {
 	Spectra   *spectra.SpectraTransport
 	Multiplex *multiplex.Multiplex // XXX: needs a driver for receiving!
 	//
+	Catchup *catchup.CatchupService
+	//
 	Proposed    *mempool.BatchMempool
 	Transaction *mempool.TransactionMempool
+	Committed   *mempool.CommittedMempool
 	//
 	Wallet *wallet.WalletGateway
 	//
@@ -77,14 +83,26 @@ func NewSystem(
 	// XXX: baton
 	// XXX: set baton as scp handler
 
+	sys.Catchup = catchup.NewCatchupService(
+		ctx,
+		protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
+		libtime.RealTime{},
+		libnet.TCPNet{},
+		nil, //XXX: dialDb
+		ttl, //XXX
+	)
+
 	sys.Proposed = mempool.NewBatchMempoolReal(
 		ctx,
 		time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec)*time.Millisecond,
 	)
+
 	sys.Transaction = mempool.NewTransactionMempoolReal(
 		ctx,
 		time.Duration(cfg.Mempool_config.Transaction_ttl_msec)*time.Millisecond,
 	)
+
+	sys.Committed = mempool.NewCommittedMempoolReal(ctx, ttlXXX)
 
 	// XXX: add wallet config to k8s
 	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)

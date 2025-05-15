@@ -14,6 +14,26 @@ type Signer interface {
 	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
 }
 
+type signer struct {
+	priv proto.ValidatorPrivateInfo
+}
+
+func SignerFromPrivate(priv proto.ValidatorPrivateInfo) Signer {
+	return &signer{priv: priv}
+}
+
+func (s *signer) Signer() proto.ValidatorPublicInfo {
+	return s.priv.Public_info
+}
+
+func (s *signer) SignXdr(value xdr.XdrType) proto.Signature {
+	return SignXdr(s.priv.Secret_key, value)
+}
+
+func (s *signer) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+	return VerifyXdr(s.Signer().Public_key, value, sig)
+}
+
 func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 	signatureBytes := ed25519.Sign(secretKey[:], msg)
 	var signature proto.Signature
