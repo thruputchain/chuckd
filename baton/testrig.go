@@ -32,8 +32,7 @@ type TestRig struct {
 	rlk  sync.Mutex
 	rand *rand.Rand
 	//
-	dlk          sync.Mutex
-	disseminated []xdr.XdrType
+	disseminated chan xdr.XdrType
 	//
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
@@ -61,6 +60,7 @@ func NewTestRig(
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
+		disseminated:       make(chan xdr.XdrType),
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
 	}
@@ -80,9 +80,11 @@ func (h *TestRig) Emit(ctx context.Context, event any) {
 }
 
 func (h *TestRig) Disseminate(ctx context.Context, value xdr.XdrType) {
-	h.dlk.Lock()
-	defer h.dlk.Unlock()
-	h.disseminated = append(h.disseminated, value)
+	h.disseminated <- value
+}
+
+func (h *TestRig) WaitDissemination() xdr.XdrType {
+	return <-h.disseminated
 }
 
 type nominateIn struct {
@@ -159,10 +161,14 @@ func (h *TestRig) StageExecs(n int) []*TestExec {
 func (h *TestRig) DialExecs(ctx context.Context) ([]ExecCoordConn, error) {
 	h.xlk.Lock()
 	defer h.xlk.Unlock()
-	must.Assertf(ctx, len(h.nextExecs) > 0, "no staged execs")
-	execs := h.nextExecs[0]
-	h.nextExecs = h.nextExecs[1:]
-	return execs, nil
+	// if there are no staged execs, just allocate
+	if len(h.nextExecs) > 0 {
+		execs := h.nextExecs[0]
+		h.nextExecs = h.nextExecs[1:]
+		return execs, nil
+	} else {
+		return []ExecCoordConn{NewTestExec(h.TestDb), NewTestExec(h.TestDb)}, nil
+	}
 }
 
 func (h *TestRig) PrioritizeRejectTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {

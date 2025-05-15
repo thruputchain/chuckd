@@ -22,7 +22,7 @@ func (b *Baton) commit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID
 }
 
 func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
-	log.Debugf("committing already validated %v@%d", form.SprintJSON(vb.BlockHash), vb.BlockHeight)
+	log.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 
 	// connect to db
 	db, err := b.handler.DialDb(ctx)

@@ -112,7 +112,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 }
 
 func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
-	log.Debugf("validating and committing %v@%d", form.SprintJSON(vb.BlockHash), vb.BlockHeight)
+	log.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 
 	db, err := b.handler.DialDb(ctx)
 	if err != nil {

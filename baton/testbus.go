@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 )
 
@@ -25,7 +24,7 @@ func NewTestBus() *TestBus {
 
 func (b *TestBus) SendEvent(s time.Time, event any) {
 	env := TestEnvelope{Stamp: s, Event: event}
-	log.Infof("envelope: %s", form.SprintJSON(env))
+	log.Debugf("%s", event)
 	b.emitted <- env
 }
 

@@ -37,16 +37,33 @@ type TestBlock struct {
 	Catchup  proto.CatchupBlock
 }
 
+type BlockHandle struct {
+	Hash   proto.BlockHash
+	Height proto.BlockHeight
+}
+
+func VBHandle(vb *ValidatableBlock) *BlockHandle {
+	return &BlockHandle{Hash: vb.BlockHash, Height: vb.BlockHeight}
+}
+
+func TipHandle(tip Tip) *BlockHandle {
+	return &BlockHandle{Hash: tip.Hash, Height: tip.Height}
+}
+
 func (h *TestRig) GenProposal(ctx context.Context, ntxs int) *TestBlock {
-	return h.GenProposalOntoTip(ctx, ntxs, h.TestDb.GetTip())
+	return h.GenProposalOnto(ctx, ntxs, TipHandle(h.TestDb.GetTip()))
+}
+
+func (h *TestRig) GenProposalOntoVB(ctx context.Context, ntxs int, onto *ValidatableBlock) *TestBlock {
+	return h.GenProposalOnto(ctx, ntxs, VBHandle(onto))
 }
 
 func (h *TestRig) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
-	return h.GenProposalOntoTip(ctx, ntxs, Tip{Height: onto.Proposal.Block_height, Hash: onto.Proposal.Block_hash})
+	return h.GenProposalOnto(ctx, ntxs, &BlockHandle{Height: onto.Proposal.Block_height, Hash: onto.Proposal.Block_hash})
 }
 
 // GenProposal generates a proposal onto the current db tip.
-func (h *TestRig) GenProposalOntoTip(ctx context.Context, ntxs int, onto Tip) *TestBlock {
+func (h *TestRig) GenProposalOnto(ctx context.Context, ntxs int, onto *BlockHandle) *TestBlock {
 	txs := make([]proto.ProposedTransaction, ntxs)
 	hash := onto.Hash
 	for i := range txs {

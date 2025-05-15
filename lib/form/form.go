@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
@@ -30,7 +31,7 @@ func SprintJSON(form Form) string {
 	if err != nil {
 		panic(err)
 	}
-	return string(b)
+	return strings.TrimSpace(string(b))
 }
 
 func SprintJSONBytes(form Form) []byte {

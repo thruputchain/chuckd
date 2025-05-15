@@ -19,10 +19,6 @@ func NewBaton(ctx context.Context, h Handler) *Baton {
 	}
 }
 
-func (b *Baton) Start(ctx context.Context) {
-	go b.startBaton(ctx)
-}
-
 type Baton struct {
 	handler Handler
 	scp     chan struct{}
@@ -47,17 +43,24 @@ func (b *Baton) unlock(ctx context.Context) {
 	b.lk.Unlock()
 }
 
-func (b *Baton) startBaton(ctx context.Context) {
+// Kick must be called after new transactions or batches are inserted into the mempools.
+func (b *Baton) Kick(ctx context.Context) {
+	b.lock(ctx)
+	defer b.unlock(ctx)
+}
+
+func (b *Baton) Start(ctx context.Context) {
+	go b.start(ctx)
+}
+
+func (b *Baton) start(ctx context.Context) {
 
 	// restore db
 	var err error
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 
-	// kick
-	b.lock(ctx)
-	b.unlock(ctx)
-
+	b.Kick(ctx)
 	for {
 		b.scp <- struct{}{}
 	}
@@ -66,11 +69,11 @@ func (b *Baton) startBaton(ctx context.Context) {
 func (b *Baton) drive(ctx context.Context) {
 	// build view
 	v := b.buildCleanView(ctx)
-	log.Debugf("view %v", form.SprintJSON(v))
+	// log.Debugf("view %v", form.SprintJSON(v))
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		log.Debugf("committing height %v hash %v", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
+		log.Debugf("committing [%v; %v]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 		b.committing = true
 		go func() {
 			blockID, err := b.commit(ctx, vb)
@@ -110,7 +113,6 @@ func (b *Baton) drive(ctx context.Context) {
 		}
 		uncommittedTxs := b.gatherUncommittedTxs(ctx)
 		if len(uncommittedTxs) > 0 {
-			log.Debugf("start nominating onto %v", form.SprintJSON(nominate))
 			nomCtx, nomCancel := context.WithCancel(ctx)
 			b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
 			go func() {
@@ -122,7 +124,6 @@ func (b *Baton) drive(ctx context.Context) {
 				b.lock(ctx)
 				defer b.unlock(ctx)
 
-				log.Debugf("end nominating onto %v", form.SprintJSON(nominate))
 				must.Assertf(ctx, b.nominating != nil, "race nominating")
 				b.nominating.CancelFunc()
 				b.nominating = nil

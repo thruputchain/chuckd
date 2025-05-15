@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 func TestMain(m *testing.M) {
@@ -51,6 +52,7 @@ func TestPoolExpiry(t *testing.T) {
 	}
 }
 
+// TestNominateCommit tests committing of blocks that we have nominated.
 func TestNominateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
@@ -60,6 +62,7 @@ func TestNominateCommit(t *testing.T) {
 	rig.StageExecs(1)
 	baton.Start(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(EventNominating)
+	rig.WaitDissemination()
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
@@ -76,6 +79,7 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 3: nominate [2]
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
+	rig.WaitDissemination()
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(EventNominated)
@@ -83,6 +87,7 @@ func TestNominateCommit(t *testing.T) {
 
 }
 
+// TestValidateCommit tests committing of previously proposed and already validated blocks.
 func TestValidateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
@@ -116,6 +121,7 @@ func TestValidateCommit(t *testing.T) {
 
 }
 
+// TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
@@ -136,6 +142,7 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	}
 }
 
+// TestCatchupMissingTxsCommit tests catchup for externalizations with missing batches.
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
@@ -152,6 +159,49 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 	committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
 	if committed.BlockHeight != 1 {
 		t.Errorf("expecting committed height 1")
+	}
+
+}
+
+func TestAlternatingNominateCommit(t *testing.T) {
+
+	ctx, rig, baton, tick := testSetup()
+	maxHeight := proto.BlockHeight(15)
+
+	baton.Start(ctx)
+
+	lastCommitted := TipHandle(rig.GetTip())
+	for height := proto.BlockHeight(1); height < maxHeight; height++ {
+
+		theirBlock := rig.GenProposalOnto(ctx, 1, lastCommitted)
+
+		// prepare stage
+		rig.AddTx(ctx, rig.GenSignedTx(ctx)) // submit tx
+		baton.Kick(ctx)                      // wake baton after submitting transactions
+
+		_ = rig.ReceiveEvent(ctx).Event.(EventNominating)
+		rig.WaitDissemination()
+		rig.WaitNomination(ctx)
+		rig.SignalNomination(true)
+		nominated := rig.ReceiveEvent(ctx).Event.(EventNominated)
+
+		// kick off validation
+		rig.AddBatch(ctx, theirBlock.Batch)
+		rig.ValidateValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal), true)
+		_ = rig.ReceiveEvent(ctx).Event.(EventValidating)
+		_ = rig.ReceiveEvent(ctx).Event.(EventValidated)
+
+		if height%2 == 1 { // nominate [our], validate [their], committ [our]
+			// kick off commit of nominated
+			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(nominated.Proposal))
+		} else { // nominate [our], validate [their], committ [their]
+			// kick off commit of validated
+			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal))
+		}
+		committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
+		lastCommitted = VBHandle(committed.ValidatableBlock)
+
+		rig.PassTime(tick)
 	}
 
 }

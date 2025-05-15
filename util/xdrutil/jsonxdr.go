@@ -242,7 +242,7 @@ func (j *jsonOut) marshalGo(name string, val any) {
 			j.aggregateGo(vv)
 		case vv.Kind() == reflect.Interface || vv.Kind() == reflect.Pointer:
 			if vv.IsNil() {
-				j.printField(name, "null")
+				j.printField(name, "<nil>")
 			} else {
 				j.marshalGo(name, vv.Elem().Interface())
 			}
