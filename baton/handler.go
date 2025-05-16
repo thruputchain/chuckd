@@ -19,7 +19,7 @@ type Handler interface {
 	Dissemination
 	Consensus
 
-	GetCatchupSources(context.Context) []proto.ValidatorPublicInfo
+	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
 
 	RestoreDb(context.Context) (Tip, error) // implemented by the coordinator service
 
@@ -84,5 +84,5 @@ type Consensus interface {
 }
 
 type Dissemination interface {
-	Disseminate(ctx context.Context, value xdr.XdrType)
+	Disseminate(ctx context.Context, value *proto.BatchMessage)
 }

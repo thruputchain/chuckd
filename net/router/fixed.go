@@ -2,7 +2,9 @@ package router
 
 import (
 	"context"
+	"math/rand"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -23,6 +25,15 @@ func NewFixedRouter(
 		self:       self,
 		validators: vs,
 	}
+}
+
+func (x *FixedRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+	vs := x.validators
+	XXX // filter out self
+	must.Assertf(ctx, len(vs) > 0, "empty quorum")
+	r := rand.New(rand.NewSource(seed))
+	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
+	return vs[:1]
 }
 
 func (x *FixedRouter) BuildTree(rootID ValidatorID, cid ChannelID) (

@@ -2,6 +2,5 @@
   - can externalization arrive before batches in normal flow?
 
 
-- [ ] implement live handler
-- [ ] plumb mempools in system
-- [ ] plumb baton in system
+- [ ] live system
+- [ ] sign over payload in broadcast

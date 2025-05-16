@@ -53,6 +53,9 @@ data:
       "mempool_config": {
         "proposed_batch_ttl_msec": 5000,
         "transaction_ttl_msec": 120000,
+      },
+      "catchup_config": {
+        "catchup_block_ttl_sec": 600,
       }
     }
 ---
@@ -111,6 +114,9 @@ data:
       "mempool_config": {
         "proposed_batch_ttl_msec": 5000,
         "transaction_ttl_msec": 120000,
+      },
+      "catchup_config": {
+        "catchup_block_ttl_sec": 600,
       }
     }
 ---
@@ -169,6 +175,9 @@ data:
       "mempool_config": {
         "proposed_batch_ttl_msec": 5000,
         "transaction_ttl_msec": 120000,
+      },
+      "catchup_config": {
+        "catchup_block_ttl_sec": 600,
       }
     }
 ---

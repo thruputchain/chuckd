@@ -1,6 +1,10 @@
 package router
 
-import proto "github.com/groundhogchain/protocol-go"
+import (
+	"context"
+
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 type ChannelID = proto.BroadcastChannelID
 type ValidatorID = proto.ValidatorID
@@ -11,4 +15,5 @@ type MulticastTreeHash = proto.MulticastTreeHash
 
 type Router interface {
 	BuildTree(ValidatorID, ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash)
+	ChooseCatchupProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 }

@@ -77,11 +77,12 @@ func (b *Baton) purgeCatchup(_ context.Context) {
 
 func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
-	src := b.handler.GetCatchupSources(ctx)
+	id := b.handler.GenerateID64(ctx)
+
+	src := b.handler.GetCatchupSources(ctx, int64(id))
 	must.Assertf(ctx, len(src) > 0, "no catchup sources")
 
 	// mark pending request
-	id := b.handler.GenerateID64(ctx)
 	b.catchupRequests[id] = catchupRequest{
 		validator: protoutil.ValidatorIDFromPublic(src[0]),
 		spans:     spans,

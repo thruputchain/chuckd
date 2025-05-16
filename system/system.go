@@ -33,6 +33,7 @@ type System struct {
 	Spectra   *spectra.SpectraTransport
 	Multiplex *multiplex.Multiplex
 	//
+	Live     *LiveHandler
 	Baton    *baton.Baton
 	Follower *follower.SoloFollowerService
 	Catchup  *catchup.CatchupService
@@ -87,25 +88,33 @@ func NewSystem(
 
 	sys.Multiplex = multiplex.NewMultiplex(ctx, sys.Spectra)
 
-	sys.Baton = baton.NewBaton(ctx, hXXX)
+	sys.Live = NewLiveHandler(
+		sys.Signer,
+		libtime.RealTime{},
+		sys.Router,
+		sys.Proposed,
+		sys.Transaction,
+		sys.Committed,
+		sys.Multiplex,
+	)
+
+	sys.Baton = baton.NewBaton(ctx, sys.Live)
 
 	sys.Follower = follower.NewSoloFollowerService(
 		ctx,
 		libnet.TCPNet{},
-		leaderXXX,
+		cfg.Solo_config.Leader,
 		cfg.Validator_config.Private_info,
 		sys.Baton.SCPHandler(),
 	)
-
-	// XXX: set baton as scp handler
 
 	sys.Catchup = catchup.NewCatchupService(
 		ctx,
 		sys.Signer,
 		libtime.RealTime{},
 		libnet.TCPNet{},
-		nil, // XXX: currently not used
-		ttl, //XXX
+		nil, // XXX: dialDb for deep archival access to catchup blocks, currently not used
+		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
 	)
 
 	batchTTL := time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec) * time.Millisecond

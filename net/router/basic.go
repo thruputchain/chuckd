@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"math/rand"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -25,6 +26,15 @@ func NewBasicRouter(
 		discovery:  discovery,
 		treeFanOut: treeFanOut,
 	}
+}
+
+func (x *basicRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
+	XXX // filter out self
+	must.Assertf(ctx, len(vs) > 0, "empty quorum")
+	r := rand.New(rand.NewSource(seed))
+	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
+	return vs[:1]
 }
 
 func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (

@@ -32,7 +32,7 @@ type TestRig struct {
 	rlk  sync.Mutex
 	rand *rand.Rand
 	//
-	disseminated chan xdr.XdrType
+	disseminated chan *proto.BatchMessage
 	//
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
@@ -60,7 +60,7 @@ func NewTestRig(
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
 		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
-		disseminated:       make(chan xdr.XdrType),
+		disseminated:       make(chan *proto.BatchMessage),
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
 	}
@@ -79,11 +79,11 @@ func (h *TestRig) Emit(ctx context.Context, event any) {
 	h.TestBus.SendEvent(h.TestTime.Now(), event)
 }
 
-func (h *TestRig) Disseminate(ctx context.Context, value xdr.XdrType) {
+func (h *TestRig) Disseminate(ctx context.Context, value *proto.BatchMessage) {
 	h.disseminated <- value
 }
 
-func (h *TestRig) WaitDissemination() xdr.XdrType {
+func (h *TestRig) WaitDissemination() *proto.BatchMessage {
 	return <-h.disseminated
 }
 
@@ -121,7 +121,7 @@ func (h *TestRig) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, 
 	return protoutil.VerifyXdr(signer, value, sig)
 }
 
-func (h *TestRig) GetCatchupSources(context.Context) []proto.ValidatorPublicInfo {
+func (h *TestRig) GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo {
 	return []proto.ValidatorPublicInfo{h.TestCatchup.Signer.Public_info}
 }
 

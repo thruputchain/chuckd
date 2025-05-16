@@ -52,17 +52,17 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 }
 
 // XXX: should batch messages be signed?
-func (x *Multiplex) SendBatch(ctx context.Context, batch proto.BatchMessage) {
+func (x *Multiplex) SendBatch(ctx context.Context, batch *proto.BatchMessage) {
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageBatch
-	*xmsg.Batch() = batch
+	*xmsg.Batch() = *batch
 	_, err := x.transport.BulkSend(ctx, xdrutil.MarshalXdr(&xmsg))
 	if err != nil {
 		log.Errorf("multiplex bul.k send")
 	}
 }
 
-func (x *Multiplex) ReceiveBatch(ctx context.Context) (proto.ValidatorID, proto.BatchMessage) {
+func (x *Multiplex) ReceiveBatch(ctx context.Context) (proto.ValidatorID, *proto.BatchMessage) {
 	batchMsgFrom := <-x.batch
-	return batchMsgFrom.From, *batchMsgFrom.BatchMessage
+	return batchMsgFrom.From, batchMsgFrom.BatchMessage
 }
