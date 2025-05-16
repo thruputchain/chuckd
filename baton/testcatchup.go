@@ -31,7 +31,7 @@ func (x *TestCatchup) StageCatchup(blocks ...proto.CatchupBlock) {
 	x.result = append(x.result, blocks)
 }
 
-func (x *TestCatchup) Catchup_blocks(ctx context.Context, req proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
+func (x *TestCatchup) Catchup_solicit(ctx context.Context, req proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	must.Assertf(ctx, len(x.result) > 0, "no staged catchup blocks")

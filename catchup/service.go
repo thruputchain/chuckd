@@ -99,7 +99,7 @@ func (svc *CatchupService) Catchup_null(context.Context) error {
 	return nil
 }
 
-func (svc *CatchupService) Catchup_blocks(ctx context.Context, sreq proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
+func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
 
 	// check signatures
 	if !protoutil.VerifyXdr(sreq.Signer.Public_key, &sreq.Request, sreq.Signature) {

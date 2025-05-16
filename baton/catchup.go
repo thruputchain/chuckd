@@ -123,7 +123,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 			Request:   req,
 		}
 
-		reply, err := c.Catchup_blocks(ctx, signed)
+		reply, err := c.Catchup_solicit(ctx, signed)
 		if err != nil {
 			log.Errorf("catchup retrieval: %v", err)
 			return
