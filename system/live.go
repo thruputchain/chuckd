@@ -17,7 +17,7 @@ import (
 
 // LiveHandler is a baton.Handler that connects a live system to the baton.
 type LiveHandler struct {
-	protoutil.Signer
+	protoutil.Signatory
 	libtime.Time
 	router router.Router
 	*mempool.BatchMempool
@@ -30,7 +30,7 @@ type LiveHandler struct {
 }
 
 func NewLiveHandler(
-	signer protoutil.Signer,
+	signer protoutil.Signatory,
 	time libtime.Time,
 	router router.Router,
 	batch *mempool.BatchMempool,
@@ -39,7 +39,7 @@ func NewLiveHandler(
 	multiplex *multiplex.Multiplex,
 ) *LiveHandler {
 	return &LiveHandler{
-		Signer:             signer,
+		Signatory:          signer,
 		Time:               time,
 		router:             router,
 		BatchMempool:       batch,
@@ -72,30 +72,30 @@ func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto
 
 func (x *LiveHandler) RestoreDb(context.Context) (baton.Tip, error) {
 	<-x.live
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) GenerateBlockID(context.Context) proto.BlockID {
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) GenerateID64(context.Context) baton.ID64 {
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) DialCatchup(context.Context, proto.ValidatorPublicInfo) (baton.CatchupConn, error) {
 	<-x.live
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) DialDb(context.Context) (baton.DbCoordConn, error) {
 	<-x.live
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) DialExecs(context.Context) ([]baton.ExecCoordConn, error) {
 	<-x.live
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) PrioritizeRejectTxs(_ context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
@@ -103,13 +103,13 @@ func (x *LiveHandler) PrioritizeRejectTxs(_ context.Context, txs []*proto.Signed
 }
 
 func (x *LiveHandler) RejectedTx(context.Context, *proto.RejectedTransaction) {
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) Committed(context.Context, *proto.CatchupBlock) {
-	XXX
+	panic("XXX")
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
-	XXX
+	panic("XXX")
 }

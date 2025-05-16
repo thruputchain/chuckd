@@ -11,7 +11,7 @@ import (
 )
 
 type Handler interface {
-	protoutil.Signer
+	protoutil.Signatory
 	libtime.Time
 	BatchMempool
 	TransactionMempool

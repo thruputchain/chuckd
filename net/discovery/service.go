@@ -51,6 +51,10 @@ func NewDiscoveryService(
 	return s
 }
 
+func (s *DiscoveryService) Self() proto.ValidatorPublicInfo {
+	return s.privInfo.Public_info
+}
+
 func (s *DiscoveryService) Discovery_null(ctx context.Context) error {
 	return nil
 }

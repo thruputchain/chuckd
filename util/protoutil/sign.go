@@ -8,7 +8,7 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-type Signer interface {
+type Signatory interface {
 	Signer() proto.ValidatorPublicInfo
 	SignXdr(xdr.XdrType) proto.Signature
 	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
@@ -18,7 +18,7 @@ type signer struct {
 	priv proto.ValidatorPrivateInfo
 }
 
-func SignerFromPrivate(priv proto.ValidatorPrivateInfo) Signer {
+func SignerFromPrivate(priv proto.ValidatorPrivateInfo) Signatory {
 	return &signer{priv: priv}
 }
 

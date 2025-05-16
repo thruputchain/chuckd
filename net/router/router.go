@@ -14,6 +14,7 @@ type ValidatorPublicInfo = proto.ValidatorPublicInfo
 type MulticastTreeHash = proto.MulticastTreeHash
 
 type Router interface {
+	Self() ValidatorPublicInfo
 	BuildTree(ValidatorID, ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash)
 	ChooseCatchupProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 }

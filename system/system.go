@@ -24,7 +24,7 @@ import (
 )
 
 type System struct {
-	Signer protoutil.Signer
+	Signer protoutil.Signatory
 	//
 	Coord     *coord.CoordinatorService
 	Discovery *discovery.DiscoveryService

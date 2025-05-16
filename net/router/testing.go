@@ -1,6 +1,11 @@
 package router
 
-import "github.com/groundhogchain/chuckd/util/protoutil"
+import (
+	"context"
+
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 type TestRouter struct {
 	Trees map[TestTreeKey]*TestTreeNode
@@ -24,6 +29,14 @@ func TestTreeMerkle(tt *TestTreeNode) MulticastTreeNodes {
 		node.Children = append(node.Children, protoutil.MulticastTreeNodeHash(subNodes[0]))
 	}
 	return append(MulticastTreeNodes{node}, all...)
+}
+
+func (x *TestRouter) Self() proto.ValidatorPublicInfo {
+	panic("not used")
+}
+
+func (x *TestRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+	panic("not used")
 }
 
 func (x *TestRouter) BuildTree(vid ValidatorID, _ ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash) {

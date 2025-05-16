@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -27,9 +28,13 @@ func NewFixedRouter(
 	}
 }
 
+func (x *FixedRouter) Self() proto.ValidatorPublicInfo {
+	return x.self
+}
+
 func (x *FixedRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
-	vs := x.validators
-	XXX // filter out self
+	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
+	_, vs = dedupFilterOutValidators(vs, protoutil.ValidatorIDFromPublic(x.Self())) // filter out self
 	must.Assertf(ctx, len(vs) > 0, "empty quorum")
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })

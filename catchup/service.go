@@ -15,7 +15,7 @@ import (
 )
 
 type CatchupService struct {
-	signer  protoutil.Signer
+	signer  protoutil.Signatory
 	time    libtime.Time
 	net     libnet.Network
 	dialDb  DialDb
@@ -41,7 +41,7 @@ type stampedCatchupBlock struct {
 
 func NewCatchupService(
 	ctx context.Context,
-	signer protoutil.Signer,
+	signer protoutil.Signatory,
 	time libtime.Time,
 	net libnet.Network,
 	dialDb DialDb,
