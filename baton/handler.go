@@ -36,7 +36,6 @@ type Handler interface {
 
 	PrioritizeRejectTxs(context.Context, []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction)
 	RejectedTx(context.Context, *proto.RejectedTransaction)
-
 	Committed(context.Context, *proto.CatchupBlock)
 
 	Emit(ctx context.Context, event any)

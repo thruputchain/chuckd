@@ -10,7 +10,7 @@ func (svc *CoordinatorService) Coordinator_intro_exec(ctx context.Context, card 
 	svc.lk.Lock()
 	svc.exec[card.Upid] = card
 	svc.lk.Unlock()
-	shards := svc.waitForDbReady()
+	shards := svc.WaitDbReady()
 	return proto.IntroExecResult{
 		Cc:     svc.Card(),
 		Shards: shards,

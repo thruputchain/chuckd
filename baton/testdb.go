@@ -77,6 +77,10 @@ func (db *TestDb) Dbcoord_null(ctx context.Context) error {
 	return nil
 }
 
+func (db *TestDb) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
+	panic("not used")
+}
+
 func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()

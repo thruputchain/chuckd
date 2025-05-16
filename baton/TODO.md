@@ -3,4 +3,5 @@
 
 
 - [ ] live system
+  - [ ] feedback to wallet (rejected/committed tx)
 - [ ] sign over payload in broadcast

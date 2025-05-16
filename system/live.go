@@ -2,8 +2,11 @@ package system
 
 import (
 	"context"
+	"math/rand"
+	"sync"
 
 	"github.com/groundhogchain/chuckd/baton"
+	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/multiplex"
@@ -19,6 +22,7 @@ import (
 type LiveHandler struct {
 	protoutil.Signatory
 	libtime.Time
+	coord  *coord.CoordinatorService
 	router router.Router
 	*mempool.BatchMempool
 	*mempool.TransactionMempool
@@ -26,26 +30,33 @@ type LiveHandler struct {
 	multiplex *multiplex.Multiplex
 	scp       api.SCPController
 	//
+	rlk  sync.Mutex
+	rand *rand.Rand
+	//
 	live chan struct{}
 }
 
 func NewLiveHandler(
 	signer protoutil.Signatory,
 	time libtime.Time,
+	coord *coord.CoordinatorService,
 	router router.Router,
 	batch *mempool.BatchMempool,
 	tx *mempool.TransactionMempool,
 	committed *mempool.CommittedMempool,
 	multiplex *multiplex.Multiplex,
+	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
 		Signatory:          signer,
 		Time:               time,
+		coord:              coord,
 		router:             router,
 		BatchMempool:       batch,
 		TransactionMempool: tx,
 		CommittedMempool:   committed,
 		multiplex:          multiplex,
+		rand:               rand,
 		live:               make(chan struct{}),
 	}
 }
@@ -70,16 +81,21 @@ func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto
 	return x.router.ChooseCatchupProviders(ctx, seed)
 }
 
-func (x *LiveHandler) RestoreDb(context.Context) (baton.Tip, error) {
-	<-x.live
-	panic("XXX")
-}
-
 func (x *LiveHandler) GenerateBlockID(context.Context) proto.BlockID {
-	panic("XXX")
+	x.rlk.Lock()
+	defer x.rlk.Unlock()
+	return x.rand.Uint64()
 }
 
 func (x *LiveHandler) GenerateID64(context.Context) baton.ID64 {
+	x.rlk.Lock()
+	defer x.rlk.Unlock()
+	return baton.ID64(x.rand.Int63())
+}
+
+func (x *LiveHandler) RestoreDb(context.Context) (baton.Tip, error) {
+	<-x.live
+	x.coord.WaitDbReady()
 	panic("XXX")
 }
 
@@ -103,13 +119,13 @@ func (x *LiveHandler) PrioritizeRejectTxs(_ context.Context, txs []*proto.Signed
 }
 
 func (x *LiveHandler) RejectedTx(context.Context, *proto.RejectedTransaction) {
-	panic("XXX")
+	// can be used to report back to a wallet
 }
 
 func (x *LiveHandler) Committed(context.Context, *proto.CatchupBlock) {
-	panic("XXX")
+	// can be used to report back to a wallet
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
-	panic("XXX")
+	// ignore
 }

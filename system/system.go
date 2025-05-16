@@ -91,11 +91,13 @@ func NewSystem(
 	sys.Live = NewLiveHandler(
 		sys.Signer,
 		libtime.RealTime{},
+		sys.Coord,
 		sys.Router,
 		sys.Proposed,
 		sys.Transaction,
 		sys.Committed,
 		sys.Multiplex,
+		runtime.NewRandFromRand(rr),
 	)
 
 	sys.Baton = baton.NewBaton(ctx, sys.Live)

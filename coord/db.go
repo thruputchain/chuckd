@@ -5,7 +5,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (svc *CoordinatorService) waitForDbReady() xdrutil.ShardCards {
+func (svc *CoordinatorService) WaitDbReady() xdrutil.ShardCards {
 	svc.dbLk.Lock()
 	defer svc.dbLk.Unlock()
 	for !svc.dbIsReady() {
