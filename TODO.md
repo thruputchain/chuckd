@@ -1,5 +1,7 @@
 ROADMAP
 
+- [ ] sign over payload to bind source and payload (prevent replay)
+
 - [ ] pebble db in catchup cache
 - [ ] cached connections
 - [ ] tcp connection discipline and timeouts

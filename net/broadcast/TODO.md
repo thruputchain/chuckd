@@ -1,4 +1,5 @@
 EFFICIENCY
+- [ ] sign over payload as well
 - [ ] send multicast tree in first relayed message (if intermediate node)
 - [ ] connection caching
 

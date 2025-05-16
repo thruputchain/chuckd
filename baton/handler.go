@@ -11,13 +11,13 @@ import (
 )
 
 type Handler interface {
+	protoutil.Signer
 	libtime.Time
 	BatchMempool
 	TransactionMempool
 	CommittedTransactionMempool
 	Dissemination
 	Consensus
-	protoutil.Signer
 
 	GetCatchupSources(context.Context) []proto.ValidatorPublicInfo
 
