@@ -155,6 +155,5 @@ func (db *TestDb) Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbC
 	panic("not used here")
 }
 
-func (db *TestDb) Close() error {
-	return nil
+func (db *TestDb) Close() {
 }

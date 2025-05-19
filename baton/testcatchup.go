@@ -48,6 +48,5 @@ func (x *TestCatchup) Catchup_solicit(ctx context.Context, req proto.SignedCatch
 	return r, nil
 }
 
-func (db *TestCatchup) Close() error {
-	return nil
+func (db *TestCatchup) Close() {
 }

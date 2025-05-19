@@ -82,6 +82,5 @@ func (x *TestExec) Executorcoord_shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (x *TestExec) Close() error {
-	return nil
+func (x *TestExec) Close() {
 }

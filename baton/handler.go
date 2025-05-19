@@ -65,17 +65,17 @@ type CommittedTransactionMempool interface {
 
 type CatchupConn interface {
 	proto.Catchup1
-	Close() error
+	Close()
 }
 
 type DbCoordConn interface {
 	proto.DbCoord1
-	Close() error
+	Close()
 }
 
 type ExecCoordConn interface {
 	proto.ExecutorCoord1
-	Close() error
+	Close()
 }
 
 type Consensus interface {
