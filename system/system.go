@@ -118,6 +118,7 @@ func NewSystem(
 		libnet.TCPNet{},
 		nil, // TODO: dialDb for deep archival access to catchup blocks, currently not used
 		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
+		cfg.Catchup_config.Catchup_block_age,
 	)
 
 	batchTTL := time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec) * time.Millisecond

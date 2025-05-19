@@ -1,6 +1,7 @@
 package catchup
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -21,8 +23,11 @@ type CatchupService struct {
 	net     libnet.Network
 	dialDb  DialDb
 	ttl     time.Duration // ttl of cached catchup blocks
-	shallow *pebble.DB    // shallow cache
+	age     proto.BlockHeight
+	shallow *pebble.DB // shallow cache
+	//
 	lk      sync.Mutex
+	highest proto.BlockHeight
 	block   map[proto.BlockHeight]stampedCatchupBlock
 }
 
@@ -42,6 +47,7 @@ func NewCatchupService(
 	net libnet.Network,
 	dialDb DialDb,
 	ttl time.Duration,
+	age proto.BlockHeight,
 ) *CatchupService {
 
 	// pebble.Open(cacheDir, &pebble.Options{})
@@ -51,6 +57,7 @@ func NewCatchupService(
 		net:    net,
 		dialDb: dialDb,
 		ttl:    ttl,
+		age:    age,
 		block:  map[proto.BlockHeight]stampedCatchupBlock{},
 	}
 	go svc.expire(ctx)
@@ -64,6 +71,7 @@ func (svc *CatchupService) Start(ctx context.Context, address string) {
 func (svc *CatchupService) Add(ctx context.Context, cb *proto.CatchupBlock) {
 	svc.lk.Lock()
 	defer svc.lk.Unlock()
+	svc.highest = max(svc.highest, cb.Block_height)
 	svc.block[cb.Block_height] = stampedCatchupBlock{Time: svc.time.Now(), CatchupBlock: cb}
 }
 
@@ -83,7 +91,7 @@ func (svc *CatchupService) expire(_ context.Context) {
 		now := svc.time.Now()
 		svc.lk.Lock()
 		for height, scb := range svc.block {
-			if now.Sub(scb.Time) > svc.ttl {
+			if now.Sub(scb.Time) > svc.ttl || svc.highest > svc.age+scb.Block_height {
 				delete(svc.block, height)
 			}
 		}
@@ -117,6 +125,12 @@ func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.Signe
 			}
 		}
 	}
+	// log
+	var heights bytes.Buffer
+	for _, b := range blocks {
+		fmt.Fprintf(&heights, "%d, ", b.Block_height)
+	}
+	log.Infof("serving catchup heights %s", heights.String())
 
 	result := proto.CatchupBlocksResult{
 		Timestamp: svc.time.Now().UnixNano(),
