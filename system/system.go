@@ -91,6 +91,7 @@ func NewSystem(
 	sys.Live = NewLiveHandler(
 		sys.Signer,
 		libtime.RealTime{},
+		libnet.TCPNet{},
 		sys.Coord,
 		sys.Router,
 		sys.Proposed,
@@ -115,7 +116,7 @@ func NewSystem(
 		sys.Signer,
 		libtime.RealTime{},
 		libnet.TCPNet{},
-		nil, // XXX: dialDb for deep archival access to catchup blocks, currently not used
+		nil, // TODO: dialDb for deep archival access to catchup blocks, currently not used
 		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
 	)
 

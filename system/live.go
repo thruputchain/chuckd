@@ -2,11 +2,14 @@ package system
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/baton"
+	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/multiplex"
@@ -22,6 +25,7 @@ import (
 type LiveHandler struct {
 	protoutil.Signatory
 	libtime.Time
+	net    libnet.Network
 	coord  *coord.CoordinatorService
 	router router.Router
 	*mempool.BatchMempool
@@ -39,6 +43,7 @@ type LiveHandler struct {
 func NewLiveHandler(
 	signer protoutil.Signatory,
 	time libtime.Time,
+	net libnet.Network,
 	coord *coord.CoordinatorService,
 	router router.Router,
 	batch *mempool.BatchMempool,
@@ -50,6 +55,7 @@ func NewLiveHandler(
 	return &LiveHandler{
 		Signatory:          signer,
 		Time:               time,
+		net:                net,
 		coord:              coord,
 		router:             router,
 		BatchMempool:       batch,
@@ -93,25 +99,37 @@ func (x *LiveHandler) GenerateID64(context.Context) baton.ID64 {
 	return baton.ID64(x.rand.Int63())
 }
 
-func (x *LiveHandler) RestoreDb(context.Context) (baton.Tip, error) {
+func (x *LiveHandler) RestoreDb(ctx context.Context) (baton.Tip, error) {
 	<-x.live
 	x.coord.WaitDbReady()
-	panic("XXX")
+
+	c, err := x.coord.DialDb(ctx)
+	if err != nil {
+		return baton.Tip{}, err
+	}
+	r, err := c.Dbcoord_get_tip(ctx)
+	if err != nil {
+		return baton.Tip{}, err
+	}
+	if r.Result != proto.DbResultOK {
+		return baton.Tip{}, fmt.Errorf("db get tip error")
+	}
+	return baton.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
 }
 
-func (x *LiveHandler) DialCatchup(context.Context, proto.ValidatorPublicInfo) (baton.CatchupConn, error) {
+func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (baton.CatchupConn, error) {
 	<-x.live
-	panic("XXX")
+	return catchup.DialCatchupClient(ctx, x.net, v.Address)
 }
 
-func (x *LiveHandler) DialDb(context.Context) (baton.DbCoordConn, error) {
+func (x *LiveHandler) DialDb(ctx context.Context) (baton.DbCoordConn, error) {
 	<-x.live
-	panic("XXX")
+	return x.coord.DialDb(ctx)
 }
 
-func (x *LiveHandler) DialExecs(context.Context) ([]baton.ExecCoordConn, error) {
+func (x *LiveHandler) DialExecs(ctx context.Context) ([]baton.ExecCoordConn, error) {
 	<-x.live
-	panic("XXX")
+	return x.coord.DialExecs(ctx)
 }
 
 func (x *LiveHandler) PrioritizeRejectTxs(_ context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
