@@ -1,24 +1,44 @@
-package baton
+package testutil
 
 import (
 	"context"
 	"crypto/sha256"
+	"math/rand"
+	"sync"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (h *TestRig) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
-	h.rlk.Lock()
-	defer h.rlk.Unlock()
+type TestGen struct {
+	time libtime.Time
+	user proto.ValidatorSecretKey // wallet user who signs txs
+	lk   sync.Mutex
+	rand *rand.Rand
+}
+
+func NewTestGen(
+	ctx context.Context,
+	time libtime.Time,
+	rand *rand.Rand,
+	user proto.ValidatorSecretKey,
+) *TestGen {
+	return &TestGen{time: time, user: user, rand: rand}
+}
+
+func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
+	h.lk.Lock()
+	defer h.lk.Unlock()
 
 	var id proto.OriginID
 	h.rand.Read(id[:])
 
 	tx := proto.Transaction{
 		Id:      id,
-		Created: h.TestTime.Now().UnixNano(),
+		Created: h.time.Now().UnixNano(),
 	}
 	return &proto.SignedTransaction{
 		Signature: protoutil.SignXdr(h.user, &tx),
@@ -26,7 +46,7 @@ func (h *TestRig) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 	}
 }
 
-var testNondeterministicData = proto.NondeterministicProposalData{
+var TestNondeterministicData = proto.NondeterministicProposalData{
 	Nondeterministic_bits:      []byte{0xff},
 	Nondeterministic_bit_count: 8,
 }
@@ -42,36 +62,36 @@ type BlockHandle struct {
 	Height proto.BlockHeight
 }
 
-func VBHandle(vb *ValidatableBlock) *BlockHandle {
+func VBHandle(vb *sdk.ValidatableBlock) *BlockHandle {
 	return &BlockHandle{Hash: vb.BlockHash, Height: vb.BlockHeight}
 }
 
-func TipHandle(tip Tip) *BlockHandle {
+func TipHandle(tip sdk.Tip) *BlockHandle {
 	return &BlockHandle{Hash: tip.Hash, Height: tip.Height}
 }
 
-func (h *TestRig) GenProposal(ctx context.Context, ntxs int) *TestBlock {
-	return h.GenProposalOnto(ctx, ntxs, TipHandle(h.TestDb.GetTip()))
+func (h *TestGen) GenProposalOntoTip(ctx context.Context, ntxs int, onto sdk.Tip) *TestBlock {
+	return h.GenProposalOnto(ctx, ntxs, TipHandle(onto))
 }
 
-func (h *TestRig) GenProposalOntoVB(ctx context.Context, ntxs int, onto *ValidatableBlock) *TestBlock {
+func (h *TestGen) GenProposalOntoVB(ctx context.Context, ntxs int, onto *sdk.ValidatableBlock) *TestBlock {
 	return h.GenProposalOnto(ctx, ntxs, VBHandle(onto))
 }
 
-func (h *TestRig) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
+func (h *TestGen) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
 	return h.GenProposalOnto(ctx, ntxs, &BlockHandle{Height: onto.Proposal.Block_height, Hash: onto.Proposal.Block_hash})
 }
 
 // GenProposal generates a proposal onto the current db tip.
-func (h *TestRig) GenProposalOnto(ctx context.Context, ntxs int, onto *BlockHandle) *TestBlock {
+func (h *TestGen) GenProposalOnto(ctx context.Context, ntxs int, onto *BlockHandle) *TestBlock {
 	txs := make([]proto.ProposedTransaction, ntxs)
 	hash := onto.Hash
 	for i := range txs {
 		txs[i] = proto.ProposedTransaction{
 			Signed_tx:                      *h.GenSignedTx(ctx),
-			Nondeterministic_proposal_data: testNondeterministicData,
+			Nondeterministic_proposal_data: TestNondeterministicData,
 		}
-		hash = blendPropopsedTx(hash, &txs[i])
+		hash = BlendPropopsedTx(hash, &txs[i])
 	}
 	batch, batchHash := protoutil.PrepareBatch(txs)
 	return &TestBlock{
@@ -91,11 +111,11 @@ func (h *TestRig) GenProposalOnto(ctx context.Context, ntxs int, onto *BlockHand
 	}
 }
 
-func blendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
+func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
 	return xorBlockHash(base, sha256.Sum256(xdrutil.MarshalXdr(ptx)))
 }
 
-func blendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
+func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
 	return xorBlockHash(base, sha256.Sum256(xdrutil.MarshalXdr(stx)))
 }
 

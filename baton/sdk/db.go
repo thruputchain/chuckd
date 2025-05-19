@@ -1,0 +1,18 @@
+package sdk
+
+import (
+	"fmt"
+
+	"github.com/groundhogchain/chuckd/lib/form"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+type Tip struct {
+	Height proto.BlockHeight
+	Hash   proto.BlockHash
+	ID     proto.BlockID
+}
+
+func (x Tip) String() string {
+	return fmt.Sprintf("[%d; %s]", x.Height, form.SprintJSON(x.Hash))
+}

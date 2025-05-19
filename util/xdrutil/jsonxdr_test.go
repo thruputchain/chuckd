@@ -69,7 +69,7 @@ func TestAnyToJson(t *testing.T) {
     "ByteArray": "AAAA",
     "SomeXdr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     "Complex": (0+0i),
-    "MissingPointer": null,
+    "MissingPointer": <nil>,
     "PresentPointer": "prezo",
     "SliceString": [
         "abc",
@@ -82,7 +82,7 @@ func TestAnyToJson(t *testing.T) {
     }
 }`
 	if string(s) != expected {
-		t.Errorf("expecting %q, got %q", expected, string(s))
+		t.Errorf("expecting %s, got %s", expected, string(s))
 	}
 	fmt.Println(string(s))
 }

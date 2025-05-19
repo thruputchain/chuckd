@@ -1,4 +1,4 @@
-package test
+package testnet
 
 type testAddress struct {
 	Address string

@@ -1,10 +1,12 @@
-package baton
+package testdb
 
 import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/test/testutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -15,12 +17,12 @@ type TestDb struct {
 }
 
 type testDbSnapshot struct {
-	tip       Tip
+	tip       sdk.Tip
 	open      bool
 	committed bool
 }
 
-func NewTestDb(tip Tip) *TestDb {
+func NewTestDb(tip sdk.Tip) *TestDb {
 	db := &TestDb{
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
@@ -33,44 +35,44 @@ func NewTestDb(tip Tip) *TestDb {
 	return db
 }
 
-func (db *TestDb) GetTip() Tip {
+func (db *TestDb) GetTip() sdk.Tip {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip
 }
 
-func (db *TestDb) RestoreDb(context.Context) (Tip, error) {
+func (db *TestDb) RestoreDb(context.Context) (sdk.Tip, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip, nil
 }
 
-func (db *TestDb) DbCoord() DbCoordConn {
+func (db *TestDb) DbCoord() sdk.DbCoordConn {
 	return db
 }
 
-// assertOpen is called by TestExec
-func (db *TestDb) assertOpen(ctx context.Context, id proto.BlockID) {
+// AssertOpen is called by TestExec
+func (db *TestDb) AssertOpen(ctx context.Context, id proto.BlockID) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	block, ok := db.id[id]
 	must.Assertf(ctx, ok && block.open, "block is not open")
 }
 
-func (db *TestDb) addProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
+func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open, "block is not open")
-	snap.tip.Hash = blendPropopsedTx(snap.tip.Hash, ptx)
+	snap.tip.Hash = testutil.BlendPropopsedTx(snap.tip.Hash, ptx)
 }
 
-func (db *TestDb) addSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
+func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open, "block is not open")
-	snap.tip.Hash = blendSignedTx(snap.tip.Hash, stx)
+	snap.tip.Hash = testutil.BlendSignedTx(snap.tip.Hash, stx)
 }
 
 func (db *TestDb) Dbcoord_null(ctx context.Context) error {
@@ -100,7 +102,7 @@ func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.Bl
 	parent, ok := db.id[parentID]
 	must.Assertf(ctx, ok, "missing parent block")
 	child := &testDbSnapshot{
-		tip: Tip{
+		tip: sdk.Tip{
 			Height: parent.tip.Height + 1,
 			Hash:   parent.tip.Hash,
 			ID:     id,

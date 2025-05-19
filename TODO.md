@@ -1,3 +1,10 @@
+
+- [ ] M1 benchmark
+  - [ ] tx pump
+  - [ ] mock shard & db
+  - [ ] mock exec
+
+
 ROADMAP
 
 - [ ] sign over payload to bind source and payload (prevent replay)

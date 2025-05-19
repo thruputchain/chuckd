@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -13,7 +14,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) commit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
+func (b *Baton) commit(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 	if vb.AlreadyValidatedBlockID != nil {
 		// skip validation when committing our own nomination
 		return b.commitAlreadyValidated(ctx, vb)
@@ -22,7 +23,7 @@ func (b *Baton) commit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID
 	}
 }
 
-func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
+func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 	log.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 
 	// connect to db
@@ -48,9 +49,9 @@ func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *ValidatableBlock
 
 func (b *Baton) finalizeCommit(
 	ctx context.Context,
-	vb *ValidatableBlock,
+	vb *sdk.ValidatableBlock,
 	blockID proto.BlockID,
-	db DbCoordConn,
+	db sdk.DbCoordConn,
 ) (proto.BlockID, error) {
 
 	// db commit snapshot

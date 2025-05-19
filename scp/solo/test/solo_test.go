@@ -13,7 +13,7 @@ import (
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/scp/solo/follower"
 	"github.com/groundhogchain/chuckd/scp/solo/leader"
-	"github.com/groundhogchain/chuckd/test"
+	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 func TestSolo(t *testing.T) {
 
 	ctx := context.Background()
-	testnet := test.NewTestNetwork()
+	testnet := testnet.NewTestNetwork()
 	rand := runtime.NewRandFromRoot()
 
 	leaderCred := protoutil.MustGenerateIdentity(ctx, rand, "solo_leader")

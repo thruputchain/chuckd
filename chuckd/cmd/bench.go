@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/groundhogchain/chuckd/bench"
+	benchbroadcast "github.com/groundhogchain/chuckd/bench/broadcast"
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
@@ -24,7 +24,7 @@ var (
 			return api.Invoke(func() {
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				srv := bench.NewBroadcastBenchmark(
+				srv := benchbroadcast.NewBroadcastBenchmark(
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg.Validator_config,

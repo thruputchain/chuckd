@@ -4,32 +4,33 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func NewBaton(ctx context.Context, h Handler) *Baton {
+func NewBaton(ctx context.Context, h sdk.Handler) *Baton {
 	return &Baton{
 		handler:         h,
 		scp:             make(chan struct{}),
-		catchupRequests: map[ID64]catchupRequest{},
+		catchupRequests: map[sdk.ID64]catchupRequest{},
 		validated:       map[proto.BlockHash]validated{},
 	}
 }
 
 type Baton struct {
-	handler Handler
+	handler sdk.Handler
 	scp     chan struct{}
 	lk      sync.Mutex
 	// state
 	committing      bool
 	nominating      *nominating
 	nominated       *nominated
-	tip             Tip
-	catchupRequests map[ID64]catchupRequest // pending catchup requests
-	catchupBlocks   catchupBlocks           // received catchup blocks
+	tip             sdk.Tip
+	catchupRequests map[sdk.ID64]catchupRequest // pending catchup requests
+	catchupBlocks   catchupBlocks               // received catchup blocks
 	externalized    []*proto.Proposal
 	validated       map[proto.BlockHash]validated
 }

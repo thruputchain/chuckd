@@ -6,9 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/mempool"
+	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/test/testdb"
+	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
@@ -17,17 +21,18 @@ import (
 type TestRig struct {
 	user   proto.ValidatorSecretKey
 	signer proto.ValidatorPrivateInfo
+	*testutil.TestGen
 	*TestBus
 	*libtime.TestTime
 	*mempool.BatchMempool
 	*mempool.TransactionMempool
 	*mempool.CommittedMempool
-	*TestDb
+	*testdb.TestDb
 	*TestCatchup
 	*TestSCP
 	//
 	xlk       sync.Mutex
-	nextExecs [][]ExecCoordConn
+	nextExecs [][]sdk.ExecCoordConn
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -55,6 +60,7 @@ func NewTestRig(
 		rand:               rand,
 		user:               user.Secret_key,
 		signer:             *signer,
+		TestGen:            testutil.NewTestGen(ctx, time, runtime.NewRandFromRand(rand), user.Secret_key),
 		TestBus:            NewTestBus(),
 		TestTime:           time,
 		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
@@ -64,11 +70,15 @@ func NewTestRig(
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
 	}
-	h.TestDb = NewTestDb(Tip{})
+	h.TestDb = testdb.NewTestDb(sdk.Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
 	h.TestCatchup = NewTestCatchup(time, *catchupSigner)
 	return h
+}
+
+func (h *TestRig) GenProposal(ctx context.Context, ntxs int) *testutil.TestBlock {
+	return h.GenProposalOntoTip(ctx, ntxs, h.TestDb.GetTip())
 }
 
 func (h *TestRig) Bind(b *Baton) {
@@ -131,23 +141,23 @@ func (h *TestRig) GenerateBlockID(context.Context) proto.BlockID {
 	return h.rand.Uint64()
 }
 
-func (h *TestRig) GenerateID64(context.Context) ID64 {
+func (h *TestRig) GenerateID64(context.Context) sdk.ID64 {
 	h.rlk.Lock()
 	defer h.rlk.Unlock()
-	return ID64(h.rand.Int63())
+	return sdk.ID64(h.rand.Int63())
 }
 
-func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error) {
+func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (sdk.CatchupConn, error) {
 	return h.TestCatchup, nil
 }
 
-func (h *TestRig) DialDb(context.Context) (DbCoordConn, error) {
+func (h *TestRig) DialDb(context.Context) (sdk.DbCoordConn, error) {
 	return h.TestDb, nil
 }
 
 func (h *TestRig) StageExecs(n int) []*TestExec {
 	testExecs := make([]*TestExec, n)
-	execs := make([]ExecCoordConn, n)
+	execs := make([]sdk.ExecCoordConn, n)
 	for i := range testExecs {
 		testExecs[i] = NewTestExec(h.TestDb)
 		execs[i] = testExecs[i]
@@ -158,7 +168,7 @@ func (h *TestRig) StageExecs(n int) []*TestExec {
 	return testExecs
 }
 
-func (h *TestRig) DialExecs(ctx context.Context) ([]ExecCoordConn, error) {
+func (h *TestRig) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
 	h.xlk.Lock()
 	defer h.xlk.Unlock()
 	// if there are no staged execs, just allocate
@@ -167,7 +177,7 @@ func (h *TestRig) DialExecs(ctx context.Context) ([]ExecCoordConn, error) {
 		h.nextExecs = h.nextExecs[1:]
 		return execs, nil
 	} else {
-		return []ExecCoordConn{NewTestExec(h.TestDb), NewTestExec(h.TestDb)}, nil
+		return []sdk.ExecCoordConn{NewTestExec(h.TestDb), NewTestExec(h.TestDb)}, nil
 	}
 }
 

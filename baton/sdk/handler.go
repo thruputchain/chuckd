@@ -1,4 +1,4 @@
-package baton
+package sdk
 
 import (
 	"context"

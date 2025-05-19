@@ -1,4 +1,4 @@
-package bench
+package benchbroadcast
 
 import (
 	"context"

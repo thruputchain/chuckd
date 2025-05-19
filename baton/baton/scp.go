@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -86,7 +87,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 		ptxs = append(ptxs, btxs...)
 	}
 
-	vb := &ValidatableBlock{
+	vb := &sdk.ValidatableBlock{
 		BlockHeight:          proposal.Block_height,
 		BlockHash:            proposal.Block_hash,
 		PrevBlockHash:        proposal.Prev_block_hash,

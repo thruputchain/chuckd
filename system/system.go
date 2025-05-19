@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton"
+	"github.com/groundhogchain/chuckd/baton/baton"
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"

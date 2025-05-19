@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -14,7 +15,7 @@ import (
 var ErrNothingToNominate = fmt.Errorf("nothing to nominate")
 
 type nominating struct {
-	Tip
+	sdk.Tip
 	context.CancelFunc
 }
 
@@ -22,7 +23,7 @@ type nominated struct {
 	*proto.Proposal
 }
 
-func canNominate(nominate *Tip, nominating *nominating, nominated *nominated) bool {
+func canNominate(nominate *sdk.Tip, nominating *nominating, nominated *nominated) bool {
 	if nominate == nil {
 		return false
 	}
@@ -51,7 +52,7 @@ func (b *Baton) gatherUncommittedTxs(ctx context.Context) []*proto.SignedTransac
 	return uncommittedTxs
 }
 
-func (b *Baton) nominate(ctx context.Context, tip Tip, uncommittedTxs []*proto.SignedTransaction) (*proto.Proposal, proto.BlockID, error) {
+func (b *Baton) nominate(ctx context.Context, tip sdk.Tip, uncommittedTxs []*proto.SignedTransaction) (*proto.Proposal, proto.BlockID, error) {
 
 	must.Assertf(ctx, len(uncommittedTxs) > 0, "nominating no uncommited txs")
 
@@ -120,7 +121,7 @@ type proposed struct {
 // prepareNomination can be aborted by cancelling the context.
 func (b *Baton) prepareNomination(
 	ctx context.Context,
-	tip Tip,
+	tip sdk.Tip,
 	txs []*proto.SignedTransaction,
 ) (*nomination, error) {
 
@@ -165,7 +166,7 @@ func (b *Baton) prepareNomination(
 
 	proposedCh := make(chan proposed, len(execs))
 	for _, exec := range execs {
-		go func(exec ExecCoordConn) {
+		go func(exec sdk.ExecCoordConn) {
 
 			// executor open proposal block
 			execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)

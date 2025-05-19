@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton"
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -21,7 +21,7 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-// LiveHandler is a baton.Handler that connects a live system to the baton.
+// LiveHandler is an sdk.Handler that connects a live system to the baton
 type LiveHandler struct {
 	protoutil.Signatory
 	libtime.Time
@@ -93,41 +93,41 @@ func (x *LiveHandler) GenerateBlockID(context.Context) proto.BlockID {
 	return x.rand.Uint64()
 }
 
-func (x *LiveHandler) GenerateID64(context.Context) baton.ID64 {
+func (x *LiveHandler) GenerateID64(context.Context) sdk.ID64 {
 	x.rlk.Lock()
 	defer x.rlk.Unlock()
-	return baton.ID64(x.rand.Int63())
+	return sdk.ID64(x.rand.Int63())
 }
 
-func (x *LiveHandler) RestoreDb(ctx context.Context) (baton.Tip, error) {
+func (x *LiveHandler) RestoreDb(ctx context.Context) (sdk.Tip, error) {
 	<-x.live
 	x.coord.WaitDbReady()
 
 	c, err := x.coord.DialDb(ctx)
 	if err != nil {
-		return baton.Tip{}, err
+		return sdk.Tip{}, err
 	}
 	r, err := c.Dbcoord_get_tip(ctx)
 	if err != nil {
-		return baton.Tip{}, err
+		return sdk.Tip{}, err
 	}
 	if r.Result != proto.DbResultOK {
-		return baton.Tip{}, fmt.Errorf("db get tip error")
+		return sdk.Tip{}, fmt.Errorf("db get tip error")
 	}
-	return baton.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
+	return sdk.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
 }
 
-func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (baton.CatchupConn, error) {
+func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (sdk.CatchupConn, error) {
 	<-x.live
 	return catchup.DialCatchupClient(ctx, x.net, v.Address)
 }
 
-func (x *LiveHandler) DialDb(ctx context.Context) (baton.DbCoordConn, error) {
+func (x *LiveHandler) DialDb(ctx context.Context) (sdk.DbCoordConn, error) {
 	<-x.live
 	return x.coord.DialDb(ctx)
 }
 
-func (x *LiveHandler) DialExecs(ctx context.Context) ([]baton.ExecCoordConn, error) {
+func (x *LiveHandler) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
 	<-x.live
 	return x.coord.DialExecs(ctx)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	proto "github.com/groundhogchain/protocol-go"
@@ -16,7 +17,7 @@ type validated struct {
 
 var ErrNotValid = fmt.Errorf("proposal not valid")
 
-func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordConn, blockID proto.BlockID) error {
+func (b *Baton) validate(ctx context.Context, vb *sdk.ValidatableBlock, db sdk.DbCoordConn, blockID proto.BlockID) error {
 
 	b.handler.Emit(ctx, EventValidating{ValidatableBlock: vb, BlockID: blockID})
 
@@ -52,7 +53,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 
 	validatedCh := make(chan error, len(execs))
 	for _, exec := range execs {
-		go func(exec ExecCoordConn) {
+		go func(exec sdk.ExecCoordConn) {
 
 			// executor open validation block
 			execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
@@ -111,7 +112,7 @@ func (b *Baton) validate(ctx context.Context, vb *ValidatableBlock, db DbCoordCo
 	return nil
 }
 
-func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
+func (b *Baton) validateCommit(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 	log.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 
 	db, err := b.handler.DialDb(ctx)
@@ -129,7 +130,7 @@ func (b *Baton) validateCommit(ctx context.Context, vb *ValidatableBlock) (proto
 	return b.finalizeCommit(ctx, vb, blockID, db)
 }
 
-func (b *Baton) validateClose(ctx context.Context, vb *ValidatableBlock) (proto.BlockID, error) {
+func (b *Baton) validateClose(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 
 	db, err := b.handler.DialDb(ctx)
 	if err != nil {
@@ -148,9 +149,9 @@ func (b *Baton) validateClose(ctx context.Context, vb *ValidatableBlock) (proto.
 
 func (b *Baton) finalizeValidateClose(
 	ctx context.Context,
-	vb *ValidatableBlock,
+	vb *sdk.ValidatableBlock,
 	nextID proto.BlockID,
-	db DbCoordConn,
+	db sdk.DbCoordConn,
 ) error {
 
 	// db close snapshot

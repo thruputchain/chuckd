@@ -8,7 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/test"
+	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -23,7 +23,7 @@ type Broadcast3Harness struct {
 }
 
 func NewBroadcast3Testnet(cfg proto.BroadcastConfig) *Broadcast3Harness {
-	return NewBroadcast3Harness(cfg, test.NewTestNetwork(), "alpha", "beta", "gamma")
+	return NewBroadcast3Harness(cfg, testnet.NewTestNetwork(), "alpha", "beta", "gamma")
 }
 
 func NewBroadcast3TCP(cfg proto.BroadcastConfig) *Broadcast3Harness {

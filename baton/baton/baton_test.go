@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -170,7 +171,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 	baton.Start(ctx)
 
-	lastCommitted := TipHandle(rig.GetTip())
+	lastCommitted := testutil.TipHandle(rig.GetTip())
 	for height := proto.BlockHeight(1); height < maxHeight; height++ {
 
 		theirBlock := rig.GenProposalOnto(ctx, 1, lastCommitted)
@@ -199,7 +200,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal))
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(EventCommitted)
-		lastCommitted = VBHandle(committed.ValidatableBlock)
+		lastCommitted = testutil.VBHandle(committed.ValidatableBlock)
 
 		rig.PassTime(tick)
 	}
