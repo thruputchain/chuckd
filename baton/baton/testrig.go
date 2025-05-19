@@ -11,7 +11,9 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/test/testcatchup"
 	"github.com/groundhogchain/chuckd/test/testdb"
+	"github.com/groundhogchain/chuckd/test/testexec"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -28,7 +30,7 @@ type TestRig struct {
 	*mempool.TransactionMempool
 	*mempool.CommittedMempool
 	*testdb.TestDb
-	*TestCatchup
+	*testcatchup.TestCatchupStaged
 	*TestSCP
 	//
 	xlk       sync.Mutex
@@ -73,7 +75,7 @@ func NewTestRig(
 	h.TestDb = testdb.NewTestDb(sdk.Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
-	h.TestCatchup = NewTestCatchup(time, *catchupSigner)
+	h.TestCatchupStaged = testcatchup.NewTestCatchup(time, *catchupSigner)
 	return h
 }
 
@@ -132,7 +134,7 @@ func (h *TestRig) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, 
 }
 
 func (h *TestRig) GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo {
-	return []proto.ValidatorPublicInfo{h.TestCatchup.Signer.Public_info}
+	return []proto.ValidatorPublicInfo{h.TestCatchupStaged.Signer.Public_info}
 }
 
 func (h *TestRig) GenerateBlockID(context.Context) proto.BlockID {
@@ -148,18 +150,18 @@ func (h *TestRig) GenerateID64(context.Context) sdk.ID64 {
 }
 
 func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (sdk.CatchupConn, error) {
-	return h.TestCatchup, nil
+	return h.TestCatchupStaged, nil
 }
 
 func (h *TestRig) DialDb(context.Context) (sdk.DbCoordConn, error) {
 	return h.TestDb, nil
 }
 
-func (h *TestRig) StageExecs(n int) []*TestExec {
-	testExecs := make([]*TestExec, n)
+func (h *TestRig) StageExecs(n int) []*testexec.TestExec {
+	testExecs := make([]*testexec.TestExec, n)
 	execs := make([]sdk.ExecCoordConn, n)
 	for i := range testExecs {
-		testExecs[i] = NewTestExec(h.TestDb)
+		testExecs[i] = testexec.NewTestExec(h.TestDb)
 		execs[i] = testExecs[i]
 	}
 	h.xlk.Lock()
@@ -177,7 +179,7 @@ func (h *TestRig) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
 		h.nextExecs = h.nextExecs[1:]
 		return execs, nil
 	} else {
-		return []sdk.ExecCoordConn{NewTestExec(h.TestDb), NewTestExec(h.TestDb)}, nil
+		return []sdk.ExecCoordConn{testexec.NewTestExec(h.TestDb), testexec.NewTestExec(h.TestDb)}, nil
 	}
 }
 

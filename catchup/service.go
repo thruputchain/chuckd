@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/pebble"
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -26,12 +27,7 @@ type CatchupService struct {
 }
 
 type DialDb interface {
-	DialDb(context.Context) (DbCoordConn, error)
-}
-
-type DbCoordConn interface {
-	proto.DbCoord1
-	Close() error
+	DialDb(context.Context) (sdk.DbCoordConn, error)
 }
 
 type stampedCatchupBlock struct {

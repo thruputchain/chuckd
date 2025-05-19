@@ -1,4 +1,4 @@
-package baton
+package testcatchup
 
 import (
 	"context"
@@ -10,28 +10,28 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type TestCatchup struct {
+type TestCatchupStaged struct {
 	time   libtime.Time
 	Signer proto.ValidatorPrivateInfo
 	lk     sync.Mutex
 	result [][]proto.CatchupBlock
 }
 
-func NewTestCatchup(time libtime.Time, signer proto.ValidatorPrivateInfo) *TestCatchup {
-	return &TestCatchup{time: time, Signer: signer}
+func NewTestCatchup(time libtime.Time, signer proto.ValidatorPrivateInfo) *TestCatchupStaged {
+	return &TestCatchupStaged{time: time, Signer: signer}
 }
 
-func (x *TestCatchup) Catchup_null(context.Context) error {
+func (x *TestCatchupStaged) Catchup_null(context.Context) error {
 	return nil
 }
 
-func (x *TestCatchup) StageCatchup(blocks ...proto.CatchupBlock) {
+func (x *TestCatchupStaged) StageCatchup(blocks ...proto.CatchupBlock) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	x.result = append(x.result, blocks)
 }
 
-func (x *TestCatchup) Catchup_solicit(ctx context.Context, req proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
+func (x *TestCatchupStaged) Catchup_solicit(ctx context.Context, req proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	must.Assertf(ctx, len(x.result) > 0, "no staged catchup blocks")
@@ -48,5 +48,5 @@ func (x *TestCatchup) Catchup_solicit(ctx context.Context, req proto.SignedCatch
 	return r, nil
 }
 
-func (db *TestCatchup) Close() {
+func (db *TestCatchupStaged) Close() {
 }

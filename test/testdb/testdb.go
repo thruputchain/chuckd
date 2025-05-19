@@ -80,7 +80,10 @@ func (db *TestDb) Dbcoord_null(ctx context.Context) error {
 }
 
 func (db *TestDb) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
-	panic("not used")
+	tip := db.GetTip()
+	r := proto.DbTipResult{Result: proto.DbResultOK}
+	*r.Db_tip() = proto.DbTip{Height: tip.Height, Hash: tip.Hash, Id: tip.ID}
+	return r, nil
 }
 
 func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
