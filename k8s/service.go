@@ -7,22 +7,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func MakeServices(serviceName string, numPods int) []*corev1.Service {
+func MakeServices(serviceName string, numPods int) ([]*corev1.Service, []string) {
 	ss := make([]*corev1.Service, numPods)
+	addrs := make([]string, numPods)
 	for i := range ss {
-		ss[i] = MakeService(serviceName, i)
+		dnsName := fmt.Sprintf("%s-%d", serviceName, i+1)
+		ss[i] = MakeService(serviceName, i, dnsName)
+		addrs[i] = fmt.Sprintf("%s:%d", dnsName, 9111)
 	}
-	return ss
+	return ss, addrs
 }
 
-func MakeService(serviceName string, podIndex int) *corev1.Service {
+func MakeService(serviceName string, podIndex int, dnsName string) *corev1.Service {
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%d", serviceName, podIndex+1),
+			Name: dnsName,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{

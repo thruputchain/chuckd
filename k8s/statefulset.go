@@ -6,6 +6,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -19,10 +20,10 @@ func MakeNetworkStatefulSet(
 	containerImage string,
 	subcmd string,
 	cfg []proto.Config,
+	services []*v1.Service,
 ) []runtime.Object {
 
 	cfgMaps, cfgVolumes, cfgMounts := MakeConfigMapsForStatefulSet(serviceName, cfg)
-	services := MakeServices(serviceName, len(cfg))
 
 	statefulSet := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
