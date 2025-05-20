@@ -18,7 +18,7 @@ require (
 require (
 	github.com/goccy/go-yaml v1.17.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/groundhogchain/protocol-go v0.0.0-20250427003823-65a75a32a8f0
+	github.com/groundhogchain/protocol-go v0.0.0-20250520181440-c2dd44929f1b
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.1.2
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
