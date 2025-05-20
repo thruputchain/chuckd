@@ -5,6 +5,7 @@ import (
 	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
@@ -28,9 +29,11 @@ var (
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				srv := testcluster.NewTestClusterSystem(
 					ctx,
+					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
 					*cfg,
 					libnet.TCPNet{},
+					benchTPS,
 				)
 				srv.Start(ctx, benchOutAddress, benchWalletAddress)
 				select {}
@@ -56,7 +59,7 @@ var (
 					benchNumIterations,
 				)
 				srv.Start(ctx, benchServerAddress)
-				<-(chan int)(nil) // hang
+				select {} // hang
 			})
 		},
 	}
@@ -72,6 +75,7 @@ var (
 	// benchInAddress     string
 	benchOutAddress    string
 	benchWalletAddress string
+	benchTPS           int64
 )
 
 func init() {
@@ -88,4 +92,5 @@ func init() {
 	// benchTestClusterCmd.Flags().StringVar(&benchInAddress, "inaddr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "exaddr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "waddr", "localhost:6666", "bind address for wallet api")
+	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 10000, "transactions per second")
 }

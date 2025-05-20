@@ -5,6 +5,8 @@ import (
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system"
 	"github.com/groundhogchain/chuckd/test/testnet"
 	proto "github.com/groundhogchain/protocol-go"
@@ -17,14 +19,21 @@ type TestClusterSystem struct {
 
 func NewTestClusterSystem(
 	ctx context.Context,
+	time libtime.Time,
 	rand *rand.Rand,
 	cfg proto.Config,
 	outside libnet.Network,
+	tps int64,
 ) *TestClusterSystem {
 	inside := testnet.NewTestNetwork()
+	sys := system.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &TestClusterSystem{
-		System:      system.NewSystem(ctx, rand, cfg, inside, outside),
-		TestCluster: NewTestCluster(ctx, inside),
+		System: sys,
+		TestCluster: NewTestCluster(ctx, time, runtime.NewRandFromRand(rand), inside, tps,
+			func(ctx context.Context, stx *proto.SignedTransaction) {
+				sys.Live.AddTx(ctx, stx)
+			},
+		),
 	}
 }
 
