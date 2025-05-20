@@ -24,6 +24,9 @@ import (
 )
 
 type System struct {
+	inside  libnet.Network
+	outside libnet.Network
+	//
 	Signer protoutil.Signatory
 	//
 	Coord     *coord.CoordinatorService
@@ -44,26 +47,30 @@ type System struct {
 	//
 	Wallet *wallet.WalletGateway
 	//
-	internal *Server
-	external *Server
+	insideSrv  *Server
+	outsideSrv *Server
 }
 
 func NewSystem(
 	ctx context.Context,
 	rr *rand.Rand,
 	cfg proto.Config,
+	inside libnet.Network,
+	outside libnet.Network,
 ) *System {
 
 	sys := &System{
-		Signer: protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
+		inside:  inside,
+		outside: outside,
+		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
-	sys.Coord = coord.NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRand(rr))
+	sys.Coord = coord.NewCoordinatorService(ctx, outside, runtime.NewRandFromRand(rr))
 
 	sys.Discovery = discovery.NewDiscoveryService(
 		ctx,
 		*cfg.Discovery_config,
-		libnet.TCPNet{},
+		outside,
 		*cfg.Validator_config,
 	)
 
@@ -72,7 +79,7 @@ func NewSystem(
 	sys.Broadcast = broadcast.NewBroadcastService(
 		ctx,
 		*cfg.Broadcast_config,
-		libnet.TCPNet{},
+		outside,
 		runtime.NewRandFromRand(rr),
 		cfg.Validator_config.Private_info,
 		sys.Router,
@@ -91,7 +98,8 @@ func NewSystem(
 	sys.Live = NewLiveHandler(
 		sys.Signer,
 		libtime.RealTime{},
-		libnet.TCPNet{},
+		inside,
+		outside,
 		sys.Coord,
 		sys.Router,
 		sys.Proposed,
@@ -105,7 +113,7 @@ func NewSystem(
 
 	sys.Follower = follower.NewSoloFollowerService(
 		ctx,
-		libnet.TCPNet{},
+		outside,
 		cfg.Solo_config.Leader,
 		cfg.Validator_config.Private_info,
 		sys.Baton.SCPHandler(),
@@ -115,7 +123,7 @@ func NewSystem(
 		ctx,
 		sys.Signer,
 		libtime.RealTime{},
-		libnet.TCPNet{},
+		outside,
 		nil, // TODO: dialDb for deep archival access to catchup blocks, currently not used
 		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
 		cfg.Catchup_config.Catchup_block_age,
@@ -139,12 +147,12 @@ func NewSystem(
 		}
 	}()
 
-	sys.internal = NewServer(ctx,
+	sys.insideSrv = NewServer(ctx,
 		proto.Coordinator1_Server{Srv: sys.Coord},
 		proto.Wallet1_Server{Srv: sys.Wallet.Service()},
 	)
 
-	sys.external = NewServer(ctx,
+	sys.outsideSrv = NewServer(ctx,
 		proto.Discovery1_Server{Srv: sys.Discovery},
 		proto.Broadcast1_Server{Srv: sys.Broadcast},
 		proto.Catchup1_Server{Srv: sys.Catchup},
@@ -153,13 +161,13 @@ func NewSystem(
 	return sys
 }
 
-func (s *System) Start(ctx context.Context, inAddr string, exAddr string, walletAddr string) {
-	s.internal.Start(ctx, inAddr)
-	s.external.Start(ctx, exAddr)
+func (s *System) Start(ctx context.Context, inAddr string, outAddr string, walletAddr string) {
+	s.insideSrv.Start(ctx, inAddr)
+	s.outsideSrv.Start(ctx, outAddr)
 	s.Wallet.StartHTTP(ctx, walletAddr)
 }
 
 func (s *System) Close() {
-	s.internal.Close()
-	s.external.Close()
+	s.insideSrv.Close()
+	s.outsideSrv.Close()
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system"
@@ -28,8 +29,10 @@ var (
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg,
+					libnet.TCPNet{},
+					libnet.TCPNet{},
 				)
-				srv.Start(ctx, serverInternalAddress, serverExternalAddress, serverWalletAddress)
+				srv.Start(ctx, serverInAddress, serverOutAddress, serverWalletAddress)
 				<-(chan int)(nil) // hang
 			})
 		},
@@ -37,16 +40,16 @@ var (
 )
 
 var (
-	serverInternalAddress string
-	serverExternalAddress string
-	serverWalletAddress   string
+	serverInAddress     string
+	serverOutAddress    string
+	serverWalletAddress string
 )
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.AddCommand(serverStartCmd)
-	serverStartCmd.Flags().StringVar(&serverInternalAddress, "inaddr", "localhost:7888", "bind address for internal apis")
-	serverStartCmd.Flags().StringVar(&serverExternalAddress, "exaddr", "localhost:9111", "bind address for external apis")
+	serverStartCmd.Flags().StringVar(&serverInAddress, "inaddr", "localhost:7888", "bind address for internal apis")
+	serverStartCmd.Flags().StringVar(&serverOutAddress, "exaddr", "localhost:9111", "bind address for external apis")
 	serverStartCmd.Flags().StringVar(&serverWalletAddress, "waddr", "localhost:6666", "bind address for wallet api")
 }

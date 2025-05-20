@@ -5,10 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/shard"
+	"github.com/groundhogchain/chuckd/test/testdb"
+	"github.com/groundhogchain/chuckd/test/testshard"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -36,18 +38,19 @@ func TestShardCompleteness(t *testing.T) {
 	ctx := context.Background()
 	s := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
 
-	sh1 := shard.NewTestShardServer(ctx)
-	sh2 := shard.NewTestShardServer(ctx)
-	sh3 := shard.NewTestShardServer(ctx)
-	sh1.Start(ctx)
-	sh2.Start(ctx)
-	sh3.Start(ctx)
+	db := testdb.NewTestDb(sdk.Tip{})
+	sh1 := testshard.NewTestShard(ctx, db)
+	sh2 := testshard.NewTestShard(ctx, db)
+	sh3 := testshard.NewTestShard(ctx, db)
+	ad1 := sh1.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()
+	ad2 := sh2.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()
+	ad3 := sh3.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{
 		Upid:         xdrutil.Uint64UPID(1),
 		Block_height: 1,
 		Shard_count:  2,
-		Address:      sh1.Addr(),
+		Address:      ad1,
 	})
 
 	if len(s.findCompleteDb()) > 0 {
@@ -58,7 +61,7 @@ func TestShardCompleteness(t *testing.T) {
 		Upid:         xdrutil.Uint64UPID(2),
 		Block_height: 2, // different height
 		Shard_count:  2,
-		Address:      sh2.Addr(),
+		Address:      ad2,
 	})
 
 	if len(s.findCompleteDb()) > 0 {
@@ -69,7 +72,7 @@ func TestShardCompleteness(t *testing.T) {
 		Upid:         xdrutil.Uint64UPID(3),
 		Block_height: 1,
 		Shard_count:  2,
-		Address:      sh3.Addr(),
+		Address:      ad3,
 	})
 
 	if len(s.findCompleteDb()) == 0 {
@@ -84,10 +87,11 @@ func TestDbReadiness(t *testing.T) {
 
 	s := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
 
-	sh1 := shard.NewTestShardServer(ctx)
-	sh2 := shard.NewTestShardServer(ctx)
-	sh1.Start(ctx)
-	sh2.Start(ctx)
+	db := testdb.NewTestDb(sdk.Tip{})
+	sh1 := testshard.NewTestShard(ctx, db)
+	sh2 := testshard.NewTestShard(ctx, db)
+	ad1 := sh1.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()
+	ad2 := sh2.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()
 
 	execUnblocked := make(chan int, 1)
 
@@ -103,7 +107,7 @@ func TestDbReadiness(t *testing.T) {
 		Upid:         xdrutil.Uint64UPID(1),
 		Block_height: 1,
 		Shard_count:  2,
-		Address:      sh1.Addr(),
+		Address:      ad1,
 	})
 
 	select {
@@ -116,7 +120,7 @@ func TestDbReadiness(t *testing.T) {
 		Upid:         xdrutil.Uint64UPID(3),
 		Block_height: 1,
 		Shard_count:  2,
-		Address:      sh2.Addr(),
+		Address:      ad2,
 	})
 
 	<-execUnblocked

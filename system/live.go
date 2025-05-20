@@ -25,9 +25,10 @@ import (
 type LiveHandler struct {
 	protoutil.Signatory
 	libtime.Time
-	net    libnet.Network
-	coord  *coord.CoordinatorService
-	router router.Router
+	inside  libnet.Network
+	outside libnet.Network
+	coord   *coord.CoordinatorService
+	router  router.Router
 	*mempool.BatchMempool
 	*mempool.TransactionMempool
 	*mempool.CommittedMempool
@@ -43,7 +44,8 @@ type LiveHandler struct {
 func NewLiveHandler(
 	signer protoutil.Signatory,
 	time libtime.Time,
-	net libnet.Network,
+	inside libnet.Network,
+	outside libnet.Network,
 	coord *coord.CoordinatorService,
 	router router.Router,
 	batch *mempool.BatchMempool,
@@ -55,7 +57,8 @@ func NewLiveHandler(
 	return &LiveHandler{
 		Signatory:          signer,
 		Time:               time,
-		net:                net,
+		inside:             inside,
+		outside:            outside,
 		coord:              coord,
 		router:             router,
 		BatchMempool:       batch,
@@ -119,7 +122,7 @@ func (x *LiveHandler) RestoreDb(ctx context.Context) (sdk.Tip, error) {
 
 func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (sdk.CatchupConn, error) {
 	<-x.live
-	return catchup.DialCatchupClient(ctx, x.net, v.Address)
+	return catchup.DialCatchupClient(ctx, x.outside, v.Address)
 }
 
 func (x *LiveHandler) DialDb(ctx context.Context) (sdk.DbCoordConn, error) {
