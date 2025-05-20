@@ -62,11 +62,8 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 
-	go func() {
-		for {
-			b.scp <- struct{}{}
-		}
-	}()
+	// release lock on scp events
+	close(b.scp)
 
 	// wake up every so often for the purpose of
 	// triggering nomination which would capture any new txs that have been submitted to the mempool.
