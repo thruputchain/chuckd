@@ -61,7 +61,7 @@ func TestNominateCommit(t *testing.T) {
 	// stage 1: nominate [1]
 	rig.AddTx(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
-	baton.Start(ctx)
+	baton.Start(ctx, tick/5)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(EventNominating)
 	rig.WaitDissemination()
 	rig.WaitNomination(ctx)
@@ -95,7 +95,7 @@ func TestValidateCommit(t *testing.T) {
 
 	// stage 1: validate [1]
 	rig.StageExecs(1)
-	baton.Start(ctx)
+	baton.Start(ctx, tick/5)
 	block := rig.GenProposal(ctx, 2)
 	rig.AddBatch(ctx, block.Batch)
 	vlevel := rig.ValidateValue(ctx, block.Proposal.Block_height, xdrutil.MarshalXdr(&block.Proposal), true)
@@ -125,14 +125,14 @@ func TestValidateCommit(t *testing.T) {
 // TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
-	ctx, rig, baton, _ := testSetup()
+	ctx, rig, baton, tick := testSetup()
 
 	block1 := rig.GenProposal(ctx, 1)
 	block2 := rig.GenProposalOntoBlock(ctx, 1, block1)
 	rig.AddBatch(ctx, block2.Batch) // prevent catchup request for [2]
 	rig.StageCatchup(block1.Catchup)
 
-	baton.Start(ctx)
+	baton.Start(ctx, tick/5)
 	rig.StageExecs(1) // for validation and commit
 	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Proposal))
 	_ = rig.ReceiveEvent(ctx).Event.(EventValidating)
@@ -146,12 +146,12 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 // TestCatchupMissingTxsCommit tests catchup for externalizations with missing batches.
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
-	ctx, rig, baton, _ := testSetup()
+	ctx, rig, baton, tick := testSetup()
 
 	block1 := rig.GenProposal(ctx, 1)
 	rig.StageCatchup(block1.Catchup)
 
-	baton.Start(ctx)
+	baton.Start(ctx, tick/5)
 	rig.StageExecs(1) // for validation and commit
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block1.Proposal))
 	// catchup provisions the block
@@ -169,7 +169,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 	ctx, rig, baton, tick := testSetup()
 	maxHeight := proto.BlockHeight(15)
 
-	baton.Start(ctx)
+	baton.Start(ctx, tick/5)
 
 	lastCommitted := testutil.TipHandle(rig.GetTip())
 	for height := proto.BlockHeight(1); height < maxHeight; height++ {

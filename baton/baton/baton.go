@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
@@ -50,20 +51,29 @@ func (b *Baton) Kick(ctx context.Context) {
 	defer b.unlock(ctx)
 }
 
-func (b *Baton) Start(ctx context.Context) {
-	go b.start(ctx)
+func (b *Baton) Start(ctx context.Context, heartbeat time.Duration) {
+	go b.start(ctx, heartbeat)
 }
 
-func (b *Baton) start(ctx context.Context) {
+func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 
 	// restore db
 	var err error
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 
-	b.Kick(ctx)
+	go func() {
+		for {
+			b.scp <- struct{}{}
+		}
+	}()
+
+	// wake up every so often for the purpose of
+	// triggering nomination which would capture any new txs that have been submitted to the mempool.
+	// rationale: waking up the baton every time a tx is added to the mempool would be too expensive.
 	for {
-		b.scp <- struct{}{}
+		b.Kick(ctx)
+		b.handler.Sleep(heartbeat)
 	}
 }
 

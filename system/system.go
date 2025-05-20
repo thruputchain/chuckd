@@ -24,6 +24,8 @@ import (
 )
 
 type System struct {
+	cfg proto.Config
+	//
 	inside  libnet.Network
 	outside libnet.Network
 	//
@@ -60,6 +62,7 @@ func NewSystem(
 ) *System {
 
 	sys := &System{
+		cfg:     cfg,
 		inside:  inside,
 		outside: outside,
 		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
@@ -136,7 +139,6 @@ func NewSystem(
 	sys.Transaction = mempool.NewTransactionMempoolReal(ctx, txTTL)
 	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*max(batchTTL, txTTL))
 
-	// XXX: add wallet config to k8s
 	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
 	// drive disseminated batches into mempool
@@ -165,6 +167,7 @@ func (s *System) Start(ctx context.Context, inAddr string, outAddr string, walle
 	s.insideSrv.Start(ctx, inAddr)
 	s.outsideSrv.Start(ctx, outAddr)
 	s.Wallet.StartHTTP(ctx, walletAddr)
+	s.Baton.Start(ctx, time.Duration(s.cfg.Baton_config.Heartbeat_msec)*time.Millisecond)
 }
 
 func (s *System) Close() {

@@ -1,8 +1,9 @@
+- [ ] Validatevalue should block until the batches arrive? 
 
 - [ ] M1 benchmark
-  - [ ] tx pump
-  - [ ] mock shard & db
-  - [ ] mock exec
+  - [x] tx pump
+  - [x] mock shard & db
+  - [x] mock exec
 
 
 ROADMAP
