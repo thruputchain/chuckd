@@ -18,13 +18,8 @@ func NewServer(ctx context.Context, srv ...xdr.XdrSrv) *Server {
 	return &Server{srv: srv}
 }
 
-func (s *Server) Start(ctx context.Context, address string) {
-	s.l = rpcutil.Start(
-		ctx,
-		libnet.TCPNet{},
-		address,
-		s.srv...,
-	)
+func (s *Server) Start(ctx context.Context, net libnet.Network, address string) {
+	s.l = rpcutil.Start(ctx, net, address, s.srv...)
 }
 
 func (s *Server) Close() {

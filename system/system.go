@@ -164,8 +164,8 @@ func NewSystem(
 }
 
 func (s *System) Start(ctx context.Context, inAddr string, outAddr string, walletAddr string) {
-	s.insideSrv.Start(ctx, inAddr)
-	s.outsideSrv.Start(ctx, outAddr)
+	s.insideSrv.Start(ctx, s.inside, inAddr)
+	s.outsideSrv.Start(ctx, s.outside, outAddr)
 	s.Wallet.StartHTTP(ctx, walletAddr)
 	s.Baton.Start(ctx, time.Duration(s.cfg.Baton_config.Heartbeat_msec)*time.Millisecond)
 }
