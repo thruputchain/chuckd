@@ -5,6 +5,7 @@ import "net"
 type Network interface {
 	AddressListener
 	AddressDialer
+	String() string
 }
 
 type AddressListener interface {
@@ -16,6 +17,10 @@ type AddressDialer interface {
 }
 
 type TCPNet struct{}
+
+func (TCPNet) String() string {
+	return "tcp"
+}
 
 func (TCPNet) ListenAddress(address string) (net.Listener, error) {
 	return net.Listen("tcp", address)

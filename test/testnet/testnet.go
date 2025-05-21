@@ -19,6 +19,10 @@ func NewTestNetwork() *TestNetwork {
 	}
 }
 
+func (x *TestNetwork) String() string {
+	return "testnet"
+}
+
 func (x *TestNetwork) DialAddress(address string) (net.Conn, error) {
 	return x.Dial("", address)
 }
