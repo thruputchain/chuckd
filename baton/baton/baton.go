@@ -75,6 +75,9 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 }
 
 func (b *Baton) drive(ctx context.Context) {
+	log.Infof("baton driving: num_txs=%d num_batches=%d num_cmmitted_tx=%d",
+		b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
+
 	// build view
 	v := b.buildCleanView(ctx)
 	// log.Debugf("view %v", form.SprintJSON(v))
@@ -114,6 +117,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// start nomination, if the db there are no externalizations above the db tip
 	if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
+		log.Debugf("nominating onto %v", nominate)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.CancelFunc()

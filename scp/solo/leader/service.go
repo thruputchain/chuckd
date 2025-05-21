@@ -2,6 +2,7 @@ package leader
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -56,9 +57,12 @@ func (svc *SoloLeaderService) Sololeader_null(context.Context) error {
 
 func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nomination proto.SoloSignedNomination) error {
 
+	log.Infof("solo leader received nomination for slot %d from %v",
+		nomination.Nomination.Slot_index, protoutil.ValidatorIDFromPublic(nomination.Signer))
+
 	// check signatures
 	if !protoutil.VerifyXdr(nomination.Signer.Public_key, &nomination.Nomination, nomination.Signature) {
-		return nil
+		return fmt.Errorf("bad signature")
 	}
 
 	svc.lk.Lock()
@@ -74,7 +78,7 @@ func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nominatio
 }
 
 func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.SoloSlotIndex, value proto.SoloValue) {
-	log.Infof("solo externalizing slot %d", slotIndex)
+	log.Infof("solo leader externalizing slot %d", slotIndex)
 
 	var wg sync.WaitGroup
 	for _, v := range svc.quorum {
@@ -82,7 +86,6 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 		go func(v proto.ValidatorPublicInfo) {
 			defer wg.Done()
 
-			// XXX: use cached/persistent connections
 			c, err := dial.DialSoloFollowerClient(ctx, svc.net, v.Address)
 			if err != nil {
 				log.Errorf("solo follower %s not reachable for externalization: %s", protoutil.ValidatorPublicShortString(v), err)

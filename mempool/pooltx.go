@@ -43,6 +43,12 @@ func (mp *TransactionMempool) AddTxs(ctx context.Context, tx []proto.SignedTrans
 	}
 }
 
+func (mp *TransactionMempool) TxCount() int {
+	mp.lk.Lock()
+	defer mp.lk.Unlock()
+	return len(mp.tx)
+}
+
 func (mp *TransactionMempool) AddTx(ctx context.Context, tx *proto.SignedTransaction) {
 	k := sha256.Sum256(xdrutil.MarshalXdr(tx))
 	mp.lk.Lock()

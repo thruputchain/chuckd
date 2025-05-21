@@ -47,18 +47,21 @@ func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }
 
 // BatchMempool provides batches of proposed transactions by other validators.
 type BatchMempool interface {
+	BatchCount() int
 	AddBatch(context.Context, proto.BatchTransactions)
 	LookupBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
 }
 
 // TransactionMempool provides all uncommitted transactions, our own and those of other validators.
 type TransactionMempool interface {
+	TxCount() int
 	ListTxs(context.Context) []*proto.SignedTransaction
 	RemoveTx(context.Context, proto.SignedTransactionHash)
 }
 
 // CommittedTransactionMempool keeps the hashes of committed transaction for some TTL.
 type CommittedTransactionMempool interface {
+	CommittedTxCount() int
 	AddCommittedTx(context.Context, proto.SignedTransactionHash)
 	IsCommittedTx(context.Context, proto.SignedTransactionHash) bool
 }

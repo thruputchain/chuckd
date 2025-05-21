@@ -30,6 +30,12 @@ func NewCommittedMempool(ctx context.Context, time_ libtime.Time, ttl time.Durat
 	return mp
 }
 
+func (mp *CommittedMempool) CommittedTxCount() int {
+	mp.lk.Lock()
+	defer mp.lk.Unlock()
+	return len(mp.committed)
+}
+
 func (mp *CommittedMempool) AddCommittedTx(ctx context.Context, k proto.SignedTransactionHash) {
 	mp.lk.Lock()
 	defer mp.lk.Unlock()

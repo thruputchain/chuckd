@@ -33,6 +33,12 @@ func NewBatchMempool(ctx context.Context, time libtime.Time, batchTTL time.Durat
 	return mp
 }
 
+func (mp *BatchMempool) BatchCount() int {
+	mp.lk.Lock()
+	defer mp.lk.Unlock()
+	return len(mp.batch)
+}
+
 func (mp *BatchMempool) AddBatch(ctx context.Context, txs proto.BatchTransactions) {
 	hash := sha256.Sum256(xdrutil.MarshalXdr(&txs))
 	mp.lk.Lock()
