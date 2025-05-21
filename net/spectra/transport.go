@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/klauspost/reedsolomon"
@@ -71,7 +71,8 @@ func NewSpectraTransport(
 
 	// redundancy beyond 100% can cause a transmission to be received twice.
 	// this is fixable, but not necessary in practice.
-	must.Assertf(ctx, cfg.Num_parity_channels < cfg.Num_payload_channels, "spectra too much redundancy")
+	must.Assertf(ctx, cfg.Num_parity_channels < cfg.Num_payload_channels,
+		"spectra too much redundancy %d >= %d", cfg.Num_parity_channels, cfg.Num_payload_channels)
 
 	// make encoder
 	enc, err := reedsolomon.New(

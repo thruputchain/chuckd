@@ -31,7 +31,7 @@ func MakeStatefulSet(
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: serviceName,
-			Replicas:    int32Ptr(3),
+			Replicas:    int32Ptr(int32(len(services))),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": serviceName,
@@ -74,14 +74,9 @@ func MakeStatefulSet(
 								},
 							},
 							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 9111,
-									Name:          "app",
-								},
-								{
-									ContainerPort: 2222,
-									Name:          "metrics",
-								},
+								{ContainerPort: 9111, Name: "chuck"},
+								{ContainerPort: 6666, Name: "wallet"},
+								{ContainerPort: 2222, Name: "metrics"},
 							},
 						},
 					},
