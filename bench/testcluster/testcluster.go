@@ -100,7 +100,7 @@ func (x *TestCluster) Start(ctx context.Context, inAddr string) {
 		rpcutil.Start(ctx, x.net, x.ExecAddress(i), proto.ExecutorCoord1_Server{Srv: exec})
 	}
 	for i, shard := range x.shards {
-		rpcutil.Start(ctx, x.net, x.ShardAddress(i), proto.Shard1_Server{Srv: shard})
+		rpcutil.Start(ctx, x.net, x.ShardAddress(i), proto.Shard1_Server{Srv: shard}, proto.DbCoord1_Server{Srv: shard})
 	}
 	go x.register(ctx, inAddr)
 	go x.pumpTxs(ctx)
