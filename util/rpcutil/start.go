@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/xdrpp/goxdr/rpc"
 	"github.com/xdrpp/goxdr/xdr"
@@ -20,7 +21,7 @@ func Start(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv
 			must.NoError(ctx, err)
 			driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
 			driver.Lock = nil // process all calls in parallel
-			// driver.Log = log.Writer()
+			driver.Log = log.Writer()
 			driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 			for _, srv := range srv {
 				driver.Register(srv)

@@ -6,7 +6,6 @@ kubectl logs chuckd-bench-testcluster-quorum-0 | l
 kubectl logs -f chuckd-bench-testcluster-quorum-0
 
 kubectl exec -it chuckd-bench-testcluster-quorum-0 -- ps aux
-kubectl exec -it chuckd-bench-testcluster-quorum-0 -- pkill -2 chuckd
 kubectl exec -it chuckd-bench-testcluster-quorum-0 -- kill -2 1
 
 kubectl delete statefulset --all
