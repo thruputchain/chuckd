@@ -9,9 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/xdrpp/goxdr/xdr"
 )
 
 type SoloFollowerService struct {
@@ -65,7 +63,9 @@ func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, s
 	return nil
 }
 
-func (svc *SoloFollowerService) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
+// SCPController interface
+
+func (svc *SoloFollowerService) Nominate(ctx context.Context, slot api.Slot, value api.Value, prev api.Value) bool {
 
 	c, err := dial.DialSoloLeaderClient(ctx, svc.net, svc.leader.Address)
 	if err != nil {
@@ -75,7 +75,7 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot int64, value 
 
 	nomination := proto.SoloNomination{
 		Slot_index: slot,
-		Value:      xdrutil.MarshalXdr(value),
+		Value:      value,
 	}
 	signed := proto.SoloSignedNomination{
 		Signer:     svc.self.Public_info,
@@ -90,4 +90,28 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot int64, value 
 	}
 
 	return true
+}
+
+func (svc *SoloFollowerService) UpdateQuorumSet(proto.QuorumSet) {
+	panic("not used")
+}
+
+func (svc *SoloFollowerService) GetQuorumSet() proto.QuorumSet {
+	panic("not used")
+}
+
+func (svc *SoloFollowerService) NodeID() api.NodeID {
+	panic("not used")
+}
+
+func (svc *SoloFollowerService) PurgeSlots(maxSlotIndex api.Slot, slotToKeep api.Slot) {
+	panic("not used")
+}
+
+func (svc *SoloFollowerService) IsValidator() bool {
+	panic("not used")
+}
+
+func (svc *SoloFollowerService) IsSlotFullyValidated() bool {
+	panic("not used")
 }

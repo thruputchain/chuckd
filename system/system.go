@@ -120,7 +120,6 @@ func NewSystem(
 	)
 
 	sys.Baton = baton.NewBaton(ctx, sys.Live)
-
 	sys.Follower = follower.NewSoloFollowerService(
 		ctx,
 		outside,
@@ -128,6 +127,7 @@ func NewSystem(
 		cfg.Validator_config.Private_info,
 		sys.Baton.SCPHandler(),
 	)
+	sys.Live.SetSCP(sys.Follower)
 
 	sys.Catchup = catchup.NewCatchupService(
 		ctx,

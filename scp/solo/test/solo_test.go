@@ -15,6 +15,7 @@ import (
 	"github.com/groundhogchain/chuckd/scp/solo/leader"
 	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -70,7 +71,7 @@ func TestSolo(t *testing.T) {
 	x := proto.SoloStatement{Statement_type: proto.SoloStatementAlpha}
 	y := proto.SoloStatement{Statement_type: proto.SoloStatementBeta}
 
-	followerSvc[0].Nominate(ctx, slot, &x, &y)
+	followerSvc[0].Nominate(ctx, slot, xdrutil.MarshalXdr(&x), xdrutil.MarshalXdr(&y))
 
 	// validate
 	var wgValidate sync.WaitGroup
