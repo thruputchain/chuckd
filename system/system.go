@@ -98,6 +98,13 @@ func NewSystem(
 
 	sys.Multiplex = multiplex.NewMultiplex(ctx, sys.Spectra)
 
+	batchTTL := time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec) * time.Millisecond
+	txTTL := time.Duration(cfg.Mempool_config.Transaction_ttl_msec) * time.Millisecond
+
+	sys.Proposed = mempool.NewBatchMempoolReal(ctx, batchTTL)
+	sys.Transaction = mempool.NewTransactionMempoolReal(ctx, txTTL)
+	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*max(batchTTL, txTTL))
+
 	sys.Live = NewLiveHandler(
 		sys.Signer,
 		libtime.RealTime{},
@@ -131,13 +138,6 @@ func NewSystem(
 		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
 		cfg.Catchup_config.Catchup_block_age,
 	)
-
-	batchTTL := time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec) * time.Millisecond
-	txTTL := time.Duration(cfg.Mempool_config.Transaction_ttl_msec) * time.Millisecond
-
-	sys.Proposed = mempool.NewBatchMempoolReal(ctx, batchTTL)
-	sys.Transaction = mempool.NewTransactionMempoolReal(ctx, txTTL)
-	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*max(batchTTL, txTTL))
 
 	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
