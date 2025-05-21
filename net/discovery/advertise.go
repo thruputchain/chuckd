@@ -17,9 +17,9 @@ func (s *DiscoveryService) advertise(ctx context.Context) {
 	epoch := 0
 	for {
 		epoch += 1
-		log.Infof("advertising epoch %d begins", epoch)
+		// log.Infof("advertising epoch %d begins", epoch)
 		s.advertiseToAll(ctx, epoch)
-		log.Infof("advertising epoch %d ends", epoch)
+		// log.Infof("advertising epoch %d ends", epoch)
 		time.Sleep(time.Duration(s.cfg.Advertise_interval_msec) * time.Millisecond)
 	}
 }
@@ -47,7 +47,7 @@ func (s *DiscoveryService) advertiseToValidator(
 	v proto.ValidatorPublicInfo,
 	snapshot proto.KnownQuorumSets,
 ) {
-	log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
+	// log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
 	c, err := DialDiscoveryClient(ctx, s.net, v.Address)
 	if err != nil {
 		log.Errorf("discovery dialing %s: %v", protoutil.ValidatorPublicShortString(v), err)
