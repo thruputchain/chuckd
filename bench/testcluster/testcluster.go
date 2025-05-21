@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testexec"
@@ -110,10 +111,12 @@ func (x *TestCluster) register(ctx context.Context, inAddr string) {
 	must.NoError(ctx, err)
 	defer coord.Close()
 
+	log.Infof("testcluster introducing %d shards", len(x.shards))
 	for i := range x.shards {
 		_, err := coord.Coordinator_intro_shard(ctx, x.ShardCard(i))
 		must.NoError(ctx, err)
 	}
+	log.Infof("testcluster introducing %d execs", len(x.execs))
 	for i := range x.execs {
 		_, err := coord.Coordinator_intro_exec(ctx, x.ExecCard(i))
 		must.NoError(ctx, err)

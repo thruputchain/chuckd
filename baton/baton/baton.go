@@ -57,10 +57,14 @@ func (b *Baton) Start(ctx context.Context, heartbeat time.Duration) {
 
 func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 
+	log.Infof("baton starting")
+
 	// restore db
 	var err error
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
+
+	log.Infof("baton db restored")
 
 	// release lock on scp events
 	close(b.scp)
