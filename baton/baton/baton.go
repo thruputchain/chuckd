@@ -79,8 +79,8 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 }
 
 func (b *Baton) drive(ctx context.Context) {
-	log.Infof("baton driving: num_txs=%d num_batches=%d num_cmmitted_tx=%d",
-		b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
+	// log.Infof("baton driving: num_txs=%d num_batches=%d num_cmmitted_tx=%d",
+	// 	b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
 
 	// build view
 	v := b.buildCleanView(ctx)
@@ -88,7 +88,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		log.Debugf("committing [%v; %v]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
+		log.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
 		b.committing = true
 		go func() {
 			blockID, err := b.commit(ctx, vb)
@@ -121,7 +121,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// start nomination, if the db there are no externalizations above the db tip
 	if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
-		log.Debugf("nominating onto %v", nominate)
+		log.Debugf("baton nominating onto %v", nominate)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.CancelFunc()
@@ -156,6 +156,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// send catchup requests
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
+		log.Debugf("baton requesting catchup")
 		b.requestCatchup(ctx, needed)
 	}
 }
