@@ -11,11 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const (
-	BenchBroadcastSubcmd = `bench broadcast --addr 0.0.0.0:9111 --fanout 5 --iterations 3 --payperchan 10 --paysize 100`
-)
-
-func MakeNetworkStatefulSet(
+func MakeStatefulSet(
 	serviceName string,
 	containerImage string,
 	subcmd string,

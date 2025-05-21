@@ -33,14 +33,9 @@ func MakeService(serviceName string, podIndex int, dnsName string) *corev1.Servi
 				"statefulset.kubernetes.io/pod-name": fmt.Sprintf("%s-%d", serviceName, podIndex),
 			},
 			Ports: []corev1.ServicePort{
-				{
-					Port: 9111,
-					Name: "app",
-				},
-				{
-					Port: 2222,
-					Name: "metrics",
-				},
+				{Port: 9111, Name: "chuck"},
+				{Port: 6666, Name: "wallet"},
+				{Port: 2222, Name: "metrics"},
 			},
 		},
 	}

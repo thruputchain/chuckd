@@ -18,9 +18,9 @@ var (
 		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
-	soloStartCmd = &cobra.Command{
-		Use:   "start",
-		Short: "start the solo scp server",
+	soloLeaderCmd = &cobra.Command{
+		Use:   "leader",
+		Short: "start the solo scp leader server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
@@ -29,7 +29,7 @@ var (
 					ctx,
 					libnet.TCPNet{},
 					leader.NewRandomChoiceCombiner(ctx, runtime.NewRandFromRoot()),
-					time.Millisecond*time.Duration(soloSlotTimeoutMillisecond),
+					time.Millisecond*time.Duration(soloSlotDelayMillisecond),
 					cfg.Validator_config.Private_info,
 					cfg.Validator_config.Known_validators,
 				)
@@ -41,14 +41,14 @@ var (
 )
 
 var (
-	soloServerAddress          string
-	soloSlotTimeoutMillisecond int64
+	soloServerAddress        string
+	soloSlotDelayMillisecond int64
 )
 
 func init() {
 	rootCmd.AddCommand(soloCmd)
 
-	soloCmd.AddCommand(soloStartCmd)
-	soloStartCmd.Flags().StringVar(&soloServerAddress, "addr", "localhost:9111", "address for solo server api")
-	soloStartCmd.Flags().Int64Var(&soloSlotTimeoutMillisecond, "timeout", 100, "slot timeout in milliseconds")
+	soloCmd.AddCommand(soloLeaderCmd)
+	soloLeaderCmd.Flags().StringVar(&soloServerAddress, "addr", "localhost:9111", "address for solo server api")
+	soloLeaderCmd.Flags().Int64Var(&soloSlotDelayMillisecond, "delay", 100, "slot delay in milliseconds")
 }

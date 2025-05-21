@@ -24,6 +24,14 @@ func MakeBaseConfigTPS(
 	)
 }
 
+func AddSoloLeaderConfig(base proto.Config, leader proto.ValidatorPublicInfo) proto.Config {
+	if base.Solo_config == nil {
+		base.Solo_config = &proto.SoloConfig{}
+	}
+	base.Solo_config.Leader = leader
+	return base
+}
+
 func MakeBaseConfig(
 	round time.Duration, // round is the target round duration (nominate + commit).
 	numVs int64, // numVs is an idealized number of equally important validators.
@@ -35,6 +43,7 @@ func MakeBaseConfig(
 	return proto.Config{
 		Validator_config: nil,
 		Wallet_config:    nil,
+		Solo_config:      nil,
 		Discovery_config: &proto.DiscoveryConfig{
 			Advertise_interval_msec: (5 * round).Milliseconds(),
 			Advertise_par:           5,
@@ -60,19 +69,18 @@ func MakeBaseConfig(
 			Catchup_block_ttl_sec: proto.Seconds((5 * round).Seconds()),
 			Catchup_block_age:     5,
 		},
-		Solo_config: nil,
 		Baton_config: &proto.BatonConfig{
 			Heartbeat_msec: round.Milliseconds() / 10,
 		},
 	}
 }
 
-func GenNetworkConfigs(
+func GenQuorumConfigs(
 	ctx context.Context,
 	rand *rand.Rand,
 	base proto.Config,
 	addrs []string, // outside addresses of validators
-) []proto.Config {
+) ([]proto.Config, []proto.ValidatorPublicInfo) {
 
 	cfgs := make([]proto.Config, len(addrs))
 	vs := make([]proto.ValidatorPrivateInfo, len(addrs))
@@ -94,9 +102,28 @@ func GenNetworkConfigs(
 			},
 			Known_validators: ks,
 		}
-		cfgs[i].Wallet_config = &proto.WalletConfig{}
-		cfgs[i].Solo_config = &proto.SoloConfig{}
 	}
 
-	return cfgs
+	return cfgs, ks
+}
+
+func GenIdentity(ctx context.Context, rand *rand.Rand, addr string) proto.ValidatorPrivateInfo {
+	return *protoutil.MustGenerateIdentity(ctx, rand, addr)
+}
+
+func MakeSoloLeaderCfg(
+	ctx context.Context,
+	rand *rand.Rand,
+	id proto.ValidatorPrivateInfo,
+	quorum []proto.ValidatorPublicInfo,
+) proto.Config {
+	return proto.Config{
+		Validator_config: &proto.ValidatorConfig{
+			Private_info:     id,
+			Known_validators: quorum,
+		},
+		Solo_config: &proto.SoloConfig{
+			Quorum: quorum,
+		},
+	}
 }

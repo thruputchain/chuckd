@@ -89,8 +89,8 @@ func init() {
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "iterations", 1, "number of iterations")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
-	// benchTestClusterCmd.Flags().StringVar(&benchInAddress, "inaddr", "localhost:7888", "bind address for internal apis")
-	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "exaddr", "localhost:9111", "bind address for external apis")
-	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "waddr", "localhost:6666", "bind address for wallet api")
+	// benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
+	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
+	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 10000, "transactions per second")
 }
