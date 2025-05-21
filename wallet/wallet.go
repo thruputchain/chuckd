@@ -25,6 +25,10 @@ type WalletGateway struct {
 	user   map[string]proto.WalletUser
 }
 
+func init() {
+	gin.SetMode(gin.ReleaseMode)
+}
+
 func NewWalletGateway(
 	ctx context.Context,
 	mp *mempool.TransactionMempool,

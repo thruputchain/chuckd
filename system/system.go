@@ -68,7 +68,7 @@ func NewSystem(
 		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
-	sys.Coord = coord.NewCoordinatorService(ctx, outside, runtime.NewRandFromRand(rr))
+	sys.Coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rr))
 
 	sys.Discovery = discovery.NewDiscoveryService(
 		ctx,

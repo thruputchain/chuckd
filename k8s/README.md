@@ -2,7 +2,8 @@
 kubectl apply -f bench-testcluster.yaml
 kubectl get pods
 
-kubectl logs chuckd-bench-testcluster-quorum-0
+kubectl logs chuckd-bench-testcluster-quorum-0 | l
+kubectl logs -f chuckd-bench-testcluster-quorum-0
 
 kubectl exec -it chuckd-bench-testcluster-quorum-0 -- ps aux
 kubectl exec -it chuckd-bench-testcluster-quorum-0 -- pkill -2 chuckd
