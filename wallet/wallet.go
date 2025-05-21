@@ -59,9 +59,11 @@ func (g *WalletGateway) Service() proto.Wallet1 {
 }
 
 func (g *WalletGateway) StartHTTP(_ context.Context, address string) {
-	if err := g.r.Run(address); err != nil {
-		log.Fatalf("start wallet gateway http server: %v", err)
-	}
+	go func() {
+		if err := g.r.Run(address); err != nil {
+			log.Fatalf("start wallet gateway http server: %v", err)
+		}
+	}()
 }
 
 // User structure passed over HTTP on login

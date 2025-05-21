@@ -95,6 +95,7 @@ func (x *TestCluster) ExecCard(shard int) proto.ExecCard {
 }
 
 func (x *TestCluster) Start(ctx context.Context, inAddr string) {
+	log.Infof("testcluster starting")
 	for i, exec := range x.execs {
 		rpcutil.Start(ctx, x.net, x.ExecAddress(i), proto.ExecutorCoord1_Server{Srv: exec})
 	}
@@ -106,6 +107,7 @@ func (x *TestCluster) Start(ctx context.Context, inAddr string) {
 }
 
 func (x *TestCluster) register(ctx context.Context, inAddr string) {
+	log.Infof("testcluster registering")
 
 	coord, err := coord.DialCoordinatorClient(ctx, x.net, inAddr)
 	must.NoError(ctx, err)
@@ -124,6 +126,7 @@ func (x *TestCluster) register(ctx context.Context, inAddr string) {
 }
 
 func (x *TestCluster) pumpTxs(ctx context.Context) {
+	log.Infof("testcluster pumping txs")
 	for {
 		time.Sleep(time.Millisecond * 100) // 1/10 of second resolution
 		for i := 0; i < int(x.tps)/10; i++ {
