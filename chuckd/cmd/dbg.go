@@ -13,6 +13,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
+	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(func() {
-				err := PingService(ctx, dbgService, dbgAddress)
+				err := PingService(ctx, dbgService, dbgFn, dbgAddress)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%v\n", err)
 				} else {
@@ -44,6 +45,7 @@ var (
 var (
 	dbgAddress string
 	dbgService string
+	dbgFn      string
 )
 
 func init() {
@@ -52,9 +54,10 @@ func init() {
 	dbgCmd.AddCommand(dbgPingCmd)
 	dbgPingCmd.Flags().StringVar(&dbgAddress, "addr", "localhost:9111", "address")
 	dbgPingCmd.Flags().StringVar(&dbgService, "svc", "", "service name")
+	dbgPingCmd.Flags().StringVar(&dbgFn, "fn", "", "fn name")
 }
 
-func PingService(ctx context.Context, svc string, address string) error {
+func PingService(ctx context.Context, svc string, fn string, address string) error {
 	switch svc {
 	case "broadcast":
 		return PingBroadcast(ctx, address)
@@ -65,7 +68,12 @@ func PingService(ctx context.Context, svc string, address string) error {
 	case "discovery":
 		return PingDiscovery(ctx, address)
 	case "solofollower":
-		return PingSoloFollower(ctx, address)
+		switch fn {
+		case "validate":
+			return PingSoloFollowerValidate(ctx, address)
+		default:
+			return PingSoloFollower(ctx, address)
+		}
 	case "sololeader":
 		return PingSoloLeader(ctx, address)
 	default:
@@ -106,6 +114,14 @@ func PingSoloFollower(ctx context.Context, address string) error {
 	must.NoError(ctx, err)
 	defer c.Close()
 	return c.Solofollower_null(ctx)
+}
+
+func PingSoloFollowerValidate(ctx context.Context, address string) error {
+	c, err := dial.DialSoloFollowerClient(ctx, libnet.TCPNet{}, address)
+	must.NoError(ctx, err)
+	defer c.Close()
+	_, err = c.Solofollower_validate(ctx, proto.SoloSignedValidate{})
+	return err
 }
 
 func PingSoloLeader(ctx context.Context, address string) error {

@@ -70,7 +70,7 @@ func BenchTestClusterShell(
 		"leader", rand.Int63(), leaderBind, leaderDelayMsec,
 	)
 	fmt.Fprintf(&sh, "nohup %s > leader.log 2>&1 &\n", leaderCmd)
-	fmt.Fprintf(&sh, "L_PID=$! echo $L_PID > leader.pid\n")
+	// fmt.Fprintf(&sh, "L_PID=$! echo $L_PID > leader.pid\n")
 
 	// start quorum
 	metricsBasePort := 2223
@@ -81,7 +81,7 @@ func BenchTestClusterShell(
 			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 		)
 		fmt.Fprintf(&sh, "nohup %s > quorum-%d.log 2>&1 &\n", quorumCmd, i)
-		fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > quorum-%d.pid\n", i)
+		// fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > quorum-%d.pid\n", i)
 	}
 
 	return sh.String()

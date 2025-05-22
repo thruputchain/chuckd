@@ -42,6 +42,9 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values
 func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.Value, nomination bool) api.ValidationLevel {
 	<-x.baton.scp
 
+	log.Infof("baton validate value for slot %d received", slot)
+	defer log.Infof("baton validate value completed")
+
 	var prop proto.Proposal
 	err := xdrutil.UnmarshalXdr(&prop, value)
 	if err != nil {

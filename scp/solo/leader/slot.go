@@ -50,6 +50,7 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 					log.Errorf("solo node %s not reachable for validation: %s", protoutil.ValidatorPublicShortString(v), err)
 					return
 				}
+				defer c.Close()
 
 				validate := proto.SoloValidate{
 					Slot_index: nomination.Slot_index,

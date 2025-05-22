@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -23,7 +24,7 @@ func DialShardClient(ctx context.Context, dialer libnet.AddressDialer, address s
 }
 
 func NewShardClient(ctx context.Context, sock net.Conn) *ShardClient {
-	driver := rpc.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
 	go driver.Go()
 
 	return &ShardClient{
