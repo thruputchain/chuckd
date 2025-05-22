@@ -106,7 +106,10 @@ func (svc *SoloLeaderService) flush(ctx context.Context) {
 		svc.lk.Lock()
 		var readySlots []*slot
 		for _, slot := range svc.slot {
-			if len(slot.candidates) > 0 && now.Sub(slot.started) > slot.delay {
+			slot.lk.Lock()
+			slotIsReady := len(slot.candidates) > 0 && now.Sub(slot.started) > slot.delay
+			slot.lk.Unlock()
+			if slotIsReady {
 				readySlots = append(readySlots, slot)
 				delete(svc.slot, slot.index)
 			}
