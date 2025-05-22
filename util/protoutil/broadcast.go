@@ -23,7 +23,7 @@ func VerifyDelivery(delivery proto.Delivery) bool {
 	}
 
 	if !ValidatorIDEqual(
-		ValidatorIDFromPublic(delivery.Msg.Header.Source),
+		VIDOfPublic(delivery.Msg.Header.Source),
 		delivery.Msg.Header.Channel.Source_id,
 	) {
 		return false

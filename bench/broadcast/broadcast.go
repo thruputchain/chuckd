@@ -71,7 +71,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 				default:
 				}
 				sctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
-				log.Infof("bench server %s sending message %d on channel %d", protoutil.ValidatorIDString(bench.broadcast.ValidatorID()), i, j)
+				log.Infof("bench server %s sending message %d on channel %d", protoutil.VIDString(bench.broadcast.ValidatorID()), i, j)
 				if err := s.Send(sctx, make([]byte, bench.paySize)); err != nil {
 					log.Errorf("bench send: %v", err)
 				}

@@ -139,10 +139,10 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 	// validators
 	vv := map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{}
 	for _, v := range s.knownVs {
-		vv[protoutil.ValidatorIDFromPublic(v.Signer)] = v
+		vv[protoutil.VIDOfPublic(v.Signer)] = v
 	}
 	for _, v := range s.ourValidators {
-		vv[protoutil.ValidatorIDFromPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.privInfo, v)
+		vv[protoutil.VIDOfPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.privInfo, v)
 	}
 	allVs := []proto.SignedValidatorInfoSnapshot{}
 	for _, v := range vv {

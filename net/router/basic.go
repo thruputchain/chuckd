@@ -34,7 +34,7 @@ func (x *basicRouter) Self() proto.ValidatorPublicInfo {
 
 func (x *basicRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
-	_, vs = dedupFilterOutValidators(vs, protoutil.ValidatorIDFromPublic(x.Self())) // filter out self
+	_, vs = dedupFilterOutValidators(vs, protoutil.VIDOfPublic(x.Self())) // filter out self
 	must.Assertf(ctx, len(vs) > 0, "empty quorum")
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
@@ -113,7 +113,7 @@ func divideRoundUp(x, y int) int {
 func dedupFilterOutValidators(vs []ValidatorPublicInfo, vid ValidatorID) (ValidatorPublicInfo, []ValidatorPublicInfo) {
 	m := map[ValidatorID]ValidatorPublicInfo{}
 	for _, v := range vs {
-		m[protoutil.ValidatorIDFromPublic(v)] = v
+		m[protoutil.VIDOfPublic(v)] = v
 	}
 	found, ok := m[vid]
 	if !ok {

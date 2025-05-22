@@ -20,8 +20,8 @@ type LinkedTreeNode struct {
 func (l *LinkedTreeNode) FindChildren(v proto.ValidatorPublicInfo) ([]proto.ValidatorPublicInfo, bool) {
 
 	if ValidatorIDEqual(
-		ValidatorIDFromPublic(v),
-		ValidatorIDFromPublic(l.Node),
+		VIDOfPublic(v),
+		VIDOfPublic(l.Node),
 	) {
 		children := make([]proto.ValidatorPublicInfo, len(l.Children))
 		for i := range l.Children {

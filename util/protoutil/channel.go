@@ -11,7 +11,7 @@ func ChannelIDString(id proto.BroadcastChannelID) string {
 }
 
 func ChannelString(c proto.BroadcastChannel) string {
-	return "(" + ValidatorIDString(c.Source_id) + " " + ChannelIDString(c.Channel_id) + ")"
+	return "(" + VIDString(c.Source_id) + " " + ChannelIDString(c.Channel_id) + ")"
 }
 
 func ChannelIsStreaming(c proto.BroadcastChannel) bool {

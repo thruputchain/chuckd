@@ -34,7 +34,7 @@ func (x *FixedRouter) Self() proto.ValidatorPublicInfo {
 
 func (x *FixedRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
-	_, vs = dedupFilterOutValidators(vs, protoutil.ValidatorIDFromPublic(x.Self())) // filter out self
+	_, vs = dedupFilterOutValidators(vs, protoutil.VIDOfPublic(x.Self())) // filter out self
 	must.Assertf(ctx, len(vs) > 0, "empty quorum")
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })

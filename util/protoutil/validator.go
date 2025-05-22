@@ -11,7 +11,7 @@ import (
 
 const ShortHashLen = 5
 
-func ValidatorIDFromPublic(v proto.ValidatorPublicInfo) proto.ValidatorID {
+func VIDOfPublic(v proto.ValidatorPublicInfo) proto.ValidatorID {
 	return ValidatorPublicKeyToID(v.Public_key)
 }
 
@@ -19,13 +19,13 @@ func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 	return sha256.Sum256(pubKey[:])
 }
 
-func ValidatorIDString(vid proto.ValidatorID) string {
+func VIDString(vid proto.ValidatorID) string {
 	return "vid:" + hex.EncodeToString(vid[:ShortHashLen])
 }
 
 func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
 	id := ValidatorPublicKeyToID(pubInfo.Public_key)
-	return fmt.Sprintf("(%s address:%s)", ValidatorIDString(id), pubInfo.Address)
+	return fmt.Sprintf("(%s address:%s)", VIDString(id), pubInfo.Address)
 }
 
 func ValidatorIDEqual(vid1 proto.ValidatorID, vid2 proto.ValidatorID) bool {
@@ -41,7 +41,7 @@ func (vs ValidatorPublicInfos) Len() int {
 }
 
 func (vs ValidatorPublicInfos) Less(i, j int) bool {
-	return ValidatorIDString(ValidatorIDFromPublic(vs[i])) < ValidatorIDString(ValidatorIDFromPublic(vs[j]))
+	return VIDString(VIDOfPublic(vs[i])) < VIDString(VIDOfPublic(vs[j]))
 }
 
 func (vs ValidatorPublicInfos) Swap(i, j int) {

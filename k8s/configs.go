@@ -89,7 +89,7 @@ func GenQuorumConfigs(
 	for i := range cfgs {
 		vs[i] = *protoutil.MustGenerateIdentity(ctx, rand, addrs[i])
 		ks[i] = vs[i].Public_info
-		ids[i] = protoutil.ValidatorIDFromPublic(ks[i])
+		ids[i] = protoutil.VIDOfPublic(ks[i])
 	}
 	for i := range cfgs {
 		cfgs[i] = base
