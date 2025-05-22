@@ -12,6 +12,7 @@ ROADMAP
 - [ ] tier-1 router with weighted sampling
 - [ ] scp implementation
   - [ ] reuse multicast trees for efficient broadcast of small (scp) messages
+- [ ] consider using unreliable broadcast (quic datagram) and still error correct across trees/shreds
 
 
 XDR

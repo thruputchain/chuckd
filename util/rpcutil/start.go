@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	// "github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/xdrpp/goxdr/rpc"
 	"github.com/xdrpp/goxdr/xdr"

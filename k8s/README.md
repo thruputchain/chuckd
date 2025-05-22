@@ -8,6 +8,11 @@ kubectl logs -f chuckd-bench-testcluster-quorum-0
 kubectl exec -it chuckd-bench-testcluster-quorum-0 -- ps aux
 kubectl exec -it chuckd-bench-testcluster-quorum-0 -- kill -2 1
 
+kubectl get services
+kubectl port-forward service/chuckd-bench-testcluster-quorum-0 9000:9111
+kubectl port-forward service/chuckd-bench-testcluster-quorum-1 9001:9111
+kubectl port-forward service/chuckd-bench-testcluster-quorum-2 9002:9111
+
 kubectl delete statefulset --all
 
 kubectl get statefulsets

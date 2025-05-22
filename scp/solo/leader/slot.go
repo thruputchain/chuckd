@@ -40,13 +40,14 @@ func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
 	go func() {
 		var wg sync.WaitGroup
 		for _, v := range s.svc.quorum {
+			//XXX: the nominator is asked to validate as well :)
 			wg.Add(1)
 			go func(v proto.ValidatorPublicInfo) {
 				defer wg.Done()
 
 				c, err := dial.DialSoloFollowerClient(ctx, s.svc.net, v.Address)
 				if err != nil {
-					log.Errorf("solo node %s not reachable for validation at %s: %s", protoutil.ValidatorPublicShortString(v), v.Address, err)
+					log.Errorf("solo node %s not reachable for validation: %s", protoutil.ValidatorPublicShortString(v), err)
 					return
 				}
 
