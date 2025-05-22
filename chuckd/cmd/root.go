@@ -36,6 +36,7 @@ var (
 	rootMemProfilePath string
 	rootSeed           int64
 	rootInstanceID     string
+	rootMetricsAddr    string
 )
 
 func init() {
@@ -51,6 +52,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootMemProfilePath, "mem", "m", "", "memory profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
+	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
 }
 
 func initAfterFlags() {
@@ -63,6 +65,7 @@ func initAfterFlags() {
 	api.SetCPUProfilePath(rootCPUProfilePath)
 	api.SetMemProfilePath(rootMemProfilePath)
 	api.SetInstanceID(rootInstanceID)
+	api.SetMetricsAddr(rootMetricsAddr)
 	chuckdruntime.SetRootSeed(rootSeed)
 }
 

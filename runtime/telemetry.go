@@ -15,7 +15,7 @@ import (
 )
 
 // SetupTelemetry initializes OpenTelemetry with Prometheus and returns a function to shut it down
-func SetupTelemetry(ctx context.Context, instanceID string) (shutdown func(context.Context) error, err error) {
+func SetupTelemetry(ctx context.Context, instanceID string, addr string) (shutdown func(context.Context) error, err error) {
 
 	rsc, err := createResource(instanceID)
 	if err != nil {
@@ -40,8 +40,8 @@ func SetupTelemetry(ctx context.Context, instanceID string) (shutdown func(conte
 	// Set up HTTP server to expose Prometheus metrics endpoint
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		log.Infof("prometheus metrics endpoint started at :2222/metrics")
-		if err := http.ListenAndServe(":2222", nil); err != nil {
+		log.Infof("prometheus metrics endpoint started at %s/metrics", addr)
+		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatalf("starting metrics server: %v", err)
 		}
 	}()

@@ -47,7 +47,7 @@ func Invoke(f func()) error {
 	}
 
 	// start telemetry
-	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID)
+	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
 	if err != nil {
 		log.Fatalf("starting telemetry: %v", err)
 		return err
@@ -87,4 +87,10 @@ var instanceID string
 
 func SetInstanceID(id string) {
 	instanceID = id
+}
+
+var metricsAddr string
+
+func SetMetricsAddr(addr string) {
+	metricsAddr = addr
 }

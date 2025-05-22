@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/groundhogchain/chuckd/deploy/common"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -15,8 +16,8 @@ func BenchBroadcastBlueprint(ctx context.Context, rand *rand.Rand, numVs int) st
 	services, addrs := MakeServices(serviceName, numVs)
 
 	// gen quorum configs
-	base := MakeBaseConfigTPS(1e5, 250, int64(numVs))
-	cfgs, _ := GenQuorumConfigs(ctx, rand, base, addrs)
+	base := common.MakeBaseConfigTPS(1e5, 250, int64(numVs))
+	cfgs, _ := common.GenQuorumConfigs(ctx, rand, base, addrs)
 
 	// make quorum statefulset
 	rs := MakeStatefulSet(
@@ -41,16 +42,16 @@ func BenchTestClusterBlueprint(ctx context.Context, rand *rand.Rand, numVs int, 
 	leaderServices, leaderAddrs := MakeServices(serviceNameLeader, 1)
 
 	// gen leader identity
-	leaderPriv := GenIdentity(ctx, rand, leaderAddrs[0])
+	leaderPriv := common.GenIdentity(ctx, rand, leaderAddrs[0])
 
 	// gen quorum configs
-	baseCfg := MakeBaseConfigTPS(tps, 250, int64(numVs))
-	baseCfg = AddSoloLeaderConfig(baseCfg, leaderPriv.Public_info)
+	baseCfg := common.MakeBaseConfigTPS(tps, 250, int64(numVs))
+	baseCfg = common.AddSoloLeaderConfig(baseCfg, leaderPriv.Public_info)
 	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
-	quorumCfgs, qs := GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)
+	quorumCfgs, qs := common.GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)
 
 	// make leader config
-	leaderCfg := MakeSoloLeaderCfg(ctx, rand, leaderPriv, qs)
+	leaderCfg := common.MakeSoloLeaderCfg(ctx, rand, leaderPriv, qs)
 
 	// make quorum statefulset
 	quorumResources := MakeStatefulSet(
