@@ -158,6 +158,7 @@ func NewSystem(
 		proto.Discovery1_Server{Srv: sys.Discovery},
 		proto.Broadcast1_Server{Srv: sys.Broadcast},
 		proto.Catchup1_Server{Srv: sys.Catchup},
+		proto.SoloFollower1_Server{Srv: sys.Follower},
 	)
 
 	return sys
