@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
@@ -148,5 +149,5 @@ func (x *LiveHandler) Committed(context.Context, *proto.CatchupBlock) {
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
-	// ignore
+	log.Debugf("%s", event)
 }
