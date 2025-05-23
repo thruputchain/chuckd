@@ -112,7 +112,7 @@ func (h *TestGen) GenProposalOnto(ctx context.Context, ntxs int, onto *BlockHand
 }
 
 func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
-	return xorBlockHash(base, sha256.Sum256(xdrutil.MarshalXdr(ptx)))
+	return xorBlockHash(base, sha256.Sum256(xdrutil.MarshalXdr(&ptx.Signed_tx)))
 }
 
 func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
