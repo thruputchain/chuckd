@@ -133,17 +133,24 @@ func (b *Baton) drive(ctx context.Context) {
 		uncommittedTxs := b.gatherUncommittedTxs(ctx)
 		if len(uncommittedTxs) > 0 {
 			nomCtx, nomCancel := context.WithCancel(ctx)
-			b.nominating = &nominating{Tip: *nominate, CancelFunc: nomCancel}
+			busy := &nominating{Tip: *nominate, CancelFunc: nomCancel}
+			b.nominating = busy
 			go func() {
 				proposal, blockID, err := b.nominate(nomCtx, *nominate, uncommittedTxs)
-				if err != nil {
-					log.Errorf("nominate: %v", err)
-				}
 
 				b.lock(ctx)
 				defer b.unlock(ctx)
 
-				must.Assertf(ctx, b.nominating != nil, "race nominating")
+				// if nomination was cancelled, b.nominating will point at a different nomination
+				if err != nil {
+					log.Errorf("nominate: %v", err)
+					if b.nominating == busy {
+						b.nominating = nil
+					}
+					return
+				}
+
+				must.Assertf(ctx, b.nominating == busy, "race nominating")
 				b.nominating.CancelFunc()
 				b.nominating = nil
 
