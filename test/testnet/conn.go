@@ -1,6 +1,7 @@
 package testnet
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -24,6 +25,7 @@ type testHalfConn struct {
 	localAddr  string
 	remoteAddr string
 	read       <-chan []byte
+	wlk        sync.Mutex
 	write      chan<- []byte
 	rlk        sync.Mutex
 	unread     []byte
@@ -71,12 +73,20 @@ func (x *testHalfConn) readUnread(b []byte) (n int, err error) {
 }
 
 func (x *testHalfConn) Write(b []byte) (n int, err error) {
+	x.wlk.Lock()
+	defer x.wlk.Unlock()
+	if x.write == nil {
+		return 0, fmt.Errorf("test connection is closed")
+	}
 	x.write <- b
 	return len(b), nil
 }
 
 func (x *testHalfConn) Close() error {
+	x.wlk.Lock()
+	defer x.wlk.Unlock()
 	close(x.write)
+	x.write = nil
 	return nil
 }
 
