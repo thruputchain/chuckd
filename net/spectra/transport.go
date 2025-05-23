@@ -240,13 +240,13 @@ func (x *SpectraTransport) process(_ context.Context, ch broadcast.Channel, h pr
 	if p == nil {
 		// verify header sanity
 		if h.Shard_index >= h.Num_payload_channels+h.Num_parity_channels {
-			log.Errorf("spectra invalid header %s", form.SprintJSON(h))
+			log.Errorf("spectra invalid header %s", form.Display(h))
 			return
 		}
 		// verify shard size is correct for number of payload and parity channels
 		if h.Shard_size == 0 ||
 			h.Shard_size*uint64(h.Num_payload_channels) < h.Payload_size {
-			log.Errorf("spectra invalid shard size in header %s", form.SprintJSON(h))
+			log.Errorf("spectra invalid shard size in header %s", form.Display(h))
 			return
 		}
 		p = &partialTransmission{

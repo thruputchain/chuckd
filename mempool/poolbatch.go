@@ -15,8 +15,21 @@ import (
 type BatchMempool struct {
 	time     libtime.Time
 	batchTTL time.Duration
+	arriving chan arriving
+	waiting  chan *waiting
 	lk       sync.Mutex
 	batch    map[proto.BatchHash]*batch
+}
+
+type arriving struct {
+	hash proto.BatchHash
+	ptxs []*proto.ProposedTransaction
+}
+
+type waiting struct {
+	ctx   context.Context
+	hash  proto.BatchHash
+	reply chan<- []*proto.ProposedTransaction
 }
 
 func NewBatchMempoolReal(ctx context.Context, batchTTL time.Duration) *BatchMempool {
@@ -27,9 +40,12 @@ func NewBatchMempool(ctx context.Context, time libtime.Time, batchTTL time.Durat
 	mp := &BatchMempool{
 		time:     time,
 		batchTTL: batchTTL,
+		arriving: make(chan arriving),
+		waiting:  make(chan *waiting),
 		batch:    map[proto.BatchHash]*batch{},
 	}
 	go mp.supervise(ctx)
+	go mp.wait(ctx)
 	return mp
 }
 
@@ -42,8 +58,10 @@ func (mp *BatchMempool) BatchCount() int {
 func (mp *BatchMempool) AddBatch(ctx context.Context, txs proto.BatchTransactions) {
 	hash := sha256.Sum256(xdrutil.MarshalXdr(&txs))
 	mp.lk.Lock()
-	defer mp.lk.Unlock()
-	mp.batch[hash] = newBatch(mp.time.Now(), txs.Transactions)
+	b := newBatch(mp.time.Now(), txs.Transactions)
+	mp.batch[hash] = b
+	mp.lk.Unlock()
+	mp.arriving <- arriving{hash: hash, ptxs: b.txs}
 }
 
 func (mp *BatchMempool) LookupBatch(ctx context.Context, batchHash proto.BatchHash) ([]*proto.ProposedTransaction, bool) {
@@ -55,6 +73,78 @@ func (mp *BatchMempool) LookupBatch(ctx context.Context, batchHash proto.BatchHa
 	} else {
 		return nil, false
 	}
+}
+
+func (mp *BatchMempool) wait(ctx context.Context) {
+
+	hashWaiters := map[proto.BlockHash]map[*waiting]bool{}
+	defer func() {
+		for _, waiters := range hashWaiters {
+			for waiter := range waiters {
+				close(waiter.reply)
+			}
+		}
+	}()
+
+	for {
+		// cleanup cancelled waiters
+		for h, waiters := range hashWaiters {
+			for waiter := range waiters {
+				select {
+				case <-waiter.ctx.Done():
+					delete(waiters, waiter)
+				default:
+				}
+			}
+			if len(waiters) == 0 {
+				delete(hashWaiters, h)
+			}
+		}
+
+		// wait for arrival or a new waiter
+		select {
+		case <-ctx.Done():
+			return
+		case w := <-mp.waiting:
+			txs, ok := mp.LookupBatch(ctx, w.hash)
+			if ok {
+				w.reply <- txs
+			} else {
+				waiters, ok := hashWaiters[w.hash]
+				if !ok {
+					waiters = map[*waiting]bool{}
+					hashWaiters[w.hash] = waiters
+				}
+				waiters[w] = true
+			}
+		case arr := <-mp.arriving:
+			for waiter := range hashWaiters[arr.hash] {
+				waiter.reply <- arr.ptxs
+			}
+			delete(hashWaiters, arr.hash)
+		}
+	}
+}
+
+func (mp *BatchMempool) WaitBatch(ctx context.Context, hash proto.BatchHash) ([]*proto.ProposedTransaction, bool) {
+	reply := make(chan []*proto.ProposedTransaction, 1)
+	mp.waiting <- &waiting{ctx: ctx, hash: hash, reply: reply}
+	select {
+	case <-ctx.Done():
+		return nil, false
+	case txs, ok := <-reply:
+		return txs, ok
+	}
+}
+
+func orderBatches(
+	hashes []proto.BatchHash,
+	present map[proto.BatchHash][]*proto.ProposedTransaction) [][]*proto.ProposedTransaction {
+	r := make([][]*proto.ProposedTransaction, len(hashes))
+	for i := range hashes {
+		r[i] = present[hashes[i]]
+	}
+	return r
 }
 
 func (mp *BatchMempool) supervise(_ context.Context) {

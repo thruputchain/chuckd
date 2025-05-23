@@ -3,7 +3,6 @@ package follower
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/api"
@@ -45,7 +44,7 @@ func (svc *SoloFollowerService) Solofollower_null(context.Context) error {
 
 func (svc *SoloFollowerService) Solofollower_validate(ctx context.Context, signed proto.SoloSignedValidate) (proto.SoloValidationLevel, error) {
 
-	log.Infof("solo follower received validation request %v", form.SprintJSON(signed.Validate))
+	// log.Infof("solo follower received validation request %v", form.SprintJSON(signed.Validate))
 
 	// check signatures
 	if !protoutil.VerifyXdr(signed.Signer.Public_key, &signed.Validate, signed.Signature) {

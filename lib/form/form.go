@@ -26,7 +26,7 @@ type Map = map[string]Form
 
 type None struct{}
 
-func SprintJSON(form Form) string {
+func Display(form Form) string {
 	b, err := xdrutil.AnyToJson(form)
 	if err != nil {
 		panic(err)
@@ -35,7 +35,7 @@ func SprintJSON(form Form) string {
 }
 
 func SprintJSONBytes(form Form) []byte {
-	return []byte(SprintJSON(form))
+	return []byte(Display(form))
 }
 
 func Encode[F Form](ctx context.Context, w io.Writer, f F) error {

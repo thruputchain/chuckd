@@ -14,5 +14,5 @@ type Tip struct {
 }
 
 func (x Tip) String() string {
-	return fmt.Sprintf("[%d; %s]", x.Height, form.SprintJSON(x.Hash))
+	return fmt.Sprintf("[%d; %s]", x.Height, form.Display(x.Hash))
 }

@@ -50,6 +50,7 @@ type BatchMempool interface {
 	BatchCount() int
 	AddBatch(context.Context, proto.BatchTransactions)
 	LookupBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
+	WaitBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
 }
 
 // TransactionMempool provides all uncommitted transactions, our own and those of other validators.

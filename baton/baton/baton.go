@@ -13,17 +13,20 @@ import (
 )
 
 func NewBaton(ctx context.Context, h sdk.Handler) *Baton {
-	return &Baton{
+	b := &Baton{
 		handler:         h,
 		scp:             make(chan struct{}),
 		catchupRequests: map[sdk.ID64]catchupRequest{},
 		validated:       map[proto.BlockHash]validated{},
 	}
+	b.cond = sync.NewCond(&b.lk)
+	return b
 }
 
 type Baton struct {
 	handler sdk.Handler
 	scp     chan struct{}
+	cond    *sync.Cond
 	lk      sync.Mutex
 	// state
 	committing      bool
@@ -79,16 +82,16 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 }
 
 func (b *Baton) drive(ctx context.Context) {
+	defer b.cond.Broadcast()
+
 	// log.Infof("baton driving: num_txs=%d num_batches=%d num_cmmitted_tx=%d",
 	// 	b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
 
-	// build view
 	v := b.buildCleanView(ctx)
-	// log.Debugf("view %v", form.SprintJSON(v))
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		log.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.SprintJSON(vb.BlockHash))
+		log.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.Display(vb.BlockHash))
 		b.committing = true
 		go func() {
 			blockID, err := b.commit(ctx, vb)
@@ -158,5 +161,23 @@ func (b *Baton) drive(ctx context.Context) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
 		log.Debugf("baton requesting catchup")
 		b.requestCatchup(ctx, needed)
+	}
+}
+
+func (b *Baton) WaitTipOrConsensusGrow(ctx context.Context, height proto.BlockHeight) {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		if b.tip.Height > height {
+			return
+		}
+
+		b.cond.Wait()
 	}
 }

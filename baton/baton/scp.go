@@ -60,9 +60,9 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, reply chan<- api.ValidationLevel) {
 
 	b.lock(ctx)
-	defer b.unlock(ctx)
-
 	dbTip := b.tip
+	numExt := len(b.externalized)
+	b.unlock(ctx)
 
 	if proposal.Block_height <= dbTip.Height {
 		log.Infof("cannot validate, proposal below tip")
@@ -76,19 +76,26 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	}
 	if proposal.Prev_block_hash != dbTip.Hash {
 		log.Infof("cannot validate, previous block %v != db tip %v",
-			form.SprintJSON(proposal.Prev_block_hash), form.SprintJSON(dbTip.Hash))
+			form.Display(proposal.Prev_block_hash), form.Display(dbTip.Hash))
 		reply <- api.InvalidValue
 		return
 	}
-	if len(b.externalized) > 0 {
+	if numExt > 0 {
 		log.Infof("cannot validate, newer externalizations not processed")
 		reply <- api.InvalidValue // there are newer externalizations
 		return
 	}
 
+	vCtx, vCtxCancel := context.WithCancel(ctx) //XXX: add deadline
+	defer vCtxCancel()
+	go func() {
+		b.WaitTipOrConsensusGrow(vCtx, proposal.Block_height) // cancel ctx if tip or ext moves
+		vCtxCancel()
+	}()
+
 	ptxs := []*proto.ProposedTransaction{}
 	for _, batch := range proposal.Proposed_transaction_batches {
-		btxs, ok := b.handler.LookupBatch(ctx, batch)
+		btxs, ok := b.handler.WaitBatch(vCtx, batch)
 		if !ok {
 			log.Infof("cannot validate, missing batches")
 			reply <- api.MaybeValidValue

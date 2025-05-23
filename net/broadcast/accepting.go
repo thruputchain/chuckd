@@ -69,7 +69,7 @@ func (a *accepting) accept(ctx context.Context) {
 
 	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
 	if linked == nil {
-		log.Errorf("invalid multicast tree: %s", form.SprintJSON(treeNodes))
+		log.Errorf("invalid multicast tree: %s", form.Display(treeNodes))
 		a.abort()
 		return
 	}

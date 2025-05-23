@@ -33,7 +33,7 @@ var (
 					Validator_config: vcfg,
 				}
 				if configToStdout {
-					fmt.Println(form.SprintJSON(cfg))
+					fmt.Println(form.Display(cfg))
 				} else {
 					cfgPath := effectiveConfigPath(ctx)
 					_, err := os.Stat(cfgPath)

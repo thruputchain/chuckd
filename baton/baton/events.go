@@ -16,7 +16,7 @@ type EventNominating struct {
 }
 
 func (x EventNominating) String() string {
-	return fmt.Sprintf("NOMINATING [%d; %s]", x.Proposal.Block_height, form.SprintJSON(x.Proposal.Block_hash))
+	return fmt.Sprintf("NOMINATING [%d; %s]", x.Proposal.Block_height, form.Display(x.Proposal.Block_hash))
 }
 
 type EventNominated struct {
@@ -27,7 +27,7 @@ type EventNominated struct {
 }
 
 func (x EventNominated) String() string {
-	return fmt.Sprintf("NOMINATED [%d; %s]", x.Proposal.Block_height, form.SprintJSON(x.Proposal.Block_hash))
+	return fmt.Sprintf("NOMINATED [%d; %s]", x.Proposal.Block_height, form.Display(x.Proposal.Block_hash))
 }
 
 type EventCommitted struct {
@@ -37,7 +37,7 @@ type EventCommitted struct {
 }
 
 func (x EventCommitted) String() string {
-	return fmt.Sprintf("COMMITTED [%d; %s]", x.ValidatableBlock.BlockHeight, form.SprintJSON(x.ValidatableBlock.BlockHash))
+	return fmt.Sprintf("COMMITTED [%d; %s]", x.ValidatableBlock.BlockHeight, form.Display(x.ValidatableBlock.BlockHash))
 }
 
 type EventValidating struct {
@@ -47,7 +47,7 @@ type EventValidating struct {
 }
 
 func (x EventValidating) String() string {
-	return fmt.Sprintf("VALIDATING [%d; %s]", x.ValidatableBlock.BlockHeight, form.SprintJSON(x.ValidatableBlock.BlockHash))
+	return fmt.Sprintf("VALIDATING [%d; %s]", x.ValidatableBlock.BlockHeight, form.Display(x.ValidatableBlock.BlockHash))
 }
 
 type EventValidated struct {
@@ -57,5 +57,5 @@ type EventValidated struct {
 }
 
 func (x EventValidated) String() string {
-	return fmt.Sprintf("VALIDATED [%d; %s]", x.ValidatableBlock.BlockHeight, form.SprintJSON(x.ValidatableBlock.BlockHash))
+	return fmt.Sprintf("VALIDATED [%d; %s]", x.ValidatableBlock.BlockHeight, form.Display(x.ValidatableBlock.BlockHash))
 }
