@@ -54,7 +54,8 @@ func (q *queue) loop(ctx context.Context) {
 		}
 	}()
 
-	c, err := q.dial(ctx)
+	var err error
+	c, err = q.dial(ctx)
 	if err != nil {
 		log.Errorf("broadcast queue dialing %s: %v", protoutil.VPublicShortString(q.to), err)
 	}

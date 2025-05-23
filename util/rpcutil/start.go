@@ -1,7 +1,9 @@
 package rpcutil
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -36,4 +38,12 @@ func Start(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv
 		}
 	}()
 	return l
+}
+
+func srvList(srv []xdr.XdrSrv) string {
+	var w bytes.Buffer
+	for _, s := range srv {
+		fmt.Fprintf(&w, "%v, ", s.ProgName())
+	}
+	return w.String()
 }

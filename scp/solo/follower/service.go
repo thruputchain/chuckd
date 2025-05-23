@@ -74,6 +74,7 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot api.Slot, val
 		log.Errorf("solo leader not reachable for nomination: %s", err)
 		return false
 	}
+	defer c.Close()
 
 	nomination := proto.SoloNomination{
 		Slot_index: slot,

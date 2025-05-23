@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"time"
 
@@ -86,6 +87,8 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// log.Infof("baton driving: num_txs=%d num_batches=%d num_cmmitted_tx=%d",
 	// 	b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
+
+	log.Debugf("open goroutines: %d", runtime.NumGoroutine())
 
 	v := b.buildCleanView(ctx)
 
