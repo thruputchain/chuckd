@@ -23,7 +23,7 @@ func VIDString(vid proto.ValidatorID) string {
 	return "vid:" + hex.EncodeToString(vid[:ShortHashLen])
 }
 
-func ValidatorPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
+func VPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
 	id := ValidatorPublicKeyToID(pubInfo.Public_key)
 	return fmt.Sprintf("(%s address:%s)", VIDString(id), pubInfo.Address)
 }

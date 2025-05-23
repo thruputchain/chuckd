@@ -50,14 +50,14 @@ func (s *DiscoveryService) advertiseToValidator(
 	// log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
 	c, err := DialDiscoveryClient(ctx, s.net, v.Address)
 	if err != nil {
-		log.Errorf("discovery dialing %s: %v", protoutil.ValidatorPublicShortString(v), err)
+		log.Errorf("discovery dialing %s: %v", protoutil.VPublicShortString(v), err)
 		return
 	}
 	defer c.Close()
 
 	r, err := c.Discovery_update_quorums(ctx, snapshot)
 	if err != nil {
-		log.Errorf("advertise to %s at epoch %d: %s", protoutil.ValidatorPublicShortString(v), epoch, err)
+		log.Errorf("advertise to %s at epoch %d: %s", protoutil.VPublicShortString(v), epoch, err)
 		return
 	}
 	s.updateKnown(r)

@@ -45,7 +45,7 @@ func NewBroadcast3Harness(cfg proto.BroadcastConfig, n libnet.Network, a0, a1, a
 		protoutil.MustGenerateIdentity(t.Ctx, t.Rand[2], a2),
 	}
 	for i := range t.V {
-		log.Infof("test validator #%d: %s", i, protoutil.ValidatorPublicShortString(t.V[i].Public_info))
+		log.Infof("test validator #%d: %s", i, protoutil.VPublicShortString(t.V[i].Public_info))
 	}
 	t.Router = &router.TestRouter{
 		Trees: map[router.TestTreeKey]*router.TestTreeNode{

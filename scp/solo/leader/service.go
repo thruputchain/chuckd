@@ -90,7 +90,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 
 			c, err := dial.DialSoloFollowerClient(ctx, svc.net, v.Address)
 			if err != nil {
-				log.Errorf("solo follower %s at %s not reachable for externalization: %s", protoutil.ValidatorPublicShortString(v), v.Address, err)
+				log.Errorf("solo follower %s at %s not reachable for externalization: %s", protoutil.VPublicShortString(v), v.Address, err)
 				return
 			}
 
@@ -106,7 +106,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 
 			err = c.Solofollower_externalized(ctx, signed)
 			if err != nil {
-				log.Errorf("solo externalization error from %s: %s", protoutil.ValidatorPublicShortString(v), err)
+				log.Errorf("solo externalization error from %s: %s", protoutil.VPublicShortString(v), err)
 				return
 			}
 		}(v)

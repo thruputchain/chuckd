@@ -56,7 +56,7 @@ func (q *queue) loop(ctx context.Context) {
 
 	c, err := q.dial(ctx)
 	if err != nil {
-		log.Errorf("broadcast queue dialing %s: %v", protoutil.ValidatorPublicShortString(q.to), err)
+		log.Errorf("broadcast queue dialing %s: %v", protoutil.VPublicShortString(q.to), err)
 	}
 	for {
 		select {
@@ -70,15 +70,15 @@ func (q *queue) loop(ctx context.Context) {
 				log.Errorf("dropping message %d on channel %s to %s at %s: no connection",
 					d.Msg.Header.Seqno,
 					protoutil.ChannelString(q.channel),
-					protoutil.ValidatorPublicShortString(q.to),
-					protoutil.ValidatorPublicShortString(q.from))
+					protoutil.VPublicShortString(q.to),
+					protoutil.VPublicShortString(q.from))
 			} else {
 				if err = c.Broadcast_deliver(ctx, d); err != nil {
 					log.Errorf("dropping message %d on channel %s to %s at %s: %s",
 						d.Msg.Header.Seqno,
 						protoutil.ChannelString(d.Msg.Header.Channel),
-						protoutil.ValidatorPublicShortString(q.to),
-						protoutil.ValidatorPublicShortString(q.from),
+						protoutil.VPublicShortString(q.to),
+						protoutil.VPublicShortString(q.from),
 						err)
 					q.metrics.NumNotSent.Add(ctx, 1)
 				} else {

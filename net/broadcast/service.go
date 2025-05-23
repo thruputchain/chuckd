@@ -45,7 +45,7 @@ func NewBroadcastService(
 	router router.Router,
 	disc AcceptDiscriminator,
 ) *BroadcastService {
-	log.Infof("starting broadcast service for %s", protoutil.ValidatorPublicShortString(privInfo.Public_info))
+	log.Infof("starting broadcast service for %s", protoutil.VPublicShortString(privInfo.Public_info))
 	m := NewBroadcastMetrics(ctx)
 	s := &BroadcastService{
 		cfg:      cfg,

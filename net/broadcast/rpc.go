@@ -16,16 +16,16 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 	log.Debugf("receiving message %d on channel %s at %s from %s",
 		delivery.Msg.Header.Seqno,
 		protoutil.ChannelString(delivery.Msg.Header.Channel),
-		protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
-		protoutil.ValidatorPublicShortString(delivery.Relayer),
+		protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
+		protoutil.VPublicShortString(delivery.Relayer),
 	)
 
 	if !protoutil.VerifyDelivery(delivery) {
 		log.Errorf("discarding (verification) message %d on channel %s at %s from %s",
 			delivery.Msg.Header.Seqno,
 			protoutil.ChannelString(delivery.Msg.Header.Channel),
-			protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
-			protoutil.ValidatorPublicShortString(delivery.Relayer),
+			protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
+			protoutil.VPublicShortString(delivery.Relayer),
 		)
 		return nil //discard
 	}
@@ -39,8 +39,8 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 		log.Errorf("discarding (sender) message %d on channel %s at %s from %s",
 			delivery.Msg.Header.Seqno,
 			protoutil.ChannelString(delivery.Msg.Header.Channel),
-			protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
-			protoutil.ValidatorPublicShortString(delivery.Relayer),
+			protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
+			protoutil.VPublicShortString(delivery.Relayer),
 		)
 		return nil // discard
 

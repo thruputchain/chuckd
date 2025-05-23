@@ -150,12 +150,12 @@ func (b *Baton) validateClose(ctx context.Context, vb *sdk.ValidatableBlock) (pr
 func (b *Baton) finalizeValidateClose(
 	ctx context.Context,
 	vb *sdk.ValidatableBlock,
-	nextID proto.BlockID,
+	blockID proto.BlockID,
 	db sdk.DbCoordConn,
 ) error {
 
 	// db close snapshot
-	dbBlockResult, err := db.Dbcoord_close_snapshot(ctx, nextID)
+	dbBlockResult, err := db.Dbcoord_close_snapshot(ctx, blockID)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,9 @@ func (b *Baton) finalizeValidateClose(
 
 	// verify the block hash returned by the db matches
 	if *dbBlockResult.Block_hash() != vb.BlockHash {
-		return fmt.Errorf("block hash validation mismatch")
+		log.Infof("cannot validate, resulting block hash %v != proposed block hash %v",
+			form.SprintJSON(*dbBlockResult.Block_hash()), form.SprintJSON(vb.BlockHash))
+		return ErrNotValid
 	}
 
 	return nil

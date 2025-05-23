@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -64,18 +65,23 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	dbTip := b.tip
 
 	if proposal.Block_height <= dbTip.Height {
+		log.Infof("cannot validate, proposal below tip")
 		reply <- api.InvalidValue
 		return
 	}
 	if proposal.Block_height > dbTip.Height+1 {
+		log.Infof("cannot validate, proposal far ahead")
 		reply <- api.MaybeValidValue
 		return
 	}
 	if proposal.Prev_block_hash != dbTip.Hash {
+		log.Infof("cannot validate, previous block %v != db tip %v",
+			form.SprintJSON(proposal.Prev_block_hash), form.SprintJSON(dbTip.Hash))
 		reply <- api.InvalidValue
 		return
 	}
 	if len(b.externalized) > 0 {
+		log.Infof("cannot validate, newer externalizations not processed")
 		reply <- api.InvalidValue // there are newer externalizations
 		return
 	}
@@ -84,6 +90,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	for _, batch := range proposal.Proposed_transaction_batches {
 		btxs, ok := b.handler.LookupBatch(ctx, batch)
 		if !ok {
+			log.Infof("cannot validate, missing batches")
 			reply <- api.MaybeValidValue
 			return
 		}
@@ -101,10 +108,12 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	go func() {
 		blockID, err := b.validateClose(ctx, vb)
 		if err == ErrNotValid {
+			log.Infof("cannot validate, inconsistent")
 			reply <- api.InvalidValue
 			return
 		}
 		if err != nil {
+			log.Infof("cannot validate, other: %v", err)
 			reply <- api.MaybeValidValue
 			return
 		}

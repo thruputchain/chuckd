@@ -21,7 +21,7 @@ func newAccepting(ctx context.Context, svc *BroadcastService, first Delivery) *a
 	log.Infof("accepting message %d on channel %s at %s",
 		first.Msg.Header.Seqno,
 		protoutil.ChannelString(first.Msg.Header.Channel),
-		protoutil.ValidatorPublicShortString(svc.ValidatorPublicInfo()),
+		protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
 	)
 	a := &accepting{
 		svc:     svc,
@@ -54,17 +54,17 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
-		log.Infof("recovering multicast tree from relayer %s", protoutil.ValidatorPublicShortString(first.Relayer))
+		log.Infof("recovering multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
 
 		expanded, err := a.expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		if err != nil {
-			log.Errorf("recovering multicast tree from relayer %s: %s", protoutil.ValidatorPublicShortString(first.Relayer), err)
+			log.Errorf("recovering multicast tree from relayer %s: %s", protoutil.VPublicShortString(first.Relayer), err)
 			a.abort()
 			return
 		}
 		treeNodes = &expanded
 
-		log.Infof("recovered multicast tree from relayer %s", protoutil.ValidatorPublicShortString(first.Relayer))
+		log.Infof("recovered multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
 	}
 
 	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
