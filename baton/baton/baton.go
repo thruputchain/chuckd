@@ -137,29 +137,26 @@ func (b *Baton) drive(ctx context.Context) {
 			b.nominating = busy
 			go func() {
 				proposal, blockID, err := b.nominate(nomCtx, *nominate, uncommittedTxs)
+				busy.CancelFunc()
 
 				b.lock(ctx)
 				defer b.unlock(ctx)
 
-				// if nomination was cancelled, b.nominating will point at a different nomination
+				// if nomination was cancelled, b.nominating may point at a different nomination
+				replaced := b.nominating != busy
+				if !replaced {
+					b.nominating = nil
+				}
+
 				if err != nil {
 					log.Errorf("nominate: %v", err)
-					if b.nominating == busy {
-						b.nominating = nil
-					}
 					return
 				}
 
-				must.Assertf(ctx, b.nominating == busy, "race nominating")
-				b.nominating.CancelFunc()
-				b.nominating = nil
-
-				if err != nil { // nomination failed
-					return
+				if !replaced {
+					b.nominated = &nominated{Proposal: proposal}
+					b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
 				}
-
-				b.nominated = &nominated{Proposal: proposal}
-				b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
 			}()
 		}
 	}
