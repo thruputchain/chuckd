@@ -34,9 +34,12 @@ func newSlot(svc *SoloLeaderService, index proto.SoloSlotIndex, slotDelay time.D
 	}
 }
 
-func (s *slot) nominate(ctx context.Context, nomination proto.SoloNomination) {
+func (s *slot) nominate(_ context.Context, nomination proto.SoloNomination) {
 	// ask every node to validate the block
 	h := sha256.Sum256(nomination.Value)
+	// don't use the calling context, since it belongs to an rpc call and is short-lived.
+	// use the context of the service itself.
+	ctx := s.svc.ctx
 	go func() {
 		var wg sync.WaitGroup
 		for _, v := range s.svc.quorum {

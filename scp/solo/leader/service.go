@@ -16,6 +16,7 @@ import (
 )
 
 type SoloLeaderService struct {
+	ctx       context.Context
 	net       libnet.Network
 	handler   api.SCPHandler
 	slotDelay time.Duration
@@ -36,6 +37,7 @@ func NewSoloLeaderService(
 	quorum []proto.ValidatorPublicInfo,
 ) *SoloLeaderService {
 	svc := &SoloLeaderService{
+		ctx:       ctx,
 		net:       n,
 		handler:   h,
 		slotDelay: slotDelay,

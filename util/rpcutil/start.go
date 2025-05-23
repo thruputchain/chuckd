@@ -14,7 +14,8 @@ import (
 func NewDriver(ctx context.Context, t rpc.Transport) *rpc.Driver {
 	driver := rpc.NewDriver(ctx, t)
 	driver.Lock = nil // process all calls in parallel
-	driver.Log = log.Writer()
+	_ = log.Writer
+	// driver.Log = log.Writer()
 	driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 	return driver
 }
