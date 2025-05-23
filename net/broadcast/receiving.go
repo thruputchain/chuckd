@@ -32,7 +32,7 @@ func newReceiving(
 	streams := make([]*queue, len(children))
 	for i := range children {
 		streams[i] = newQueue(
-			ctx,
+			context.Background(), // make new context because the calling ctx (from an rpc) is short-lived
 			svc.metrics.DeliveryQueueMetrics(),
 			svc.net,
 			svc.ValidatorPublicInfo(),

@@ -12,14 +12,14 @@ type sending struct {
 	channel   Channel
 	treeNodes MulticastTreeNodes
 	children  []ValidatorPublicInfo
-	queues   []*queue
+	queues    []*queue
 	//
 	lk   sync.Mutex
 	sent []Message
 }
 
 func newSending(
-	ctx context.Context,
+	_ context.Context,
 	svc *BroadcastService,
 	channel Channel,
 	treeNodes MulticastTreeNodes,
@@ -28,7 +28,7 @@ func newSending(
 	queues := make([]*queue, len(children))
 	for i := range children {
 		queues[i] = newQueue(
-			ctx,
+			context.Background(), // make new context because the calling ctx (from an rpc) is short-lived
 			svc.metrics.DeliveryQueueMetrics(),
 			svc.net,
 			svc.ValidatorPublicInfo(),
@@ -42,7 +42,7 @@ func newSending(
 		channel:   channel,
 		treeNodes: treeNodes,
 		children:  children,
-		queues:   queues,
+		queues:    queues,
 	}
 }
 
