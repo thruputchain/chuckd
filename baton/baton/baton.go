@@ -2,7 +2,6 @@ package baton
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -87,10 +87,9 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 func (b *Baton) drive(ctx context.Context) {
 	defer b.cond.Broadcast()
 
-	// log.Infof("baton driving: num_txs=%d num_batches=%d num_cmmitted_tx=%d",
-	// 	b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
-
-	log.Debugf("open goroutines: %d", runtime.NumGoroutine())
+	log.Debugf("baton stats: num_txs=%d num_batches=%d num_committed_tx=%d",
+		b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
+	log.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	v := b.buildCleanView(ctx)
 
