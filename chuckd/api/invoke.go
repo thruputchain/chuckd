@@ -12,26 +12,32 @@ import (
 	xruntime "github.com/groundhogchain/chuckd/runtime"
 )
 
+func flushMemProfile(memProfilePath string) {
+	if memProfilePath == "" {
+		return
+	}
+	f, err := os.Create(memProfilePath)
+	if err != nil {
+		log.Fatalf("could not create memory profile (%v)", err)
+	}
+	defer f.Close()
+	runtime.GC() // get up-to-date statistics
+	if err := pprof.WriteHeapProfile(f); err != nil {
+		log.Fatalf("could not write memory profile (%v)", err)
+	}
+}
+
 func Invoke(f func()) error {
 
 	ctx := context.Background()
 
-	xruntime.CaptureInterrupts()
+	hooks := []func(){}
 
 	// mem profile
-	defer func() {
-		if memProfilePath != "" {
-			f, err := os.Create(memProfilePath)
-			if err != nil {
-				log.Fatalf("could not create memory profile (%v)", err)
-			}
-			defer f.Close() // error handling omitted for example
-			runtime.GC()    // get up-to-date statistics
-			if err := pprof.WriteHeapProfile(f); err != nil {
-				log.Fatalf("could not write memory profile (%v)", err)
-			}
-		}
-	}()
+	if memProfilePath != "" {
+		defer flushMemProfile(memProfilePath)
+		hooks = append(hooks, func() { flushMemProfile(memProfilePath) })
+	}
 
 	// cpu profile
 	if cpuProfilePath != "" {
@@ -39,12 +45,20 @@ func Invoke(f func()) error {
 		if err != nil {
 			log.Fatalf("could not create CPU profile (%v)", err)
 		}
-		defer f.Close() // error handling omitted for example
+		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatalf("could not start CPU profile (%v)", err)
 		}
 		defer pprof.StopCPUProfile()
+		hooks = append(hooks,
+			func() {
+				pprof.StopCPUProfile()
+				f.Close()
+			},
+		)
 	}
+
+	xruntime.CaptureInterrupts(hooks...)
 
 	// start telemetry
 	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
@@ -57,6 +71,11 @@ func Invoke(f func()) error {
 			log.Fatalf("shutdown telemetry: %v", err)
 		}
 	}()
+	hooks = append(hooks,
+		func() {
+			shutdown(ctx)
+		},
+	)
 
 	//
 	xerr := must.TryThru(f)
