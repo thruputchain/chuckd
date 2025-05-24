@@ -8,7 +8,7 @@ import (
 
 	ghc "github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -57,11 +57,11 @@ func init() {
 
 func initAfterFlags() {
 	if rootVerbose {
-		log.LogVerbosely()
+		liblog.LogVerbosely()
 	} else {
-		log.LogQuietly()
+		liblog.LogQuietly()
 	}
-	log.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
+	liblog.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	api.SetCPUProfilePath(rootCPUProfilePath)
 	api.SetMemProfilePath(rootMemProfilePath)
 	api.SetInstanceID(rootInstanceID)
@@ -75,7 +75,7 @@ func effectiveConfigPath(ctx context.Context) string {
 	if cfgPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatalf("looking for home dir (%v)", err)
+			liblog.Fatalf("looking for home dir (%v)", err)
 		}
 		must.NoError(ctx, err)
 		cfgPath = filepath.Join(home, api.LocalAgentPath, api.LocalAgentConfigFilebase)
@@ -86,7 +86,7 @@ func effectiveConfigPath(ctx context.Context) string {
 func LoadConfig(ctx context.Context) *proto.Config {
 
 	cfgPath := effectiveConfigPath(ctx)
-	log.Infof("loading config %v", cfgPath)
+	liblog.Infof("loading config %v", cfgPath)
 
 	data, err := os.ReadFile(cfgPath)
 	must.Assertf(ctx, err == nil, "reading config file (%w)", err)

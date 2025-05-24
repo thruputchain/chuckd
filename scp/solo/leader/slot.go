@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -50,7 +50,7 @@ func (s *slot) nominate(_ context.Context, nomination proto.SoloNomination) {
 
 				c, err := dial.DialSoloFollowerClient(ctx, s.svc.net, v.Address)
 				if err != nil {
-					log.Errorf("solo node %s not reachable for validation: %s", protoutil.VPublicShortString(v), err)
+					liblog.Errorf("solo node %s not reachable for validation: %s", protoutil.VPublicShortString(v), err)
 					return
 				}
 				defer c.Close()
@@ -67,11 +67,11 @@ func (s *slot) nominate(_ context.Context, nomination proto.SoloNomination) {
 
 				valid, err := c.Solofollower_validate(ctx, signed)
 				if err != nil {
-					log.Errorf("solo validation error from %s: %s", protoutil.VPublicShortString(v), err)
+					liblog.Errorf("solo validation error from %s: %s", protoutil.VPublicShortString(v), err)
 					return
 				}
 				if valid != proto.SoloFullyValidValue {
-					log.Infof("validation for slot %d rejected by %v", nomination.Slot_index, protoutil.VPublicShortString(v))
+					liblog.Infof("validation for slot %d rejected by %v", nomination.Slot_index, protoutil.VPublicShortString(v))
 					return
 				}
 

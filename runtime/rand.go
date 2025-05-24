@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 )
 
@@ -25,7 +25,7 @@ func SetRootSeed(s int64) {
 	}
 	rootSeed = s
 	rootRand = rand.New(rand.NewSource(rootSeed))
-	log.Infof("root randomness seed %x", rootSeed)
+	liblog.Infof("root randomness seed %x", rootSeed)
 }
 
 func GetRootSeed() int64 {

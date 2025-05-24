@@ -3,7 +3,7 @@ package broadcast
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -13,7 +13,7 @@ func (svc *BroadcastService) Broadcast_null(ctx context.Context) error {
 
 func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Delivery) error {
 
-	log.Debugf("receiving message %d on channel %s at %s from %s",
+	liblog.Debugf("receiving message %d on channel %s at %s from %s",
 		delivery.Msg.Header.Seqno,
 		protoutil.ChannelString(delivery.Msg.Header.Channel),
 		protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
@@ -21,7 +21,7 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 	)
 
 	if !protoutil.VerifyDelivery(delivery) {
-		log.Errorf("discarding (verification) message %d on channel %s at %s from %s",
+		liblog.Errorf("discarding (verification) message %d on channel %s at %s from %s",
 			delivery.Msg.Header.Seqno,
 			protoutil.ChannelString(delivery.Msg.Header.Channel),
 			protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
@@ -36,7 +36,7 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 
 	if s := svc.sending[channel]; s != nil {
 		svc.lk.Unlock()
-		log.Errorf("discarding (sender) message %d on channel %s at %s from %s",
+		liblog.Errorf("discarding (sender) message %d on channel %s at %s from %s",
 			delivery.Msg.Header.Seqno,
 			protoutil.ChannelString(delivery.Msg.Header.Channel),
 			protoutil.VPublicShortString(svc.ValidatorPublicInfo()),

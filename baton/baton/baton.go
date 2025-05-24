@@ -7,7 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
@@ -63,14 +63,14 @@ func (b *Baton) Start(ctx context.Context, heartbeat time.Duration) {
 
 func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 
-	log.Infof("baton starting")
+	liblog.Infof("baton starting")
 
 	// restore db
 	var err error
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 
-	log.Infof("baton db restored")
+	liblog.Infof("baton db restored")
 
 	// release lock on scp events
 	close(b.scp)
@@ -87,20 +87,20 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 func (b *Baton) drive(ctx context.Context) {
 	defer b.cond.Broadcast()
 
-	log.Debugf("baton stats: num_txs=%d num_batches=%d num_committed_tx=%d",
+	liblog.Debugf("baton stats: num_txs=%d num_batches=%d num_committed_tx=%d",
 		b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
-	log.Debugf("resource usage: %s", runtime.ResourceUsage())
+	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	v := b.buildCleanView(ctx)
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		log.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.Display(vb.BlockHash))
+		liblog.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.Display(vb.BlockHash))
 		b.committing = true
 		go func() {
 			blockID, err := b.commit(ctx, vb)
 			if err != nil {
-				log.Errorf("commit: %v", err)
+				liblog.Errorf("commit: %v", err)
 			}
 
 			b.lock(ctx)
@@ -128,7 +128,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// start nomination, if the db there are no externalizations above the db tip
 	if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
-		log.Debugf("baton nominating onto %v", nominate)
+		liblog.Debugf("baton nominating onto %v", nominate)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.CancelFunc()
@@ -153,7 +153,7 @@ func (b *Baton) drive(ctx context.Context) {
 				}
 
 				if err != nil {
-					log.Errorf("nominate: %v", err)
+					liblog.Errorf("nominate: %v", err)
 					return
 				}
 
@@ -167,7 +167,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// send catchup requests
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
-		log.Debugf("baton requesting catchup")
+		liblog.Debugf("baton requesting catchup")
 		b.requestCatchup(ctx, needed)
 	}
 }

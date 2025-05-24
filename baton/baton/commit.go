@@ -7,7 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -24,7 +24,7 @@ func (b *Baton) commit(ctx context.Context, vb *sdk.ValidatableBlock) (proto.Blo
 }
 
 func (b *Baton) commitAlreadyValidated(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
-	log.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
+	liblog.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	// connect to db
 	db, err := b.handler.DialDb(ctx)

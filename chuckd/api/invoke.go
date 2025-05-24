@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	xruntime "github.com/groundhogchain/chuckd/runtime"
 )
@@ -18,12 +18,12 @@ func flushMemProfile(memProfilePath string) {
 	}
 	f, err := os.Create(memProfilePath)
 	if err != nil {
-		log.Fatalf("could not create memory profile (%v)", err)
+		liblog.Fatalf("could not create memory profile (%v)", err)
 	}
 	defer f.Close()
 	runtime.GC() // get up-to-date statistics
 	if err := pprof.WriteHeapProfile(f); err != nil {
-		log.Fatalf("could not write memory profile (%v)", err)
+		liblog.Fatalf("could not write memory profile (%v)", err)
 	}
 }
 
@@ -41,11 +41,11 @@ func Invoke(ctx context.Context, f func()) error {
 	if cpuProfilePath != "" {
 		f, err := os.Create(cpuProfilePath)
 		if err != nil {
-			log.Fatalf("could not create CPU profile (%v)", err)
+			liblog.Fatalf("could not create CPU profile (%v)", err)
 		}
 		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatalf("could not start CPU profile (%v)", err)
+			liblog.Fatalf("could not start CPU profile (%v)", err)
 		}
 		defer pprof.StopCPUProfile()
 		hooks = append(hooks,
@@ -61,12 +61,12 @@ func Invoke(ctx context.Context, f func()) error {
 	// start telemetry
 	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
 	if err != nil {
-		log.Fatalf("starting telemetry: %v", err)
+		liblog.Fatalf("starting telemetry: %v", err)
 		return err
 	}
 	defer func() {
 		if err := shutdown(ctx); err != nil {
-			log.Fatalf("shutdown telemetry: %v", err)
+			liblog.Fatalf("shutdown telemetry: %v", err)
 		}
 	}()
 	hooks = append(hooks,
@@ -78,7 +78,7 @@ func Invoke(ctx context.Context, f func()) error {
 	//
 	xerr := must.TryThru(f)
 	if xerr != nil {
-		if log.IsVerbose() {
+		if liblog.IsVerbose() {
 			fmt.Fprintln(os.Stderr, xerr.StackString())
 		}
 		fmt.Fprintln(os.Stderr, xerr.Error())

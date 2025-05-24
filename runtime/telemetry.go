@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/groundhogchain/chuckd"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -40,9 +40,9 @@ func SetupTelemetry(ctx context.Context, instanceID string, addr string) (shutdo
 	// Set up HTTP server to expose Prometheus metrics endpoint
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		log.Infof("prometheus metrics endpoint started at %s/metrics", addr)
+		liblog.Infof("prometheus metrics endpoint started at %s/metrics", addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
-			log.Fatalf("starting metrics server: %v", err)
+			liblog.Fatalf("starting metrics server: %v", err)
 		}
 	}()
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"math/rand"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/test/testnet"
@@ -45,7 +45,7 @@ func NewBroadcast3Harness(cfg proto.BroadcastConfig, n libnet.Network, a0, a1, a
 		protoutil.MustGenerateIdentity(t.Ctx, t.Rand[2], a2),
 	}
 	for i := range t.V {
-		log.Infof("test validator #%d: %s", i, protoutil.VPublicShortString(t.V[i].Public_info))
+		liblog.Infof("test validator #%d: %s", i, protoutil.VPublicShortString(t.V[i].Public_info))
 	}
 	t.Router = &router.TestRouter{
 		Trees: map[router.TestTreeKey]*router.TestTreeNode{

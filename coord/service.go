@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -33,7 +33,7 @@ type CoordinatorService struct {
 }
 
 func NewCoordinatorService(ctx context.Context, n libnet.Network, rr *rand.Rand) *CoordinatorService {
-	log.Infof("starting coordinator service")
+	liblog.Infof("starting coordinator service")
 	upid, err := GenerateUPID(rr.Uint64())
 	must.NoError(ctx, err)
 	cs := &CoordinatorService{

@@ -3,9 +3,9 @@ package broadcast
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -58,7 +58,7 @@ func (q *queue) loop(ctx context.Context) {
 	var err error
 	c, err = q.dial(ctx)
 	if err != nil {
-		log.Errorf("broadcast queue dialing %s: %v", protoutil.VPublicShortString(q.to), err)
+		liblog.Errorf("broadcast queue dialing %s: %v", protoutil.VPublicShortString(q.to), err)
 	}
 	for {
 		select {
@@ -69,14 +69,14 @@ func (q *queue) loop(ctx context.Context) {
 				return // stream closed
 			}
 			if c == nil {
-				log.Errorf("dropping message %d on channel %s to %s at %s: no connection",
+				liblog.Errorf("dropping message %d on channel %s to %s at %s: no connection",
 					d.Msg.Header.Seqno,
 					protoutil.ChannelString(q.channel),
 					protoutil.VPublicShortString(q.to),
 					protoutil.VPublicShortString(q.from))
 			} else {
 				if err = c.Broadcast_deliver(ctx, d); err != nil {
-					log.Errorf("dropping message %d on channel %s to %s at %s: %s",
+					liblog.Errorf("dropping message %d on channel %s to %s at %s: %s",
 						d.Msg.Header.Seqno,
 						protoutil.ChannelString(d.Msg.Header.Channel),
 						protoutil.VPublicShortString(q.to),

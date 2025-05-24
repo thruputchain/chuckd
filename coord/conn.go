@@ -6,7 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -26,7 +26,7 @@ func (x *CoordinatorService) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn
 	for _, card := range x.getExecs() {
 		conn, err := DialExecutorCoordClient(ctx, x.net, card.Address)
 		if err != nil {
-			log.Errorf("dialing executor: %v", err)
+			liblog.Errorf("dialing executor: %v", err)
 			continue
 		}
 		conns = append(conns, conn)

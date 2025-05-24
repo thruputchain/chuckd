@@ -6,7 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -113,7 +113,7 @@ func (b *Baton) validate(ctx context.Context, vb *sdk.ValidatableBlock, db sdk.D
 }
 
 func (b *Baton) validateCommit(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
-	log.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
+	liblog.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	db, err := b.handler.DialDb(ctx)
 	if err != nil {
@@ -165,7 +165,7 @@ func (b *Baton) finalizeValidateClose(
 
 	// verify the block hash returned by the db matches
 	if *dbBlockResult.Block_hash() != vb.BlockHash {
-		log.Infof("cannot validate, resulting block hash %v != proposed block hash %v",
+		liblog.Infof("cannot validate, resulting block hash %v != proposed block hash %v",
 			form.Display(*dbBlockResult.Block_hash()), form.Display(vb.BlockHash))
 		return ErrNotValid
 	}

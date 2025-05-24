@@ -8,8 +8,8 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testexec"
@@ -95,7 +95,7 @@ func (x *TestCluster) ExecCard(shard int) proto.ExecCard {
 }
 
 func (x *TestCluster) Start(ctx context.Context, inAddr string) {
-	log.Infof("testcluster starting")
+	liblog.Infof("testcluster starting")
 	for i, exec := range x.execs {
 		rpcutil.Start(ctx, x.net, x.ExecAddress(i), proto.ExecutorCoord1_Server{Srv: exec})
 	}
@@ -107,18 +107,18 @@ func (x *TestCluster) Start(ctx context.Context, inAddr string) {
 }
 
 func (x *TestCluster) register(ctx context.Context, inAddr string) {
-	log.Infof("testcluster registering")
+	liblog.Infof("testcluster registering")
 
 	coord, err := coord.DialCoordinatorClient(ctx, x.net, inAddr)
 	must.NoError(ctx, err)
 	defer coord.Close()
 
-	log.Infof("testcluster introducing %d shards", len(x.shards))
+	liblog.Infof("testcluster introducing %d shards", len(x.shards))
 	for i := range x.shards {
 		_, err := coord.Coordinator_intro_shard(ctx, x.ShardCard(i))
 		must.NoError(ctx, err)
 	}
-	log.Infof("testcluster introducing %d execs", len(x.execs))
+	liblog.Infof("testcluster introducing %d execs", len(x.execs))
 	for i := range x.execs {
 		_, err := coord.Coordinator_intro_exec(ctx, x.ExecCard(i))
 		must.NoError(ctx, err)
@@ -126,7 +126,7 @@ func (x *TestCluster) register(ctx context.Context, inAddr string) {
 }
 
 func (x *TestCluster) pumpTxs(ctx context.Context) {
-	log.Infof("testcluster pumping txs")
+	liblog.Infof("testcluster pumping txs")
 	for {
 		time.Sleep(time.Millisecond * 100) // 1/10 of second resolution
 		for i := 0; i < int(x.tps)/10; i++ {

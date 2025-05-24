@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/xdrpp/goxdr/xdr"
 )
@@ -20,7 +20,7 @@ func NewServer(ctx context.Context, srv ...xdr.XdrSrv) *Server {
 }
 
 func (s *Server) Start(ctx context.Context, net libnet.Network, address string) {
-	log.Infof("starting server on network %s at address %s", net, address)
+	liblog.Infof("starting server on network %s at address %s", net, address)
 	s.l = rpcutil.Start(ctx, net, address, s.srv...)
 }
 

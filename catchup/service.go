@@ -9,9 +9,9 @@ import (
 
 	"github.com/cockroachdb/pebble"
 	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -130,7 +130,7 @@ func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.Signe
 	for _, b := range blocks {
 		fmt.Fprintf(&heights, "%d, ", b.Block_height)
 	}
-	log.Infof("serving catchup heights %s", heights.String())
+	liblog.Infof("serving catchup heights %s", heights.String())
 
 	result := proto.CatchupBlocksResult{
 		Timestamp: svc.time.Now().UnixNano(),

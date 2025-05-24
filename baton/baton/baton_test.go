@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/test/testutil"
@@ -16,7 +16,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	log.LogVerbosely()
+	liblog.LogVerbosely()
 	runtime.SetRootSeed(0)
 	runtime.CaptureInterrupts()
 	exitCode := m.Run()

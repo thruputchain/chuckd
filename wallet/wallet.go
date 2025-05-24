@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -65,7 +65,7 @@ func (g *WalletGateway) Service() proto.Wallet1 {
 func (g *WalletGateway) StartHTTP(_ context.Context, address string) {
 	go func() {
 		if err := g.r.Run(address); err != nil {
-			log.Fatalf("start wallet gateway http server: %v", err)
+			liblog.Fatalf("start wallet gateway http server: %v", err)
 		}
 	}()
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -27,7 +27,7 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values
 	for _, v := range values {
 		var p proto.Proposal
 		if err := xdrutil.UnmarshalXdr(&p, v); err != nil {
-			log.Errorf("unable to decode proposal for combining: %v", err)
+			liblog.Errorf("unable to decode proposal for combining: %v", err)
 			break
 		}
 		proposals = append(proposals, &p)
@@ -43,8 +43,8 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values
 func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.Value, nomination bool) api.ValidationLevel {
 	<-x.baton.scp
 
-	log.Infof("baton validate value for slot %d received", slot)
-	defer log.Infof("baton validate value completed")
+	liblog.Infof("baton validate value for slot %d received", slot)
+	defer liblog.Infof("baton validate value completed")
 
 	var prop proto.Proposal
 	err := xdrutil.UnmarshalXdr(&prop, value)
@@ -65,23 +65,23 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	b.unlock(ctx)
 
 	if proposal.Block_height <= dbTip.Height {
-		log.Infof("cannot validate, proposal below tip")
+		liblog.Infof("cannot validate, proposal below tip")
 		reply <- api.InvalidValue
 		return
 	}
 	if proposal.Block_height > dbTip.Height+1 {
-		log.Infof("cannot validate, proposal far ahead")
+		liblog.Infof("cannot validate, proposal far ahead")
 		reply <- api.MaybeValidValue
 		return
 	}
 	if proposal.Prev_block_hash != dbTip.Hash {
-		log.Infof("cannot validate, previous block %v != db tip %v",
+		liblog.Infof("cannot validate, previous block %v != db tip %v",
 			form.Display(proposal.Prev_block_hash), form.Display(dbTip.Hash))
 		reply <- api.InvalidValue
 		return
 	}
 	if numExt > 0 {
-		log.Infof("cannot validate, newer externalizations not processed")
+		liblog.Infof("cannot validate, newer externalizations not processed")
 		reply <- api.InvalidValue // there are newer externalizations
 		return
 	}
@@ -97,7 +97,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	for _, batch := range proposal.Proposed_transaction_batches {
 		btxs, ok := b.handler.WaitBatch(vCtx, batch)
 		if !ok {
-			log.Infof("cannot validate, missing batches")
+			liblog.Infof("cannot validate, missing batches")
 			reply <- api.MaybeValidValue
 			return
 		}
@@ -115,12 +115,12 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	go func() {
 		blockID, err := b.validateClose(ctx, vb)
 		if err == ErrNotValid {
-			log.Infof("cannot validate, inconsistent")
+			liblog.Infof("cannot validate, inconsistent")
 			reply <- api.InvalidValue
 			return
 		}
 		if err != nil {
-			log.Infof("cannot validate, other: %v", err)
+			liblog.Infof("cannot validate, other: %v", err)
 			reply <- api.MaybeValidValue
 			return
 		}
@@ -149,7 +149,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value 
 
 	// check that SCP slot equals proposal's block height
 	if slot != proposal.Block_height {
-		log.Errorf("scp slot index does not equal proposed block height")
+		liblog.Errorf("scp slot index does not equal proposed block height")
 		return
 	}
 

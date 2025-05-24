@@ -3,8 +3,8 @@ package follower
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -71,7 +71,7 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot api.Slot, val
 
 	c, err := dial.DialSoloLeaderClient(ctx, svc.net, svc.leader.Address)
 	if err != nil {
-		log.Errorf("solo leader not reachable for nomination: %s", err)
+		liblog.Errorf("solo leader not reachable for nomination: %s", err)
 		return false
 	}
 	defer c.Close()
@@ -88,7 +88,7 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot api.Slot, val
 
 	err = c.Sololeader_nominate(ctx, signed)
 	if err != nil {
-		log.Errorf("solo nomination error: %s", err)
+		liblog.Errorf("solo nomination error: %s", err)
 		return false
 	}
 

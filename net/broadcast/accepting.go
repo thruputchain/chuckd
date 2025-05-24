@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/form"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -18,7 +18,7 @@ type accepting struct {
 }
 
 func newAccepting(ctx context.Context, svc *BroadcastService, first Delivery) *accepting {
-	log.Infof("accepting message %d on channel %s at %s",
+	liblog.Infof("accepting message %d on channel %s at %s",
 		first.Msg.Header.Seqno,
 		protoutil.ChannelString(first.Msg.Header.Channel),
 		protoutil.VPublicShortString(svc.ValidatorPublicInfo()),
@@ -54,22 +54,22 @@ func (a *accepting) accept(ctx context.Context) {
 
 	treeNodes := first.Tree_nodes
 	if treeNodes == nil {
-		log.Infof("recovering multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
+		liblog.Infof("recovering multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
 
 		expanded, err := a.expandTree(ctx, first.Relayer.Address, a.channel.Tree_hash)
 		if err != nil {
-			log.Errorf("recovering multicast tree from relayer %s: %s", protoutil.VPublicShortString(first.Relayer), err)
+			liblog.Errorf("recovering multicast tree from relayer %s: %s", protoutil.VPublicShortString(first.Relayer), err)
 			a.abort()
 			return
 		}
 		treeNodes = &expanded
 
-		log.Infof("recovered multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
+		liblog.Infof("recovered multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
 	}
 
 	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
 	if linked == nil {
-		log.Errorf("invalid multicast tree: %s", form.Display(treeNodes))
+		liblog.Errorf("invalid multicast tree: %s", form.Display(treeNodes))
 		a.abort()
 		return
 	}
@@ -107,7 +107,7 @@ func (a *accepting) accept(ctx context.Context) {
 func (a *accepting) expandTree(ctx context.Context, address string, treeHash MulticastTreeHash) (MulticastTreeNodes, error) {
 	c, err := DialBroadcastClient(ctx, a.svc.net, address)
 	if err != nil {
-		log.Errorf("dialing broadcast for recovery: %s", err)
+		liblog.Errorf("dialing broadcast for recovery: %s", err)
 		return nil, err
 	}
 	defer c.Close()

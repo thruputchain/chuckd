@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -36,7 +36,7 @@ func NewDiscoveryService(
 	vcfg proto.ValidatorConfig,
 ) *DiscoveryService {
 
-	log.Infof("starting discovery service")
+	liblog.Infof("starting discovery service")
 	s := &DiscoveryService{
 		cfg:           cfg,
 		net:           n,

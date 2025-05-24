@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -105,7 +105,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 		c, err := b.handler.DialCatchup(ctx, src)
 		if err != nil {
-			log.Errorf("catchup dial: %v", err)
+			liblog.Errorf("catchup dial: %v", err)
 			return
 		}
 		defer c.Close()
@@ -126,12 +126,12 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 		reply, err := c.Catchup_solicit(ctx, signed)
 		if err != nil {
-			log.Errorf("catchup retrieval: %v", err)
+			liblog.Errorf("catchup retrieval: %v", err)
 			return
 		}
 
 		if !b.handler.VerifyXdr(src.Public_key, &reply.Result, reply.Signature) {
-			log.Errorf("catchup with invalid signature")
+			liblog.Errorf("catchup with invalid signature")
 			return
 		}
 

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -59,7 +59,7 @@ func (svc *SoloLeaderService) Sololeader_null(context.Context) error {
 
 func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nomination proto.SoloSignedNomination) error {
 
-	log.Infof("solo leader received nomination for slot %d from %v",
+	liblog.Infof("solo leader received nomination for slot %d from %v",
 		nomination.Nomination.Slot_index, protoutil.VIDString(protoutil.VIDOfPublic(nomination.Signer)))
 
 	// check signatures
@@ -80,7 +80,7 @@ func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nominatio
 }
 
 func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.SoloSlotIndex, value proto.SoloValue) {
-	log.Infof("solo leader externalizing slot %d", slotIndex)
+	liblog.Infof("solo leader externalizing slot %d", slotIndex)
 
 	var wg sync.WaitGroup
 	for _, v := range svc.quorum {
@@ -90,7 +90,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 
 			c, err := dial.DialSoloFollowerClient(ctx, svc.net, v.Address)
 			if err != nil {
-				log.Errorf("solo follower %s at %s not reachable for externalization: %s", protoutil.VPublicShortString(v), v.Address, err)
+				liblog.Errorf("solo follower %s at %s not reachable for externalization: %s", protoutil.VPublicShortString(v), v.Address, err)
 				return
 			}
 			defer c.Close()
@@ -107,7 +107,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 
 			err = c.Solofollower_externalized(ctx, signed)
 			if err != nil {
-				log.Errorf("solo externalization error from %s: %s", protoutil.VPublicShortString(v), err)
+				liblog.Errorf("solo externalization error from %s: %s", protoutil.VPublicShortString(v), err)
 				return
 			}
 		}(v)

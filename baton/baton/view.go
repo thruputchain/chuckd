@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -31,15 +31,15 @@ func (b *Baton) buildCleanView(ctx context.Context) (v *View) {
 		case nil:
 			must.Assertf(ctx, v != nil, "bug")
 		case ErrConsensusBelowDb: // unrecoverable
-			log.Fatalf("consensus height is below db; unrecoverable")
+			liblog.Fatalf("consensus height is below db; unrecoverable")
 		case ErrDbFarBehind: // must resort to cold start
-			log.Fatalf("db is far behind consensus; needs a cold start")
+			liblog.Fatalf("db is far behind consensus; needs a cold start")
 		case ErrDbConsensusDisagree: // unrecoverable
-			log.Fatalf("consensus and db disagree; unrecoverable")
+			liblog.Fatalf("consensus and db disagree; unrecoverable")
 		case ErrConsensusInconsistent: // unrecoverable
-			log.Fatalf("consensus is inconsistent; unrecoverable")
+			liblog.Fatalf("consensus is inconsistent; unrecoverable")
 		case ErrFaultyCatchup: // must drop all catchup blocks and blacklist sources
-			log.Errorf("purging faulty catchup")
+			liblog.Errorf("purging faulty catchup")
 			b.purgeCatchup(ctx) // go back and retry building the view
 			v = nil
 		default:

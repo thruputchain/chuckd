@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
@@ -46,7 +46,7 @@ func NewBroadcastService(
 	router router.Router,
 	disc AcceptDiscriminator,
 ) *BroadcastService {
-	log.Infof("starting broadcast service for %s", protoutil.VPublicShortString(privInfo.Public_info))
+	liblog.Infof("starting broadcast service for %s", protoutil.VPublicShortString(privInfo.Public_info))
 	m := NewBroadcastMetrics(ctx)
 	s := &BroadcastService{
 		ctx:      ctx,

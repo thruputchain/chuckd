@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/form"
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -202,19 +202,19 @@ func (x *SpectraTransport) receive(ctx context.Context) {
 		// receive shard
 		ch, bulk, err := x.bb.BulkReceive(ctx)
 		if err != nil {
-			log.Errorf("spectra bulk reception: %v", err)
+			liblog.Errorf("spectra bulk reception: %v", err)
 			break
 		}
 
 		// decode header
 		if len(bulk) < headerSize {
-			log.Errorf("spectra reception too short %d", len(bulk))
+			liblog.Errorf("spectra reception too short %d", len(bulk))
 			break
 		}
 		var h proto.SpectraHeader
 		err = xdrutil.UnmarshalXdr(&h, bulk[:headerSize])
 		if err != nil {
-			log.Errorf("spectra reception invalid header: %v", err)
+			liblog.Errorf("spectra reception invalid header: %v", err)
 			break
 		}
 
@@ -240,13 +240,13 @@ func (x *SpectraTransport) process(_ context.Context, ch broadcast.Channel, h pr
 	if p == nil {
 		// verify header sanity
 		if h.Shard_index >= h.Num_payload_channels+h.Num_parity_channels {
-			log.Errorf("spectra invalid header %s", form.Display(h))
+			liblog.Errorf("spectra invalid header %s", form.Display(h))
 			return
 		}
 		// verify shard size is correct for number of payload and parity channels
 		if h.Shard_size == 0 ||
 			h.Shard_size*uint64(h.Num_payload_channels) < h.Payload_size {
-			log.Errorf("spectra invalid shard size in header %s", form.Display(h))
+			liblog.Errorf("spectra invalid shard size in header %s", form.Display(h))
 			return
 		}
 		p = &partialTransmission{
@@ -269,13 +269,13 @@ func (x *SpectraTransport) process(_ context.Context, ch broadcast.Channel, h pr
 		h.Num_parity_channels != p.firstHeader.Num_parity_channels ||
 		h.Payload_size != p.firstHeader.Payload_size ||
 		h.Shard_size != p.firstHeader.Shard_size {
-		log.Errorf("spectra subsequent header does not match")
+		liblog.Errorf("spectra subsequent header does not match")
 		return
 	}
 
 	// verify actual shard size matches header
 	if len(shard) != int(h.Shard_size) {
-		log.Errorf("spectra actual shard size does not match header")
+		liblog.Errorf("spectra actual shard size does not match header")
 		return
 	}
 
@@ -290,7 +290,7 @@ func (x *SpectraTransport) process(_ context.Context, ch broadcast.Channel, h pr
 	// decode payload
 	err := x.decode(p.shards)
 	if err != nil {
-		log.Errorf("spectra cannot reconstruct: %v", err)
+		liblog.Errorf("spectra cannot reconstruct: %v", err)
 		return
 	}
 

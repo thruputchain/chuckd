@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 )
 
 func Panic(ctx context.Context, err error) {
@@ -98,15 +98,15 @@ func Try1Thru[R1 any](f func() R1) (_ R1, err *Error) {
 func LogPanic(r any) {
 	if xerr, ok := r.(*Error); ok {
 		if xerr != nil {
-			if log.IsVerbose() {
-				log.Error().Str("stack", xerr.StackString()).Msg(xerr.Error())
+			if liblog.IsVerbose() {
+				liblog.Error().Str("stack", xerr.StackString()).Msg(xerr.Error())
 			} else {
-				log.Error().Msg(xerr.Error())
+				liblog.Error().Msg(xerr.Error())
 			}
 		} else {
-			log.Errorf("encountered panic without error payload")
+			liblog.Errorf("encountered panic without error payload")
 		}
 	} else {
-		log.Error().Msg(xerr.Error())
+		liblog.Error().Msg(xerr.Error())
 	}
 }

@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
@@ -71,9 +71,9 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 				default:
 				}
 				sctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
-				log.Infof("bench server %s sending message %d on channel %d", protoutil.VIDString(bench.broadcast.ValidatorID()), i, j)
+				liblog.Infof("bench server %s sending message %d on channel %d", protoutil.VIDString(bench.broadcast.ValidatorID()), i, j)
 				if err := s.Send(sctx, make([]byte, bench.paySize)); err != nil {
-					log.Errorf("bench send: %v", err)
+					liblog.Errorf("bench send: %v", err)
 				}
 				cancel()
 			}
@@ -102,7 +102,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 					}
 					rctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
 					if _, _, _, err := r.Receive(rctx); err != nil {
-						log.Errorf("receive: %v", err)
+						liblog.Errorf("receive: %v", err)
 						cancel()
 						break receiveLoop
 					}

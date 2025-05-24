@@ -3,7 +3,7 @@ package multiplex
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/net/spectra"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -33,12 +33,12 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 	for {
 		fromID, _, payload, err := x.transport.BulkReceive(ctx)
 		if err != nil {
-			log.Errorf("multiplex bulk receive: %v", err)
+			liblog.Errorf("multiplex bulk receive: %v", err)
 			continue
 		}
 		var xmsg proto.MultiplexMessage
 		if err := xdrutil.UnmarshalXdr(&xmsg, payload); err != nil {
-			log.Errorf("cannot unmarshal multiplex message: %v", err)
+			liblog.Errorf("cannot unmarshal multiplex message: %v", err)
 			continue
 		}
 
@@ -46,7 +46,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 		case proto.MultiplexMessageBatch:
 			x.batch <- batchMsgFrom{From: fromID, BatchMessage: xmsg.Batch()}
 		default:
-			log.Errorf("unsupported multiplex message type %v", xmsg.Type)
+			liblog.Errorf("unsupported multiplex message type %v", xmsg.Type)
 		}
 	}
 }
@@ -58,7 +58,7 @@ func (x *Multiplex) SendBatch(ctx context.Context, batch *proto.BatchMessage) {
 	*xmsg.Batch() = *batch
 	_, err := x.transport.BulkSend(ctx, xdrutil.MarshalXdr(&xmsg))
 	if err != nil {
-		log.Errorf("multiplex bul.k send")
+		liblog.Errorf("multiplex bul.k send")
 	}
 }
 

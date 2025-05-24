@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/log"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 )
 
 type TestBus struct {
@@ -24,7 +24,7 @@ func NewTestBus() *TestBus {
 
 func (b *TestBus) SendEvent(s time.Time, event any) {
 	env := TestEnvelope{Stamp: s, Event: event}
-	log.Debugf("%s", event)
+	liblog.Debugf("%s", event)
 	b.emitted <- env
 }
 
