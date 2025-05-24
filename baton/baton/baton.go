@@ -15,6 +15,7 @@ import (
 
 func NewBaton(ctx context.Context, h sdk.Handler) *Baton {
 	b := &Baton{
+		ctx:             ctx,
 		handler:         h,
 		scp:             make(chan struct{}),
 		catchupRequests: map[sdk.ID64]catchupRequest{},
@@ -25,6 +26,7 @@ func NewBaton(ctx context.Context, h sdk.Handler) *Baton {
 }
 
 type Baton struct {
+	ctx     context.Context // ctx for drive
 	handler sdk.Handler
 	scp     chan struct{}
 	cond    *sync.Cond
@@ -40,12 +42,12 @@ type Baton struct {
 	validated       map[proto.BlockHash]validated
 }
 
-func (b *Baton) lock(_ context.Context) {
+func (b *Baton) lock(context.Context) {
 	b.lk.Lock()
 }
 
-func (b *Baton) unlock(ctx context.Context) {
-	b.drive(ctx)
+func (b *Baton) unlock(context.Context) {
+	b.drive(b.ctx)
 	b.lk.Unlock()
 }
 

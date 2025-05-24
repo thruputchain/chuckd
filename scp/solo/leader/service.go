@@ -93,6 +93,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 				log.Errorf("solo follower %s at %s not reachable for externalization: %s", protoutil.VPublicShortString(v), v.Address, err)
 				return
 			}
+			defer c.Close()
 
 			externalized := proto.SoloExternalized{
 				Slot_index: slotIndex,
