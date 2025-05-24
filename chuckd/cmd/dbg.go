@@ -30,7 +30,7 @@ var (
 		Short: "ping and xdr endpoint",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				err := PingService(ctx, dbgService, dbgFn, dbgAddress)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%v\n", err)

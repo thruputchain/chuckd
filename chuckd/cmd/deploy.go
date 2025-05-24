@@ -23,7 +23,7 @@ var (
 		Short: "generate a broadcast benchmark k8s config",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				fmt.Println(k8s.BenchBroadcastBlueprint(ctx, runtime.NewRandFromRoot(), deployNumVs))
 			})
 		},
@@ -34,7 +34,7 @@ var (
 		Short: "generate a testcluster benchmark k8s config",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				fmt.Println(k8s.BenchTestClusterBlueprint(ctx, runtime.NewRandFromRoot(), deployNumVs, deployTPS))
 			})
 		},
@@ -45,7 +45,7 @@ var (
 		Short: "generate a local testcluster benchmark deploy shell script",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				fmt.Println(metal.BenchTestClusterShell(ctx, runtime.NewRandFromRoot(), deployNumVs, deployTPS))
 			})
 		},

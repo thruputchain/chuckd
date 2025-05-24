@@ -3,6 +3,7 @@ package broadcast
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/log"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -81,10 +82,10 @@ func (q *queue) loop(ctx context.Context) {
 						protoutil.VPublicShortString(q.to),
 						protoutil.VPublicShortString(q.from),
 						err)
-					q.metrics.NumNotSent.Add(ctx, 1)
+					q.metrics.NumNotSent.Add(ctx, 1, libmetrics.WithCtxAttributes(ctx))
 				} else {
-					q.metrics.NumSent.Add(ctx, 1)
-					q.metrics.SendThroughput.Add(ctx, int64(len(d.Msg.Payload)))
+					q.metrics.NumSent.Add(ctx, 1, libmetrics.WithCtxAttributes(ctx))
+					q.metrics.SendThroughput.Add(ctx, int64(len(d.Msg.Payload)), libmetrics.WithCtxAttributes(ctx))
 				}
 			}
 		}

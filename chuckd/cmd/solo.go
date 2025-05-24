@@ -23,7 +23,7 @@ var (
 		Short: "start the solo scp leader server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				cfg := LoadConfig(ctx)
 				srv := leader.NewSoloLeaderService(
 					ctx,

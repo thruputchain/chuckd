@@ -4,11 +4,13 @@ import (
 	benchbroadcast "github.com/groundhogchain/chuckd/bench/broadcast"
 	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var (
@@ -24,7 +26,11 @@ var (
 		Short: "start testcluster benchmark server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
+				ctx = libmetrics.WithMetricAttributes(ctx,
+					attribute.String("cmd", "bench testcluster"),
+					attribute.Int64("tps", benchTPS),
+				)
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				srv := testcluster.NewTestClusterSystem(
@@ -46,7 +52,14 @@ var (
 		Short: "start broadcast benchmark server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
+				ctx = libmetrics.WithMetricAttributes(ctx,
+					attribute.String("cmd", "bench broadcast"),
+					attribute.Int("tree_fan_out", benchTreeFanOut),
+					attribute.Int("payload_size", benchPaySize),
+					attribute.Int("payloads_per_channel", benchPayPerChannel),
+					attribute.Int("num_iterations", benchNumIterations),
+				)
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				srv := benchbroadcast.NewBroadcastBenchmark(

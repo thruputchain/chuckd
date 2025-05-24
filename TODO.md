@@ -1,7 +1,7 @@
 - [ ] coordinator restore database at min height of all shards
 - [ ] demo churn transactions
 
-- [ ] fix rpc driver race 244/265
+- [x] fix rpc driver race 244/265
 
 - [ ] Validatevalue should block until the batches arrive? 
   - [ ] with deadline

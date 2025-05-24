@@ -15,6 +15,7 @@ import (
 )
 
 type BroadcastService struct {
+	ctx      context.Context
 	cfg      proto.BroadcastConfig
 	net      libnet.Network
 	privInfo proto.ValidatorPrivateInfo
@@ -48,6 +49,7 @@ func NewBroadcastService(
 	log.Infof("starting broadcast service for %s", protoutil.VPublicShortString(privInfo.Public_info))
 	m := NewBroadcastMetrics(ctx)
 	s := &BroadcastService{
+		ctx:      ctx,
 		cfg:      cfg,
 		net:      n,
 		privInfo: privInfo,

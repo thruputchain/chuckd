@@ -22,7 +22,7 @@ var (
 		Short: "start coordinator server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				srv := system.NewSystem(

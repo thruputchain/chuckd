@@ -19,7 +19,7 @@ type sending struct {
 }
 
 func newSending(
-	_ context.Context,
+	ctx context.Context, // must be a long-lived context
 	svc *BroadcastService,
 	channel Channel,
 	treeNodes MulticastTreeNodes,
@@ -28,7 +28,7 @@ func newSending(
 	queues := make([]*queue, len(children))
 	for i := range children {
 		queues[i] = newQueue(
-			context.Background(), // make new context because the calling ctx (from an rpc) is short-lived
+			ctx,
 			svc.metrics.DeliveryQueueMetrics(),
 			svc.net,
 			svc.ValidatorPublicInfo(),

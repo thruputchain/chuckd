@@ -27,9 +27,7 @@ func flushMemProfile(memProfilePath string) {
 	}
 }
 
-func Invoke(f func()) error {
-
-	ctx := context.Background()
+func Invoke(ctx context.Context, f func()) error {
 
 	hooks := []func(){}
 

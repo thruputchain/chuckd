@@ -15,7 +15,7 @@ func (s *broadcastAPI) MakeChannel(ctx context.Context) SendChannel {
 }
 
 func (s *broadcastAPI) makeChannel(
-	ctx context.Context,
+	_ context.Context,
 	batchCount int64,
 	batchSize int64,
 	batchHash proto.BroadcastBatchHash,
@@ -34,7 +34,7 @@ func (s *broadcastAPI) makeChannel(
 		Batch_size:  batchSize,
 		Batch_hash:  batchHash,
 	}
-	sch := newSending(ctx, s.svc, ch, treeNodes, children)
+	sch := newSending(s.svc.ctx, s.svc, ch, treeNodes, children)
 
 	s.svc.sending[ch] = sch
 	s.svc.trees.Ref(treeHash, treeNodes)

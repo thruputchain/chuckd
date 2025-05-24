@@ -58,7 +58,7 @@ func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Del
 			svc.lk.Unlock()
 			return nil // discard
 		}
-		svc.accepting[channel] = newAccepting(ctx, svc, delivery)
+		svc.accepting[channel] = newAccepting(svc.ctx, svc, delivery)
 		svc.lk.Unlock()
 	}
 	return nil

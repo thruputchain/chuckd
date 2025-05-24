@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -22,7 +23,7 @@ type receiving struct {
 }
 
 func newReceiving(
-	ctx context.Context,
+	ctx context.Context, // must be a long-lived context
 	svc *BroadcastService,
 	channel Channel,
 	treeNodes MulticastTreeNodes,
@@ -32,7 +33,7 @@ func newReceiving(
 	streams := make([]*queue, len(children))
 	for i := range children {
 		streams[i] = newQueue(
-			context.Background(), // make new context because the calling ctx (from an rpc) is short-lived
+			ctx,
 			svc.metrics.DeliveryQueueMetrics(),
 			svc.net,
 			svc.ValidatorPublicInfo(),
@@ -73,10 +74,10 @@ func (x *receiving) deliver(ctx context.Context, delivery Delivery) {
 
 	x.received = append(x.received, msg)
 
-	x.svc.metrics.NumReceived.Add(ctx, 1)
-	x.svc.metrics.NumNotReceived.Add(ctx, int64(msg.Header.Seqno)-x.nextSeqNo)
+	x.svc.metrics.NumReceived.Add(ctx, 1, libmetrics.WithCtxAttributes(ctx))
+	x.svc.metrics.NumNotReceived.Add(ctx, int64(msg.Header.Seqno)-x.nextSeqNo, libmetrics.WithCtxAttributes(ctx))
 	x.nextSeqNo = int64(msg.Header.Seqno) + 1
-	x.svc.metrics.ReceiveThroughput.Add(ctx, int64(len(delivery.Msg.Payload)))
+	x.svc.metrics.ReceiveThroughput.Add(ctx, int64(len(delivery.Msg.Payload)), libmetrics.WithCtxAttributes(ctx))
 }
 
 func (x *receiving) relay(ctx context.Context, delivery Delivery) {

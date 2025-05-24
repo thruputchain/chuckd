@@ -27,7 +27,7 @@ var (
 		Short: "initialize identity and create barebones config",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				vcfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
 				cfg := proto.Config{
 					Validator_config: vcfg,
@@ -54,7 +54,7 @@ var (
 		Short: "generate a group of configs",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(func() {
+			return api.Invoke(ctx, func() {
 				vcfgs := protoutil.GenerateConfigs(ctx, runtime.NewCryptoRand(ctx), configGroupSize)
 				cfgs := make([]*proto.Config, len(vcfgs))
 				for i := range vcfgs {
