@@ -86,10 +86,11 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 		return
 	}
 
-	vCtx, vCtxCancel := context.WithCancel(ctx) //XXX: add deadline
+	// this context will be cancelled upon new externalizations or commits
+	vCtx, vCtxCancel := context.WithCancel(ctx)
 	defer vCtxCancel()
 	go func() {
-		b.WaitTipOrConsensusGrow(vCtx, proposal.Block_height) // cancel ctx if tip or ext moves
+		b.WaitGrowBeyond(vCtx, proposal.Block_height-1) // cancel ctx if tip or ext moves
 		vCtxCancel()
 	}()
 

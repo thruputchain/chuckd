@@ -2,9 +2,7 @@
 - [ ] demo churn transactions
 
 - [x] fix rpc driver race 244/265
-
-- [ ] Validatevalue should block until the batches arrive? 
-  - [ ] with deadline
+- [x] Validatevalue should block until the batches arrive? 
 
 
 ROADMAP

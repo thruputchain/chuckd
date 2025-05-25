@@ -172,7 +172,7 @@ func (b *Baton) drive(ctx context.Context) {
 	}
 }
 
-func (b *Baton) WaitTipOrConsensusGrow(ctx context.Context, height proto.BlockHeight) {
+func (b *Baton) WaitGrowBeyond(ctx context.Context, height proto.BlockHeight) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {
@@ -181,11 +181,19 @@ func (b *Baton) WaitTipOrConsensusGrow(ctx context.Context, height proto.BlockHe
 			return
 		default:
 		}
-
-		if b.tip.Height > height {
+		if b.seenExternalizationsAbove(height) {
 			return
 		}
-
 		b.cond.Wait()
 	}
+}
+
+func (b *Baton) seenExternalizationsAbove(height proto.BlockHeight) bool {
+	if b.tip.Height > height {
+		return true
+	}
+	if len(b.externalized) == 0 {
+		return false
+	}
+	return b.externalized[len(b.externalized)-1].Block_height > height
 }
