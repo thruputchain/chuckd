@@ -23,7 +23,7 @@ func NewDriver(ctx context.Context, t rpc.Transport) *rpc.Driver {
 }
 
 func Start(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv) net.Listener {
-	l, err := n.ListenAddress(addr)
+	l, err := n.ListenAddress(ctx, addr)
 	must.NoError(ctx, err)
 	go func() {
 		defer l.Close()

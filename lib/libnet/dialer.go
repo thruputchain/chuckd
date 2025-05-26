@@ -1,6 +1,10 @@
 package libnet
 
-import "net"
+import (
+	"context"
+	"io"
+	"net"
+)
 
 type Network interface {
 	AddressListener
@@ -8,12 +12,18 @@ type Network interface {
 	String() string
 }
 
+type Conn interface {
+	io.Reader
+	io.Writer
+	io.Closer
+}
+
 type AddressListener interface {
-	ListenAddress(address string) (net.Listener, error)
+	ListenAddress(ctx context.Context, address string) (net.Listener, error)
 }
 
 type AddressDialer interface {
-	DialAddress(address string) (net.Conn, error)
+	DialAddress(ctx context.Context, address string) (net.Conn, error)
 }
 
 type TCPNet struct{}
@@ -22,10 +32,10 @@ func (TCPNet) String() string {
 	return "tcp"
 }
 
-func (TCPNet) ListenAddress(address string) (net.Listener, error) {
+func (TCPNet) ListenAddress(ctx context.Context, address string) (net.Listener, error) {
 	return net.Listen("tcp", address)
 }
 
-func (TCPNet) DialAddress(address string) (net.Conn, error) {
+func (TCPNet) DialAddress(ctx context.Context, address string) (net.Conn, error) {
 	return net.Dial("tcp", address)
 }

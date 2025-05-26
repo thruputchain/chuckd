@@ -24,7 +24,7 @@ func DialCoordinatorClientTCP(ctx context.Context, address string) (*Coordinator
 }
 
 func DialCoordinatorClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*CoordinatorClient, error) {
-	sock, err := dialer.DialAddress(address)
+	sock, err := dialer.DialAddress(ctx, address)
 	if err != nil {
 		return nil, err
 	}

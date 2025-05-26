@@ -17,7 +17,7 @@ type BroadcastClient struct {
 }
 
 func DialBroadcastClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*BroadcastClient, error) {
-	sock, err := dialer.DialAddress(addr)
+	sock, err := dialer.DialAddress(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

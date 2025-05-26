@@ -16,7 +16,7 @@ type CatchupClient struct {
 }
 
 func DialCatchupClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*CatchupClient, error) {
-	sock, err := dialer.DialAddress(addr)
+	sock, err := dialer.DialAddress(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

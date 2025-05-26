@@ -16,7 +16,7 @@ type SoloFollowerClient struct {
 }
 
 func DialSoloFollowerClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*SoloFollowerClient, error) {
-	sock, err := dialer.DialAddress(addr)
+	sock, err := dialer.DialAddress(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ type DiscoveryClient struct {
 }
 
 func DialDiscoveryClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*DiscoveryClient, error) {
-	sock, err := dialer.DialAddress(address)
+	sock, err := dialer.DialAddress(ctx, address)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ type DbCoordClient struct {
 }
 
 func DialDbCoordClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*DbCoordClient, error) {
-	sock, err := dialer.DialAddress(address)
+	sock, err := dialer.DialAddress(ctx, address)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ type ShardClient struct {
 }
 
 func DialShardClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*ShardClient, error) {
-	sock, err := dialer.DialAddress(address)
+	sock, err := dialer.DialAddress(ctx, address)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package testnet
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -23,11 +24,11 @@ func (x *TestNetwork) String() string {
 	return "testnet"
 }
 
-func (x *TestNetwork) DialAddress(address string) (net.Conn, error) {
-	return x.Dial("", address)
+func (x *TestNetwork) DialAddress(ctx context.Context, address string) (net.Conn, error) {
+	return x.Dial(ctx, "", address)
 }
 
-func (x *TestNetwork) Dial(network string, address string) (net.Conn, error) {
+func (x *TestNetwork) Dial(ctx context.Context, network string, address string) (net.Conn, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
@@ -39,11 +40,11 @@ func (x *TestNetwork) Dial(network string, address string) (net.Conn, error) {
 	return l.dial(), nil
 }
 
-func (x *TestNetwork) Listen(network string, address string) (net.Listener, error) {
-	return x.ListenAddress(address)
+func (x *TestNetwork) Listen(ctx context.Context, network string, address string) (net.Listener, error) {
+	return x.ListenAddress(ctx, address)
 }
 
-func (x *TestNetwork) ListenAddress(address string) (net.Listener, error) {
+func (x *TestNetwork) ListenAddress(ctx context.Context, address string) (net.Listener, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 

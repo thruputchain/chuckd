@@ -2,17 +2,19 @@ package testnet
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"testing"
 )
 
 func TestDialAccept(t *testing.T) {
 
+	ctx := context.Background()
 	testAddress := "alpha"
 	testPkt := []byte{1, 2, 3}
 
 	v := NewTestNetwork()
-	l, _ := v.Listen("", testAddress)
+	l, _ := v.Listen(ctx, "", testAddress)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -34,7 +36,7 @@ func TestDialAccept(t *testing.T) {
 		c.Close()
 	}()
 
-	c, _ := v.Dial("", testAddress)
+	c, _ := v.Dial(ctx, "", testAddress)
 	n, err := c.Write(testPkt)
 	if n != 3 {
 		t.Errorf("expecting 3, got %d", n)
