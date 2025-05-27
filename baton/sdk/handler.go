@@ -27,7 +27,7 @@ type Handler interface {
 	BatchMempool
 	TransactionMempool
 	CommittedTransactionMempool
-	Dissemination
+	BatchDisseminator
 	Consensus
 
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
@@ -97,6 +97,10 @@ type Consensus interface {
 	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
 }
 
-type Dissemination interface {
-	Disseminate(ctx context.Context, value *proto.BatchMessage)
+type BatchDisseminator interface {
+	DisseminateBatch(ctx context.Context, value *proto.BatchMessage)
+}
+
+type BagDisseminator interface {
+	DisseminateBag(ctx context.Context, value *proto.BagMessage)
 }
