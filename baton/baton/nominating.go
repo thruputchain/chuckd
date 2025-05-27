@@ -92,7 +92,7 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip, uncommittedTxs []*pro
 	b.handler.AddBatch(ctx, batch)
 
 	// disseminate batches; this is non-blocking (no network ops)
-	b.handler.Disseminate(ctx, &proto.BatchMessage{Batch_transactions: batch})
+	b.handler.DisseminateBatch(ctx, &proto.BatchMessage{Batch_transactions: batch})
 
 	// nominate to consensus
 	prevSummary := proto.PrevProposalSummary{

@@ -76,7 +76,7 @@ func (x *LiveHandler) SetSCP(scp api.SCPController) {
 	close(x.live)
 }
 
-func (x *LiveHandler) Disseminate(ctx context.Context, value *proto.BatchMessage) {
+func (x *LiveHandler) DisseminateBatch(ctx context.Context, value *proto.BatchMessage) {
 	<-x.live
 	x.multiplex.SendBatch(ctx, value)
 }

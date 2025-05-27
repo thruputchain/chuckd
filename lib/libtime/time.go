@@ -8,6 +8,7 @@ import (
 type Time interface {
 	Now() time.Time
 	Sleep(time.Duration)
+	After(time.Duration) <-chan time.Time
 }
 
 type RealTime struct{}
@@ -18,6 +19,10 @@ func (RealTime) Now() time.Time {
 
 func (RealTime) Sleep(d time.Duration) {
 	time.Sleep(d)
+}
+
+func (RealTime) After(d time.Duration) <-chan time.Time {
+	return time.After(d)
 }
 
 type TestTime struct {
@@ -56,4 +61,18 @@ func (tt *TestTime) Sleep(d time.Duration) {
 	for tt.now.Sub(asleep) < d {
 		tt.cond.Wait()
 	}
+}
+
+func (tt *TestTime) After(d time.Duration) <-chan time.Time {
+	ch := make(chan time.Time, 1)
+	asleep := tt.now
+	go func() {
+		tt.lk.Lock()
+		defer tt.lk.Unlock()
+		for tt.now.Sub(asleep) < d {
+			tt.cond.Wait()
+		}
+		ch <- tt.now
+	}()
+	return ch
 }

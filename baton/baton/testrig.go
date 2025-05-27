@@ -91,7 +91,7 @@ func (h *TestRig) Emit(ctx context.Context, event any) {
 	h.TestBus.SendEvent(h.TestTime.Now(), event)
 }
 
-func (h *TestRig) Disseminate(ctx context.Context, value *proto.BatchMessage) {
+func (h *TestRig) DisseminateBatch(ctx context.Context, value *proto.BatchMessage) {
 	h.disseminated <- value
 }
 
