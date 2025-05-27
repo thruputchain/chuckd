@@ -1,8 +1,13 @@
-- [ ] coordinator restore database at min height of all shards
-- [ ] demo churn transactions
-
 - [x] fix rpc driver race 244/265
-- [x] Validatevalue should block until the batches arrive? 
+
+
+
+- [ ] send user txs in bags
+- [ ] proposal select transactions as bag+bitmap
+- [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
+- [ ] multiplex bags
+
+
 
 
 ROADMAP
@@ -23,7 +28,6 @@ XDR
 - [ ] implement SprintXDR (use xdr textual)
 
 INFRA & BENCHMARK
-- [x] setup benchmark on local docker (three nodes)
 - [ ] setup us/asia benchmark on aws kubernetes
 - [ ] setup prometheus on aws
 
