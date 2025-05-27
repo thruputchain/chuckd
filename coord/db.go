@@ -18,13 +18,31 @@ func (svc *CoordinatorService) dbIsReady() bool {
 	return svc.dbIsUp && svc.dbIsRestored
 }
 
+func (svc *CoordinatorService) findCompleteDbMinShardHeight() (xdrutil.ShardCards, proto.BlockHeight, bool) {
+	byCount := map[int]xdrutil.ShardCards{} // shard count -> shards
+	for _, card := range svc.db {
+		byCount[int(card.Shard_count)] = append(byCount[int(card.Shard_count)], card)
+	}
+	for count, shards := range byCount {
+		if count <= 0 || count != len(shards) {
+			continue
+		}
+		minHeight := shards[0].Block_height
+		for _, card := range shards {
+			minHeight = min(minHeight, card.Block_height)
+		}
+		return shards, minHeight, true
+	}
+	return nil, 0, false
+}
+
 // findCompleteDb returns a list of db shards of highest block height that form a complete cluster.
 // It returns nil if there is no complete db cluster.
 // A set of shards is deemed complete if:
 // - it is not empty
 // - all shards report the same block height and total shard count
 // - the shard count matches the reported count
-func (svc *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
+func (svc *CoordinatorService) findCompleteDbMatchShardHeight() (xdrutil.ShardCards, proto.BlockHeight, bool) {
 	byHeight := map[proto.BlockHeight]xdrutil.ShardCards{} // block_height -> shards
 	for _, dbc := range svc.db {
 		byHeight[dbc.Block_height] = append(byHeight[dbc.Block_height], dbc)
@@ -42,7 +60,7 @@ func (svc *CoordinatorService) findCompleteDb() xdrutil.ShardCards {
 			}
 		}
 	}
-	return foundShards
+	return foundShards, foundHeight, foundReady
 }
 
 func isShardCountComplete(shards xdrutil.ShardCards) bool {

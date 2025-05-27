@@ -53,7 +53,7 @@ func TestShardCompleteness(t *testing.T) {
 		Address:      ad1,
 	})
 
-	if len(s.findCompleteDb()) > 0 {
+	if _, _, ready := s.findCompleteDbMatchShardHeight(); ready {
 		t.Fatalf("db should not be ready")
 	}
 
@@ -64,7 +64,7 @@ func TestShardCompleteness(t *testing.T) {
 		Address:      ad2,
 	})
 
-	if len(s.findCompleteDb()) > 0 {
+	if _, _, ready := s.findCompleteDbMatchShardHeight(); ready {
 		t.Fatalf("db should not be ready")
 	}
 
@@ -75,7 +75,7 @@ func TestShardCompleteness(t *testing.T) {
 		Address:      ad3,
 	})
 
-	if len(s.findCompleteDb()) == 0 {
+	if _, _, ready := s.findCompleteDbMatchShardHeight(); !ready {
 		t.Fatalf("db should be ready")
 	}
 

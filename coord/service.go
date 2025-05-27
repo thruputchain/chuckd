@@ -14,9 +14,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// XXX: how do we cleanup stale cards? blocked on xdr defs
-
 type CoordinatorService struct {
+	ctx context.Context
 	net libnet.Network
 	//
 	upid proto.UPID
@@ -37,6 +36,7 @@ func NewCoordinatorService(ctx context.Context, n libnet.Network, rr *rand.Rand)
 	upid, err := GenerateUPID(rr.Uint64())
 	must.NoError(ctx, err)
 	cs := &CoordinatorService{
+		ctx:  ctx,
 		net:  n,
 		upid: upid,
 		db:   map[proto.UPID]proto.ShardCard{},

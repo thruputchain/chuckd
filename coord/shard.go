@@ -17,19 +17,19 @@ func (svc *CoordinatorService) Coordinator_null(ctx context.Context) error {
 func (svc *CoordinatorService) Coordinator_intro_shard(ctx context.Context, card proto.ShardCard) (proto.IntroShardResult, error) {
 	svc.lk.Lock()
 	svc.db[card.Upid] = card
-	shards := svc.findCompleteDb()
+	shards, height, ready := svc.findCompleteDbMinShardHeight()
 	svc.lk.Unlock()
 
-	svc.prepareDb(shards)
+	if ready {
+		go svc.prepareDb(shards, height)
+	}
 
 	return proto.IntroShardResult{Cc: svc.Card()}, nil
 }
 
-func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
-	ctx := context.TODO()
-	if len(shards) == 0 {
-		return
-	}
+func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards, height proto.BlockHeight) {
+	ctx := svc.ctx
+	must.Assertf(ctx, len(shards) > 0, "no shards")
 
 	svc.dbLk.Lock()
 	defer svc.dbLk.Unlock()
@@ -52,7 +52,8 @@ func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards) {
 
 				c, err := shard.DialShardClient(ctx, svc.net, s.Address)
 				must.NoError(ctx, err)
-				_, err = c.Shard_restore(ctx, s.Block_height)
+				defer c.Close()
+				_, err = c.Shard_restore(ctx, height)
 				must.NoError(ctx, err)
 			}(sh)
 		}
