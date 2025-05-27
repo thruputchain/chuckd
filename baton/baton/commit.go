@@ -80,7 +80,7 @@ func (b *Baton) finalizeCommit(
 		Prev_block_hash:       vb.PrevBlockHash,
 		Proposed_transactions: protoutil.PackProposedTransactions(vb.ProposedTransactions),
 	})
-	b.handler.Emit(ctx, EventCommitted{ValidatableBlock: vb, BlockID: blockID})
+	b.handler.Emit(ctx, sdk.EventCommitted{ValidatableBlock: vb, BlockID: blockID})
 
 	return blockID, nil
 }

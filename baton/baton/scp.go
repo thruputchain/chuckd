@@ -115,7 +115,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 
 	go func() {
 		blockID, err := b.validateClose(ctx, vb)
-		if err == ErrNotValid {
+		if err == sdk.ErrNotValid {
 			liblog.Infof("cannot validate, inconsistent")
 			reply <- api.InvalidValue
 			return

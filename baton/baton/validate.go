@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
@@ -13,103 +14,6 @@ import (
 type validated struct {
 	*proto.Proposal
 	proto.BlockID
-}
-
-var ErrNotValid = fmt.Errorf("proposal not valid")
-
-func (b *Baton) validate(ctx context.Context, vb *sdk.ValidatableBlock, db sdk.DbCoordConn, blockID proto.BlockID) error {
-
-	b.handler.Emit(ctx, EventValidating{ValidatableBlock: vb, BlockID: blockID})
-
-	// db create snapshot
-	dbResult, err := db.Dbcoord_create_snapshot(ctx, vb.DbTip.ID, blockID, proto.KBlockExecutionModeValidation)
-	if err != nil {
-		return err
-	}
-	if dbResult != proto.DbResultOK {
-		return fmt.Errorf("db create snapshot error")
-	}
-
-	// connect to available executors
-	execs, err := b.handler.DialExecs(ctx)
-	if err != nil {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return err
-	}
-	if len(execs) == 0 {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return ErrNoExecs
-	}
-	for _, exec := range execs {
-		defer exec.Close()
-	}
-
-	// validate all transactions
-	txCh := make(chan *proto.ProposedTransaction, len(vb.ProposedTransactions))
-	for _, tx := range vb.ProposedTransactions {
-		txCh <- tx
-	}
-	close(txCh)
-
-	validatedCh := make(chan error, len(execs))
-	for _, exec := range execs {
-		go func(exec sdk.ExecCoordConn) {
-
-			// executor open validation block
-			execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
-			if err != nil {
-				validatedCh <- err
-				return
-			}
-			if execResult != proto.ExecResultOK {
-				validatedCh <- fmt.Errorf("executor open validation block rpc error")
-				return
-			}
-
-			for tx := range txCh {
-				select {
-				case <-ctx.Done():
-					validatedCh <- fmt.Errorf("context cancelled")
-				default:
-				}
-
-				execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
-				if err != nil {
-					validatedCh <- err // networking error
-					return
-				}
-				if execResult != proto.ExecResultOK {
-					validatedCh <- ErrNotValid
-					return
-				}
-			}
-
-			// executor finish validation block
-			err = exec.Executorcoord_finish_block(ctx, blockID)
-			if err != nil {
-				validatedCh <- fmt.Errorf("executor finish error: %v", err)
-				return
-			}
-
-			validatedCh <- nil
-
-		}(exec)
-	}
-	var verr error
-	for range execs {
-		if err := <-validatedCh; verr == nil || err == ErrNotValid { // prioritize ErrNotValid over networking errors
-			verr = err
-		}
-	}
-	if verr != nil {
-		// db abandon snapshot
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return verr
-	}
-
-	b.handler.Emit(ctx, EventValidated{ValidatableBlock: vb, BlockID: blockID})
-
-	return nil
 }
 
 func (b *Baton) validateCommit(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
@@ -123,7 +27,7 @@ func (b *Baton) validateCommit(ctx context.Context, vb *sdk.ValidatableBlock) (p
 
 	blockID := b.handler.GenerateBlockID(ctx)
 
-	if err = b.validate(ctx, vb, db, blockID); err != nil {
+	if err = validate.Validate(ctx, b.handler, vb, db, blockID); err != nil {
 		return 0, err
 	}
 
@@ -140,7 +44,7 @@ func (b *Baton) validateClose(ctx context.Context, vb *sdk.ValidatableBlock) (pr
 
 	blockID := b.handler.GenerateBlockID(ctx)
 
-	if err = b.validate(ctx, vb, db, blockID); err != nil {
+	if err = validate.Validate(ctx, b.handler, vb, db, blockID); err != nil {
 		return 0, err
 	}
 
@@ -167,7 +71,7 @@ func (b *Baton) finalizeValidateClose(
 	if *dbBlockResult.Block_hash() != vb.BlockHash {
 		liblog.Infof("cannot validate, resulting block hash %v != proposed block hash %v",
 			form.Display(*dbBlockResult.Block_hash()), form.Display(vb.BlockHash))
-		return ErrNotValid
+		return sdk.ErrNotValid
 	}
 
 	return nil

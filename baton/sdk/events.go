@@ -1,16 +1,15 @@
-package baton
+package sdk
 
 import (
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type EventNominating struct {
 	Nominating any
-	Tip        sdk.Tip
+	Tip        Tip
 	NumTx      int
 	Proposal   *proto.Proposal
 }
@@ -21,7 +20,7 @@ func (x EventNominating) String() string {
 
 type EventNominated struct {
 	Nominated any
-	Tip       sdk.Tip
+	Tip       Tip
 	NumTx     int
 	Proposal  *proto.Proposal
 }
@@ -32,7 +31,7 @@ func (x EventNominated) String() string {
 
 type EventCommitted struct {
 	Committed any
-	*sdk.ValidatableBlock
+	*ValidatableBlock
 	proto.BlockID
 }
 
@@ -42,7 +41,7 @@ func (x EventCommitted) String() string {
 
 type EventValidating struct {
 	Validating any
-	*sdk.ValidatableBlock
+	*ValidatableBlock
 	proto.BlockID
 }
 
@@ -52,7 +51,7 @@ func (x EventValidating) String() string {
 
 type EventValidated struct {
 	Validated any
-	*sdk.ValidatableBlock
+	*ValidatableBlock
 	proto.BlockID
 }
 
