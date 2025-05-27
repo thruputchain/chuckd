@@ -8,12 +8,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type Handler interface {
-	GenerateBlockID(context.Context) proto.BlockID
-	DialDb(context.Context) (sdk.DbCoordConn, error)
-	DialExecs(context.Context) ([]sdk.ExecCoordConn, error)
-}
-
 type Nomination struct {
 	BlockID       proto.BlockID
 	BlockHeight   proto.BlockHeight
@@ -31,7 +25,7 @@ type proposed struct {
 // PrepareNomination can be aborted by cancelling the context.
 func PrepareNomination(
 	ctx context.Context,
-	handler Handler,
+	handler sdk.VPCHandler,
 	tip sdk.Tip,
 	txs []*proto.SignedTransaction,
 ) (*Nomination, error) {

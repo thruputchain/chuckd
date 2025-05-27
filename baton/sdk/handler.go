@@ -10,6 +10,17 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
+// VPCHandler is a subset of Handler
+type VPCHandler interface {
+	TransactionMempool
+	CommittedTransactionMempool
+	Committed(context.Context, *proto.CatchupBlock)
+	GenerateBlockID(context.Context) proto.BlockID
+	DialDb(context.Context) (DbCoordConn, error)
+	DialExecs(context.Context) ([]ExecCoordConn, error)
+	Emit(ctx context.Context, event any)
+}
+
 type Handler interface {
 	protoutil.Signatory
 	libtime.Time

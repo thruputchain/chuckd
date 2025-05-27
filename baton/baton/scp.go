@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/api"
@@ -114,7 +115,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 	}
 
 	go func() {
-		blockID, err := b.validateClose(ctx, vb)
+		blockID, err := validate.ValidateClose(ctx, b.handler, vb)
 		if err == sdk.ErrNotValid {
 			liblog.Infof("cannot validate, inconsistent")
 			reply <- api.InvalidValue

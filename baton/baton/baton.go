@@ -42,6 +42,11 @@ type Baton struct {
 	validated       map[proto.BlockHash]validated
 }
 
+type validated struct {
+	*proto.Proposal
+	proto.BlockID
+}
+
 func (b *Baton) lock(context.Context) {
 	b.lk.Lock()
 }
