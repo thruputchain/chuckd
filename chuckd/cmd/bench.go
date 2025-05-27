@@ -2,6 +2,7 @@ package cmd
 
 import (
 	benchbroadcast "github.com/groundhogchain/chuckd/bench/broadcast"
+	"github.com/groundhogchain/chuckd/bench/loadgen"
 	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libmetrics"
@@ -21,6 +22,28 @@ var (
 		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
+	benchLoadGenCmd = &cobra.Command{
+		Use:   "loadgen",
+		Short: "start load generator benchmark server",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+				ctx = libmetrics.WithMetricAttributes(ctx,
+					attribute.String("cmd", "bench loadgen"),
+					attribute.Int("txs_per_block", benchTPB),
+				)
+				srv := loadgen.NewLoadGenBench(
+					ctx,
+					runtime.NewRandFromRoot(),
+					libnet.TCPNet{},
+					benchTPB,
+				)
+				srv.Start(ctx, benchInAddress)
+				select {}
+			})
+		},
+	}
+
 	benchTestClusterCmd = &cobra.Command{
 		Use:   "testcluster",
 		Short: "start testcluster benchmark server",
@@ -29,7 +52,7 @@ var (
 			return api.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench testcluster"),
-					attribute.Int64("tps", benchTPS),
+					attribute.Int64("txs_per_sec", benchTPS),
 				)
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
@@ -85,10 +108,11 @@ var (
 	benchPayPerChannel int
 	benchNumIterations int
 	//
-	// benchInAddress     string
+	benchInAddress     string
 	benchOutAddress    string
 	benchWalletAddress string
 	benchTPS           int64
+	benchTPB           int
 )
 
 func init() {
@@ -102,8 +126,11 @@ func init() {
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "iterations", 1, "number of iterations")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
-	// benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
-	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 10000, "transactions per second")
+	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")
+
+	benchCmd.AddCommand(benchLoadGenCmd)
+	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
+	benchLoadGenCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
 }
