@@ -47,6 +47,9 @@ type System struct {
 	Transaction *mempool.TransactionMempool
 	Committed   *mempool.CommittedMempool
 	//
+	Bag       *mempool.BagMempool
+	Submitter *Submitter
+	//
 	Wallet *wallet.WalletGateway
 	//
 	insideSrv  *Server
@@ -118,6 +121,17 @@ func NewSystem(
 		sys.Multiplex,
 		runtime.NewRandFromRand(rr),
 	)
+
+	// XXX
+	// sys.Bag = mempool.NewBagMempool(ctx, libtime.RealTime{}, txTTL)
+	// sys.Submitter = NewSubmitter(
+	// 	ctx,
+	// 	libtime.RealTime{},
+	// 	sys.Bag,
+	// 	sys.Live,
+	// 	Bag_size,
+	// 	Bag_wait_msec,
+	// )
 
 	sys.Baton = baton.NewBaton(ctx, sys.Live)
 	sys.Follower = follower.NewSoloFollowerService(

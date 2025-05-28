@@ -44,18 +44,23 @@ func (x *Submitter) SubmitTx(ctx context.Context, tx *proto.SignedTransaction) {
 }
 
 func (x *Submitter) loop(ctx context.Context) {
-	var pending []*proto.SignedTransaction
 	for { // bag loop
+		var pending []proto.SignedTransaction
 		wake := x.time.After(x.bagWait)
+	fill:
 		for len(pending) < x.bagSize {
 			select {
 			case tx := <-x.ch:
-				XXX
+				pending = append(pending, *tx)
 			case <-ctx.Done():
-				XXX
+				return
 			case <-wake:
-				XXX
+				break fill
 			}
 		}
+
+		bag := proto.BagTransactions{Transactions: pending}
+		x.poolbag.AddBag(ctx, bag)
+		x.disseminator.DisseminateBag(ctx, &proto.BagMessage{Bag_transactions: bag})
 	}
 }
