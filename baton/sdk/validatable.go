@@ -16,6 +16,6 @@ type ValidatableBlock struct {
 	DbTip Tip
 
 	// a copy of the latest nomination or recent validation, if it matches the block to validate;
-	AlreadyValidatedProposal *proto.Proposal
-	AlreadyValidatedBlockID  *proto.BlockID
+	AlreadyValidatedNomination *proto.Nomination
+	AlreadyValidatedBlockID    *proto.BlockID
 }

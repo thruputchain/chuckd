@@ -30,7 +30,7 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	b.catchupBlocks = catchup
 
 	// purge consensus blocks
-	var props []*proto.Proposal
+	var props []*proto.Nomination
 	for _, p := range b.externalized {
 		if p.Block_height > b.tip.Height {
 			props = append(props, p)

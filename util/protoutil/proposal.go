@@ -1,14 +1,13 @@
 package protoutil
 
 import (
-	"crypto/sha256"
 	"sort"
 
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 func proposalHashNumber(p *proto.Proposal) int64 {
-	hash := sha256.Sum256(p.Block_hash[:]) // rehash to prevent dos
+	hash := p.Block_hash
 	// convert first 8 bytes to int64
 	var result int64
 	for i := 0; i < 8; i++ {

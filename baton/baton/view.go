@@ -94,9 +94,10 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		must.Assertf(ctx, proposal.Block_height > scpPrevHeight, "scp proposal heights not increasing")
 		scpPrevHeight = proposal.Block_height
 		//
+		txs, _ := b.handler.LookupTxs(ctx, proposal.Transaction_hashes)
 		v.Blocks[int(proposal.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
-			Proposal: proposal,
-			Batches:  b.fetchBatches(ctx, proposal.Proposed_transaction_batches),
+			Nomination: proposal,
+			Txs:        txs,
 		}
 	}
 
@@ -263,7 +264,7 @@ func (v *View) nextBlockToCommit(b *Baton) *sdk.ValidatableBlock {
 
 	// are we committing a block that we have already validated?
 	if vtd, ok := b.validated[vb.BlockHash]; ok {
-		vb.AlreadyValidatedProposal = vtd.Proposal
+		vb.AlreadyValidatedNomination = vtd.Nomination
 		vb.AlreadyValidatedBlockID = &vtd.BlockID
 	}
 
@@ -369,20 +370,20 @@ func (x ViewCatchupBlock) ValidatableBlock() *sdk.ValidatableBlock {
 }
 
 type ViewExternalizedBlock struct {
-	Proposal *proto.Proposal
-	Batches  map[proto.BatchHash][]*proto.ProposedTransaction
-	Catchup  *CatchupBlock // a catchup block can be used if tx batches are missing
+	Nomination *proto.Nomination
+	Txs        []*proto.SignedTransaction
+	Catchup    *CatchupBlock // a catchup block can be used if tx batches are missing
 }
 
-func (x ViewExternalizedBlock) BlockHash() proto.BlockHash     { return x.Proposal.Block_hash }
-func (x ViewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.Proposal.Block_height }
-func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.Proposal.Prev_block_hash }
+func (x ViewExternalizedBlock) BlockHash() proto.BlockHash     { return x.Nomination.Block_hash }
+func (x ViewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.Nomination.Block_height }
+func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.Nomination.Prev_block_hash }
 func (x ViewExternalizedBlock) IsReadyToValidate() bool {
 	// if a catchup block is placed inside an scp block, then it must link against it by design
 	return (!x.IsMissingTransactions()) || x.Catchup != nil
 }
 func (x ViewExternalizedBlock) IsMissingTransactions() bool {
-	return len(x.Batches) != len(x.Proposal.Proposed_transaction_batches)
+	return len(x.Txs) != len(x.Nomination.Transaction_hashes)
 }
 func (x ViewExternalizedBlock) IsMissing() bool { return false }
 func (x ViewExternalizedBlock) IsSCP() bool     { return true }
@@ -397,8 +398,12 @@ func (x ViewExternalizedBlock) ValidatableBlock() *sdk.ValidatableBlock {
 		txs = protoutil.UnpackProposedTransactions(x.Catchup.Block.Proposed_transactions)
 	} else {
 		fromConsensus = true
-		for _, batchTxs := range x.Batches {
-			txs = append(txs, batchTxs...)
+		txs = make([]*proto.ProposedTransaction, len(x.Nomination.Transaction_hashes))
+		for i := range txs {
+			txs[i] = &proto.ProposedTransaction{
+				Signed_tx:                      *x.Txs[i],
+				Nondeterministic_proposal_data: x.Nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
+			}
 		}
 	}
 	return &sdk.ValidatableBlock{

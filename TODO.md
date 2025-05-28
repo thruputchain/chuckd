@@ -1,20 +1,22 @@
 - [x] fix rpc driver race 244/265
 
 
-
-- [ ] send user txs in bags
-- [ ] proposal select transactions as bag+bitmap
 - [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
+
+
 
 
 - [ ] system
   - [ ] live SubmitTx
-  - [ ] multiplex receive bags
   - [ ] wallet use SubmitTx
 - [ ] baton
   - [ ] handler
   - [ ] logic
   - [ ] baton_test
+- [ ] address XXX
+- [ ] cleanup bag/batch/proposal structures
+
+
 
 
 

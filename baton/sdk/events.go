@@ -19,14 +19,14 @@ func (x EventNominating) String() string {
 }
 
 type EventNominated struct {
-	Nominated any
-	Tip       Tip
-	NumTx     int
-	Proposal  *proto.Proposal
+	Nominated  any
+	Tip        Tip
+	NumTx      int
+	Nomination *proto.Nomination
 }
 
 func (x EventNominated) String() string {
-	return fmt.Sprintf("NOMINATED [%d; %s]", x.Proposal.Block_height, form.Display(x.Proposal.Block_hash))
+	return fmt.Sprintf("NOMINATED [%d; %s]", x.Nomination.Block_height, form.Display(x.Nomination.Block_hash))
 }
 
 type EventCommitted struct {

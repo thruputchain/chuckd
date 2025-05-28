@@ -11,7 +11,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func ValidateClose(ctx context.Context, handler sdk.VPCHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func ValidateClose(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 
 	db, err := handler.DialDb(ctx)
 	if err != nil {
@@ -28,7 +28,7 @@ func ValidateClose(ctx context.Context, handler sdk.VPCHandler, vb *sdk.Validata
 	return blockID, finalizeValidateClose(ctx, vb, blockID, db)
 }
 
-func ValidateCommit(ctx context.Context, handler sdk.VPCHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func ValidateCommit(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 	liblog.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	db, err := handler.DialDb(ctx)
@@ -46,7 +46,7 @@ func ValidateCommit(ctx context.Context, handler sdk.VPCHandler, vb *sdk.Validat
 	return commit.FinalizeCommit(ctx, handler, vb, blockID, db)
 }
 
-func Validate(ctx context.Context, handler sdk.VPCHandler, vb *sdk.ValidatableBlock, db sdk.DbCoordConn, blockID proto.BlockID) error {
+func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock, db sdk.DbCoordConn, blockID proto.BlockID) error {
 
 	handler.Emit(ctx, sdk.EventValidating{ValidatableBlock: vb, BlockID: blockID})
 
