@@ -24,9 +24,9 @@ type scpHandler struct {
 func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values []api.Value) api.Value {
 	<-x.baton.scp
 
-	proposals := make(protoutil.ProposalsByHash, 0, len(values))
+	proposals := make(protoutil.NominationsByHash, 0, len(values))
 	for _, v := range values {
-		var p proto.Proposal
+		var p proto.Nomination
 		if err := xdrutil.UnmarshalXdr(&p, v); err != nil {
 			liblog.Errorf("unable to decode proposal for combining: %v", err)
 			break
@@ -47,9 +47,12 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	liblog.Infof("baton validate value for slot %d received", slot)
 	defer liblog.Infof("baton validate value completed")
 
-	var prop proto.Proposal
+	var prop proto.Nomination
 	err := xdrutil.UnmarshalXdr(&prop, value)
 	if err != nil {
+		return api.InvalidValue
+	}
+	if len(prop.Transaction_hashes) != len(prop.Transaction_nominations) {
 		return api.InvalidValue
 	}
 
@@ -58,7 +61,7 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	return <-reply
 }
 
-func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, reply chan<- api.ValidationLevel) {
+func (b *Baton) validateValue(ctx context.Context, proposal *proto.Nomination, reply chan<- api.ValidationLevel) {
 
 	b.lock(ctx)
 	dbTip := b.tip
@@ -95,15 +98,19 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 		vCtxCancel()
 	}()
 
-	ptxs := []*proto.ProposedTransaction{}
-	for _, batch := range proposal.Proposed_transaction_batches {
-		btxs, ok := b.handler.WaitBatch(vCtx, batch)
-		if !ok {
-			liblog.Infof("cannot validate, missing batches")
-			reply <- api.MaybeValidValue
-			return
+	txs, ok := b.handler.WaitTxs(ctx, proposal.Transaction_hashes)
+	if !ok {
+		liblog.Infof("cannot validate, missing txs")
+		reply <- api.MaybeValidValue
+		return
+	}
+
+	ptxs := make([]*proto.ProposedTransaction, len(txs))
+	for i, tx := range txs {
+		ptxs[i] = &proto.ProposedTransaction{
+			Signed_tx:                      *tx,
+			Nondeterministic_proposal_data: proposal.Transaction_nominations[i].Nondeterministic_proposal_data,
 		}
-		ptxs = append(ptxs, btxs...)
 	}
 
 	vb := &sdk.ValidatableBlock{
@@ -132,7 +139,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Proposal, rep
 		defer b.unlock(ctx)
 
 		// cache validated blocks
-		b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
+		b.validated[proposal.Block_hash] = validated{Nomination: proposal, BlockID: blockID}
 	}()
 }
 
@@ -144,7 +151,7 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
 	<-x.baton.scp
 
-	var proposal proto.Proposal
+	var proposal proto.Nomination
 	if err := xdrutil.UnmarshalXdr(&proposal, value); err != nil {
 		return
 	}
@@ -165,7 +172,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value 
 	}
 }
 
-func isValidExternalization(p *proto.Proposal, ps []*proto.Proposal) bool {
+func isValidExternalization(p *proto.Nomination, ps []*proto.Nomination) bool {
 	if len(ps) == 0 {
 		return true
 	}

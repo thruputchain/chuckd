@@ -1,6 +1,11 @@
 package protoutil
 
-import proto "github.com/groundhogchain/protocol-go"
+import (
+	"crypto/sha256"
+
+	"github.com/groundhogchain/chuckd/util/xdrutil"
+	proto "github.com/groundhogchain/protocol-go"
+)
 
 func Pack[T any](ts []*T) []T {
 	ps := make([]T, len(ts))
@@ -24,4 +29,8 @@ func PackProposedTransactions(ts []*proto.ProposedTransaction) []proto.ProposedT
 
 func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.ProposedTransaction {
 	return Unpack(ts)
+}
+
+func HashSignedTx(tx *proto.SignedTransaction) proto.SignedTransactionHash {
+	return sha256.Sum256(xdrutil.MarshalXdr(tx))
 }

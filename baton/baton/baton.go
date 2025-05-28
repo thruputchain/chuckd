@@ -38,12 +38,12 @@ type Baton struct {
 	tip             sdk.Tip
 	catchupRequests map[sdk.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks               // received catchup blocks
-	externalized    []*proto.Proposal
+	externalized    []*proto.Nomination
 	validated       map[proto.BlockHash]validated
 }
 
 type validated struct {
-	*proto.Proposal
+	*proto.Nomination
 	proto.BlockID
 }
 
@@ -92,8 +92,8 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 func (b *Baton) drive(ctx context.Context) {
 	defer b.cond.Broadcast()
 
-	liblog.Debugf("baton stats: num_txs=%d num_batches=%d num_committed_tx=%d",
-		b.handler.TxCount(), b.handler.BatchCount(), b.handler.CommittedTxCount())
+	liblog.Debugf("baton stats: num_txs=%d num_committed_tx=%d",
+		b.handler.TxCount(), b.handler.CommittedTxCount())
 	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	v := b.buildCleanView(ctx)
@@ -139,35 +139,32 @@ func (b *Baton) drive(ctx context.Context) {
 			b.nominating.CancelFunc()
 			b.nominating = nil
 		}
-		uncommittedTxs := b.gatherUncommittedTxs(ctx)
-		if len(uncommittedTxs) > 0 {
-			nomCtx, nomCancel := context.WithCancel(ctx)
-			busy := &nominating{Tip: *nominate, CancelFunc: nomCancel}
-			b.nominating = busy
-			go func() {
-				proposal, blockID, err := b.nominate(nomCtx, *nominate, uncommittedTxs)
-				busy.CancelFunc()
+		nomCtx, nomCancel := context.WithCancel(ctx)
+		busy := &nominating{Tip: *nominate, CancelFunc: nomCancel}
+		b.nominating = busy
+		go func() {
+			proposal, blockID, err := b.nominate(nomCtx, *nominate)
+			busy.CancelFunc()
 
-				b.lock(ctx)
-				defer b.unlock(ctx)
+			b.lock(ctx)
+			defer b.unlock(ctx)
 
-				// if nomination was cancelled, b.nominating may point at a different nomination
-				replaced := b.nominating != busy
-				if !replaced {
-					b.nominating = nil
-				}
+			// if nomination was cancelled, b.nominating may point at a different nomination
+			replaced := b.nominating != busy
+			if !replaced {
+				b.nominating = nil
+			}
 
-				if err != nil {
-					liblog.Errorf("nominate: %v", err)
-					return
-				}
+			if err != nil {
+				liblog.Errorf("nominate: %v", err)
+				return
+			}
 
-				if !replaced {
-					b.nominated = &nominated{Proposal: proposal}
-					b.validated[proposal.Block_hash] = validated{Proposal: proposal, BlockID: blockID}
-				}
-			}()
-		}
+			if !replaced {
+				b.nominated = &nominated{Nomination: proposal}
+				b.validated[proposal.Block_hash] = validated{Nomination: proposal, BlockID: blockID}
+			}
+		}()
 	}
 
 	// send catchup requests

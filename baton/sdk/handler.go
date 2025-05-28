@@ -10,24 +10,21 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-// VPCHandler is a subset of Handler
-type VPCHandler interface {
-	TransactionMempool
-	CommittedTransactionMempool
-	Committed(context.Context, *proto.CatchupBlock)
-	GenerateBlockID(context.Context) proto.BlockID
+type OpsHandler interface {
+	SubmittedTxMempool
+	CommittedTxMempool
 	DialDb(context.Context) (DbCoordConn, error)
 	DialExecs(context.Context) ([]ExecCoordConn, error)
+	GenerateBlockID(context.Context) proto.BlockID
+	Committed(context.Context, *proto.CatchupBlock)
 	Emit(ctx context.Context, event any)
 }
 
 type Handler interface {
 	protoutil.Signatory
 	libtime.Time
-	BatchMempool
-	TransactionMempool
-	CommittedTransactionMempool
-	BatchDisseminator
+	SubmittedTxMempool
+	CommittedTxMempool
 	Consensus
 
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
@@ -45,7 +42,11 @@ type Handler interface {
 	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/proposal task.
 	DialExecs(context.Context) ([]ExecCoordConn, error)
 
-	PrioritizeRejectTxs(context.Context, []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction)
+	ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) (
+		scheduled []*proto.SignedTransaction,
+		rejected []*proto.RejectedTransaction,
+	)
+
 	RejectedTx(context.Context, *proto.RejectedTransaction)
 	Committed(context.Context, *proto.CatchupBlock)
 
@@ -56,26 +57,18 @@ type ID64 int64
 
 func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }
 
-// BatchMempool provides batches of proposed transactions by other validators.
-type BatchMempool interface {
-	BatchCount() int
-	AddBatch(context.Context, proto.BatchTransactions)
-	LookupBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
-	WaitBatch(context.Context, proto.BatchHash) ([]*proto.ProposedTransaction, bool)
-}
-
-// TransactionMempool provides all uncommitted transactions, our own and those of other validators.
-type TransactionMempool interface {
-	TxCount() int
+type SubmittedTxMempool interface {
 	ListTxs(context.Context) []*proto.SignedTransaction
+	LookupTxs(context.Context, []proto.SignedTransactionHash) ([]*proto.SignedTransaction, bool)
+	WaitTxs(context.Context, []proto.SignedTransactionHash) ([]*proto.SignedTransaction, bool)
 	RemoveTx(context.Context, proto.SignedTransactionHash)
+	TxCount() int
 }
 
-// CommittedTransactionMempool keeps the hashes of committed transaction for some TTL.
-type CommittedTransactionMempool interface {
-	CommittedTxCount() int
+type CommittedTxMempool interface {
 	AddCommittedTx(context.Context, proto.SignedTransactionHash)
 	IsCommittedTx(context.Context, proto.SignedTransactionHash) bool
+	CommittedTxCount() int
 }
 
 type CatchupConn interface {
@@ -95,12 +88,4 @@ type ExecCoordConn interface {
 
 type Consensus interface {
 	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
-}
-
-type BatchDisseminator interface {
-	DisseminateBatch(ctx context.Context, value *proto.BatchMessage)
-}
-
-type BagDisseminator interface {
-	DisseminateBag(ctx context.Context, value *proto.BagMessage)
 }

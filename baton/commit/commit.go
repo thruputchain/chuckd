@@ -2,7 +2,6 @@ package commit
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
@@ -10,11 +9,10 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func CommitAlreadyValidated(ctx context.Context, handler sdk.VPCHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func CommitAlreadyValidated(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
 	liblog.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	// connect to db
@@ -40,7 +38,7 @@ func CommitAlreadyValidated(ctx context.Context, handler sdk.VPCHandler, vb *sdk
 
 func FinalizeCommit(
 	ctx context.Context,
-	handler sdk.VPCHandler,
+	handler sdk.OpsHandler,
 	vb *sdk.ValidatableBlock,
 	blockID proto.BlockID,
 	db sdk.DbCoordConn,
@@ -61,7 +59,7 @@ func FinalizeCommit(
 
 	// record committed transactions to prevent replay
 	for _, ptx := range vb.ProposedTransactions {
-		hash := sha256.Sum256(xdrutil.MarshalXdr(&ptx.Signed_tx))
+		hash := protoutil.HashSignedTx(&ptx.Signed_tx)
 		handler.AddCommittedTx(ctx, hash)
 		handler.RemoveTx(ctx, hash)
 	}

@@ -13,19 +13,24 @@ type Nomination struct {
 	BlockHeight   proto.BlockHeight
 	BlockHash     proto.BlockHash
 	PrevBlockHash proto.BlockHash
-	ProposedTxs   []proto.ProposedTransaction
-	Batches       []*proto.BatchTransactions
+	ProposedTxs   []ProposedTx
 }
 
-type proposed struct {
-	err error
-	txs []proto.ProposedTransaction
+type ProposedTx struct {
+	Tx               *proto.SignedTransaction
+	Nondeterministic *proto.NondeterministicProposalData
+	Err              error
+}
+
+type execProposed struct {
+	err         error
+	proposedTxs []ProposedTx
 }
 
 // PrepareNomination can be aborted by cancelling the context.
 func PrepareNomination(
 	ctx context.Context,
-	handler sdk.VPCHandler,
+	handler sdk.OpsHandler,
 	tip sdk.Tip,
 	txs []*proto.SignedTransaction,
 ) (*Nomination, error) {
@@ -69,65 +74,57 @@ func PrepareNomination(
 	}
 	close(txCh)
 
-	proposedCh := make(chan proposed, len(execs))
+	proposedCh := make(chan execProposed, len(execs))
 	for _, exec := range execs {
 		go func(exec sdk.ExecCoordConn) {
 
 			// executor open proposal block
 			execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
 			if err != nil {
-				proposedCh <- proposed{err: err}
+				proposedCh <- execProposed{err: err}
 				return
 			}
 			if execResult != proto.ExecResultOK {
-				proposedCh <- proposed{err: fmt.Errorf("executor open proposal block rpc error")}
+				proposedCh <- execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
 				return
 			}
 
-			proposedTxs := []proto.ProposedTransaction{}
+			proposedTxs := []ProposedTx{}
 			for tx := range txCh {
 				select {
 				case <-ctx.Done():
-					proposedCh <- proposed{err: fmt.Errorf("context cancelled")}
+					proposedCh <- execProposed{err: fmt.Errorf("context cancelled")}
 				default:
 				}
 
 				proposeResult, err := exec.Executorcoord_propose_transaction(ctx, blockID, *tx)
 				if err != nil {
-					proposedCh <- proposed{err: err}
-					return
+					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: err})
+				} else if proposeResult.Result != proto.ExecResultOK {
+					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: sdk.ErrNotValid})
+				} else {
+					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})
 				}
-				if proposeResult.Result != proto.ExecResultOK {
-					proposedCh <- proposed{err: fmt.Errorf("executor propose transaction rpc error")}
-					return
-				}
-				proposedTxs = append(
-					proposedTxs,
-					proto.ProposedTransaction{
-						Signed_tx:                      *tx,
-						Nondeterministic_proposal_data: *proposeResult.Proposal_data(),
-					},
-				)
 			}
 
 			// executor finish proposal block
 			err = exec.Executorcoord_finish_block(ctx, blockID)
 			if err != nil {
-				proposedCh <- proposed{err: fmt.Errorf("executor finish error: %v", err)}
+				proposedCh <- execProposed{err: fmt.Errorf("executor finish error: %v", err)}
 				return
 			}
 
-			proposedCh <- proposed{err: nil, txs: proposedTxs}
+			proposedCh <- execProposed{err: nil, proposedTxs: proposedTxs}
 
 		}(exec)
 	}
-	var proposedTxs []proto.ProposedTransaction
+	var proposedTxs []ProposedTx
 	var verr error
 	for range execs {
 		if pd := <-proposedCh; pd.err != nil {
 			verr = err
 		} else {
-			proposedTxs = append(proposedTxs, pd.txs...)
+			proposedTxs = append(proposedTxs, pd.proposedTxs...)
 		}
 	}
 	if verr != nil {
@@ -151,6 +148,5 @@ func PrepareNomination(
 		BlockHash:     *dbBlockResult.Block_hash(),
 		PrevBlockHash: tip.Hash,
 		ProposedTxs:   proposedTxs,
-		Batches:       nil, // filled later
 	}, nil
 }
