@@ -11,11 +11,11 @@ type EventNominating struct {
 	Nominating any
 	Tip        Tip
 	NumTx      int
-	Proposal   *proto.Proposal
+	Nomination *proto.Nomination
 }
 
 func (x EventNominating) String() string {
-	return fmt.Sprintf("NOMINATING [%d; %s]", x.Proposal.Block_height, form.Display(x.Proposal.Block_hash))
+	return fmt.Sprintf("NOMINATING [%d; %s]", x.Nomination.Block_height, form.Display(x.Nomination.Block_hash))
 }
 
 type EventNominated struct {

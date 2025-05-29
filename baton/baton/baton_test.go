@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/api"
 	"github.com/groundhogchain/chuckd/test/testutil"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -40,15 +41,15 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 	return ctx, rig, baton, tick
 }
 
-func TestPoolExpiry(t *testing.T) {
+func TestSubmittedExpiry(t *testing.T) {
 	ctx, rig, _, tick := testSetup()
 
 	block := rig.GenProposal(ctx, 1)
-	rig.AddBatch(ctx, block.Batch)
+	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
 	rig.PassTime(tick * 5)
 	goruntime.Gosched()
 	time.Sleep(time.Millisecond) // XXX: flaky
-	_, ok := rig.LookupBatch(ctx, block.Proposal.Proposed_transaction_batches[0])
+	_, ok := rig.LookupTxs(ctx, []proto.SignedTransactionHash{block.Proposal.Transaction_hashes[0]})
 	if ok {
 		t.Errorf("expecting batch to be missing")
 	}
@@ -60,11 +61,10 @@ func TestNominateCommit(t *testing.T) {
 	ctx, rig, baton, tick := testSetup()
 
 	// stage 1: nominate [1]
-	rig.AddTx(ctx, rig.GenSignedTx(ctx)) // user submits tx
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
 	baton.Start(ctx, tick/5)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
-	rig.WaitDissemination()
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
@@ -72,8 +72,8 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 2: commit already validated [1]
 	rig.StageExecs(1)
-	rig.AddTx(ctx, rig.GenSignedTx(ctx))                                     // txs for stage 3
-	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Proposal)) // trigger commit, trigger stage 3
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                      // txs for stage 3
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Nomination)) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -81,7 +81,6 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 3: nominate [2]
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
-	rig.WaitDissemination()
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
@@ -98,7 +97,14 @@ func TestValidateCommit(t *testing.T) {
 	rig.StageExecs(1)
 	baton.Start(ctx, tick/5)
 	block := rig.GenProposal(ctx, 2)
-	rig.AddBatch(ctx, block.Batch)
+	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
+
+	// consume nomination
+	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+	rig.WaitNomination(ctx)
+	rig.SignalNomination(true)
+	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+
 	vlevel := rig.ValidateValue(ctx, block.Proposal.Block_height, xdrutil.MarshalXdr(&block.Proposal), true)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
@@ -116,7 +122,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(3 * tick)
 	goruntime.Gosched()
 	time.Sleep(time.Millisecond) //XXX: flaky -race
-	_, ok := rig.LookupBatch(ctx, block.Proposal.Proposed_transaction_batches[0])
+	_, ok := rig.LookupTxs(ctx, block.Proposal.Transaction_hashes)
 	if ok {
 		t.Fatalf("batch not removed after expiry")
 	}
@@ -130,11 +136,18 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	block1 := rig.GenProposal(ctx, 1)
 	block2 := rig.GenProposalOntoBlock(ctx, 1, block1)
-	rig.AddBatch(ctx, block2.Batch) // prevent catchup request for [2]
+	rig.AddTxs(ctx, protoutil.Unpack(block2.Txs)...) // prevent catchup request for [2]
 	rig.StageCatchup(block1.Catchup)
 
 	baton.Start(ctx, tick/5)
 	rig.StageExecs(1) // for validation and commit
+
+	// consume nomination
+	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+	rig.WaitNomination(ctx)
+	rig.SignalNomination(true)
+	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+
 	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Proposal))
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
@@ -178,24 +191,23 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		theirBlock := rig.GenProposalOnto(ctx, 1, lastCommitted)
 
 		// prepare stage
-		rig.AddTx(ctx, rig.GenSignedTx(ctx)) // submit tx
-		baton.Kick(ctx)                      // wake baton after submitting transactions
+		rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // submit tx
+		baton.Kick(ctx)                       // wake baton after submitting transactions
 
 		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
-		rig.WaitDissemination()
 		rig.WaitNomination(ctx)
 		rig.SignalNomination(true)
 		nominated := rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
 
 		// kick off validation
-		rig.AddBatch(ctx, theirBlock.Batch)
+		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
 		rig.ValidateValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal), true)
 		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(nominated.Proposal))
+			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(nominated.Nomination))
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
 			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal))
