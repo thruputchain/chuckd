@@ -38,10 +38,15 @@ func NewAMIBuilder(ctx context.Context, region, githubToken, chuckdRepoURL, base
 	}, nil
 }
 
-func (b *AMIBuilder) getUserData() string {
+func (b *AMIBuilder) getBuildScript() string {
 	// User data script to install Go, clone repo, and build binary
 	script := fmt.Sprintf(`#!/bin/bash
 set -e
+
+# Create log file for this script
+LOG_FILE="/var/log/groundhog-build-script.log"
+exec > >(tee -a $LOG_FILE)
+exec 2>&1
 
 # Update system
 apt-get update
@@ -129,12 +134,15 @@ func (b *AMIBuilder) createSecurityGroup(ctx context.Context) (string, error) {
 }
 
 func (b *AMIBuilder) launchInstance(ctx context.Context, securityGroupID string) error {
+
+	encodedBuildScript := base64.StdEncoding.EncodeToString([]byte(b.getBuildScript()))
+
 	runInput := &ec2.RunInstancesInput{
 		ImageId:          aws.String(b.baseAMI),
 		InstanceType:     types.InstanceTypeT2Micro, // Change as needed
 		MinCount:         aws.Int32(1),
 		MaxCount:         aws.Int32(1),
-		UserData:         aws.String(b.getUserData()),
+		UserData:         aws.String(encodedBuildScript),
 		SecurityGroupIds: []string{securityGroupID},
 		TagSpecifications: []types.TagSpecification{
 			{
@@ -142,7 +150,7 @@ func (b *AMIBuilder) launchInstance(ctx context.Context, securityGroupID string)
 				Tags: []types.Tag{
 					{
 						Key:   aws.String("Name"),
-						Value: aws.String("Groundhog-AMI-Builder-Instance"),
+						Value: aws.String(fmt.Sprintf("Groundhog AMI Builder %s", time.Now().Format(time.RFC1123))),
 					},
 				},
 			},
@@ -160,6 +168,24 @@ func (b *AMIBuilder) launchInstance(ctx context.Context, securityGroupID string)
 	return nil
 }
 
+func (b *AMIBuilder) getInstancePublicIP(ctx context.Context) (*string, error) {
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []string{b.instanceID},
+	}
+
+	result, err := b.client.DescribeInstances(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("describing instance: %w", err)
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return nil, fmt.Errorf("instance not found")
+	}
+
+	instance := result.Reservations[0].Instances[0]
+	return instance.PublicIpAddress, nil
+}
+
 func (b *AMIBuilder) waitForInstance(ctx context.Context) error {
 	waiter := ec2.NewInstanceStatusOkWaiter(b.client)
 
@@ -171,10 +197,6 @@ func (b *AMIBuilder) waitForInstance(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("waiting for instance: %v", err)
 	}
-
-	// Additional wait for user data script to complete
-	liblog.Infof("Waiting for setup script to complete...")
-	time.Sleep(5 * time.Minute) // XXX: Adjust based on your setup complexity
 
 	return nil
 }
@@ -212,6 +234,9 @@ func (b *AMIBuilder) createAMI(ctx context.Context, amiName string) (string, err
 }
 
 func (b *AMIBuilder) cleanup(ctx context.Context, securityGroupID string) {
+
+	liblog.Infof("Cleaning up...")
+
 	// Terminate instance
 	if b.instanceID != "" {
 		_, err := b.client.TerminateInstances(ctx, &ec2.TerminateInstancesInput{
@@ -257,6 +282,19 @@ func (b *AMIBuilder) Build(ctx context.Context, amiName string) (string, error) 
 	if err != nil {
 		return "", err
 	}
+
+	// Additional wait for user data script to complete
+	liblog.Infof("Waiting for setup script to complete...")
+	time.Sleep(5 * time.Minute) // XXX: Adjust based on your setup complexity
+
+	pip, err := b.getInstancePublicIP(ctx)
+	if err != nil {
+		return "", err
+	}
+	if pip == nil {
+		return "", fmt.Errorf("ec2 instance has no public IP")
+	}
+	liblog.Infof("log into builder: ssh -i YOUR.pem ubuntu@%s", *pip)
 
 	amiID, err := b.createAMI(ctx, amiName)
 	if err != nil {
