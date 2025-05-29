@@ -41,18 +41,13 @@ rm ${GO_VERSION}.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 /usr/local/go/bin/go env -w GOPRIVATE=github.com/groundhogchain/*
 
-# Set up Go environment globally
-echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
-echo 'export GOPATH=/root/go' >> /etc/profile
-echo 'export PATH=$PATH:$GOPATH/bin' >> /etc/profile
-
-# Also set up for ubuntu user
+# Set up for ubuntu user
 echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/ubuntu/.bashrc
 echo 'export GOPATH=/home/ubuntu/go' >> /home/ubuntu/.bashrc
 echo 'export PATH=$PATH:$GOPATH/bin' >> /home/ubuntu/.bashrc
 
 # Source the profile to make Go available immediately
-source /etc/profile
+source /home/ubuntu/.bashrc
 
 # Clone private repository
 echo "Cloning chuckd"

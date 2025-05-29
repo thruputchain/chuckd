@@ -50,7 +50,7 @@ source "amazon-ebs" "ubuntu" {
   ssh_username  = "ubuntu"
 
   # AMI configuration
-  ami_description = "Groundhog ChuckD AMI built with Packer"
+  ami_description = "Groundhog AMI"
   
   # Add tags
   tags = {
@@ -105,7 +105,7 @@ build {
     ]
     inline = [
       "chmod +x /tmp/provision-script.sh",
-      "sudo /tmp/provision-script.sh"
+      "sudo -E /tmp/provision-script.sh"
     ]
   }
 
