@@ -42,10 +42,7 @@ type Handler interface {
 	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/proposal task.
 	DialExecs(context.Context) ([]ExecCoordConn, error)
 
-	ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) (
-		scheduled []*proto.SignedTransaction,
-		rejected []*proto.RejectedTransaction,
-	)
+	ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction)
 
 	RejectedTx(context.Context, *proto.RejectedTransaction)
 	Committed(context.Context, *proto.CatchupBlock)
@@ -88,4 +85,12 @@ type ExecCoordConn interface {
 
 type Consensus interface {
 	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
+}
+
+type Disseminator interface {
+	Disseminate(ctx context.Context, submitted *proto.SubmittedTransactions)
+}
+
+type Submitter interface {
+	SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction)
 }

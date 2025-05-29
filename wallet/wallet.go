@@ -11,8 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -31,14 +31,14 @@ func init() {
 
 func NewWalletGateway(
 	ctx context.Context,
-	mp *mempool.SubmittedMempool,
+	submitter sdk.Submitter,
 	jwtKey proto.JWTSecretKey,
 	users []proto.WalletUser,
 ) *WalletGateway {
 
 	r := gin.Default()
 	g := &WalletGateway{
-		svc:    NewWalletService(ctx, mp),
+		svc:    NewWalletService(ctx, submitter),
 		jwtKey: jwtKey,
 		r:      r,
 		user:   map[string]proto.WalletUser{},

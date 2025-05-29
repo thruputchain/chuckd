@@ -16,6 +16,20 @@ type Nomination struct {
 	ProposedTxs   []ProposedTx
 }
 
+func (x Nomination) ProposedTransactions() []proto.ProposedTransaction {
+	ptxs := []proto.ProposedTransaction{}
+	for _, ptx := range x.ProposedTxs {
+		if ptx.Err != nil {
+			continue
+		}
+		ptxs = append(ptxs, proto.ProposedTransaction{
+			Signed_tx:                      *ptx.Tx,
+			Nondeterministic_proposal_data: *ptx.Nondeterministic,
+		})
+	}
+	return ptxs
+}
+
 type ProposedTx struct {
 	Tx               *proto.SignedTransaction
 	Nondeterministic *proto.NondeterministicProposalData

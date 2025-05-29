@@ -30,7 +30,6 @@ type LiveHandler struct {
 	outside libnet.Network
 	coord   *coord.CoordinatorService
 	router  router.Router
-	*mempool.BatchMempool
 	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
 	multiplex *multiplex.Multiplex
@@ -49,8 +48,7 @@ func NewLiveHandler(
 	outside libnet.Network,
 	coord *coord.CoordinatorService,
 	router router.Router,
-	batch *mempool.BatchMempool,
-	tx *mempool.SubmittedMempool,
+	submitted *mempool.SubmittedMempool,
 	committed *mempool.CommittedMempool,
 	multiplex *multiplex.Multiplex,
 	rand *rand.Rand,
@@ -62,8 +60,7 @@ func NewLiveHandler(
 		outside:          outside,
 		coord:            coord,
 		router:           router,
-		BatchMempool:     batch,
-		SubmittedMempool: tx,
+		SubmittedMempool: submitted,
 		CommittedMempool: committed,
 		multiplex:        multiplex,
 		rand:             rand,
@@ -74,11 +71,6 @@ func NewLiveHandler(
 func (x *LiveHandler) SetSCP(scp api.SCPController) {
 	x.scp = scp
 	close(x.live)
-}
-
-func (x *LiveHandler) DisseminateBatch(ctx context.Context, value *proto.BatchMessage) {
-	<-x.live
-	x.multiplex.SendBatch(ctx, value)
 }
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
@@ -136,7 +128,7 @@ func (x *LiveHandler) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error
 	return x.coord.DialExecs(ctx)
 }
 
-func (x *LiveHandler) PrioritizeRejectTxs(_ context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
+func (x *LiveHandler) ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
 	return txs, nil
 }
 

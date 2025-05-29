@@ -12,18 +12,18 @@ import (
 // scp msgs, proposed txsets,
 type Multiplex struct {
 	transport *spectra.SpectraTransport
-	batch     chan batchMsgFrom
+	submitted chan submittedTxsFrom
 }
 
-type batchMsgFrom struct {
+type submittedTxsFrom struct {
 	From proto.ValidatorID
-	*proto.BatchMessage
+	*proto.SubmittedTransactions
 }
 
 func NewMultiplex(ctx context.Context, s *spectra.SpectraTransport) *Multiplex {
 	x := &Multiplex{
 		transport: s,
-		batch:     make(chan batchMsgFrom),
+		submitted: make(chan submittedTxsFrom),
 	}
 	go x.multiplex(ctx)
 	return x
@@ -43,26 +43,29 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 		}
 
 		switch xmsg.Type {
-		case proto.MultiplexMessageBatch:
-			x.batch <- batchMsgFrom{From: fromID, BatchMessage: xmsg.Batch()}
+		case proto.MultiplexMessageSubmittedTxs:
+			x.submitted <- submittedTxsFrom{From: fromID, SubmittedTransactions: xmsg.Submitted()}
 		default:
 			liblog.Errorf("unsupported multiplex message type %v", xmsg.Type)
 		}
 	}
 }
 
-// XXX: should batch messages be signed?
-func (x *Multiplex) SendBatch(ctx context.Context, batch *proto.BatchMessage) {
+func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	var xmsg proto.MultiplexMessage
-	xmsg.Type = proto.MultiplexMessageBatch
-	*xmsg.Batch() = *batch
+	xmsg.Type = proto.MultiplexMessageSubmittedTxs
+	*xmsg.Submitted() = *submitted
 	_, err := x.transport.BulkSend(ctx, xdrutil.MarshalXdr(&xmsg))
 	if err != nil {
-		liblog.Errorf("multiplex bul.k send")
+		liblog.Errorf("multiplex bulk send: %v", err)
 	}
 }
 
-func (x *Multiplex) ReceiveBatch(ctx context.Context) (proto.ValidatorID, *proto.BatchMessage) {
-	batchMsgFrom := <-x.batch
-	return batchMsgFrom.From, batchMsgFrom.BatchMessage
+func (x *Multiplex) Disseminate(ctx context.Context, submitted *proto.SubmittedTransactions) {
+	x.SendSubmittedTxs(ctx, submitted)
+}
+
+func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID, *proto.SubmittedTransactions) {
+	submittedTxsFrom := <-x.submitted
+	return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions
 }

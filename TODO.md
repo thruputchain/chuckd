@@ -4,17 +4,11 @@
 - [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
 
 
-
-
-- [ ] system
-  - [ ] live SubmitTx
-  - [ ] wallet use SubmitTx
-- [ ] baton
-  - [ ] handler
-  - [ ] logic
-  - [ ] baton_test
 - [ ] address XXX
-- [ ] cleanup batch/proposal structures
+- [ ] cleanup
+  - [ ] batchTTL
+  - [ ] batch
+  - [ ] proposal structures
 
 
 
