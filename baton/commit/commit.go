@@ -55,7 +55,7 @@ func FinalizeCommit(
 
 	// verify the block hash returned by the db matches
 	must.Assertf(ctx, *dbBlockResult.Block_hash() == vb.BlockHash,
-		"db block hash changed after a prior proposal or validation")
+		"db block hash changed after a prior nomination or validation")
 
 	// record committed transactions to prevent replay
 	for _, ptx := range vb.ProposedTransactions {

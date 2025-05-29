@@ -74,8 +74,8 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, p
 			proto.NominatedTransaction{Nondeterministic_proposal_data: *propsedTx.Nondeterministic})
 	}
 
-	// construct block proposal
-	proposal := &proto.Nomination{
+	// construct block nomination
+	nomination := &proto.Nomination{
 		Block_height:            nom.BlockHeight,
 		Block_hash:              nom.BlockHash,
 		Prev_block_hash:         nom.PrevBlockHash,
@@ -83,15 +83,15 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, p
 		Transaction_nominations: proposedTxNominations,
 	}
 
-	b.handler.Emit(ctx, sdk.EventNominating{Tip: tip, NumTx: len(proposedTxHashes), Nomination: proposal})
+	b.handler.Emit(ctx, sdk.EventNominating{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
 
 	// nominate to consensus
-	prevSummary := proto.PrevProposalSummary{
+	prevSummary := proto.PrevNominationSummary{
 		Block_hash: nom.PrevBlockHash,
 	}
 	// block until nomination is over
-	b.handler.Nominate(ctx, nom.BlockHeight, proposal, &prevSummary) // ignore result
-	b.handler.Emit(ctx, sdk.EventNominated{Tip: tip, NumTx: len(proposedTxHashes), Nomination: proposal})
+	b.handler.Nominate(ctx, nom.BlockHeight, nomination, &prevSummary) // ignore result
+	b.handler.Emit(ctx, sdk.EventNominated{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
 
-	return proposal, nom.BlockID, nil
+	return nomination, nom.BlockID, nil
 }

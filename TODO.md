@@ -5,10 +5,6 @@
 
 
 - [ ] address XXX
-- [ ] cleanup
-  - [ ] batchTTL
-  - [ ] batch
-  - [ ] proposal structures
 
 
 

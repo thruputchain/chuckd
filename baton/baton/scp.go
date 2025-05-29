@@ -24,20 +24,20 @@ type scpHandler struct {
 func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values []api.Value) api.Value {
 	<-x.baton.scp
 
-	proposals := make(protoutil.NominationsByHash, 0, len(values))
+	nominations := make(protoutil.NominationsByHash, 0, len(values))
 	for _, v := range values {
 		var p proto.Nomination
 		if err := xdrutil.UnmarshalXdr(&p, v); err != nil {
-			liblog.Errorf("unable to decode proposal for combining: %v", err)
+			liblog.Errorf("unable to decode nomination for combining: %v", err)
 			break
 		}
-		proposals = append(proposals, &p)
+		nominations = append(nominations, &p)
 	}
-	proposals.Sort()
-	if len(proposals) == 0 {
+	nominations.Sort()
+	if len(nominations) == 0 {
 		return nil
 	} else {
-		return xdrutil.MarshalXdr(proposals[0])
+		return xdrutil.MarshalXdr(nominations[0])
 	}
 }
 
@@ -61,26 +61,26 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	return <-reply
 }
 
-func (b *Baton) validateValue(ctx context.Context, proposal *proto.Nomination, reply chan<- api.ValidationLevel) {
+func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination, reply chan<- api.ValidationLevel) {
 
 	b.lock(ctx)
 	dbTip := b.tip
 	numExt := len(b.externalized)
 	b.unlock(ctx)
 
-	if proposal.Block_height <= dbTip.Height {
-		liblog.Infof("cannot validate, proposal below tip")
+	if nomination.Block_height <= dbTip.Height {
+		liblog.Infof("cannot validate, nomination below tip")
 		reply <- api.InvalidValue
 		return
 	}
-	if proposal.Block_height > dbTip.Height+1 {
-		liblog.Infof("cannot validate, proposal far ahead")
+	if nomination.Block_height > dbTip.Height+1 {
+		liblog.Infof("cannot validate, nomination far ahead")
 		reply <- api.MaybeValidValue
 		return
 	}
-	if proposal.Prev_block_hash != dbTip.Hash {
+	if nomination.Prev_block_hash != dbTip.Hash {
 		liblog.Infof("cannot validate, previous block %v != db tip %v",
-			form.Display(proposal.Prev_block_hash), form.Display(dbTip.Hash))
+			form.Display(nomination.Prev_block_hash), form.Display(dbTip.Hash))
 		reply <- api.InvalidValue
 		return
 	}
@@ -94,11 +94,11 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Nomination, r
 	vCtx, vCtxCancel := context.WithCancel(ctx)
 	defer vCtxCancel()
 	go func() {
-		b.WaitGrowBeyond(vCtx, proposal.Block_height-1) // cancel ctx if tip or ext moves
+		b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
 		vCtxCancel()
 	}()
 
-	txs, ok := b.handler.WaitTxs(ctx, proposal.Transaction_hashes)
+	txs, ok := b.handler.WaitTxs(ctx, nomination.Transaction_hashes)
 	if !ok {
 		liblog.Infof("cannot validate, missing txs")
 		reply <- api.MaybeValidValue
@@ -109,14 +109,14 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Nomination, r
 	for i, tx := range txs {
 		ptxs[i] = &proto.ProposedTransaction{
 			Signed_tx:                      *tx,
-			Nondeterministic_proposal_data: proposal.Transaction_nominations[i].Nondeterministic_proposal_data,
+			Nondeterministic_proposal_data: nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
 		}
 	}
 
 	vb := &sdk.ValidatableBlock{
-		BlockHeight:          proposal.Block_height,
-		BlockHash:            proposal.Block_hash,
-		PrevBlockHash:        proposal.Prev_block_hash,
+		BlockHeight:          nomination.Block_height,
+		BlockHash:            nomination.Block_hash,
+		PrevBlockHash:        nomination.Prev_block_hash,
 		ProposedTransactions: ptxs,
 		DbTip:                dbTip,
 	}
@@ -139,7 +139,7 @@ func (b *Baton) validateValue(ctx context.Context, proposal *proto.Nomination, r
 		defer b.unlock(ctx)
 
 		// cache validated blocks
-		b.validated[proposal.Block_hash] = validated{Nomination: proposal, BlockID: blockID}
+		b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
 	}()
 }
 
@@ -151,13 +151,13 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
 	<-x.baton.scp
 
-	var proposal proto.Nomination
-	if err := xdrutil.UnmarshalXdr(&proposal, value); err != nil {
+	var nomination proto.Nomination
+	if err := xdrutil.UnmarshalXdr(&nomination, value); err != nil {
 		return
 	}
 
-	// check that SCP slot equals proposal's block height
-	if slot != proposal.Block_height {
+	// check that SCP slot equals nomination's block height
+	if slot != nomination.Block_height {
 		liblog.Errorf("scp slot index does not equal proposed block height")
 		return
 	}
@@ -166,9 +166,9 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value 
 	defer x.baton.unlock(ctx)
 
 	// check validity and update state
-	ok := isValidExternalization(&proposal, x.baton.externalized)
+	ok := isValidExternalization(&nomination, x.baton.externalized)
 	if ok {
-		x.baton.externalized = append(x.baton.externalized, &proposal)
+		x.baton.externalized = append(x.baton.externalized, &nomination)
 	}
 }
 

@@ -46,7 +46,6 @@ func NewTestRig(
 	ctx context.Context,
 	rand *rand.Rand,
 	now time.Time,
-	batchTTL time.Duration,
 	txTTL time.Duration,
 	committedTTL time.Duration,
 ) *TestRig {
@@ -74,8 +73,8 @@ func NewTestRig(
 	return h
 }
 
-func (h *TestRig) GenProposal(ctx context.Context, ntxs int) *testutil.TestBlock {
-	return h.GenProposalOntoTip(ctx, ntxs, h.TestDb.GetTip())
+func (h *TestRig) GenNomination(ctx context.Context, ntxs int) *testutil.TestBlock {
+	return h.GenNominationOntoTip(ctx, ntxs, h.TestDb.GetTip())
 }
 
 func (h *TestRig) Bind(b *Baton) {

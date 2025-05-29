@@ -20,7 +20,7 @@ type Message = proto.BroadcastMessage
 type MessageHash = proto.BroadcastMessageHash
 type Header = proto.BroadcastHeader
 
-// BulkBroadcast provides a batch broadcast abstraction, where the sender knows the entire (bulk) payload ahead of time.
+// BulkBroadcast provides a bulk broadcast abstraction, where the sender knows the entire (bulk) payload ahead of time.
 type BulkBroadcast interface {
 	ValidatorID() proto.ValidatorID
 

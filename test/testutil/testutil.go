@@ -50,9 +50,9 @@ var TestNondeterministicData = proto.NondeterministicProposalData{
 }
 
 type TestBlock struct {
-	Proposal proto.Nomination
-	Txs      []proto.SignedTransaction
-	Catchup  proto.CatchupBlock
+	Nomination proto.Nomination
+	Txs        []proto.SignedTransaction
+	Catchup    proto.CatchupBlock
 }
 
 type BlockHandle struct {
@@ -68,20 +68,19 @@ func TipHandle(tip sdk.Tip) *BlockHandle {
 	return &BlockHandle{Hash: tip.Hash, Height: tip.Height}
 }
 
-func (h *TestGen) GenProposalOntoTip(ctx context.Context, ntxs int, onto sdk.Tip) *TestBlock {
-	return h.GenProposalOnto(ctx, ntxs, TipHandle(onto))
+func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto sdk.Tip) *TestBlock {
+	return h.GenNominationOnto(ctx, ntxs, TipHandle(onto))
 }
 
-func (h *TestGen) GenProposalOntoVB(ctx context.Context, ntxs int, onto *sdk.ValidatableBlock) *TestBlock {
-	return h.GenProposalOnto(ctx, ntxs, VBHandle(onto))
+func (h *TestGen) GenNominationOntoVB(ctx context.Context, ntxs int, onto *sdk.ValidatableBlock) *TestBlock {
+	return h.GenNominationOnto(ctx, ntxs, VBHandle(onto))
 }
 
-func (h *TestGen) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
-	return h.GenProposalOnto(ctx, ntxs, &BlockHandle{Height: onto.Proposal.Block_height, Hash: onto.Proposal.Block_hash})
+func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
+	return h.GenNominationOnto(ctx, ntxs, &BlockHandle{Height: onto.Nomination.Block_height, Hash: onto.Nomination.Block_hash})
 }
 
-// GenProposal generates a proposal onto the current db tip.
-func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
+func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
 	txs := make([]proto.SignedTransaction, numTxs)
 	ntxs := make([]proto.NominatedTransaction, numTxs)
 	ptxs := make([]proto.ProposedTransaction, numTxs)
@@ -98,7 +97,7 @@ func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHa
 		hash = BlendPropopsedTx(hash, &ptxs[i])
 	}
 	return &TestBlock{
-		Proposal: proto.Nomination{
+		Nomination: proto.Nomination{
 			Block_height:            onto.Height + 1,
 			Block_hash:              hash,
 			Prev_block_hash:         onto.Hash,

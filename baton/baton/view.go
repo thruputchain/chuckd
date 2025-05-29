@@ -89,14 +89,14 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	v.Blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, proposal := range b.externalized {
+	for _, nomination := range b.externalized {
 		// there can be gaps between scp blocks
-		must.Assertf(ctx, proposal.Block_height > scpPrevHeight, "scp proposal heights not increasing")
-		scpPrevHeight = proposal.Block_height
+		must.Assertf(ctx, nomination.Block_height > scpPrevHeight, "scp nomination heights not increasing")
+		scpPrevHeight = nomination.Block_height
 		//
-		txs, _ := b.handler.LookupTxs(ctx, proposal.Transaction_hashes)
-		v.Blocks[int(proposal.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
-			Nomination: proposal,
+		txs, _ := b.handler.LookupTxs(ctx, nomination.Transaction_hashes)
+		v.Blocks[int(nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
+			Nomination: nomination,
 			Txs:        txs,
 		}
 	}
@@ -139,7 +139,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 				v.Blocks[i] = ViewMissing{Height: height}
 			}
 		case ViewExternalizedBlock:
-			// if the block is missing batches, catchup can still help
+			// if the block is missing txs, catchup can still help
 			if u.IsMissingTransactions() {
 				if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
@@ -372,7 +372,7 @@ func (x ViewCatchupBlock) ValidatableBlock() *sdk.ValidatableBlock {
 type ViewExternalizedBlock struct {
 	Nomination *proto.Nomination
 	Txs        []*proto.SignedTransaction
-	Catchup    *CatchupBlock // a catchup block can be used if tx batches are missing
+	Catchup    *CatchupBlock // a catchup block can be used if txs are missing
 }
 
 func (x ViewExternalizedBlock) BlockHash() proto.BlockHash     { return x.Nomination.Block_hash }

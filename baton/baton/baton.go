@@ -56,7 +56,6 @@ func (b *Baton) unlock(context.Context) {
 	b.lk.Unlock()
 }
 
-// Kick must be called after new transactions or batches are inserted into the mempools.
 func (b *Baton) Kick(ctx context.Context) {
 	b.lock(ctx)
 	defer b.unlock(ctx)
@@ -143,7 +142,7 @@ func (b *Baton) drive(ctx context.Context) {
 		busy := &nominating{Tip: *nominate, CancelFunc: nomCancel}
 		b.nominating = busy
 		go func() {
-			proposal, blockID, err := b.nominate(nomCtx, *nominate)
+			nomination, blockID, err := b.nominate(nomCtx, *nominate)
 			busy.CancelFunc()
 
 			b.lock(ctx)
@@ -161,8 +160,8 @@ func (b *Baton) drive(ctx context.Context) {
 			}
 
 			if !replaced {
-				b.nominated = &nominated{Nomination: proposal}
-				b.validated[proposal.Block_hash] = validated{Nomination: proposal, BlockID: blockID}
+				b.nominated = &nominated{Nomination: nomination}
+				b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
 			}
 		}()
 	}

@@ -32,7 +32,6 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 		ctx,
 		runtime.NewRandFromRoot(),
 		time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
-		3*tick, // batchTTL
 		3*tick, // txTTL
 		5*tick, // committedTTL
 	)
@@ -44,14 +43,14 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 func TestSubmittedExpiry(t *testing.T) {
 	ctx, rig, _, tick := testSetup()
 
-	block := rig.GenProposal(ctx, 1)
+	block := rig.GenNomination(ctx, 1)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
 	rig.PassTime(tick * 5)
 	goruntime.Gosched()
 	time.Sleep(time.Millisecond) // XXX: flaky
-	_, ok := rig.LookupTxs(ctx, []proto.SignedTransactionHash{block.Proposal.Transaction_hashes[0]})
+	_, ok := rig.LookupTxs(ctx, []proto.SignedTransactionHash{block.Nomination.Transaction_hashes[0]})
 	if ok {
-		t.Errorf("expecting batch to be missing")
+		t.Errorf("expecting txs to be missing")
 	}
 }
 
@@ -96,7 +95,7 @@ func TestValidateCommit(t *testing.T) {
 	// stage 1: validate [1]
 	rig.StageExecs(1)
 	baton.Start(ctx, tick/5)
-	block := rig.GenProposal(ctx, 2)
+	block := rig.GenNomination(ctx, 2)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
 
 	// consume nomination
@@ -105,7 +104,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
 
-	vlevel := rig.ValidateValue(ctx, block.Proposal.Block_height, xdrutil.MarshalXdr(&block.Proposal), true)
+	vlevel := rig.ValidateValue(ctx, block.Nomination.Block_height, xdrutil.MarshalXdr(&block.Nomination), true)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
 	if <-vlevel != api.FullyValidValue {
@@ -114,7 +113,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block.Proposal))
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block.Nomination))
 	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -122,9 +121,9 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(3 * tick)
 	goruntime.Gosched()
 	time.Sleep(time.Millisecond) //XXX: flaky -race
-	_, ok := rig.LookupTxs(ctx, block.Proposal.Transaction_hashes)
+	_, ok := rig.LookupTxs(ctx, block.Nomination.Transaction_hashes)
 	if ok {
-		t.Fatalf("batch not removed after expiry")
+		t.Fatalf("txs not removed after expiry")
 	}
 
 }
@@ -134,8 +133,8 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
 
-	block1 := rig.GenProposal(ctx, 1)
-	block2 := rig.GenProposalOntoBlock(ctx, 1, block1)
+	block1 := rig.GenNomination(ctx, 1)
+	block2 := rig.GenNominationOntoBlock(ctx, 1, block1)
 	rig.AddTxs(ctx, protoutil.Unpack(block2.Txs)...) // prevent catchup request for [2]
 	rig.StageCatchup(block1.Catchup)
 
@@ -148,7 +147,7 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
 
-	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Proposal))
+	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Nomination))
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
@@ -157,17 +156,17 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	}
 }
 
-// TestCatchupMissingTxsCommit tests catchup for externalizations with missing batches.
+// TestCatchupMissingTxsCommit tests catchup for externalizations with missing txs.
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
 
-	block1 := rig.GenProposal(ctx, 1)
+	block1 := rig.GenNomination(ctx, 1)
 	rig.StageCatchup(block1.Catchup)
 
 	baton.Start(ctx, tick/5)
 	rig.StageExecs(1) // for validation and commit
-	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block1.Proposal))
+	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block1.Nomination))
 	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
@@ -188,7 +187,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 	lastCommitted := testutil.TipHandle(rig.GetTip())
 	for height := proto.BlockHeight(1); height < maxHeight; height++ {
 
-		theirBlock := rig.GenProposalOnto(ctx, 1, lastCommitted)
+		theirBlock := rig.GenNominationOnto(ctx, 1, lastCommitted)
 
 		// prepare stage
 		rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // submit tx
@@ -201,7 +200,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		// kick off validation
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.ValidateValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal), true)
+		rig.ValidateValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Nomination), true)
 		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
 
@@ -210,7 +209,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(nominated.Nomination))
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
-			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Proposal))
+			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Nomination))
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
 		lastCommitted = testutil.VBHandle(committed.ValidatableBlock)

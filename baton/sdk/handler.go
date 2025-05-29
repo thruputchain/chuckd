@@ -39,7 +39,7 @@ type Handler interface {
 
 	DialDb(context.Context) (DbCoordConn, error)
 
-	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/proposal task.
+	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/nomination task.
 	DialExecs(context.Context) ([]ExecCoordConn, error)
 
 	ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction)
