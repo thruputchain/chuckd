@@ -31,7 +31,7 @@ func init() {
 
 func NewWalletGateway(
 	ctx context.Context,
-	mp *mempool.TransactionMempool,
+	mp *mempool.SubmittedMempool,
 	jwtKey proto.JWTSecretKey,
 	users []proto.WalletUser,
 ) *WalletGateway {

@@ -44,7 +44,7 @@ type System struct {
 	Catchup  *catchup.CatchupService
 	//
 	Proposed    *mempool.BatchMempool
-	Transaction *mempool.TransactionMempool
+	Transaction *mempool.SubmittedMempool
 	Committed   *mempool.CommittedMempool
 	//
 	Bag       *mempool.BagMempool
