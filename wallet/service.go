@@ -3,20 +3,21 @@ package wallet
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/mempool"
+	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type WalletService struct {
-	mp *mempool.SubmittedMempool
+	submitter sdk.Submitter
 }
 
 func NewWalletService(
 	ctx context.Context,
-	mp *mempool.SubmittedMempool,
+	submitter sdk.Submitter,
 ) *WalletService {
 	return &WalletService{
-		mp: mp,
+		submitter: submitter,
 	}
 }
 
@@ -26,7 +27,7 @@ func (svc *WalletService) Wallet_null(context.Context) error {
 
 func (svc *WalletService) Wallet_submit(ctx context.Context, submit proto.WalletSubmit) (proto.WalletAck, error) {
 
-	svc.mp.AddTxs(ctx, submit.Signed_transactions)
+	svc.submitter.SubmitTxs(ctx, protoutil.Unpack(submit.Signed_transactions)...)
 
 	acks := []proto.WalletTransactionAck{}
 	for i := range submit.Signed_transactions {

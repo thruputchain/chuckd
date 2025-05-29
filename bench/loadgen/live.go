@@ -46,6 +46,8 @@ func (x *LiveHandler) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
 }
 
+// submitted mempool
+
 func (x *LiveHandler) TxCount() int {
 	panic("not used")
 }
@@ -54,8 +56,18 @@ func (x *LiveHandler) ListTxs(context.Context) []*proto.SignedTransaction {
 	panic("not used")
 }
 
+func (x *LiveHandler) LookupTxs(context.Context, []proto.SignedTransactionHash) ([]*proto.SignedTransaction, bool) {
+	panic("not used")
+}
+
+func (x *LiveHandler) WaitTxs(context.Context, []proto.SignedTransactionHash) ([]*proto.SignedTransaction, bool) {
+	panic("not used")
+}
+
 func (x *LiveHandler) RemoveTx(context.Context, proto.SignedTransactionHash) {
 }
+
+// committed mempool
 
 func (x *LiveHandler) CommittedTxCount() int {
 	panic("not used")

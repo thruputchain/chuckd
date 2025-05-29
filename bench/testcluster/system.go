@@ -28,12 +28,8 @@ func NewTestClusterSystem(
 	inside := testnet.NewTestNetwork()
 	sys := system.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &TestClusterSystem{
-		System: sys,
-		TestCluster: NewTestCluster(ctx, time, runtime.NewRandFromRand(rand), inside, tps,
-			func(ctx context.Context, stx *proto.SignedTransaction) {
-				sys.Live.AddTx(ctx, stx)
-			},
-		),
+		System:      sys,
+		TestCluster: NewTestCluster(ctx, time, runtime.NewRandFromRand(rand), inside, tps, sys.Submitter),
 	}
 }
 

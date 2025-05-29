@@ -51,9 +51,6 @@ func (x *LoadGen) Close() {
 	x.insideSrv.Close()
 }
 
-// XXX: fix coord shard height min
-// XXX: gen txs
-
 func (x *LoadGen) drive(ctx context.Context) {
 
 	x.coord.WaitDbReady() // returns after db restored
@@ -83,7 +80,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 			BlockHeight:          nomination.BlockHeight,
 			BlockHash:            nomination.BlockHash,
 			PrevBlockHash:        nomination.PrevBlockHash,
-			ProposedTransactions: protoutil.UnpackProposedTransactions(nomination.ProposedTxs),
+			ProposedTransactions: protoutil.UnpackProposedTransactions(nomination.ProposedTransactions()),
 			DbTip:                tip,
 		}
 
@@ -98,7 +95,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 }
 
 func (x *LoadGen) generateTxs(ctx context.Context) []*proto.SignedTransaction {
-	panic("not implemented")
+	panic("XXX: not implemented")
 }
 
 func getDbTip(ctx context.Context, c sdk.DbCoordConn) (sdk.Tip, error) {

@@ -43,11 +43,9 @@ type System struct {
 	Follower *follower.SoloFollowerService
 	Catchup  *catchup.CatchupService
 	//
-	Proposed    *mempool.BatchMempool
-	Transaction *mempool.SubmittedMempool
-	Committed   *mempool.CommittedMempool
+	Submitted *mempool.SubmittedMempool
+	Committed *mempool.CommittedMempool
 	//
-	Bag       *mempool.BagMempool
 	Submitter *Submitter
 	//
 	Wallet *wallet.WalletGateway
@@ -101,12 +99,10 @@ func NewSystem(
 
 	sys.Multiplex = multiplex.NewMultiplex(ctx, sys.Spectra)
 
-	batchTTL := time.Duration(cfg.Mempool_config.Proposed_batch_ttl_msec) * time.Millisecond
 	txTTL := time.Duration(cfg.Mempool_config.Transaction_ttl_msec) * time.Millisecond
 
-	sys.Proposed = mempool.NewBatchMempoolReal(ctx, batchTTL)
-	sys.Transaction = mempool.NewTransactionMempoolReal(ctx, txTTL)
-	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*max(batchTTL, txTTL))
+	sys.Submitted = mempool.NewTransactionMempoolReal(ctx, txTTL)
+	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*txTTL)
 
 	sys.Live = NewLiveHandler(
 		sys.Signer,
@@ -115,23 +111,11 @@ func NewSystem(
 		outside,
 		sys.Coord,
 		sys.Router,
-		sys.Proposed,
-		sys.Transaction,
+		sys.Submitted,
 		sys.Committed,
 		sys.Multiplex,
 		runtime.NewRandFromRand(rr),
 	)
-
-	// XXX
-	// sys.Bag = mempool.NewBagMempool(ctx, libtime.RealTime{}, txTTL)
-	// sys.Submitter = NewSubmitter(
-	// 	ctx,
-	// 	libtime.RealTime{},
-	// 	sys.Bag,
-	// 	sys.Live,
-	// 	Bag_size,
-	// 	Bag_wait_msec,
-	// )
 
 	sys.Baton = baton.NewBaton(ctx, sys.Live)
 	sys.Follower = follower.NewSoloFollowerService(
@@ -153,15 +137,24 @@ func NewSystem(
 		cfg.Catchup_config.Catchup_block_age,
 	)
 
-	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Transaction, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
+	sys.Submitter = NewSubmitter(
+		ctx,
+		libtime.RealTime{},
+		sys.Submitted,
+		sys.Multiplex,
+		int(cfg.Mempool_config.Submission_lot_size),
+		time.Duration(cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
+	)
 
-	// drive disseminated batches into mempool
+	// drive disseminated txs into mempool
 	go func() {
 		for {
-			_, batchMsg := sys.Multiplex.ReceiveBatch(ctx)
-			sys.Proposed.AddBatch(ctx, batchMsg.Batch_transactions)
+			_, submittedTxs := sys.Multiplex.ReceiveSubmittedTxs(ctx)
+			sys.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
 		}
 	}()
+
+	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Submitter, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
 	sys.insideSrv = NewServer(ctx,
 		proto.Coordinator1_Server{Srv: sys.Coord},

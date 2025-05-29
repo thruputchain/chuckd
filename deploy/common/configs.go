@@ -62,8 +62,10 @@ func MakeBaseConfig(
 			Partial_ttl_msec:     round.Milliseconds(), // ttl for partial data from incomplete transmissions
 		},
 		Mempool_config: &proto.MempoolConfig{
-			Proposed_batch_ttl_msec: (5 * round).Milliseconds(),
-			Transaction_ttl_msec:    numVs * round.Milliseconds(),
+			Proposed_batch_ttl_msec:  (5 * round).Milliseconds(),
+			Transaction_ttl_msec:     numVs * round.Milliseconds(),
+			Submission_lot_size:      1000,
+			Submission_lot_wait_msec: 50,
 		},
 		Catchup_config: &proto.CatchupConfig{
 			Catchup_block_ttl_sec: proto.Seconds((5 * round).Seconds()),
