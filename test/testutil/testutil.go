@@ -2,14 +2,12 @@ package testutil
 
 import (
 	"context"
-	"crypto/sha256"
 	"math/rand"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -52,8 +50,8 @@ var TestNondeterministicData = proto.NondeterministicProposalData{
 }
 
 type TestBlock struct {
-	Proposal proto.Proposal
-	Batch    proto.BatchTransactions
+	Proposal proto.Nomination
+	Txs      []proto.SignedTransaction
 	Catchup  proto.CatchupBlock
 }
 
@@ -83,40 +81,46 @@ func (h *TestGen) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *Test
 }
 
 // GenProposal generates a proposal onto the current db tip.
-func (h *TestGen) GenProposalOnto(ctx context.Context, ntxs int, onto *BlockHandle) *TestBlock {
-	txs := make([]proto.ProposedTransaction, ntxs)
+func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
+	txs := make([]proto.SignedTransaction, numTxs)
+	ntxs := make([]proto.NominatedTransaction, numTxs)
+	ptxs := make([]proto.ProposedTransaction, numTxs)
+	hashes := make([]proto.SignedTransactionHash, numTxs)
 	hash := onto.Hash
 	for i := range txs {
-		txs[i] = proto.ProposedTransaction{
-			Signed_tx:                      *h.GenSignedTx(ctx),
+		txs[i] = *h.GenSignedTx(ctx)
+		hashes[i] = protoutil.HashSignedTx(&txs[i])
+		ntxs[i] = proto.NominatedTransaction{Nondeterministic_proposal_data: TestNondeterministicData}
+		ptxs[i] = proto.ProposedTransaction{
+			Signed_tx:                      txs[i],
 			Nondeterministic_proposal_data: TestNondeterministicData,
 		}
-		hash = BlendPropopsedTx(hash, &txs[i])
+		hash = BlendPropopsedTx(hash, &ptxs[i])
 	}
-	batch, batchHash := protoutil.PrepareBatch(txs)
 	return &TestBlock{
-		Proposal: proto.Proposal{
-			Block_height:                 onto.Height + 1,
-			Block_hash:                   hash,
-			Prev_block_hash:              onto.Hash,
-			Proposed_transaction_batches: []proto.BatchHash{batchHash},
+		Proposal: proto.Nomination{
+			Block_height:            onto.Height + 1,
+			Block_hash:              hash,
+			Prev_block_hash:         onto.Hash,
+			Transaction_hashes:      hashes,
+			Transaction_nominations: ntxs,
 		},
-		Batch: batch,
+		Txs: txs,
 		Catchup: proto.CatchupBlock{
 			Block_height:          onto.Height + 1,
 			Block_hash:            hash,
 			Prev_block_hash:       onto.Hash,
-			Proposed_transactions: txs,
+			Proposed_transactions: ptxs,
 		},
 	}
 }
 
 func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
-	return xorBlockHash(base, sha256.Sum256(xdrutil.MarshalXdr(&ptx.Signed_tx)))
+	return xorBlockHash(base, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
 func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
-	return xorBlockHash(base, sha256.Sum256(xdrutil.MarshalXdr(stx)))
+	return xorBlockHash(base, protoutil.HashSignedTx(stx))
 }
 
 func xorBlockHash(p, q proto.BlockHash) proto.BlockHash {

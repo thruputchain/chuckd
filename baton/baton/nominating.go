@@ -83,7 +83,7 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, p
 		Transaction_nominations: proposedTxNominations,
 	}
 
-	b.handler.Emit(ctx, sdk.EventNominating{Tip: tip, NumTx: len(proposedTxHashes), Nominating: proposal})
+	b.handler.Emit(ctx, sdk.EventNominating{Tip: tip, NumTx: len(proposedTxHashes), Nomination: proposal})
 
 	// nominate to consensus
 	prevSummary := proto.PrevProposalSummary{

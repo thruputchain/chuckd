@@ -26,7 +26,6 @@ type TestRig struct {
 	*testutil.TestGen
 	*TestBus
 	*libtime.TestTime
-	*mempool.BatchMempool
 	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
 	*testdb.TestDb
@@ -38,8 +37,6 @@ type TestRig struct {
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
-	//
-	disseminated chan *proto.BatchMessage
 	//
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
@@ -65,10 +62,8 @@ func NewTestRig(
 		TestGen:          testutil.NewTestGen(ctx, time, runtime.NewRandFromRand(rand), user.Secret_key),
 		TestBus:          NewTestBus(),
 		TestTime:         time,
-		BatchMempool:     mempool.NewBatchMempool(ctx, time, batchTTL),
 		SubmittedMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
 		CommittedMempool: mempool.NewCommittedMempool(ctx, time, committedTTL),
-		disseminated:     make(chan *proto.BatchMessage),
 		nominateRequest:  make(chan nominateIn, 1),
 		nominateResponse: make(chan bool, 1),
 	}
@@ -89,14 +84,6 @@ func (h *TestRig) Bind(b *Baton) {
 
 func (h *TestRig) Emit(ctx context.Context, event any) {
 	h.TestBus.SendEvent(h.TestTime.Now(), event)
-}
-
-func (h *TestRig) DisseminateBatch(ctx context.Context, value *proto.BatchMessage) {
-	h.disseminated <- value
-}
-
-func (h *TestRig) WaitDissemination() *proto.BatchMessage {
-	return <-h.disseminated
 }
 
 type nominateIn struct {
@@ -183,7 +170,7 @@ func (h *TestRig) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
 	}
 }
 
-func (h *TestRig) PrioritizeRejectTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
+func (h *TestRig) ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
 	return txs, nil
 }
 
