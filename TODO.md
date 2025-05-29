@@ -14,7 +14,7 @@
   - [ ] logic
   - [ ] baton_test
 - [ ] address XXX
-- [ ] cleanup bag/batch/proposal structures
+- [ ] cleanup batch/proposal structures
 
 
 

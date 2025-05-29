@@ -8,12 +8,12 @@ import (
 )
 
 type WalletService struct {
-	mp *mempool.TransactionMempool
+	mp *mempool.SubmittedMempool
 }
 
 func NewWalletService(
 	ctx context.Context,
-	mp *mempool.TransactionMempool,
+	mp *mempool.SubmittedMempool,
 ) *WalletService {
 	return &WalletService{
 		mp: mp,

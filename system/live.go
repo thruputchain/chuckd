@@ -31,7 +31,7 @@ type LiveHandler struct {
 	coord   *coord.CoordinatorService
 	router  router.Router
 	*mempool.BatchMempool
-	*mempool.TransactionMempool
+	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
 	multiplex *multiplex.Multiplex
 	scp       api.SCPController
@@ -50,24 +50,24 @@ func NewLiveHandler(
 	coord *coord.CoordinatorService,
 	router router.Router,
 	batch *mempool.BatchMempool,
-	tx *mempool.TransactionMempool,
+	tx *mempool.SubmittedMempool,
 	committed *mempool.CommittedMempool,
 	multiplex *multiplex.Multiplex,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
-		Signatory:          signer,
-		Time:               time,
-		inside:             inside,
-		outside:            outside,
-		coord:              coord,
-		router:             router,
-		BatchMempool:       batch,
-		TransactionMempool: tx,
-		CommittedMempool:   committed,
-		multiplex:          multiplex,
-		rand:               rand,
-		live:               make(chan struct{}),
+		Signatory:        signer,
+		Time:             time,
+		inside:           inside,
+		outside:          outside,
+		coord:            coord,
+		router:           router,
+		BatchMempool:     batch,
+		SubmittedMempool: tx,
+		CommittedMempool: committed,
+		multiplex:        multiplex,
+		rand:             rand,
+		live:             make(chan struct{}),
 	}
 }
 

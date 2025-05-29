@@ -27,7 +27,7 @@ type TestRig struct {
 	*TestBus
 	*libtime.TestTime
 	*mempool.BatchMempool
-	*mempool.TransactionMempool
+	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
 	*testdb.TestDb
 	*testcatchup.TestCatchupStaged
@@ -59,18 +59,18 @@ func NewTestRig(
 	must.NoError(ctx, err)
 	time := libtime.NewTestTime(now)
 	h := &TestRig{
-		rand:               rand,
-		user:               user.Secret_key,
-		signer:             *signer,
-		TestGen:            testutil.NewTestGen(ctx, time, runtime.NewRandFromRand(rand), user.Secret_key),
-		TestBus:            NewTestBus(),
-		TestTime:           time,
-		BatchMempool:       mempool.NewBatchMempool(ctx, time, batchTTL),
-		TransactionMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
-		CommittedMempool:   mempool.NewCommittedMempool(ctx, time, committedTTL),
-		disseminated:       make(chan *proto.BatchMessage),
-		nominateRequest:    make(chan nominateIn, 1),
-		nominateResponse:   make(chan bool, 1),
+		rand:             rand,
+		user:             user.Secret_key,
+		signer:           *signer,
+		TestGen:          testutil.NewTestGen(ctx, time, runtime.NewRandFromRand(rand), user.Secret_key),
+		TestBus:          NewTestBus(),
+		TestTime:         time,
+		BatchMempool:     mempool.NewBatchMempool(ctx, time, batchTTL),
+		SubmittedMempool: mempool.NewTransactionMempool(ctx, time, txTTL),
+		CommittedMempool: mempool.NewCommittedMempool(ctx, time, committedTTL),
+		disseminated:     make(chan *proto.BatchMessage),
+		nominateRequest:  make(chan nominateIn, 1),
+		nominateResponse: make(chan bool, 1),
 	}
 	h.TestDb = testdb.NewTestDb(sdk.Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
