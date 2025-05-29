@@ -20,7 +20,6 @@ func TestRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	// fmt.Println("XXX", string(s))
 	// y := proto.ValidatorPublicInfo{}
 	y := proto.BroadcastChannel{}
 	// y := proto.Config{}

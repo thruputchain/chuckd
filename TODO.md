@@ -4,9 +4,6 @@
 - [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
 
 
-- [ ] address XXX
-
-
 
 
 
