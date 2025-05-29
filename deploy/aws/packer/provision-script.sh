@@ -23,11 +23,6 @@ if [ -z "$GITHUB_TOKEN" ]; then
     exit 1
 fi
 
-if [ -z "$PRIVATE_REPO" ]; then
-    echo "ERROR: PRIVATE_REPO environment variable is required"
-    exit 1
-fi
-
 # Setup git for private repos
 echo "Configuring git for private repositories..."
 git config --global url."https://$GITHUB_TOKEN:@github.com/".insteadOf "https://github.com/"
@@ -60,8 +55,8 @@ echo 'export PATH=$PATH:$GOPATH/bin' >> /home/ubuntu/.bashrc
 source /etc/profile
 
 # Clone private repository
-echo "Cloning private repository: $PRIVATE_REPO"
-git clone https://$GITHUB_TOKEN@$PRIVATE_REPO /tmp/chuckd
+echo "Cloning chuckd"
+git clone https://$GITHUB_TOKEN@github.com/groundhogchain/chuckd /tmp/chuckd
 
 # Build and install chuckd
 echo "Building chuckd..."
@@ -72,7 +67,7 @@ chmod +x /usr/local/bin/chuckd
 
 # Verify installation
 echo "Verifying chuckd installation..."
-/usr/local/bin/chuckd --version || echo "chuckd installed successfully"
+/usr/local/bin/chuckd version || echo "chuckd installed successfully"
 
 # Clean up sensitive information and temporary files
 echo "Cleaning up..."
@@ -85,4 +80,4 @@ git config --global --unset url."https://$GITHUB_TOKEN@github.com/".insteadOf ||
 echo "Setup completed successfully at $(date)"
 echo "SUCCESS" > /tmp/setup-complete.txt
 
-echo "Groundhog ChuckD provisioning completed successfully!"
+echo "Groundhog provisioning completed successfully!"

@@ -24,12 +24,6 @@ variable "github_token" {
   sensitive   = true
 }
 
-variable "private_repo" {
-  type        = string
-  description = "Private repository URL (without https://)"
-  default     = "github.com/groundhogchain/your-repo"
-}
-
 variable "ami_name_prefix" {
   type    = string
   default = "groundhog-chuckd"
@@ -108,7 +102,6 @@ build {
   provisioner "shell" {
     environment_vars = [
       "GITHUB_TOKEN=${var.github_token}",
-      "PRIVATE_REPO=${var.private_repo}",
     ]
     inline = [
       "chmod +x /tmp/provision-script.sh",
