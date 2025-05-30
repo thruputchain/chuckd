@@ -87,9 +87,6 @@ source "amazon-ebs" "ubuntu" {
 
   # Configure AMI copying to additional regions
   ami_regions = var.ami_regions
-
-  # Copy tags to additional regions
-  copy_tags = true
 }
 
 # Build steps
