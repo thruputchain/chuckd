@@ -1,5 +1,6 @@
 - [x] fix rpc driver race 244/265
 
+- [ ] upgrade for geoff's new executor error codes
 
 - [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
 
