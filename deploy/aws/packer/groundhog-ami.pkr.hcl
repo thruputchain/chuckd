@@ -8,9 +8,15 @@ packer {
 }
 
 # Variables
-variable "aws_region" {
+variable "aws_build_region" {
   type    = string
   default = "us-east-1"
+}
+
+variable "ami_regions" {
+  type        = list(string)
+  default     = ["us-east-1", "us-west-2"] # Default regions, can be overridden
+  description = "List of regions where AMIs should be copied"
 }
 
 variable "instance_type" {
@@ -38,20 +44,20 @@ data "amazon-ami" "ubuntu" {
   }
   most_recent = true
   owners      = ["099720109477"] # Canonical
-  region      = var.aws_region
+  region      = var.aws_build_region
 }
 
 # Build configuration
 source "amazon-ebs" "ubuntu" {
   ami_name      = "${var.ami_name_prefix}-{{timestamp}}"
   instance_type = var.instance_type
-  region        = var.aws_region
+  region        = var.aws_build_region
   source_ami    = data.amazon-ami.ubuntu.id
   ssh_username  = "ubuntu"
 
   # AMI configuration
   ami_description = "Groundhog AMI"
-  
+
   # Add tags
   tags = {
     Name        = "${var.ami_name_prefix}-{{timestamp}}"
@@ -69,20 +75,26 @@ source "amazon-ebs" "ubuntu" {
 
   # Instance configuration
   associate_public_ip_address = true
-  ssh_timeout                = "5m"
-  
+  ssh_timeout                 = "5m"
+
   # Use a larger root volume if needed
   launch_block_device_mappings {
-    device_name = "/dev/sda1"
-    volume_size = 20
-    volume_type = "gp3"
+    device_name           = "/dev/sda1"
+    volume_size           = 20
+    volume_type           = "gp3"
     delete_on_termination = true
   }
+
+  # Configure AMI copying to additional regions
+  ami_regions = var.ami_regions
+
+  # Copy tags to additional regions
+  copy_tags = true
 }
 
 # Build steps
 build {
-  name = "groundhog-chuckd"
+  name    = "groundhog-chuckd"
   sources = ["source.amazon-ebs.ubuntu"]
 
   # Wait for cloud-init to complete
