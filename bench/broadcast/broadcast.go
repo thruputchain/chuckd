@@ -25,7 +25,8 @@ type BroadcastBenchmark struct {
 
 func NewBroadcastBenchmark(
 	ctx context.Context,
-	rr *rand.Rand,
+	rand *rand.Rand,
+	outside libnet.Network,
 	vcfg proto.ValidatorConfig,
 	treeFanOut int, // fanout of multicast trees
 	paySize int, // sife of message payload
@@ -40,7 +41,7 @@ func NewBroadcastBenchmark(
 			Multicast_tree_ttl_msec: 3000,
 			Chunk_size:              10e3,
 		},
-		libnet.TCPNet{},
+		outside,
 		runtime.NewRandFromRoot(),
 		vcfg.Private_info,
 		router,

@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
@@ -56,12 +57,16 @@ var (
 				)
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				outside := libnet.Network(libnet.TCPNet{})
+				if benchQUIC {
+					outside = quic.NewQUICNet(ctx)
+				}
 				srv := testcluster.NewTestClusterSystem(
 					ctx,
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
 					*cfg,
-					libnet.TCPNet{},
+					outside,
 					benchTPS,
 				)
 				srv.Start(ctx, benchOutAddress, benchWalletAddress)
@@ -85,9 +90,14 @@ var (
 				)
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				outside := libnet.Network(libnet.TCPNet{})
+				if benchQUIC {
+					outside = quic.NewQUICNet(ctx)
+				}
 				srv := benchbroadcast.NewBroadcastBenchmark(
 					ctx,
 					runtime.NewRandFromRoot(),
+					outside,
 					*cfg.Validator_config,
 					benchTreeFanOut,
 					benchPaySize,
@@ -102,6 +112,7 @@ var (
 )
 
 var (
+	benchQUIC          bool
 	benchServerAddress string
 	benchTreeFanOut    int
 	benchPaySize       int
@@ -119,6 +130,7 @@ func init() {
 	rootCmd.AddCommand(benchCmd)
 
 	benchCmd.AddCommand(benchBroadcastCmd)
+	benchBroadcastCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchBroadcastCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
 	benchBroadcastCmd.Flags().IntVar(&benchTreeFanOut, "fanout", 5, "fanout of multicast trees")
 	benchBroadcastCmd.Flags().IntVar(&benchPaySize, "paysize", 1000*1000*10, "payload size")
@@ -126,6 +138,7 @@ func init() {
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "iterations", 1, "number of iterations")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
+	benchTestClusterCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")

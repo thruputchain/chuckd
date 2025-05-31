@@ -4,6 +4,7 @@ import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system"
 	"github.com/spf13/cobra"
@@ -25,12 +26,18 @@ var (
 			return api.Invoke(ctx, func() {
 				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				inside := libnet.Network(libnet.TCPNet{})
+				outside := libnet.Network(libnet.TCPNet{})
+				if serverQUIC {
+					inside = libnet.TCPNet{}
+					outside = quic.NewQUICNet(ctx)
+				}
 				srv := system.NewSystem(
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg,
-					libnet.TCPNet{},
-					libnet.TCPNet{},
+					inside,
+					outside,
 				)
 				srv.Start(ctx, serverInAddress, serverOutAddress, serverWalletAddress)
 				select {} // hang
@@ -40,6 +47,7 @@ var (
 )
 
 var (
+	serverQUIC          bool
 	serverInAddress     string
 	serverOutAddress    string
 	serverWalletAddress string
@@ -49,6 +57,7 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.AddCommand(serverStartCmd)
+	serverStartCmd.Flags().BoolVar(&serverQUIC, "quic", false, "use QUIC for external apis")
 	serverStartCmd.Flags().StringVar(&serverInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	serverStartCmd.Flags().StringVar(&serverOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	serverStartCmd.Flags().StringVar(&serverWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")

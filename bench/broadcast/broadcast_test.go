@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -49,9 +50,10 @@ func TestBroadcast(t *testing.T) {
 	vcfg1 := proto.ValidatorConfig{Private_info: *priv1, Known_validators: known}
 	vcfg2 := proto.ValidatorConfig{Private_info: *priv2, Known_validators: known}
 
-	bb0 := NewBroadcastBenchmark(ctx, r0, vcfg0, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
-	bb1 := NewBroadcastBenchmark(ctx, r1, vcfg1, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
-	bb2 := NewBroadcastBenchmark(ctx, r2, vcfg2, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
+	n := libnet.TCPNet{}
+	bb0 := NewBroadcastBenchmark(ctx, r0, n, vcfg0, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
+	bb1 := NewBroadcastBenchmark(ctx, r1, n, vcfg1, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
+	bb2 := NewBroadcastBenchmark(ctx, r2, n, vcfg2, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
 
 	bb0.Start(ctx, a0)
 	bb1.Start(ctx, a1)

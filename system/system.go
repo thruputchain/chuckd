@@ -56,7 +56,7 @@ type System struct {
 
 func NewSystem(
 	ctx context.Context,
-	rr *rand.Rand,
+	rand *rand.Rand,
 	cfg proto.Config,
 	inside libnet.Network,
 	outside libnet.Network,
@@ -69,7 +69,7 @@ func NewSystem(
 		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
-	sys.Coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rr))
+	sys.Coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rand))
 
 	sys.Discovery = discovery.NewDiscoveryService(
 		ctx,
@@ -84,7 +84,7 @@ func NewSystem(
 		ctx,
 		*cfg.Broadcast_config,
 		outside,
-		runtime.NewRandFromRand(rr),
+		runtime.NewRandFromRand(rand),
 		cfg.Validator_config.Private_info,
 		sys.Router,
 		broadcast.AcceptEverything{},
@@ -93,7 +93,7 @@ func NewSystem(
 	sys.Spectra = spectra.NewSpectraTransport(
 		ctx,
 		*cfg.Spectra_config,
-		runtime.NewRandFromRand(rr),
+		runtime.NewRandFromRand(rand),
 		sys.Broadcast.BulkAPI(),
 	)
 
@@ -114,7 +114,7 @@ func NewSystem(
 		sys.Submitted,
 		sys.Committed,
 		sys.Multiplex,
-		runtime.NewRandFromRand(rr),
+		runtime.NewRandFromRand(rand),
 	)
 
 	sys.Baton = baton.NewBaton(ctx, sys.Live)
