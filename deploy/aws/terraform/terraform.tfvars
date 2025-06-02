@@ -10,10 +10,10 @@ regions = [
 
 # AMI IDs for each region (replace with your actual AMI IDs)
 ami_ids = {
-  "us-east-1"      = "ami-070dbd17925473767"
-  "us-west-1"      = "ami-0270d7b37f2ed8ca7"
-  "ap-northeast-1" = "ami-0a9c3e5d2c1ddd3cf"
-  "eu-central-1"   = "ami-0bbbbe27e5904cfcf"
+  "ap-northeast-1" = "ami-06aa72592f18d7abb"
+  "eu-central-1" = "ami-09728dc44a045ca0c"
+  "us-east-1" = "ami-0b1d4bb0f16bbeeba"
+  "us-west-1" = "ami-0ea53db807280fb53"
 }
 
 # Paths to config files for each region
