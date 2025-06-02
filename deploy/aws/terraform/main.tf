@@ -10,7 +10,7 @@ terraform {
 
 # Variables for the deployment
 variable "regions" {
-  description = "List of AWS regions to deploy to"
+  description = "EC2 regions"
   type        = list(string)
 }
 
@@ -46,17 +46,23 @@ variable "chuckd_args" {
   default     = {}
 }
 
-# Create dynamic AWS providers for each region
-locals {
-  provider_aliases = {
-    for region in var.regions :
-    replace(region, "-", "_") => region
-  }
+# Static provider configuration for each region
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
 }
 
-# Dynamic provider configuration for all regions
 provider "aws" {
-  for_each = local.provider_aliases
-  alias    = each.key
-  region   = each.value
-} 
+  alias  = "us_west_1"
+  region = "us-west-1"
+}
+
+provider "aws" {
+  alias  = "ap_northeast_1"
+  region = "ap-northeast-1"
+}
+
+provider "aws" {
+  alias  = "eu_central_1"
+  region = "eu-central-1"
+}
