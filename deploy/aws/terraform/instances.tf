@@ -645,7 +645,7 @@ resource "aws_instance" "chuckd_server_us_east_1" {
 
               [Service]
               Type=simple
-              ExecStart=/usr/local/bin/chuckd --config /etc/chuckd/config.json ${lookup(var.chuckd_args, "us-east-1", "")}
+              ExecStart=/usr/local/bin/chuckd ${lookup(var.chuckd_args, "us-east-1", "")}
               Restart=no
 
               [Install]
@@ -683,7 +683,7 @@ resource "aws_instance" "chuckd_server_us_west_1" {
 
               [Service]
               Type=simple
-              ExecStart=/usr/local/bin/chuckd --config /etc/chuckd/config.json ${lookup(var.chuckd_args, "us-west-1", "")}
+              ExecStart=/usr/local/bin/chuckd ${lookup(var.chuckd_args, "us-west-1", "")}
               Restart=no
 
               [Install]
@@ -721,7 +721,7 @@ resource "aws_instance" "chuckd_server_ap_northeast_1" {
 
               [Service]
               Type=simple
-              ExecStart=/usr/local/bin/chuckd --config /etc/chuckd/config.json ${lookup(var.chuckd_args, "ap-northeast-1", "")}
+              ExecStart=/usr/local/bin/chuckd ${lookup(var.chuckd_args, "ap-northeast-1", "")}
               Restart=no
 
               [Install]
@@ -759,7 +759,7 @@ resource "aws_instance" "chuckd_server_eu_central_1" {
 
               [Service]
               Type=simple
-              ExecStart=/usr/local/bin/chuckd --config /etc/chuckd/config.json ${lookup(var.chuckd_args, "eu-central-1", "")}
+              ExecStart=/usr/local/bin/chuckd ${lookup(var.chuckd_args, "eu-central-1", "")}
               Restart=no
 
               [Install]
