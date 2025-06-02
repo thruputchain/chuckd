@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/pebble"
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -32,7 +32,7 @@ type CatchupService struct {
 }
 
 type DialDb interface {
-	DialDb(context.Context) (sdk.DbCoordConn, error)
+	DialDb(context.Context) (batonapi.DbCoordConn, error)
 }
 
 type stampedCatchupBlock struct {

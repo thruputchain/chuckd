@@ -3,13 +3,13 @@ package baton
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/commit"
-	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/baton/validate"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) commit(ctx context.Context, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
 	if vb.AlreadyValidatedBlockID != nil {
 		// skip validation when committing our own nomination
 		return commit.CommitAlreadyValidated(ctx, b.handler, vb)

@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -15,7 +15,7 @@ import (
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -33,7 +33,7 @@ type LiveHandler struct {
 	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
 	multiplex *multiplex.Multiplex
-	scp       api.SCPController
+	scp       scpapi.SCPController
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -68,7 +68,7 @@ func NewLiveHandler(
 	}
 }
 
-func (x *LiveHandler) SetSCP(scp api.SCPController) {
+func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 	x.scp = scp
 	close(x.live)
 }
@@ -89,41 +89,41 @@ func (x *LiveHandler) GenerateBlockID(context.Context) proto.BlockID {
 	return x.rand.Uint64()
 }
 
-func (x *LiveHandler) GenerateID64(context.Context) sdk.ID64 {
+func (x *LiveHandler) GenerateID64(context.Context) batonapi.ID64 {
 	x.rlk.Lock()
 	defer x.rlk.Unlock()
-	return sdk.ID64(x.rand.Int63())
+	return batonapi.ID64(x.rand.Int63())
 }
 
-func (x *LiveHandler) RestoreDb(ctx context.Context) (sdk.Tip, error) {
+func (x *LiveHandler) RestoreDb(ctx context.Context) (batonapi.Tip, error) {
 	<-x.live
 	x.coord.WaitDbReady()
 
 	c, err := x.coord.DialDb(ctx)
 	if err != nil {
-		return sdk.Tip{}, err
+		return batonapi.Tip{}, err
 	}
 	r, err := c.Dbcoord_get_tip(ctx)
 	if err != nil {
-		return sdk.Tip{}, err
+		return batonapi.Tip{}, err
 	}
 	if r.Result != proto.DbResultOK {
-		return sdk.Tip{}, fmt.Errorf("db get tip error")
+		return batonapi.Tip{}, fmt.Errorf("db get tip error")
 	}
-	return sdk.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
+	return batonapi.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
 }
 
-func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (sdk.CatchupConn, error) {
+func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (batonapi.CatchupConn, error) {
 	<-x.live
 	return catchup.DialCatchupClient(ctx, x.outside, v.Address)
 }
 
-func (x *LiveHandler) DialDb(ctx context.Context) (sdk.DbCoordConn, error) {
+func (x *LiveHandler) DialDb(ctx context.Context) (batonapi.DbCoordConn, error) {
 	<-x.live
 	return x.coord.DialDb(ctx)
 }
 
-func (x *LiveHandler) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
+func (x *LiveHandler) DialExecs(ctx context.Context) ([]batonapi.ExecCoordConn, error) {
 	<-x.live
 	return x.coord.DialExecs(ctx)
 }

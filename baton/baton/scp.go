@@ -3,17 +3,17 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) SCPHandler() api.SCPHandler {
+func (b *Baton) SCPHandler() scpapi.SCPHandler {
 	return scpHandler{b}
 }
 
@@ -21,7 +21,7 @@ type scpHandler struct {
 	baton *Baton
 }
 
-func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values []api.Value) api.Value {
+func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, values []scpapi.Value) scpapi.Value {
 	<-x.baton.scp
 
 	nominations := make(protoutil.NominationsByHash, 0, len(values))
@@ -41,7 +41,7 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot api.Slot, values
 	}
 }
 
-func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.Value, nomination bool) api.ValidationLevel {
+func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) scpapi.ValidationLevel {
 	<-x.baton.scp
 
 	liblog.Infof("baton validate value for slot %d received", slot)
@@ -50,18 +50,18 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.
 	var prop proto.Nomination
 	err := xdrutil.UnmarshalXdr(&prop, value)
 	if err != nil {
-		return api.InvalidValue
+		return scpapi.InvalidValue
 	}
 	if len(prop.Transaction_hashes) != len(prop.Transaction_nominations) {
-		return api.InvalidValue
+		return scpapi.InvalidValue
 	}
 
-	reply := make(chan api.ValidationLevel, 1)
+	reply := make(chan scpapi.ValidationLevel, 1)
 	x.baton.validateValue(ctx, &prop, reply)
 	return <-reply
 }
 
-func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination, reply chan<- api.ValidationLevel) {
+func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination, reply chan<- scpapi.ValidationLevel) {
 
 	b.lock(ctx)
 	dbTip := b.tip
@@ -70,23 +70,23 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 	if nomination.Block_height <= dbTip.Height {
 		liblog.Infof("cannot validate, nomination below tip")
-		reply <- api.InvalidValue
+		reply <- scpapi.InvalidValue
 		return
 	}
 	if nomination.Block_height > dbTip.Height+1 {
 		liblog.Infof("cannot validate, nomination far ahead")
-		reply <- api.MaybeValidValue
+		reply <- scpapi.MaybeValidValue
 		return
 	}
 	if nomination.Prev_block_hash != dbTip.Hash {
 		liblog.Infof("cannot validate, previous block %v != db tip %v",
 			form.Display(nomination.Prev_block_hash), form.Display(dbTip.Hash))
-		reply <- api.InvalidValue
+		reply <- scpapi.InvalidValue
 		return
 	}
 	if numExt > 0 {
 		liblog.Infof("cannot validate, newer externalizations not processed")
-		reply <- api.InvalidValue // there are newer externalizations
+		reply <- scpapi.InvalidValue // there are newer externalizations
 		return
 	}
 
@@ -101,7 +101,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	txs, ok := b.handler.WaitTxs(ctx, nomination.Transaction_hashes)
 	if !ok {
 		liblog.Infof("cannot validate, missing txs")
-		reply <- api.MaybeValidValue
+		reply <- scpapi.MaybeValidValue
 		return
 	}
 
@@ -113,7 +113,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		}
 	}
 
-	vb := &sdk.ValidatableBlock{
+	vb := &batonapi.ValidatableBlock{
 		BlockHeight:          nomination.Block_height,
 		BlockHash:            nomination.Block_hash,
 		PrevBlockHash:        nomination.Prev_block_hash,
@@ -123,17 +123,17 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 	go func() {
 		blockID, err := validate.ValidateClose(ctx, b.handler, vb)
-		if err == sdk.ErrNotValid {
+		if err == batonapi.ErrNotValid {
 			liblog.Infof("cannot validate, inconsistent")
-			reply <- api.InvalidValue
+			reply <- scpapi.InvalidValue
 			return
 		}
 		if err != nil {
 			liblog.Infof("cannot validate, other: %v", err)
-			reply <- api.MaybeValidValue
+			reply <- scpapi.MaybeValidValue
 			return
 		}
-		reply <- api.FullyValidValue
+		reply <- scpapi.FullyValidValue
 
 		b.lock(ctx)
 		defer b.unlock(ctx)
@@ -143,12 +143,12 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	}()
 }
 
-func (x scpHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value api.Value) *api.Value {
+func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) *scpapi.Value {
 	<-x.baton.scp
 	return nil
 }
 
-func (x scpHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
+func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) {
 	<-x.baton.scp
 
 	var nomination proto.Nomination

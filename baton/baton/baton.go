@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -13,12 +13,12 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func NewBaton(ctx context.Context, h sdk.Handler) *Baton {
+func NewBaton(ctx context.Context, h batonapi.Handler) *Baton {
 	b := &Baton{
 		ctx:             ctx,
 		handler:         h,
 		scp:             make(chan struct{}),
-		catchupRequests: map[sdk.ID64]catchupRequest{},
+		catchupRequests: map[batonapi.ID64]catchupRequest{},
 		validated:       map[proto.BlockHash]validated{},
 	}
 	b.cond = sync.NewCond(&b.lk)
@@ -27,7 +27,7 @@ func NewBaton(ctx context.Context, h sdk.Handler) *Baton {
 
 type Baton struct {
 	ctx     context.Context // ctx for drive
-	handler sdk.Handler
+	handler batonapi.Handler
 	scp     chan struct{}
 	cond    *sync.Cond
 	lk      sync.Mutex
@@ -35,9 +35,9 @@ type Baton struct {
 	committing      bool
 	nominating      *nominating
 	nominated       *nominated
-	tip             sdk.Tip
-	catchupRequests map[sdk.ID64]catchupRequest // pending catchup requests
-	catchupBlocks   catchupBlocks               // received catchup blocks
+	tip             batonapi.Tip
+	catchupRequests map[batonapi.ID64]catchupRequest // pending catchup requests
+	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.Nomination
 	validated       map[proto.BlockHash]validated
 }

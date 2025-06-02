@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -44,8 +44,8 @@ type execProposed struct {
 // PrepareNomination can be aborted by cancelling the context.
 func PrepareNomination(
 	ctx context.Context,
-	handler sdk.OpsHandler,
-	tip sdk.Tip,
+	handler batonapi.OpsHandler,
+	tip batonapi.Tip,
 	txs []*proto.SignedTransaction,
 ) (*Nomination, error) {
 
@@ -75,7 +75,7 @@ func PrepareNomination(
 	}
 	if len(execs) == 0 {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return nil, sdk.ErrNoExecs
+		return nil, batonapi.ErrNoExecs
 	}
 	for _, exec := range execs {
 		defer exec.Close()
@@ -90,7 +90,7 @@ func PrepareNomination(
 
 	proposedCh := make(chan execProposed, len(execs))
 	for _, exec := range execs {
-		go func(exec sdk.ExecCoordConn) {
+		go func(exec batonapi.ExecCoordConn) {
 
 			// executor open proposal block
 			execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
@@ -115,7 +115,7 @@ func PrepareNomination(
 				if err != nil {
 					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: err})
 				} else if proposeResult.Result != proto.ExecResultOK {
-					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: sdk.ErrNotValid})
+					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: batonapi.ErrNotValid})
 				} else {
 					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})
 				}

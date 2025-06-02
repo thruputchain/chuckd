@@ -10,7 +10,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/scp/solo/follower"
 	"github.com/groundhogchain/chuckd/scp/solo/leader"
 	"github.com/groundhogchain/chuckd/test/testnet"
@@ -79,17 +79,17 @@ func TestSolo(t *testing.T) {
 	go func() {
 		defer wgValidate.Done()
 		vv := followerHandler[0].WaitValidateValue()
-		vv.Return(api.FullyValidValue)
+		vv.Return(scpapi.FullyValidValue)
 	}()
 	go func() {
 		defer wgValidate.Done()
 		vv := followerHandler[1].WaitValidateValue()
-		vv.Return(api.MaybeValidValue)
+		vv.Return(scpapi.MaybeValidValue)
 	}()
 	go func() {
 		defer wgValidate.Done()
 		vv := followerHandler[2].WaitValidateValue()
-		vv.Return(api.FullyValidValue)
+		vv.Return(scpapi.FullyValidValue)
 	}()
 	wgValidate.Wait()
 
@@ -118,20 +118,20 @@ type testHandler struct {
 
 type validateValueCall struct {
 	ctx        context.Context
-	slot       api.Slot
-	value      api.Value
+	slot       scpapi.Slot
+	value      scpapi.Value
 	nomination bool
-	result     chan<- api.ValidationLevel
+	result     chan<- scpapi.ValidationLevel
 }
 
-func (vv validateValueCall) Return(r api.ValidationLevel) {
+func (vv validateValueCall) Return(r scpapi.ValidationLevel) {
 	vv.result <- r
 }
 
 type externalizedValueCall struct {
 	ctx   context.Context
-	slot  api.Slot
-	value api.Value
+	slot  scpapi.Slot
+	value scpapi.Value
 }
 
 func newTestHandler() *testHandler {
@@ -141,12 +141,12 @@ func newTestHandler() *testHandler {
 	}
 }
 
-func (h *testHandler) CombineCandidates(context.Context, api.Slot, []api.Value) api.Value {
+func (h *testHandler) CombineCandidates(context.Context, scpapi.Slot, []scpapi.Value) scpapi.Value {
 	panic("XXX")
 }
 
-func (h *testHandler) ValidateValue(ctx context.Context, slot api.Slot, value api.Value, nomination bool) api.ValidationLevel {
-	result := make(chan api.ValidationLevel)
+func (h *testHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) scpapi.ValidationLevel {
+	result := make(chan scpapi.ValidationLevel)
 	h.validateValue <- validateValueCall{ctx: ctx, slot: slot, value: value, nomination: nomination, result: result}
 	return <-result
 }
@@ -155,11 +155,11 @@ func (h *testHandler) WaitValidateValue() validateValueCall {
 	return <-h.validateValue
 }
 
-func (h *testHandler) ExtractValidValue(ctx context.Context, slot api.Slot, value api.Value) *api.Value {
+func (h *testHandler) ExtractValidValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) *scpapi.Value {
 	return nil
 }
 
-func (h *testHandler) ExternalizedValue(ctx context.Context, slot api.Slot, value api.Value) {
+func (h *testHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) {
 	h.externalizedValue <- externalizedValueCall{ctx: ctx, slot: slot, value: value}
 }
 

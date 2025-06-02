@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/coord"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -35,11 +35,11 @@ func (x *LiveHandler) GenerateBlockID(context.Context) proto.BlockID {
 	return x.rand.Uint64()
 }
 
-func (x *LiveHandler) DialDb(ctx context.Context) (sdk.DbCoordConn, error) {
+func (x *LiveHandler) DialDb(ctx context.Context) (batonapi.DbCoordConn, error) {
 	return x.coord.DialDb(ctx)
 }
 
-func (x *LiveHandler) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
+func (x *LiveHandler) DialExecs(ctx context.Context) ([]batonapi.ExecCoordConn, error) {
 	return x.coord.DialExecs(ctx)
 }
 

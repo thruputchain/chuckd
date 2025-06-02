@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -17,12 +17,12 @@ type TestDb struct {
 }
 
 type testDbSnapshot struct {
-	tip       sdk.Tip
+	tip       batonapi.Tip
 	open      int
 	committed bool
 }
 
-func NewTestDb(tip sdk.Tip) *TestDb {
+func NewTestDb(tip batonapi.Tip) *TestDb {
 	db := &TestDb{
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
@@ -35,19 +35,19 @@ func NewTestDb(tip sdk.Tip) *TestDb {
 	return db
 }
 
-func (db *TestDb) GetTip() sdk.Tip {
+func (db *TestDb) GetTip() batonapi.Tip {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip
 }
 
-func (db *TestDb) RestoreDb(context.Context) (sdk.Tip, error) {
+func (db *TestDb) RestoreDb(context.Context) (batonapi.Tip, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip, nil
 }
 
-func (db *TestDb) DbCoord() sdk.DbCoordConn {
+func (db *TestDb) DbCoord() batonapi.DbCoordConn {
 	return db
 }
 
@@ -104,7 +104,7 @@ func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.Bl
 	parent, ok := db.id[parentID]
 	must.Assertf(ctx, ok, "missing parent block")
 	child := &testDbSnapshot{
-		tip: sdk.Tip{
+		tip: batonapi.Tip{
 			Height: parent.tip.Height + 1,
 			Hash:   parent.tip.Hash,
 			ID:     id,

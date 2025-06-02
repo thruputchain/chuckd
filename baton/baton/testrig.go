@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/mempool"
@@ -33,7 +33,7 @@ type TestRig struct {
 	*TestSCP
 	//
 	xlk       sync.Mutex
-	nextExecs [][]sdk.ExecCoordConn
+	nextExecs [][]batonapi.ExecCoordConn
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -66,7 +66,7 @@ func NewTestRig(
 		nominateRequest:  make(chan nominateIn, 1),
 		nominateResponse: make(chan bool, 1),
 	}
-	h.TestDb = testdb.NewTestDb(sdk.Tip{})
+	h.TestDb = testdb.NewTestDb(batonapi.Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
 	h.TestCatchupStaged = testcatchup.NewTestCatchup(time, *catchupSigner)
@@ -129,23 +129,23 @@ func (h *TestRig) GenerateBlockID(context.Context) proto.BlockID {
 	return h.rand.Uint64()
 }
 
-func (h *TestRig) GenerateID64(context.Context) sdk.ID64 {
+func (h *TestRig) GenerateID64(context.Context) batonapi.ID64 {
 	h.rlk.Lock()
 	defer h.rlk.Unlock()
-	return sdk.ID64(h.rand.Int63())
+	return batonapi.ID64(h.rand.Int63())
 }
 
-func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (sdk.CatchupConn, error) {
+func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (batonapi.CatchupConn, error) {
 	return h.TestCatchupStaged, nil
 }
 
-func (h *TestRig) DialDb(context.Context) (sdk.DbCoordConn, error) {
+func (h *TestRig) DialDb(context.Context) (batonapi.DbCoordConn, error) {
 	return h.TestDb, nil
 }
 
 func (h *TestRig) StageExecs(n int) []*testexec.TestExec {
 	testExecs := make([]*testexec.TestExec, n)
-	execs := make([]sdk.ExecCoordConn, n)
+	execs := make([]batonapi.ExecCoordConn, n)
 	for i := range testExecs {
 		testExecs[i] = testexec.NewTestExec(h.TestDb)
 		execs[i] = testExecs[i]
@@ -156,7 +156,7 @@ func (h *TestRig) StageExecs(n int) []*testexec.TestExec {
 	return testExecs
 }
 
-func (h *TestRig) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
+func (h *TestRig) DialExecs(ctx context.Context) ([]batonapi.ExecCoordConn, error) {
 	h.xlk.Lock()
 	defer h.xlk.Unlock()
 	// if there are no staged execs, just allocate
@@ -165,7 +165,7 @@ func (h *TestRig) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
 		h.nextExecs = h.nextExecs[1:]
 		return execs, nil
 	} else {
-		return []sdk.ExecCoordConn{testexec.NewTestExec(h.TestDb), testexec.NewTestExec(h.TestDb)}, nil
+		return []batonapi.ExecCoordConn{testexec.NewTestExec(h.TestDb), testexec.NewTestExec(h.TestDb)}, nil
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
@@ -18,7 +18,7 @@ import (
 type SoloLeaderService struct {
 	ctx       context.Context
 	net       libnet.Network
-	handler   api.SCPHandler
+	handler   scpapi.SCPHandler
 	slotDelay time.Duration
 	self      proto.ValidatorPrivateInfo
 	quorum    []proto.ValidatorPublicInfo
@@ -29,7 +29,7 @@ type SoloLeaderService struct {
 func NewSoloLeaderService(
 	ctx context.Context,
 	n libnet.Network,
-	h api.SCPHandler,
+	h scpapi.SCPHandler,
 	// slots don't externalize before the timeout to allow room for competing nominations
 	// slotDelay should be much smaller, say 1/12, than overall externalization time
 	slotDelay time.Duration,

@@ -3,18 +3,18 @@ package wallet
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type WalletService struct {
-	submitter sdk.Submitter
+	submitter batonapi.Submitter
 }
 
 func NewWalletService(
 	ctx context.Context,
-	submitter sdk.Submitter,
+	submitter batonapi.Submitter,
 ) *WalletService {
 	return &WalletService{
 		submitter: submitter,

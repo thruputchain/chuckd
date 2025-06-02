@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/commit"
-	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func ValidateClose(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func ValidateClose(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
 
 	db, err := handler.DialDb(ctx)
 	if err != nil {
@@ -28,7 +28,7 @@ func ValidateClose(ctx context.Context, handler sdk.OpsHandler, vb *sdk.Validata
 	return blockID, finalizeValidateClose(ctx, vb, blockID, db)
 }
 
-func ValidateCommit(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func ValidateCommit(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
 	liblog.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	db, err := handler.DialDb(ctx)
@@ -46,9 +46,9 @@ func ValidateCommit(ctx context.Context, handler sdk.OpsHandler, vb *sdk.Validat
 	return commit.FinalizeCommit(ctx, handler, vb, blockID, db)
 }
 
-func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock, db sdk.DbCoordConn, blockID proto.BlockID) error {
+func Validate(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock, db batonapi.DbCoordConn, blockID proto.BlockID) error {
 
-	handler.Emit(ctx, sdk.EventValidating{ValidatableBlock: vb, BlockID: blockID})
+	handler.Emit(ctx, batonapi.EventValidating{ValidatableBlock: vb, BlockID: blockID})
 
 	// db create snapshot
 	dbResult, err := db.Dbcoord_create_snapshot(ctx, vb.DbTip.ID, blockID, proto.KBlockExecutionModeValidation)
@@ -67,7 +67,7 @@ func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBl
 	}
 	if len(execs) == 0 {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return sdk.ErrNoExecs
+		return batonapi.ErrNoExecs
 	}
 	for _, exec := range execs {
 		defer exec.Close()
@@ -82,7 +82,7 @@ func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBl
 
 	validatedCh := make(chan error, len(execs))
 	for _, exec := range execs {
-		go func(exec sdk.ExecCoordConn) {
+		go func(exec batonapi.ExecCoordConn) {
 
 			// executor open validation block
 			execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
@@ -108,7 +108,7 @@ func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBl
 					return
 				}
 				if execResult != proto.ExecResultOK {
-					validatedCh <- sdk.ErrNotValid
+					validatedCh <- batonapi.ErrNotValid
 					return
 				}
 			}
@@ -126,7 +126,7 @@ func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBl
 	}
 	var verr error
 	for range execs {
-		if err := <-validatedCh; verr == nil || err == sdk.ErrNotValid { // prioritize ErrNotValid over networking errors
+		if err := <-validatedCh; verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
 			verr = err
 		}
 	}
@@ -136,16 +136,16 @@ func Validate(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBl
 		return verr
 	}
 
-	handler.Emit(ctx, sdk.EventValidated{ValidatableBlock: vb, BlockID: blockID})
+	handler.Emit(ctx, batonapi.EventValidated{ValidatableBlock: vb, BlockID: blockID})
 
 	return nil
 }
 
 func finalizeValidateClose(
 	ctx context.Context,
-	vb *sdk.ValidatableBlock,
+	vb *batonapi.ValidatableBlock,
 	blockID proto.BlockID,
-	db sdk.DbCoordConn,
+	db batonapi.DbCoordConn,
 ) error {
 
 	// db close snapshot
@@ -161,7 +161,7 @@ func finalizeValidateClose(
 	if *dbBlockResult.Block_hash() != vb.BlockHash {
 		liblog.Infof("cannot validate, resulting block hash %v != proposed block hash %v",
 			form.Display(*dbBlockResult.Block_hash()), form.Display(vb.BlockHash))
-		return sdk.ErrNotValid
+		return batonapi.ErrNotValid
 	}
 
 	return nil

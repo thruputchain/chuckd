@@ -1,4 +1,4 @@
-package sdk
+package batonapi
 
 import (
 	"context"

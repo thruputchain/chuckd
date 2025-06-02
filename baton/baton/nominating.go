@@ -3,14 +3,14 @@ package baton
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/nominate"
-	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type nominating struct {
-	sdk.Tip
+	batonapi.Tip
 	context.CancelFunc
 }
 
@@ -18,7 +18,7 @@ type nominated struct {
 	*proto.Nomination
 }
 
-func canNominate(nominate *sdk.Tip, nominating *nominating, nominated *nominated) bool {
+func canNominate(nominate *batonapi.Tip, nominating *nominating, nominated *nominated) bool {
 	if nominate == nil {
 		return false
 	}
@@ -35,7 +35,7 @@ func canNominate(nominate *sdk.Tip, nominating *nominating, nominated *nominated
 	panic("unreachable")
 }
 
-func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
 
 	txs := []*proto.SignedTransaction{}
 	for _, tx := range b.handler.ListTxs(ctx) {
@@ -51,7 +51,7 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, p
 		b.handler.RejectedTx(ctx, rtx)
 	}
 	if len(scheduledTxs) == 0 {
-		return nil, 0, sdk.ErrNothingToNominate
+		return nil, 0, batonapi.ErrNothingToNominate
 	}
 
 	// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
@@ -83,7 +83,7 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, p
 		Transaction_nominations: proposedTxNominations,
 	}
 
-	b.handler.Emit(ctx, sdk.EventNominating{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
+	b.handler.Emit(ctx, batonapi.EventNominating{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{
@@ -91,7 +91,7 @@ func (b *Baton) nominate(ctx context.Context, tip sdk.Tip) (*proto.Nomination, p
 	}
 	// block until nomination is over
 	b.handler.Nominate(ctx, nom.BlockHeight, nomination, &prevSummary) // ignore result
-	b.handler.Emit(ctx, sdk.EventNominated{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
+	b.handler.Emit(ctx, batonapi.EventNominated{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
 
 	return nomination, nom.BlockID, nil
 }

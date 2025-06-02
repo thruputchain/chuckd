@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (x *CoordinatorService) DialDb(ctx context.Context) (sdk.DbCoordConn, error) {
+func (x *CoordinatorService) DialDb(ctx context.Context) (batonapi.DbCoordConn, error) {
 	shard := x.pickShard()
 	return DialDbCoordClient(ctx, x.net, shard.Address)
 }
@@ -21,8 +21,8 @@ func (x *CoordinatorService) pickShard() proto.ShardCard {
 	return x.dbShards[rand.Intn(len(x.dbShards))]
 }
 
-func (x *CoordinatorService) DialExecs(ctx context.Context) ([]sdk.ExecCoordConn, error) {
-	conns := []sdk.ExecCoordConn{}
+func (x *CoordinatorService) DialExecs(ctx context.Context) ([]batonapi.ExecCoordConn, error) {
+	conns := []batonapi.ExecCoordConn{}
 	for _, card := range x.getExecs() {
 		conn, err := DialExecutorCoordClient(ctx, x.net, card.Address)
 		if err != nil {

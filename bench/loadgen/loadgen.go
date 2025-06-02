@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/nominate"
-	"github.com/groundhogchain/chuckd/baton/sdk"
 	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -76,7 +76,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs)
 		must.NoError(ctx, err)
 
-		vb := &sdk.ValidatableBlock{
+		vb := &batonapi.ValidatableBlock{
 			BlockHeight:          nomination.BlockHeight,
 			BlockHash:            nomination.BlockHash,
 			PrevBlockHash:        nomination.PrevBlockHash,
@@ -98,13 +98,13 @@ func (x *LoadGen) generateTxs(ctx context.Context) []*proto.SignedTransaction {
 	panic("XXX: not implemented")
 }
 
-func getDbTip(ctx context.Context, c sdk.DbCoordConn) (sdk.Tip, error) {
+func getDbTip(ctx context.Context, c batonapi.DbCoordConn) (batonapi.Tip, error) {
 	r, err := c.Dbcoord_get_tip(ctx)
 	if err != nil {
-		return sdk.Tip{}, err
+		return batonapi.Tip{}, err
 	}
 	if r.Result != proto.DbResultOK {
-		return sdk.Tip{}, fmt.Errorf("db get tip error")
+		return batonapi.Tip{}, fmt.Errorf("db get tip error")
 	}
-	return sdk.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
+	return batonapi.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
 }

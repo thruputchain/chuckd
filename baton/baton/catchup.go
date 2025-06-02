@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -60,8 +60,8 @@ func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (CatchupBlock, boo
 	return b.catchupBlocks.Find(h)
 }
 
-func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []sdk.ID64 {
-	var reqs []sdk.ID64
+func (b *Baton) findCatchupRequestsAtHeight(h proto.BlockHeight) []batonapi.ID64 {
+	var reqs []batonapi.ID64
 	for id, q := range b.catchupRequests {
 		for _, span := range q.spans {
 			if span.From <= h && h < span.To {
@@ -89,7 +89,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		spans:     spans,
 	}
 
-	go func(src proto.ValidatorPublicInfo, id sdk.ID64, spans []Span) {
+	go func(src proto.ValidatorPublicInfo, id batonapi.ID64, spans []Span) {
 
 		var result catchupBlocks
 

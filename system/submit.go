@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -14,7 +14,7 @@ import (
 type Submitter struct {
 	time         libtime.Time
 	pool         *mempool.SubmittedMempool
-	disseminator sdk.Disseminator
+	disseminator batonapi.Disseminator
 	lotSize      int
 	lotWait      time.Duration
 	ch           chan *proto.SignedTransaction
@@ -24,7 +24,7 @@ func NewSubmitter(
 	ctx context.Context,
 	time libtime.Time,
 	pool *mempool.SubmittedMempool,
-	disseminator sdk.Disseminator,
+	disseminator batonapi.Disseminator,
 	lotSize int,
 	lotWait time.Duration,
 ) *Submitter {

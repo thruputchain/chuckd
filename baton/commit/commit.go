@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -12,7 +12,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func CommitAlreadyValidated(ctx context.Context, handler sdk.OpsHandler, vb *sdk.ValidatableBlock) (proto.BlockID, error) {
+func CommitAlreadyValidated(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
 	liblog.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	// connect to db
@@ -38,10 +38,10 @@ func CommitAlreadyValidated(ctx context.Context, handler sdk.OpsHandler, vb *sdk
 
 func FinalizeCommit(
 	ctx context.Context,
-	handler sdk.OpsHandler,
-	vb *sdk.ValidatableBlock,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
 	blockID proto.BlockID,
-	db sdk.DbCoordConn,
+	db batonapi.DbCoordConn,
 ) (proto.BlockID, error) {
 
 	// db commit snapshot
@@ -70,7 +70,7 @@ func FinalizeCommit(
 		Prev_block_hash:       vb.PrevBlockHash,
 		Proposed_transactions: protoutil.PackProposedTransactions(vb.ProposedTransactions),
 	})
-	handler.Emit(ctx, sdk.EventCommitted{ValidatableBlock: vb, BlockID: blockID})
+	handler.Emit(ctx, batonapi.EventCommitted{ValidatableBlock: vb, BlockID: blockID})
 
 	return blockID, nil
 }

@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -31,7 +31,7 @@ func init() {
 
 func NewWalletGateway(
 	ctx context.Context,
-	submitter sdk.Submitter,
+	submitter batonapi.Submitter,
 	jwtKey proto.JWTSecretKey,
 	users []proto.WalletUser,
 ) *WalletGateway {

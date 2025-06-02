@@ -1,4 +1,4 @@
-package sdk
+package batonapi
 
 import (
 	proto "github.com/groundhogchain/protocol-go"

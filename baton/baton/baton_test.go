@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/sdk"
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -63,26 +63,26 @@ func TestNominateCommit(t *testing.T) {
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
 	baton.Start(ctx, tick/5)
-	nominating_1 := rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
 	rig.StageExecs(1)
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                      // txs for stage 3
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(nominating_1.Nomination)) // trigger commit, trigger stage 3
-	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
+	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
 
 	// stage 3: nominate [2]
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 	rig.PassTime(tick)
 
 }
@@ -99,22 +99,22 @@ func TestValidateCommit(t *testing.T) {
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
 
 	// consume nomination
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
 	vlevel := rig.ValidateValue(ctx, block.Nomination.Block_height, xdrutil.MarshalXdr(&block.Nomination), true)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
-	if <-vlevel != api.FullyValidValue {
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
+	if <-vlevel != scpapi.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block.Nomination))
-	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
+	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
@@ -142,15 +142,15 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.StageExecs(1) // for validation and commit
 
 	// consume nomination
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
 	rig.ExternalizedValue(ctx, 2, xdrutil.MarshalXdr(&block2.Nomination))
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
-	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
+	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 	if committed.BlockHeight != 1 {
 		t.Errorf("expecting committed height 1")
 	}
@@ -168,9 +168,9 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 	rig.StageExecs(1) // for validation and commit
 	rig.ExternalizedValue(ctx, 1, xdrutil.MarshalXdr(&block1.Nomination))
 	// catchup provisions the block
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
-	committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
+	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 	if committed.BlockHeight != 1 {
 		t.Errorf("expecting committed height 1")
 	}
@@ -193,16 +193,16 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // submit tx
 		baton.Kick(ctx)                       // wake baton after submitting transactions
 
-		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventNominating)
+		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 		rig.WaitNomination(ctx)
 		rig.SignalNomination(true)
-		nominated := rig.ReceiveEvent(ctx).Event.(sdk.EventNominated)
+		nominated := rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
 		// kick off validation
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
 		rig.ValidateValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Nomination), true)
-		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidating)
-		_ = rig.ReceiveEvent(ctx).Event.(sdk.EventValidated)
+		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
+		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
@@ -211,7 +211,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 			// kick off commit of validated
 			rig.ExternalizedValue(ctx, height, xdrutil.MarshalXdr(&theirBlock.Nomination))
 		}
-		committed := rig.ReceiveEvent(ctx).Event.(sdk.EventCommitted)
+		committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 		lastCommitted = testutil.VBHandle(committed.ValidatableBlock)
 
 		rig.PassTime(tick)

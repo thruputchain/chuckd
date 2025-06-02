@@ -5,7 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/scp/api"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
@@ -16,7 +16,7 @@ type SoloFollowerService struct {
 	net     libnet.Network
 	leader  proto.ValidatorPublicInfo
 	self    proto.ValidatorPrivateInfo
-	handler api.SCPHandler
+	handler scpapi.SCPHandler
 }
 
 func NewSoloFollowerService(
@@ -24,7 +24,7 @@ func NewSoloFollowerService(
 	n libnet.Network,
 	leader proto.ValidatorPublicInfo,
 	self proto.ValidatorPrivateInfo,
-	handler api.SCPHandler,
+	handler scpapi.SCPHandler,
 ) *SoloFollowerService {
 	return &SoloFollowerService{
 		net:     n,
@@ -67,7 +67,7 @@ func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, s
 
 // SCPController interface
 
-func (svc *SoloFollowerService) Nominate(ctx context.Context, slot api.Slot, value api.Value, prev api.Value) bool {
+func (svc *SoloFollowerService) Nominate(ctx context.Context, slot scpapi.Slot, value scpapi.Value, prev scpapi.Value) bool {
 
 	c, err := dial.DialSoloLeaderClient(ctx, svc.net, svc.leader.Address)
 	if err != nil {
@@ -103,11 +103,11 @@ func (svc *SoloFollowerService) GetQuorumSet() proto.QuorumSet {
 	panic("not used")
 }
 
-func (svc *SoloFollowerService) NodeID() api.NodeID {
+func (svc *SoloFollowerService) NodeID() scpapi.NodeID {
 	panic("not used")
 }
 
-func (svc *SoloFollowerService) PurgeSlots(maxSlotIndex api.Slot, slotToKeep api.Slot) {
+func (svc *SoloFollowerService) PurgeSlots(maxSlotIndex scpapi.Slot, slotToKeep scpapi.Slot) {
 	panic("not used")
 }
 
