@@ -15,5 +15,5 @@ func TestAWSTestClusterConfigs(t *testing.T) {
 		[]string{"us-west-1", "ap-northeast-1", "eu-central-1"},
 		1000,
 	)
-	WriteFiles(ctx, "/Users/petar/groundhog/chuckd/deploy/aws/terraform/config", cfgs)
+	WriteFiles(ctx, "/Users/petar/groundhog/chuckd/deploy/aws/terraform/configs", cfgs)
 }
