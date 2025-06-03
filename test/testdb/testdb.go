@@ -126,6 +126,7 @@ func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID)
 	must.Assertf(ctx, !snap.committed, "block already committed")
 	snap.open -= 1
 	snap.committed = true
+	db.top = snap
 	result := proto.DbBlockResult{Result: proto.DbResultOK}
 	*result.Block_hash() = snap.tip.Hash
 	return result, nil

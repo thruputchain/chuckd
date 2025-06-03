@@ -11,15 +11,18 @@ import (
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system"
+	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type LoadGen struct {
 	tpb       int // txs per block
+	rand      *rand.Rand
 	inside    libnet.Network
 	coord     *coord.CoordinatorService
 	handler   *LiveHandler
@@ -34,6 +37,7 @@ func NewLoadGenBench(
 ) *LoadGen {
 	x := &LoadGen{
 		tpb:    tpb,
+		rand:   rand,
 		inside: inside,
 	}
 	x.coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rand))
@@ -60,7 +64,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 	defer c.Close()
 
 	txCh := make(chan *proto.SignedTransaction, x.tpb)
-	go x.generateTxs(ctx)
+	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), txCh)
 	for {
 
 		tip, err := getDbTip(ctx, c)
@@ -94,8 +98,19 @@ func (x *LoadGen) drive(ctx context.Context) {
 	}
 }
 
-func (x *LoadGen) generateTxs(ctx context.Context) []*proto.SignedTransaction {
-	panic("XXX: not implemented")
+func (x *LoadGen) generateTxs(ctx context.Context, rand *rand.Rand, txCh chan<- *proto.SignedTransaction) {
+	user, err := protoutil.GenerateIdentity(rand, "test_user")
+	must.NoError(ctx, err)
+	gen := testutil.NewTestGen(ctx, libtime.RealTime{}, rand, user.Secret_key)
+	for {
+		tx := gen.GenSignedTx(ctx)
+		select {
+		case txCh <- tx:
+		case <-ctx.Done():
+			close(txCh)
+			return
+		}
+	}
 }
 
 func getDbTip(ctx context.Context, c batonapi.DbCoordConn) (batonapi.Tip, error) {
