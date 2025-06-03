@@ -114,7 +114,7 @@ func PrepareNomination(
 				proposeResult, err := exec.Executorcoord_propose_transaction(ctx, blockID, *tx)
 				if err != nil {
 					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: err})
-				} else if proposeResult.Result != proto.ExecResultOK {
+				} else if proposeResult.Result != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
 					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: batonapi.ErrNotValid})
 				} else {
 					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})

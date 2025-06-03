@@ -107,7 +107,7 @@ func Validate(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.Val
 					validatedCh <- err // networking error
 					return
 				}
-				if execResult != proto.ExecResultOK {
+				if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
 					validatedCh <- batonapi.ErrNotValid
 					return
 				}
