@@ -29,7 +29,7 @@ func NewTestClusterSystem(
 	sys := system.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &TestClusterSystem{
 		System:      sys,
-		TestCluster: NewTestCluster(ctx, time, runtime.NewRandFromRand(rand), inside, tps, sys.Submitter),
+		TestCluster: NewTestCluster(ctx, time, runtime.NewRandFromRand(rand), inside, tps, sys.Submitter, 5, 7),
 	}
 }
 

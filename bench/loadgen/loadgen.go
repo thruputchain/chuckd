@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/nominate"
@@ -27,6 +28,9 @@ type LoadGen struct {
 	coord     *coord.CoordinatorService
 	handler   *LiveHandler
 	insideSrv *system.Server
+	//
+	nominateMsec *StatFloat64
+	validateMsec *StatFloat64
 }
 
 func NewLoadGenBench(
@@ -36,9 +40,11 @@ func NewLoadGenBench(
 	tpb int, // txs per block
 ) *LoadGen {
 	x := &LoadGen{
-		tpb:    tpb,
-		rand:   rand,
-		inside: inside,
+		tpb:          tpb,
+		rand:         rand,
+		inside:       inside,
+		nominateMsec: NewStatFloat64(),
+		validateMsec: NewStatFloat64(),
 	}
 	x.coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rand))
 	x.insideSrv = system.NewServer(ctx, proto.Coordinator1_Server{Srv: x.coord})
@@ -63,8 +69,9 @@ func (x *LoadGen) drive(ctx context.Context) {
 	must.NoError(ctx, err)
 	defer c.Close()
 
-	txCh := make(chan *proto.SignedTransaction, x.tpb)
-	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), txCh)
+	blockTxsCh := make(chan []*proto.SignedTransaction)
+	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
+	i := 0
 	for {
 
 		tip, err := getDbTip(ctx, c)
@@ -72,13 +79,16 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		liblog.Infof("proposing block at height %d", tip.Height+1)
 
-		txs := make([]*proto.SignedTransaction, 0, x.tpb)
-		for i := 0; i < x.tpb; i++ {
-			txs = append(txs, <-txCh)
-		}
+		txs := <-blockTxsCh
+
+		t0 := time.Now()
 
 		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs)
 		must.NoError(ctx, err)
+
+		t1 := time.Now()
+		nominateDurMsec := float64(t1.Sub(t0).Milliseconds())
+		x.nominateMsec.Add(nominateDurMsec)
 
 		vb := &batonapi.ValidatableBlock{
 			BlockHeight:          nomination.BlockHeight,
@@ -93,19 +103,38 @@ func (x *LoadGen) drive(ctx context.Context) {
 		_, err = validate.ValidateCommit(ctx, x.handler, vb)
 		must.NoError(ctx, err)
 
+		t2 := time.Now()
+		validateDurMsec := float64(t2.Sub(t1).Milliseconds())
+		x.validateMsec.Add(validateDurMsec)
+
 		liblog.Infof("committed block at height %d", tip.Height+1)
 
+		fmt.Printf("nominate_tps=%v validate_tps=%v | avg_nominate_tps=%v avg_validate_tps=%v\n",
+			float64(x.tpb)/(nominateDurMsec/1e3),
+			float64(x.tpb)/(validateDurMsec/1e3),
+			float64(x.tpb)/(x.nominateMsec.Average()/1e3),
+			float64(x.tpb)/(x.validateMsec.Average()/1e3),
+		)
+		i += 1
 	}
 }
 
-func (x *LoadGen) generateTxs(ctx context.Context, rand *rand.Rand, txCh chan<- *proto.SignedTransaction) {
+func (x *LoadGen) generateTxs(
+	ctx context.Context,
+	rand *rand.Rand,
+	txCh chan<- []*proto.SignedTransaction,
+	tpb int,
+) {
 	user, err := protoutil.GenerateIdentity(rand, "test_user")
 	must.NoError(ctx, err)
 	gen := testutil.NewTestGen(ctx, libtime.RealTime{}, rand, user.Secret_key)
 	for {
-		tx := gen.GenSignedTx(ctx)
+		blockTxs := make([]*proto.SignedTransaction, tpb)
+		for i := range blockTxs {
+			blockTxs[i] = gen.GenSignedTx(ctx)
+		}
 		select {
-		case txCh <- tx:
+		case txCh <- blockTxs:
 		case <-ctx.Done():
 			close(txCh)
 			return

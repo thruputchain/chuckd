@@ -41,16 +41,18 @@ func NewTestCluster(
 	net *testnet.TestNetwork,
 	tps int64,
 	submitter batonapi.Submitter,
+	numDb int,
+	numExec int,
 ) *TestCluster {
 
 	db := testdb.NewTestDb(batonapi.Tip{})
 
-	shards := make([]*testshard.TestShard, 2)
+	shards := make([]*testshard.TestShard, numDb)
 	for i := range shards {
 		shards[i] = testshard.NewTestShard(ctx, db)
 	}
 
-	execs := make([]*testexec.TestExec, 2)
+	execs := make([]*testexec.TestExec, numExec)
 	for i := range execs {
 		execs[i] = testexec.NewTestExec(db)
 	}

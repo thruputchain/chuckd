@@ -45,6 +45,17 @@ var (
 		},
 	}
 
+	benchLoadGenTestCmd = &cobra.Command{
+		Use:   "loadgen-test",
+		Short: "test the load generator",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+				loadgen.TestLoadGen(ctx, benchTPB, benchNumDb, benchNumExec)
+			})
+		},
+	}
+
 	benchTestClusterCmd = &cobra.Command{
 		Use:   "testcluster",
 		Short: "start testcluster benchmark server",
@@ -124,6 +135,9 @@ var (
 	benchWalletAddress string
 	benchTPS           int64
 	benchTPB           int
+	//
+	benchNumDb   int
+	benchNumExec int
 )
 
 func init() {
@@ -146,4 +160,9 @@ func init() {
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	benchLoadGenCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
+
+	benchCmd.AddCommand(benchLoadGenTestCmd)
+	benchLoadGenTestCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
+	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "numdb", 2, "number of db shards")
+	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "numexec", 20, "number of executors")
 }

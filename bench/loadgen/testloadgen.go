@@ -2,20 +2,14 @@ package loadgen
 
 import (
 	"context"
-	"testing"
 
 	"github.com/groundhogchain/chuckd/bench/testcluster"
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/test/testnet"
 )
 
-func TestLoadGen(t *testing.T) {
-
-	ctx := context.Background()
-	liblog.LogVerbosely()
-	runtime.SetRootSeed(1)
+func TestLoadGen(ctx context.Context, tpb int, numDb int, numExec int) {
 
 	testnet := testnet.NewTestNetwork()
 
@@ -26,9 +20,11 @@ func TestLoadGen(t *testing.T) {
 		testnet,
 		0,
 		nil,
+		numDb,
+		numExec,
 	)
 
-	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), testnet, 100)
+	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), testnet, tpb)
 
 	loadGen.Start(ctx, "loadgen")
 	cluster.Start(ctx, "loadgen")
