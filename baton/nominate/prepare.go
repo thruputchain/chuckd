@@ -94,7 +94,7 @@ func PrepareNomination(
 
 	proposedCh := make(chan execProposed, len(execs))
 	for _, exec := range execs {
-		feedExecPropose(feedCtx, exec, blockID, txCh, proposedCh)
+		go feedExecPropose(feedCtx, exec, blockID, txCh, proposedCh)
 	}
 
 	// collect outcomes

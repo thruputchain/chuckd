@@ -79,7 +79,9 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		liblog.Infof("proposing block at height %d", tip.Height+1)
 
+		x0 := time.Now()
 		txs := <-blockTxsCh
+		genDurMsec := float64(time.Now().Sub(x0).Milliseconds())
 
 		t0 := time.Now()
 
@@ -109,7 +111,8 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		liblog.Infof("committed block at height %d", tip.Height+1)
 
-		fmt.Printf("nominate_tps=%v validate_tps=%v | avg_nominate_tps=%v avg_validate_tps=%v\n",
+		fmt.Printf("gen_wait_msec=%v | nom_tps=%v val_tps=%v | avg_nom_tps=%v avg_val_tps=%v\n",
+			genDurMsec,
 			float64(x.tpb)/(nominateDurMsec/1e3),
 			float64(x.tpb)/(validateDurMsec/1e3),
 			float64(x.tpb)/(x.nominateMsec.Average()/1e3),
