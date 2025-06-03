@@ -81,68 +81,38 @@ func PrepareNomination(
 		defer exec.Close()
 	}
 
-	// propose all transactions
+	// buffer all proposed transactions
 	txCh := make(chan *proto.SignedTransaction, len(txs))
 	for _, tx := range txs {
 		txCh <- tx
 	}
 	close(txCh)
 
+	// create a context to use for cancelling workers in case any of them fail
+	feedCtx, feedCtxCancel := context.WithCancel(ctx)
+	defer feedCtxCancel()
+
 	proposedCh := make(chan execProposed, len(execs))
 	for _, exec := range execs {
-		go func(exec batonapi.ExecCoordConn) {
-
-			// executor open proposal block
-			execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
-			if err != nil {
-				proposedCh <- execProposed{err: err}
-				return
-			}
-			if execResult != proto.ExecResultOK {
-				proposedCh <- execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
-				return
-			}
-
-			proposedTxs := []ProposedTx{}
-			for tx := range txCh {
-				select {
-				case <-ctx.Done():
-					proposedCh <- execProposed{err: fmt.Errorf("context cancelled")}
-				default:
-				}
-
-				proposeResult, err := exec.Executorcoord_propose_transaction(ctx, blockID, *tx)
-				if err != nil {
-					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: err})
-				} else if proposeResult.Result != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: batonapi.ErrNotValid})
-				} else {
-					proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})
-				}
-			}
-
-			// executor finish proposal block
-			err = exec.Executorcoord_finish_block(ctx, blockID)
-			if err != nil {
-				proposedCh <- execProposed{err: fmt.Errorf("executor finish error: %v", err)}
-				return
-			}
-
-			proposedCh <- execProposed{err: nil, proposedTxs: proposedTxs}
-
-		}(exec)
+		feedExecPropose(feedCtx, exec, blockID, txCh, proposedCh)
 	}
+
+	// collect outcomes
 	var proposedTxs []ProposedTx
 	var verr error
 	for range execs {
-		if pd := <-proposedCh; pd.err != nil {
+		pd := <-proposedCh
+		if verr == nil || pd.err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
 			verr = err
-		} else {
+		}
+		if pd.err == nil {
 			proposedTxs = append(proposedTxs, pd.proposedTxs...)
+		}
+		if verr != nil {
+			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
 		}
 	}
 	if verr != nil {
-		// db abandon snapshot
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, fmt.Errorf("proposal error: %v", verr)
 	}
@@ -163,4 +133,51 @@ func PrepareNomination(
 		PrevBlockHash: tip.Hash,
 		ProposedTxs:   proposedTxs,
 	}, nil
+}
+
+func feedExecPropose(
+	ctx context.Context,
+	exec batonapi.ExecCoordConn,
+	blockID proto.BlockID,
+	txCh <-chan *proto.SignedTransaction,
+	proposedCh chan<- execProposed,
+) {
+
+	// executor open proposal block
+	execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
+	if err != nil {
+		proposedCh <- execProposed{err: err}
+		return
+	}
+	if execResult != proto.ExecResultOK {
+		proposedCh <- execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
+		return
+	}
+
+	// executor finish proposal block
+	defer func() {
+		exec.Executorcoord_finish_block(ctx, blockID)
+	}()
+
+	proposedTxs := []ProposedTx{}
+	for tx := range txCh {
+		select {
+		case <-ctx.Done():
+			proposedCh <- execProposed{err: fmt.Errorf("context cancelled")}
+			return
+		default:
+		}
+
+		proposeResult, err := exec.Executorcoord_propose_transaction(ctx, blockID, *tx)
+		if err != nil {
+			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: err})
+		} else if proposeResult.Result != proto.ExecResultOK && proposeResult.Result != proto.ExecResultTxDeterministicError {
+			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: batonapi.ErrNotValid})
+		} else {
+			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})
+		}
+	}
+
+	proposedCh <- execProposed{err: nil, proposedTxs: proposedTxs}
+	return
 }
