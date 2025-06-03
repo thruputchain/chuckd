@@ -94,8 +94,8 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		var result catchupBlocks
 
 		defer func() {
-			b.lock(ctx)
-			defer b.unlock(ctx)
+			b.lock()
+			defer b.unlock()
 
 			// unmark pending request
 			delete(b.catchupRequests, id)

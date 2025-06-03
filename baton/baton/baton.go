@@ -47,18 +47,18 @@ type validated struct {
 	proto.BlockID
 }
 
-func (b *Baton) lock(context.Context) {
+func (b *Baton) lock() {
 	b.lk.Lock()
 }
 
-func (b *Baton) unlock(context.Context) {
+func (b *Baton) unlock() {
 	b.drive(b.ctx)
 	b.lk.Unlock()
 }
 
-func (b *Baton) Kick(ctx context.Context) {
-	b.lock(ctx)
-	defer b.unlock(ctx)
+func (b *Baton) Kick() {
+	b.lock()
+	defer b.unlock()
 }
 
 func (b *Baton) Start(ctx context.Context, heartbeat time.Duration) {
@@ -83,7 +83,7 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 	// triggering nomination which would capture any new txs that have been submitted to the mempool.
 	// rationale: waking up the baton every time a tx is added to the mempool would be too expensive.
 	for {
-		b.Kick(ctx)
+		b.Kick()
 		b.handler.Sleep(heartbeat)
 	}
 }
@@ -107,8 +107,8 @@ func (b *Baton) drive(ctx context.Context) {
 				liblog.Errorf("commit: %v", err)
 			}
 
-			b.lock(ctx)
-			defer b.unlock(ctx)
+			b.lock()
+			defer b.unlock()
 
 			must.Assertf(ctx, b.committing, "race committing")
 			b.committing = false
@@ -145,8 +145,8 @@ func (b *Baton) drive(ctx context.Context) {
 			nomination, blockID, err := b.nominate(nomCtx, *nominate)
 			busy.CancelFunc()
 
-			b.lock(ctx)
-			defer b.unlock(ctx)
+			b.lock()
+			defer b.unlock()
 
 			// if nomination was cancelled, b.nominating may point at a different nomination
 			replaced := b.nominating != busy

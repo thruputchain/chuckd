@@ -191,7 +191,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		// prepare stage
 		rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // submit tx
-		baton.Kick(ctx)                       // wake baton after submitting transactions
+		baton.Kick()                          // wake baton after submitting transactions
 
 		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 		rig.WaitNomination(ctx)

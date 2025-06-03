@@ -63,10 +63,10 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value s
 
 func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination, reply chan<- scpapi.ValidationLevel) {
 
-	b.lock(ctx)
+	b.lock()
 	dbTip := b.tip
 	numExt := len(b.externalized)
-	b.unlock(ctx)
+	b.unlock()
 
 	if nomination.Block_height <= dbTip.Height {
 		liblog.Infof("cannot validate, nomination below tip")
@@ -135,8 +135,8 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		}
 		reply <- scpapi.FullyValidValue
 
-		b.lock(ctx)
-		defer b.unlock(ctx)
+		b.lock()
+		defer b.unlock()
 
 		// cache validated blocks
 		b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
@@ -162,8 +162,8 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 		return
 	}
 
-	x.baton.lock(ctx)
-	defer x.baton.unlock(ctx)
+	x.baton.lock()
+	defer x.baton.unlock()
 
 	// check validity and update state
 	ok := isValidExternalization(&nomination, x.baton.externalized)
