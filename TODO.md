@@ -2,9 +2,6 @@
 
 - [x] upgrade for geoff's new executor error codes
 
-- [ ] test loadgen performance + multiple rpc Per executir
-  - [ ] https://www.usenix.org/conference/atc19/presentation/kogias-r2p2 JBSQ
-    This one is simple and works well. I would make the bound 2*N where N is the number of cores used by the executor
 - [ ] Bcs look for calldata arguments
 
 - [ ] reuse broadcast trees (because each tree used for one bag ~200KB)

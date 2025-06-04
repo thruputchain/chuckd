@@ -11,6 +11,12 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// validation calls each executor on callsPerExec concurrent threads.
+// this produces a similar effect as join-bounded-shortest-queue (JBSQ)
+// in the case that there always are rpc calls ready to be fired.
+// see https://www.usenix.org/conference/atc19/presentation/kogias-r2p2 JBSQ
+// I would make the bound (callsPerExec) 2*N where N is the number of cores used by the executor.
+
 func ValidateClose(
 	ctx context.Context,
 	handler batonapi.OpsHandler,
