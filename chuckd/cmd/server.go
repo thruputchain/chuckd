@@ -38,6 +38,7 @@ var (
 					*cfg,
 					inside,
 					outside,
+					serverCallsPerExec,
 				)
 				srv.Start(ctx, serverInAddress, serverOutAddress, serverWalletAddress)
 				select {} // hang
@@ -51,6 +52,7 @@ var (
 	serverInAddress     string
 	serverOutAddress    string
 	serverWalletAddress string
+	serverCallsPerExec  int
 )
 
 func init() {
@@ -61,4 +63,5 @@ func init() {
 	serverStartCmd.Flags().StringVar(&serverInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	serverStartCmd.Flags().StringVar(&serverOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	serverStartCmd.Flags().StringVar(&serverWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
+	serverStartCmd.Flags().IntVar(&serverCallsPerExec, "execpar", 2, "concurrent calls per executor")
 }

@@ -11,7 +11,12 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func ValidateClose(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
+func ValidateClose(
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
+	callsPerExec int,
+) (proto.BlockID, error) {
 
 	db, err := handler.DialDb(ctx)
 	if err != nil {
@@ -21,14 +26,19 @@ func ValidateClose(ctx context.Context, handler batonapi.OpsHandler, vb *batonap
 
 	blockID := handler.GenerateBlockID(ctx)
 
-	if err = Validate(ctx, handler, vb, db, blockID); err != nil {
+	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec); err != nil {
 		return 0, err
 	}
 
 	return blockID, finalizeValidateClose(ctx, vb, blockID, db)
 }
 
-func ValidateCommit(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
+func ValidateCommit(
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
+	callsPerExec int,
+) (proto.BlockID, error) {
 	liblog.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	db, err := handler.DialDb(ctx)
@@ -39,7 +49,7 @@ func ValidateCommit(ctx context.Context, handler batonapi.OpsHandler, vb *batona
 
 	blockID := handler.GenerateBlockID(ctx)
 
-	if err = Validate(ctx, handler, vb, db, blockID); err != nil {
+	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec); err != nil {
 		return 0, err
 	}
 
@@ -52,6 +62,7 @@ func Validate(
 	vb *batonapi.ValidatableBlock,
 	db batonapi.DbCoordConn,
 	blockID proto.BlockID,
+	callsPerExec int,
 ) error {
 
 	handler.Emit(ctx, batonapi.EventValidating{ValidatableBlock: vb, BlockID: blockID})
@@ -65,7 +76,7 @@ func Validate(
 		return fmt.Errorf("db create snapshot error")
 	}
 
-	err = execValidate(ctx, handler, vb, blockID)
+	err = execValidate(ctx, handler, vb, blockID, callsPerExec)
 	if err != nil {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return err
@@ -81,6 +92,7 @@ func execValidate(
 	handler batonapi.OpsHandler,
 	vb *batonapi.ValidatableBlock,
 	blockID proto.BlockID,
+	callsPerExec int,
 ) error {
 
 	// connect to available executors
@@ -108,18 +120,22 @@ func execValidate(
 
 	validatedCh := make(chan error, len(execs))
 	for _, exec := range execs {
-		go feedExecValidate(feedCtx, exec, blockID, txCh, validatedCh)
+		for i := 0; i < callsPerExec; i++ {
+			go feedExecValidate(feedCtx, exec, blockID, txCh, validatedCh)
+		}
 	}
 
 	// collect outcomes
 	var verr error
 	for range execs {
-		err := <-validatedCh
-		if verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
-			verr = err
-		}
-		if verr != nil {
-			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
+		for i := 0; i < callsPerExec; i++ {
+			err := <-validatedCh
+			if verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
+				verr = err
+			}
+			if verr != nil {
+				feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
+			}
 		}
 	}
 

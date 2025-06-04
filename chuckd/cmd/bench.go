@@ -38,6 +38,7 @@ var (
 					runtime.NewRandFromRoot(),
 					libnet.TCPNet{},
 					benchTPB,
+					benchCallsPerExec,
 				)
 				srv.Start(ctx, benchInAddress)
 				select {}
@@ -51,7 +52,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				loadgen.TestLoadGen(ctx, benchTPB, benchNumDb, benchNumExec)
+				loadgen.TestLoadGen(ctx, benchTPB, benchNumDb, benchNumExec, benchCallsPerExec)
 			})
 		},
 	}
@@ -79,6 +80,7 @@ var (
 					*cfg,
 					outside,
 					benchTPS,
+					benchCallsPerExec,
 				)
 				srv.Start(ctx, benchOutAddress, benchWalletAddress)
 				select {}
@@ -136,8 +138,9 @@ var (
 	benchTPS           int64
 	benchTPB           int
 	//
-	benchNumDb   int
-	benchNumExec int
+	benchNumDb        int
+	benchNumExec      int
+	benchCallsPerExec int
 )
 
 func init() {
@@ -156,13 +159,16 @@ func init() {
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")
+	benchTestClusterCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
 
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	benchLoadGenCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
+	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
 
 	benchCmd.AddCommand(benchLoadGenTestCmd)
 	benchLoadGenTestCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "numdb", 2, "number of db shards")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "numexec", 20, "number of executors")
+	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
 }

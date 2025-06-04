@@ -22,12 +22,13 @@ import (
 )
 
 type LoadGen struct {
-	tpb       int // txs per block
-	rand      *rand.Rand
-	inside    libnet.Network
-	coord     *coord.CoordinatorService
-	handler   *LiveHandler
-	insideSrv *system.Server
+	tpb          int // txs per block
+	callsPerExec int
+	rand         *rand.Rand
+	inside       libnet.Network
+	coord        *coord.CoordinatorService
+	handler      *LiveHandler
+	insideSrv    *system.Server
 	//
 	nominateMsec *StatFloat64
 	validateMsec *StatFloat64
@@ -38,9 +39,11 @@ func NewLoadGenBench(
 	rand *rand.Rand,
 	inside libnet.Network,
 	tpb int, // txs per block
+	callsPerExec int,
 ) *LoadGen {
 	x := &LoadGen{
 		tpb:          tpb,
+		callsPerExec: callsPerExec,
 		rand:         rand,
 		inside:       inside,
 		nominateMsec: NewStatFloat64(),
@@ -86,7 +89,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		t0 := time.Now()
 
-		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs)
+		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec)
 		must.NoError(ctx, err)
 
 		t1 := time.Now()
@@ -103,7 +106,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		liblog.Infof("validating block at height %d", tip.Height+1)
 
-		_, err = validate.ValidateCommit(ctx, x.handler, vb)
+		_, err = validate.ValidateCommit(ctx, x.handler, vb, x.callsPerExec)
 		must.NoError(ctx, err)
 
 		t2 := time.Now()

@@ -47,6 +47,7 @@ func PrepareNomination(
 	handler batonapi.OpsHandler,
 	tip batonapi.Tip,
 	txs []*proto.SignedTransaction,
+	callsPerExec int,
 ) (*Nomination, error) {
 
 	// connect to db
@@ -67,7 +68,7 @@ func PrepareNomination(
 		return nil, fmt.Errorf("db create snapshot rpc error")
 	}
 
-	proposedTxs, err := execPropose(ctx, handler, txs, blockID)
+	proposedTxs, err := execPropose(ctx, handler, txs, blockID, callsPerExec)
 	if err != nil {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, fmt.Errorf("proposal error: %v", err)
@@ -96,6 +97,7 @@ func execPropose(
 	handler batonapi.OpsHandler,
 	txs []*proto.SignedTransaction,
 	blockID proto.BlockID,
+	callsPerExec int,
 ) ([]ProposedTx, error) {
 
 	// connect to available executors
@@ -123,22 +125,26 @@ func execPropose(
 
 	proposedCh := make(chan execProposed, len(execs))
 	for _, exec := range execs {
-		go feedExecPropose(feedCtx, exec, blockID, txCh, proposedCh)
+		for i := 0; i < callsPerExec; i++ {
+			go feedExecPropose(feedCtx, exec, blockID, txCh, proposedCh)
+		}
 	}
 
 	// collect outcomes
 	var proposedTxs []ProposedTx
 	var verr error
 	for range execs {
-		pd := <-proposedCh
-		if verr == nil || pd.err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
-			verr = err
-		}
-		if pd.err == nil {
-			proposedTxs = append(proposedTxs, pd.proposedTxs...)
-		}
-		if verr != nil {
-			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
+		for i := 0; i < callsPerExec; i++ {
+			pd := <-proposedCh
+			if verr == nil || pd.err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
+				verr = err
+			}
+			if pd.err == nil {
+				proposedTxs = append(proposedTxs, pd.proposedTxs...)
+			}
+			if verr != nil {
+				feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
+			}
 		}
 	}
 

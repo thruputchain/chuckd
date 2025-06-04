@@ -13,10 +13,11 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func NewBaton(ctx context.Context, h batonapi.Handler) *Baton {
+func NewBaton(ctx context.Context, h batonapi.Handler, callsPerExec int) *Baton {
 	b := &Baton{
 		ctx:             ctx,
 		handler:         h,
+		callsPerExec:    callsPerExec,
 		scp:             make(chan struct{}),
 		catchupRequests: map[batonapi.ID64]catchupRequest{},
 		validated:       map[proto.BlockHash]validated{},
@@ -26,11 +27,12 @@ func NewBaton(ctx context.Context, h batonapi.Handler) *Baton {
 }
 
 type Baton struct {
-	ctx     context.Context // ctx for drive
-	handler batonapi.Handler
-	scp     chan struct{}
-	cond    *sync.Cond
-	lk      sync.Mutex
+	ctx          context.Context // ctx for drive
+	handler      batonapi.Handler
+	callsPerExec int
+	scp          chan struct{}
+	cond         *sync.Cond
+	lk           sync.Mutex
 	// state
 	committing      bool
 	nominating      *nominating

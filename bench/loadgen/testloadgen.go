@@ -9,7 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/test/testnet"
 )
 
-func TestLoadGen(ctx context.Context, tpb int, numDb int, numExec int) {
+func TestLoadGen(ctx context.Context, tpb int, numDb int, numExec int, callPerExec int) {
 
 	testnet := testnet.NewTestNetwork()
 
@@ -24,7 +24,7 @@ func TestLoadGen(ctx context.Context, tpb int, numDb int, numExec int) {
 		numExec,
 	)
 
-	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), testnet, tpb)
+	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), testnet, tpb, callPerExec)
 
 	loadGen.Start(ctx, "loadgen")
 	cluster.Start(ctx, "loadgen")

@@ -60,6 +60,7 @@ func NewSystem(
 	cfg proto.Config,
 	inside libnet.Network,
 	outside libnet.Network,
+	callsPerExec int,
 ) *System {
 
 	sys := &System{
@@ -117,7 +118,7 @@ func NewSystem(
 		runtime.NewRandFromRand(rand),
 	)
 
-	sys.Baton = baton.NewBaton(ctx, sys.Live)
+	sys.Baton = baton.NewBaton(ctx, sys.Live, callsPerExec)
 	sys.Follower = follower.NewSoloFollowerService(
 		ctx,
 		outside,

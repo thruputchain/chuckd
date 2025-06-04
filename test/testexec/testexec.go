@@ -52,7 +52,7 @@ func (x *TestExec) Executorcoord_validate_transaction(ctx context.Context, block
 func (x *TestExec) Executorcoord_open_proposal_block(ctx context.Context, blockID proto.BlockID) (proto.ExecResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	must.Assertf(ctx, x.open[blockID] == 0, "executor block already open")
+	// must.Assertf(ctx, x.open[blockID] == 0, "executor block already open")
 	x.open[blockID] += 1
 	return proto.ExecResultOK, nil
 }
@@ -60,7 +60,7 @@ func (x *TestExec) Executorcoord_open_proposal_block(ctx context.Context, blockI
 func (x *TestExec) Executorcoord_open_validation_block(ctx context.Context, blockID proto.BlockID) (proto.ExecResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	must.Assertf(ctx, x.open[blockID] == 0, "executor block already open")
+	// must.Assertf(ctx, x.open[blockID] == 0, "executor block already open")
 	x.open[blockID] += 1
 	return proto.ExecResultOK, nil
 }
