@@ -65,14 +65,30 @@ func Validate(
 		return fmt.Errorf("db create snapshot error")
 	}
 
-	// connect to available executors
-	execs, err := handler.DialExecs(ctx)
+	err = execValidate(ctx, handler, vb, blockID)
 	if err != nil {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return err
 	}
+
+	handler.Emit(ctx, batonapi.EventValidated{ValidatableBlock: vb, BlockID: blockID})
+
+	return nil
+}
+
+func execValidate(
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
+	blockID proto.BlockID,
+) error {
+
+	// connect to available executors
+	execs, err := handler.DialExecs(ctx)
+	if err != nil {
+		return err
+	}
 	if len(execs) == 0 {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return batonapi.ErrNoExecs
 	}
 	for _, exec := range execs {
@@ -106,14 +122,8 @@ func Validate(
 			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
 		}
 	}
-	if verr != nil {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return verr
-	}
 
-	handler.Emit(ctx, batonapi.EventValidated{ValidatableBlock: vb, BlockID: blockID})
-
-	return nil
+	return verr
 }
 
 func feedExecValidate(

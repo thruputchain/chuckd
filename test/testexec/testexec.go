@@ -15,13 +15,13 @@ import (
 type TestExec struct {
 	db   *testdb.TestDb
 	lk   sync.Mutex
-	open map[proto.BlockID]bool
+	open map[proto.BlockID]int
 }
 
 func NewTestExec(db *testdb.TestDb) *TestExec {
 	return &TestExec{
 		db:   db,
-		open: map[proto.BlockID]bool{},
+		open: map[proto.BlockID]int{},
 	}
 }
 
@@ -32,7 +32,7 @@ func (x *TestExec) Executorcoord_null(context.Context) error {
 func (x *TestExec) Executorcoord_propose_transaction(ctx context.Context, blockID proto.BlockID, stx proto.SignedTransaction) (proto.ExecProposeResult, error) {
 	must.Assertf(ctx, x.db.IsOpenBlock(blockID), "propose: db block not open")
 	x.lk.Lock()
-	must.Assertf(ctx, x.open[blockID], "exec block not open")
+	must.Assertf(ctx, x.open[blockID] > 0, "exec block not open")
 	x.lk.Unlock()
 	x.db.AddSignedTx(ctx, blockID, &stx)
 	result := proto.ExecProposeResult{Result: proto.ExecResultOK}
@@ -43,7 +43,7 @@ func (x *TestExec) Executorcoord_propose_transaction(ctx context.Context, blockI
 func (x *TestExec) Executorcoord_validate_transaction(ctx context.Context, blockID proto.BlockID, ptx proto.ProposedTransaction) (proto.ExecResult, error) {
 	must.Assertf(ctx, x.db.IsOpenBlock(blockID), "validate: db block not open")
 	x.lk.Lock()
-	must.Assertf(ctx, x.open[blockID], "exec block not open")
+	must.Assertf(ctx, x.open[blockID] > 0, "exec block not open")
 	x.lk.Unlock()
 	x.db.AddProposedTx(ctx, blockID, &ptx)
 	return proto.ExecResultOK, nil
@@ -52,16 +52,16 @@ func (x *TestExec) Executorcoord_validate_transaction(ctx context.Context, block
 func (x *TestExec) Executorcoord_open_proposal_block(ctx context.Context, blockID proto.BlockID) (proto.ExecResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	must.Assertf(ctx, !x.open[blockID], "executor block already open")
-	x.open[blockID] = true
+	must.Assertf(ctx, x.open[blockID] == 0, "executor block already open")
+	x.open[blockID] += 1
 	return proto.ExecResultOK, nil
 }
 
 func (x *TestExec) Executorcoord_open_validation_block(ctx context.Context, blockID proto.BlockID) (proto.ExecResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	must.Assertf(ctx, !x.open[blockID], "executor block already open")
-	x.open[blockID] = true
+	must.Assertf(ctx, x.open[blockID] == 0, "executor block already open")
+	x.open[blockID] += 1
 	return proto.ExecResultOK, nil
 }
 
@@ -69,7 +69,8 @@ func (x *TestExec) Executorcoord_finish_block(ctx context.Context, blockID proto
 	must.Assertf(ctx, x.db.IsOpenBlock(blockID), "finish: db block not open")
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	delete(x.open, blockID)
+	must.Assertf(ctx, x.open[blockID] > 0, "exec block not open")
+	x.open[blockID] -= 1
 	return nil
 }
 

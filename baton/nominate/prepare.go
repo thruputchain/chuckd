@@ -67,14 +67,43 @@ func PrepareNomination(
 		return nil, fmt.Errorf("db create snapshot rpc error")
 	}
 
+	proposedTxs, err := execPropose(ctx, handler, txs, blockID)
+	if err != nil {
+		db.Dbcoord_abandon_snapshot(ctx, blockID)
+		return nil, fmt.Errorf("proposal error: %v", err)
+	}
+
+	// db close snapshot
+	dbBlockResult, err := db.Dbcoord_close_snapshot(ctx, blockID)
+	if err != nil {
+		return nil, err
+	}
+	if dbBlockResult.Result != proto.DbResultOK {
+		return nil, fmt.Errorf("db close snapshot rpc error")
+	}
+
+	return &Nomination{
+		BlockID:       blockID,
+		BlockHeight:   tip.Height + 1,
+		BlockHash:     *dbBlockResult.Block_hash(),
+		PrevBlockHash: tip.Hash,
+		ProposedTxs:   proposedTxs,
+	}, nil
+}
+
+func execPropose(
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	txs []*proto.SignedTransaction,
+	blockID proto.BlockID,
+) ([]ProposedTx, error) {
+
 	// connect to available executors
 	execs, err := handler.DialExecs(ctx)
 	if err != nil {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, err
 	}
 	if len(execs) == 0 {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, batonapi.ErrNoExecs
 	}
 	for _, exec := range execs {
@@ -112,27 +141,12 @@ func PrepareNomination(
 			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
 		}
 	}
+
 	if verr != nil {
-		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return nil, fmt.Errorf("proposal error: %v", verr)
+		return nil, verr
 	}
 
-	// db close snapshot
-	dbBlockResult, err := db.Dbcoord_close_snapshot(ctx, blockID)
-	if err != nil {
-		return nil, err
-	}
-	if dbBlockResult.Result != proto.DbResultOK {
-		return nil, fmt.Errorf("db close snapshot rpc error")
-	}
-
-	return &Nomination{
-		BlockID:       blockID,
-		BlockHeight:   tip.Height + 1,
-		BlockHash:     *dbBlockResult.Block_hash(),
-		PrevBlockHash: tip.Hash,
-		ProposedTxs:   proposedTxs,
-	}, nil
+	return proposedTxs, nil
 }
 
 func feedExecPropose(
