@@ -37,6 +37,7 @@ func NewTestClusterSystem(
 			inside,
 			sys.Submitter,
 			testCfg,
+			false, // use slower testdb with consistency checks
 		),
 	}
 }

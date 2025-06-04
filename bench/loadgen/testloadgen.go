@@ -27,6 +27,7 @@ func TestLoadGen(
 		net,
 		nil,
 		cfg,
+		true,
 	)
 
 	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), net, tpb, callPerExec)

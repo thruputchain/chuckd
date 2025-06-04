@@ -28,7 +28,7 @@ type TestRig struct {
 	*libtime.TestTime
 	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
-	*testdb.TestDb
+	testdb.TestDb
 	*testcatchup.TestCatchupStaged
 	*TestSCP
 	//
@@ -66,7 +66,7 @@ func NewTestRig(
 		nominateRequest:  make(chan nominateIn, 1),
 		nominateResponse: make(chan bool, 1),
 	}
-	h.TestDb = testdb.NewTestDb(batonapi.Tip{})
+	h.TestDb = testdb.NewTestDbConsistent(batonapi.Tip{})
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
 	h.TestCatchupStaged = testcatchup.NewTestCatchup(time, *catchupSigner)

@@ -38,7 +38,7 @@ func TestShardCompleteness(t *testing.T) {
 	ctx := context.Background()
 	s := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
 
-	db := testdb.NewTestDb(batonapi.Tip{})
+	db := testdb.NewTestDbConsistent(batonapi.Tip{})
 	sh1 := testshard.NewTestShard(ctx, db)
 	sh2 := testshard.NewTestShard(ctx, db)
 	sh3 := testshard.NewTestShard(ctx, db)
@@ -87,7 +87,7 @@ func TestDbReadiness(t *testing.T) {
 
 	s := NewCoordinatorService(ctx, libnet.TCPNet{}, runtime.NewRandFromRoot())
 
-	db := testdb.NewTestDb(batonapi.Tip{})
+	db := testdb.NewTestDbConsistent(batonapi.Tip{})
 	sh1 := testshard.NewTestShard(ctx, db)
 	sh2 := testshard.NewTestShard(ctx, db)
 	ad1 := sh1.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()

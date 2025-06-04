@@ -13,12 +13,12 @@ import (
 // TODO: add feature to fail validating certain txs, based on their contents
 
 type TestExec struct {
-	db   *testdb.TestDb
+	db   testdb.TestDb
 	lk   sync.Mutex
 	open map[proto.BlockID]int
 }
 
-func NewTestExec(db *testdb.TestDb) *TestExec {
+func NewTestExec(db testdb.TestDb) *TestExec {
 	return &TestExec{
 		db:   db,
 		open: map[proto.BlockID]int{},
@@ -30,7 +30,9 @@ func (x *TestExec) Executorcoord_null(context.Context) error {
 }
 
 func (x *TestExec) Executorcoord_propose_transaction(ctx context.Context, blockID proto.BlockID, stx proto.SignedTransaction) (proto.ExecProposeResult, error) {
-	must.Assertf(ctx, x.db.IsOpenBlock(blockID), "propose: db block not open")
+	if db, ok := x.db.(interface{ IsOpenBlock(proto.BlockID) bool }); ok {
+		must.Assertf(ctx, db.IsOpenBlock(blockID), "propose: db block not open")
+	}
 	x.lk.Lock()
 	must.Assertf(ctx, x.open[blockID] > 0, "exec block not open")
 	x.lk.Unlock()
@@ -41,7 +43,9 @@ func (x *TestExec) Executorcoord_propose_transaction(ctx context.Context, blockI
 }
 
 func (x *TestExec) Executorcoord_validate_transaction(ctx context.Context, blockID proto.BlockID, ptx proto.ProposedTransaction) (proto.ExecResult, error) {
-	must.Assertf(ctx, x.db.IsOpenBlock(blockID), "validate: db block not open")
+	if db, ok := x.db.(interface{ IsOpenBlock(proto.BlockID) bool }); ok {
+		must.Assertf(ctx, db.IsOpenBlock(blockID), "validate: db block not open")
+	}
 	x.lk.Lock()
 	must.Assertf(ctx, x.open[blockID] > 0, "exec block not open")
 	x.lk.Unlock()
@@ -66,7 +70,9 @@ func (x *TestExec) Executorcoord_open_validation_block(ctx context.Context, bloc
 }
 
 func (x *TestExec) Executorcoord_finish_block(ctx context.Context, blockID proto.BlockID) error {
-	must.Assertf(ctx, x.db.IsOpenBlock(blockID), "finish: db block not open")
+	if db, ok := x.db.(interface{ IsOpenBlock(proto.BlockID) bool }); ok {
+		must.Assertf(ctx, db.IsOpenBlock(blockID), "finish: db block not open")
+	}
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	must.Assertf(ctx, x.open[blockID] > 0, "exec block not open")

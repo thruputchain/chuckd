@@ -25,7 +25,7 @@ import (
 type TestCluster struct {
 	net       libnet.Network
 	cfg       TestClusterConfig
-	db        *testdb.TestDb
+	db        testdb.TestDb
 	gen       *testutil.TestGen
 	submitter batonapi.Submitter
 	shards    []*testshard.TestShard
@@ -47,9 +47,15 @@ func NewTestCluster(
 	net libnet.Network,
 	submitter batonapi.Submitter,
 	cfg TestClusterConfig,
+	speed bool,
 ) *TestCluster {
 
-	db := testdb.NewTestDb(batonapi.Tip{})
+	var db testdb.TestDb
+	if speed {
+		db = testdb.NewTestDbNoop()
+	} else {
+		db = testdb.NewTestDbConsistent(batonapi.Tip{})
+	}
 
 	shards := make([]*testshard.TestShard, cfg.NumDb)
 	for i := range shards {

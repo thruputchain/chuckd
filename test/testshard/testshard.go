@@ -11,10 +11,10 @@ import (
 )
 
 type TestShard struct {
-	*testdb.TestDb
+	testdb.TestDb
 }
 
-func NewTestShard(ctx context.Context, db *testdb.TestDb) *TestShard {
+func NewTestShard(ctx context.Context, db testdb.TestDb) *TestShard {
 	return &TestShard{TestDb: db}
 }
 

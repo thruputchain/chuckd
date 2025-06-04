@@ -10,7 +10,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type TestDb struct {
+type testDbConsistent struct {
 	lk  sync.Mutex
 	id  map[proto.BlockID]*testDbSnapshot
 	top *testDbSnapshot
@@ -22,8 +22,8 @@ type testDbSnapshot struct {
 	committed bool
 }
 
-func NewTestDb(tip batonapi.Tip) *TestDb {
-	db := &TestDb{
+func NewTestDbConsistent(tip batonapi.Tip) TestDb {
+	db := &testDbConsistent{
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
 	db.top = &testDbSnapshot{
@@ -35,31 +35,31 @@ func NewTestDb(tip batonapi.Tip) *TestDb {
 	return db
 }
 
-func (db *TestDb) GetTip() batonapi.Tip {
+func (db *testDbConsistent) GetTip() batonapi.Tip {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip
 }
 
-func (db *TestDb) RestoreDb(context.Context) (batonapi.Tip, error) {
+func (db *testDbConsistent) RestoreDb(context.Context) (batonapi.Tip, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip, nil
 }
 
-func (db *TestDb) DbCoord() batonapi.DbCoordConn {
+func (db *testDbConsistent) DbCoord() batonapi.DbCoordConn {
 	return db
 }
 
 // AssertOpen is called by TestExec
-func (db *TestDb) IsOpenBlock(id proto.BlockID) bool {
+func (db *testDbConsistent) IsOpenBlock(id proto.BlockID) bool {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	block, ok := db.id[id]
 	return ok && block.open > 0
 }
 
-func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
+func (db *testDbConsistent) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
@@ -67,7 +67,7 @@ func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *prot
 	snap.tip.Hash = testutil.BlendPropopsedTx(snap.tip.Hash, ptx)
 }
 
-func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
+func (db *testDbConsistent) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
@@ -75,18 +75,18 @@ func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.
 	snap.tip.Hash = testutil.BlendSignedTx(snap.tip.Hash, stx)
 }
 
-func (db *TestDb) Dbcoord_null(ctx context.Context) error {
+func (db *testDbConsistent) Dbcoord_null(ctx context.Context) error {
 	return nil
 }
 
-func (db *TestDb) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
+func (db *testDbConsistent) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
 	tip := db.GetTip()
 	r := proto.DbTipResult{Result: proto.DbResultOK}
 	*r.Db_tip() = proto.DbTip{Height: tip.Height, Hash: tip.Hash, Id: tip.ID}
 	return r, nil
 }
 
-func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
+func (db *testDbConsistent) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
 	// liblog.Debugf("db open %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -98,7 +98,7 @@ func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (
 	return proto.DbResultOK, nil
 }
 
-func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) (proto.DbResult, error) {
+func (db *testDbConsistent) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) (proto.DbResult, error) {
 	// liblog.Debugf("db create %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -119,7 +119,7 @@ func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.Bl
 	return proto.DbResultOK, nil
 }
 
-func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
+func (db *testDbConsistent) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
 	// liblog.Debugf("db commit %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -135,7 +135,7 @@ func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID)
 	return result, nil
 }
 
-func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
+func (db *testDbConsistent) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
 	// liblog.Debugf("db close %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -148,7 +148,7 @@ func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) 
 	return result, nil
 }
 
-func (db *TestDb) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
+func (db *testDbConsistent) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
 	// liblog.Debugf("db abandon %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -163,9 +163,9 @@ func (db *TestDb) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID
 	return proto.DbResultOK, nil
 }
 
-func (db *TestDb) Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbCatchupResult, error) {
+func (db *testDbConsistent) Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbCatchupResult, error) {
 	panic("not used here")
 }
 
-func (db *TestDb) Close() {
+func (db *testDbConsistent) Close() {
 }

@@ -1,0 +1,25 @@
+package testdb
+
+import (
+	"context"
+
+	"github.com/groundhogchain/chuckd/baton/batonapi"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+type TestDb interface {
+	GetTip() batonapi.Tip
+	RestoreDb(context.Context) (batonapi.Tip, error)
+	DbCoord() batonapi.DbCoordConn
+	AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction)
+	AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction)
+	Dbcoord_null(ctx context.Context) error
+	Dbcoord_get_tip(context.Context) (proto.DbTipResult, error)
+	Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error)
+	Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) (proto.DbResult, error)
+	Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error)
+	Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error)
+	Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error)
+	Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbCatchupResult, error)
+	Close()
+}
