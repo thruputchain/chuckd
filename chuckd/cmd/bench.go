@@ -52,7 +52,20 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				loadgen.TestLoadGen(ctx, benchTPB, benchNumDb, benchNumExec, benchCallsPerExec)
+				testCfg := testcluster.TestClusterConfig{
+					TPS:          0,
+					NumDb:        benchNumDb,
+					NumExec:      benchNumExec,
+					DbBasePort:   benchDbBasePort,
+					ExecBasePort: benchExecBasePort,
+				}
+				loadgen.TestLoadGen(
+					ctx,
+					testCfg,
+					benchInPort,
+					benchTPB,
+					benchCallsPerExec,
+				)
 			})
 		},
 	}
@@ -73,16 +86,23 @@ var (
 				if benchQUIC {
 					outside = quic.NewQUICNet(ctx)
 				}
+				testCfg := testcluster.TestClusterConfig{
+					TPS:          benchTPS,
+					NumDb:        benchNumDb,
+					NumExec:      benchNumExec,
+					DbBasePort:   benchDbBasePort,
+					ExecBasePort: benchExecBasePort,
+				}
 				srv := testcluster.NewTestClusterSystem(
 					ctx,
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
-					*cfg,
 					outside,
-					benchTPS,
+					*cfg,
+					testCfg,
 					benchCallsPerExec,
 				)
-				srv.Start(ctx, benchOutAddress, benchWalletAddress)
+				srv.Start(ctx, benchInAddress, benchOutAddress, benchWalletAddress)
 				select {}
 			})
 		},
@@ -141,6 +161,10 @@ var (
 	benchNumDb        int
 	benchNumExec      int
 	benchCallsPerExec int
+	//
+	benchInPort       int
+	benchDbBasePort   int
+	benchExecBasePort int
 )
 
 func init() {
@@ -156,10 +180,15 @@ func init() {
 
 	benchCmd.AddCommand(benchTestClusterCmd)
 	benchTestClusterCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
+	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")
 	benchTestClusterCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
+	benchTestClusterCmd.Flags().IntVar(&benchNumDb, "numdb", 2, "number of db shards")
+	benchTestClusterCmd.Flags().IntVar(&benchNumExec, "numexec", 20, "number of executors")
+	benchTestClusterCmd.Flags().IntVar(&benchDbBasePort, "dbport", 30000, "dbs base port")
+	benchTestClusterCmd.Flags().IntVar(&benchExecBasePort, "execport", 40000, "execs base port")
 
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
@@ -171,4 +200,7 @@ func init() {
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "numdb", 2, "number of db shards")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "numexec", 20, "number of executors")
 	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
+	benchLoadGenTestCmd.Flags().IntVar(&benchInPort, "inport", 54054, "coodinator port")
+	benchLoadGenTestCmd.Flags().IntVar(&benchDbBasePort, "dbport", 30000, "dbs base port")
+	benchLoadGenTestCmd.Flags().IntVar(&benchExecBasePort, "execport", 40000, "execs base port")
 }

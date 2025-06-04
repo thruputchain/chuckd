@@ -34,7 +34,7 @@ func (x *TestNetwork) Dial(ctx context.Context, network string, address string) 
 
 	l, ok := x.listeners[address]
 	if !ok {
-		return nil, fmt.Errorf("no listener on address")
+		return nil, fmt.Errorf("no listener on address %v", address)
 	}
 
 	return l.dial(), nil

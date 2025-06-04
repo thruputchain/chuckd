@@ -21,21 +21,27 @@ func NewTestClusterSystem(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
-	cfg proto.Config,
 	outside libnet.Network,
-	tps int64,
+	cfg proto.Config,
+	testCfg TestClusterConfig,
 	callsPerExec int,
 ) *TestClusterSystem {
 	inside := testnet.NewTestNetwork()
 	sys := system.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside, callsPerExec)
 	return &TestClusterSystem{
-		System:      sys,
-		TestCluster: NewTestCluster(ctx, time, runtime.NewRandFromRand(rand), inside, tps, sys.Submitter, 5, 7),
+		System: sys,
+		TestCluster: NewTestCluster(
+			ctx,
+			time,
+			runtime.NewRandFromRand(rand),
+			inside,
+			sys.Submitter,
+			testCfg,
+		),
 	}
 }
 
-func (sys *TestClusterSystem) Start(ctx context.Context, outAddr string, walletAddr string) {
-	inAddr := coordAddress
+func (sys *TestClusterSystem) Start(ctx context.Context, inAddr string, outAddr string, walletAddr string) {
 	sys.System.Start(ctx, inAddr, outAddr, walletAddr)
 	sys.TestCluster.Start(ctx, inAddr)
 }
