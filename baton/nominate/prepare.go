@@ -157,14 +157,20 @@ func feedExecPropose(
 	proposedCh chan<- execProposed,
 ) {
 
+	// return result after other defer cleanup takes place
+	var result execProposed
+	defer func() {
+		proposedCh <- result
+	}()
+
 	// executor open proposal block
 	execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
 	if err != nil {
-		proposedCh <- execProposed{err: err}
+		result = execProposed{err: err}
 		return
 	}
 	if execResult != proto.ExecResultOK {
-		proposedCh <- execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
+		result = execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
 		return
 	}
 
@@ -177,7 +183,7 @@ func feedExecPropose(
 	for tx := range txCh {
 		select {
 		case <-ctx.Done():
-			proposedCh <- execProposed{err: fmt.Errorf("context cancelled")}
+			result = execProposed{err: fmt.Errorf("context cancelled")}
 			return
 		default:
 		}
@@ -192,6 +198,6 @@ func feedExecPropose(
 		}
 	}
 
-	proposedCh <- execProposed{err: nil, proposedTxs: proposedTxs}
+	result = execProposed{err: nil, proposedTxs: proposedTxs}
 	return
 }

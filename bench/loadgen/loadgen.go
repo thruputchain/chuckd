@@ -71,6 +71,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 	blockTxsCh := make(chan []*proto.SignedTransaction)
 	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
+	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
 	i := 0
 	for {
 

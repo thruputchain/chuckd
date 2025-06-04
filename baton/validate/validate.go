@@ -134,14 +134,20 @@ func feedExecValidate(
 	validatedCh chan<- error,
 ) {
 
+	// return result after other defer cleanup takes place
+	var result error
+	defer func() {
+		validatedCh <- result
+	}()
+
 	// executor open validation block
 	execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
 	if err != nil {
-		validatedCh <- err
+		result = err
 		return
 	}
 	if execResult != proto.ExecResultOK {
-		validatedCh <- fmt.Errorf("executor open validation block rpc error")
+		result = fmt.Errorf("executor open validation block rpc error")
 		return
 	}
 
@@ -153,23 +159,23 @@ func feedExecValidate(
 	for tx := range txCh {
 		select {
 		case <-ctx.Done():
-			validatedCh <- fmt.Errorf("context cancelled")
+			result = fmt.Errorf("context cancelled")
 			return
 		default:
 		}
 
 		execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
 		if err != nil {
-			validatedCh <- err // networking error
+			result = err // networking error
 			return
 		}
 		if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-			validatedCh <- batonapi.ErrNotValid
+			result = batonapi.ErrNotValid
 			return
 		}
 	}
 
-	validatedCh <- nil
+	result = nil
 	return
 }
 

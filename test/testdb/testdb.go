@@ -87,6 +87,7 @@ func (db *TestDb) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
 }
 
 func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
+	// liblog.Debugf("db open %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
 
@@ -98,6 +99,7 @@ func (db *TestDb) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (
 }
 
 func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) (proto.DbResult, error) {
+	// liblog.Debugf("db create %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
 
@@ -118,6 +120,7 @@ func (db *TestDb) Dbcoord_create_snapshot(ctx context.Context, parentID proto.Bl
 }
 
 func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
+	// liblog.Debugf("db commit %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
@@ -133,6 +136,7 @@ func (db *TestDb) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID)
 }
 
 func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
+	// liblog.Debugf("db close %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
@@ -145,6 +149,7 @@ func (db *TestDb) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) 
 }
 
 func (db *TestDb) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
+	// liblog.Debugf("db abandon %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
