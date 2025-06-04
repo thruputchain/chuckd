@@ -2,7 +2,9 @@
 
 - [x] upgrade for geoff's new executor error codes
 
-- [ ] Bcs look for calldata arguments
+- [ ] go mutex and block profiles
+
+- [?] Bcs look for calldata arguments
 
 - [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
 

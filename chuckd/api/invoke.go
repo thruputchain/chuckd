@@ -27,6 +27,34 @@ func flushMemProfile(memProfilePath string) {
 	}
 }
 
+func flushMutexProfile(mutexProfilePath string) {
+	if mutexProfilePath == "" {
+		return
+	}
+	f, err := os.Create(mutexProfilePath)
+	if err != nil {
+		liblog.Fatalf("could not create mutex profile (%v)", err)
+	}
+	defer f.Close()
+	if err := pprof.Lookup("mutex").WriteTo(f, 0); err != nil {
+		liblog.Fatalf("could not write mutex profile (%v)", err)
+	}
+}
+
+func flushBlockProfile(blockProfilePath string) {
+	if blockProfilePath == "" {
+		return
+	}
+	f, err := os.Create(blockProfilePath)
+	if err != nil {
+		liblog.Fatalf("could not create block profile (%v)", err)
+	}
+	defer f.Close()
+	if err := pprof.Lookup("block").WriteTo(f, 0); err != nil {
+		liblog.Fatalf("could not write block profile (%v)", err)
+	}
+}
+
 func Invoke(ctx context.Context, f func()) error {
 
 	hooks := []func(){}
@@ -54,6 +82,20 @@ func Invoke(ctx context.Context, f func()) error {
 				f.Close()
 			},
 		)
+	}
+
+	// mutex profile
+	if mutexProfilePath != "" {
+		runtime.SetMutexProfileFraction(1)
+		defer flushMutexProfile(mutexProfilePath)
+		hooks = append(hooks, func() { flushMutexProfile(mutexProfilePath) })
+	}
+
+	// block profile
+	if blockProfilePath != "" {
+		runtime.SetBlockProfileRate(1)
+		defer flushBlockProfile(blockProfilePath)
+		hooks = append(hooks, func() { flushBlockProfile(blockProfilePath) })
 	}
 
 	xruntime.CaptureInterrupts(stackTrace, hooks...)
@@ -98,6 +140,18 @@ var memProfilePath string
 
 func SetMemProfilePath(filepath string) {
 	memProfilePath = filepath
+}
+
+var mutexProfilePath string
+
+func SetMutexProfilePath(filepath string) {
+	mutexProfilePath = filepath
+}
+
+var blockProfilePath string
+
+func SetBlockProfilePath(filepath string) {
+	blockProfilePath = filepath
 }
 
 var instanceID string

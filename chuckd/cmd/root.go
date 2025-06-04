@@ -30,14 +30,16 @@ var (
 )
 
 var (
-	rootConfigPath     string
-	rootVerbose        bool
-	rootCPUProfilePath string
-	rootMemProfilePath string
-	rootSeed           int64
-	rootInstanceID     string
-	rootMetricsAddr    string
-	rootStackTrace     bool
+	rootConfigPath       string
+	rootVerbose          bool
+	rootCPUProfilePath   string
+	rootMemProfilePath   string
+	rootMutexProfilePath string
+	rootBlockProfilePath string
+	rootSeed             int64
+	rootInstanceID       string
+	rootMetricsAddr      string
+	rootStackTrace       bool
 )
 
 func init() {
@@ -52,6 +54,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&rootVerbose, "verbose", "v", false, "run in developer mode with verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootMemProfilePath, "mem", "m", "", "memory profile path")
+	rootCmd.PersistentFlags().StringVarP(&rootMutexProfilePath, "mutex", "x", "", "mutex profile path")
+	rootCmd.PersistentFlags().StringVarP(&rootBlockProfilePath, "block", "k", "", "block profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
 	rootCmd.PersistentFlags().BoolVarP(&rootStackTrace, "stack", "s", false, "stack trace on error")
 	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
@@ -69,6 +73,8 @@ func initAfterFlags() {
 	liblog.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	api.SetCPUProfilePath(rootCPUProfilePath)
 	api.SetMemProfilePath(rootMemProfilePath)
+	api.SetMutexProfilePath(rootMutexProfilePath)
+	api.SetBlockProfilePath(rootBlockProfilePath)
 	api.SetInstanceID(rootInstanceID)
 	api.SetMetricsAddr(rootMetricsAddr)
 	chuckdruntime.SetRootSeed(rootSeed)
