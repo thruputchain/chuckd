@@ -17,7 +17,7 @@ import (
 
 func TestMain(m *testing.M) {
 	runtime.SetRootSeed(0)
-	runtime.CaptureInterrupts()
+	runtime.CaptureInterrupts(true)
 	exitVal := m.Run()
 	os.Exit(exitVal)
 }

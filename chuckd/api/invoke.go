@@ -56,7 +56,7 @@ func Invoke(ctx context.Context, f func()) error {
 		)
 	}
 
-	xruntime.CaptureInterrupts(hooks...)
+	xruntime.CaptureInterrupts(stackTrace, hooks...)
 
 	// start telemetry
 	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
@@ -78,7 +78,7 @@ func Invoke(ctx context.Context, f func()) error {
 	//
 	xerr := must.TryThru(f)
 	if xerr != nil {
-		if liblog.IsVerbose() {
+		if stackTrace {
 			fmt.Fprintln(os.Stderr, xerr.StackString())
 		}
 		fmt.Fprintln(os.Stderr, xerr.Error())
@@ -110,4 +110,10 @@ var metricsAddr string
 
 func SetMetricsAddr(addr string) {
 	metricsAddr = addr
+}
+
+var stackTrace bool
+
+func SetStackTrace(s bool) {
+	stackTrace = s
 }

@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-func CaptureInterrupts(hook ...func()) {
+func CaptureInterrupts(stackTrace bool, hook ...func()) {
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -20,9 +20,11 @@ func CaptureInterrupts(hook ...func()) {
 			hook()
 		}
 
-		buf := make([]byte, 1<<20)
-		stackLen := runtime.Stack(buf, true)
-		os.Stderr.Write(buf[:stackLen])
+		if stackTrace {
+			buf := make([]byte, 1<<20)
+			stackLen := runtime.Stack(buf, true)
+			os.Stderr.Write(buf[:stackLen])
+		}
 		os.Exit(1)
 	}()
 }

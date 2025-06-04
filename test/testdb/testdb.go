@@ -152,7 +152,9 @@ func (db *TestDb) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID
 	must.Assertf(ctx, snap.open > 0, "block is not open")
 	must.Assertf(ctx, !snap.committed, "abandoning committed block")
 	snap.open -= 1
-	delete(db.id, id)
+	if snap.open == 0 {
+		delete(db.id, id)
+	}
 	return proto.DbResultOK, nil
 }
 

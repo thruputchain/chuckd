@@ -37,6 +37,7 @@ var (
 	rootSeed           int64
 	rootInstanceID     string
 	rootMetricsAddr    string
+	rootStackTrace     bool
 )
 
 func init() {
@@ -47,11 +48,12 @@ func init() {
 	rootCmd.SilenceErrors = true
 	rootCmd.PersistentFlags().StringVarP(&rootConfigPath, "config", "c", "",
 		"config file (default is $HOME/"+api.LocalAgentPath+"/"+api.LocalAgentConfigFilebase+")")
-	rootCmd.PersistentFlags().Int64VarP(&rootSeed, "seed", "s", 0x0102030405060708, "randomness seed")
+	rootCmd.PersistentFlags().Int64Var(&rootSeed, "seed", 0x0102030405060708, "randomness seed")
 	rootCmd.PersistentFlags().BoolVarP(&rootVerbose, "verbose", "v", false, "run in developer mode with verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootMemProfilePath, "mem", "m", "", "memory profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
+	rootCmd.PersistentFlags().BoolVarP(&rootStackTrace, "stack", "s", false, "stack trace on error")
 	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
 }
 
@@ -60,6 +62,9 @@ func initAfterFlags() {
 		liblog.LogVerbosely()
 	} else {
 		liblog.LogQuietly()
+	}
+	if rootStackTrace {
+		api.SetStackTrace(true)
 	}
 	liblog.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	api.SetCPUProfilePath(rootCPUProfilePath)

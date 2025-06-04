@@ -20,7 +20,7 @@ import (
 func TestMain(m *testing.M) {
 	liblog.LogVerbosely()
 	runtime.SetRootSeed(0)
-	runtime.CaptureInterrupts()
+	runtime.CaptureInterrupts(true)
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }
