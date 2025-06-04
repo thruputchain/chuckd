@@ -52,11 +52,11 @@ func (db *TestDb) DbCoord() batonapi.DbCoordConn {
 }
 
 // AssertOpen is called by TestExec
-func (db *TestDb) AssertOpen(ctx context.Context, id proto.BlockID) {
+func (db *TestDb) IsOpenBlock(id proto.BlockID) bool {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	block, ok := db.id[id]
-	must.Assertf(ctx, ok && block.open > 0, "block is not open")
+	return ok && block.open > 0
 }
 
 func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
