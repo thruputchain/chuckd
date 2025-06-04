@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -59,8 +60,17 @@ var (
 					DbBasePort:   benchDbBasePort,
 					ExecBasePort: benchExecBasePort,
 				}
+				var net libnet.Network
+				if benchTCP {
+					net = libnet.TCPNet{}
+				} else if benchQUIC {
+					net = quic.NewQUICNet(ctx)
+				} else {
+					net = testnet.NewTestNetwork()
+				}
 				loadgen.TestLoadGen(
 					ctx,
+					net,
 					testCfg,
 					benchInPort,
 					benchTPB,
@@ -165,6 +175,7 @@ var (
 	benchInPort       int
 	benchDbBasePort   int
 	benchExecBasePort int
+	benchTCP          bool // use TCP instead of testnet
 )
 
 func init() {
@@ -203,4 +214,6 @@ func init() {
 	benchLoadGenTestCmd.Flags().IntVar(&benchInPort, "inport", 54054, "coodinator port")
 	benchLoadGenTestCmd.Flags().IntVar(&benchDbBasePort, "dbport", 30000, "dbs base port")
 	benchLoadGenTestCmd.Flags().IntVar(&benchExecBasePort, "execport", 40000, "execs base port")
+	benchLoadGenTestCmd.Flags().BoolVar(&benchTCP, "tcp", false, "use tcp")
+	benchLoadGenTestCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use quic")
 }
