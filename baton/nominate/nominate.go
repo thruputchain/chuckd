@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -118,39 +119,52 @@ func execPropose(
 		defer exec.Close()
 	}
 
-	// buffer all proposed transactions
-	txCh := make(chan *proto.SignedTransaction, len(txs))
-	for _, tx := range txs {
-		txCh <- tx
-	}
-	close(txCh)
+	return doExecProposeTx(ctx, blockID, txs, execs, callsPerExec)
+}
+
+func doExecProposeTx(
+	ctx context.Context,
+	blockID proto.BlockID,
+	txs []*proto.SignedTransaction,
+	execs []batonapi.ExecCoordConn,
+	callsPerExec int,
+) ([]ProposedTx, error) {
 
 	// create a context to use for cancelling workers in case any of them fail
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
 	proposedCh := make(chan execProposed, len(execs))
+
+	txCh := bufferTransactions(txs)
+
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExecPropose(feedCtx, exec, blockID, txCh, proposedCh)
+			go feedExecPropose(feedCtx, submitProposeTx, exec, blockID, txCh, proposedCh)
 		}
 	}
 
-	// collect outcomes
+	return collectExecPropose(proposedCh, len(execs)*callsPerExec, feedCtxCancel)
+}
+
+func collectExecPropose(
+	proposedCh <-chan execProposed,
+	numResponses int,
+	feedCtxCancel context.CancelFunc,
+) ([]ProposedTx, error) {
+
 	var proposedTxs []ProposedTx
 	var verr error
-	for range execs {
-		for i := 0; i < callsPerExec; i++ {
-			pd := <-proposedCh
-			if verr == nil || pd.err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
-				verr = err
-			}
-			if pd.err == nil {
-				proposedTxs = append(proposedTxs, pd.proposedTxs...)
-			}
-			if verr != nil {
-				feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
-			}
+	for i := 0; i < numResponses; i++ {
+		pd := <-proposedCh
+		if verr == nil || pd.err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
+			verr = pd.err
+		}
+		if pd.err == nil {
+			proposedTxs = append(proposedTxs, pd.proposedTxs...)
+		}
+		if verr != nil {
+			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
 		}
 	}
 
@@ -161,42 +175,77 @@ func execPropose(
 	return proposedTxs, nil
 }
 
+func bufferTransactions(txs []*proto.SignedTransaction) <-chan *proto.SignedTransaction {
+	ch := make(chan *proto.SignedTransaction, len(txs))
+	for _, tx := range txs {
+		ch <- tx
+	}
+	close(ch)
+	return ch
+}
+
+func bufferBatches(txs []*proto.SignedTransaction, batchSize int) <-chan proto.SignedTransactionBatch {
+	ch := make(chan proto.SignedTransactionBatch, util.CeilDivSigned(len(txs), batchSize))
+	batch := make(proto.SignedTransactionBatch, 0, batchSize)
+	for _, tx := range txs {
+		if len(batch) == batchSize {
+			ch <- batch
+			batch = make(proto.SignedTransactionBatch, 0, batchSize)
+		}
+		batch = append(batch, *tx)
+	}
+	if len(batch) > 0 {
+		ch <- batch
+	}
+	close(ch)
+	return ch
+}
+
 func feedExecPropose(
 	ctx context.Context,
+	submitPropose submitPropose,
 	exec batonapi.ExecCoordConn,
 	blockID proto.BlockID,
 	txCh <-chan *proto.SignedTransaction,
 	proposedCh chan<- execProposed,
 ) {
 
-	// return result after other defer cleanup takes place
-	var result execProposed
-	defer func() {
-		proposedCh <- result
-	}()
-
-	// executor open proposal block
 	execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
 	if err != nil {
-		result = execProposed{err: err}
+		proposedCh <- execProposed{err: err}
 		return
 	}
 	if execResult != proto.ExecResultOK {
-		result = execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
+		proposedCh <- execProposed{err: fmt.Errorf("executor open proposal block rpc error")}
 		return
 	}
 
-	// executor finish proposal block
-	defer func() {
-		exec.Executorcoord_finish_block(ctx, blockID)
-	}()
+	proposedTxs, err := submitPropose(ctx, blockID, exec, txCh)
+
+	exec.Executorcoord_finish_block(ctx, blockID)
+
+	proposedCh <- execProposed{err: err, proposedTxs: proposedTxs}
+}
+
+type submitPropose func(
+	ctx context.Context,
+	blockID proto.BlockID,
+	exec batonapi.ExecCoordConn,
+	txCh <-chan *proto.SignedTransaction,
+) ([]ProposedTx, error)
+
+func submitProposeTx(
+	ctx context.Context,
+	blockID proto.BlockID,
+	exec batonapi.ExecCoordConn,
+	txCh <-chan *proto.SignedTransaction,
+) ([]ProposedTx, error) {
 
 	proposedTxs := []ProposedTx{}
 	for tx := range txCh {
 		select {
 		case <-ctx.Done():
-			result = execProposed{err: fmt.Errorf("context cancelled")}
-			return
+			return nil, fmt.Errorf("context cancelled")
 		default:
 		}
 
@@ -209,7 +258,5 @@ func feedExecPropose(
 			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})
 		}
 	}
-
-	result = execProposed{err: nil, proposedTxs: proposedTxs}
-	return
+	return proposedTxs, nil
 }

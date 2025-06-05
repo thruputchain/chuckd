@@ -53,6 +53,34 @@ func (x *TestExec) Executorcoord_validate_transaction(ctx context.Context, block
 	return proto.ExecResultOK, nil
 }
 
+func (x *TestExec) Executorcoord_propose_batch(
+	ctx context.Context,
+	blockID proto.BlockID,
+	batch proto.SignedTransactionBatch,
+) (proto.ExecProposeBatchResult, error) {
+	r := make(proto.ExecProposeBatchResult, len(batch))
+	for i, tx := range batch {
+		q, err := x.Executorcoord_propose_transaction(ctx, blockID, tx)
+		if err != nil {
+			return nil, err
+		}
+		r[i] = q
+	}
+	return r, nil
+}
+
+func (x *TestExec) Executorcoord_validate_batch(ctx context.Context, blockID proto.BlockID, batch proto.ProposedTransactionBatch) (proto.ExecValidateBatchResult, error) {
+	r := make(proto.ExecValidateBatchResult, len(batch))
+	for i, tx := range batch {
+		q, err := x.Executorcoord_validate_transaction(ctx, blockID, tx)
+		if err != nil {
+			return nil, err
+		}
+		r[i] = q
+	}
+	return r, nil
+}
+
 func (x *TestExec) Executorcoord_open_proposal_block(ctx context.Context, blockID proto.BlockID) (proto.ExecResult, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
