@@ -10,13 +10,11 @@ import (
 type TestNetwork struct {
 	lk        sync.Mutex
 	listeners map[string]*testListener // address listening on -> listener
-	conns     map[*testConn]bool
 }
 
 func NewTestNetwork() *TestNetwork {
 	return &TestNetwork{
 		listeners: map[string]*testListener{},
-		conns:     map[*testConn]bool{},
 	}
 }
 

@@ -2,7 +2,8 @@
 
 - [x] upgrade for geoff's new executor error codes
 
-- [ ] go mutex and block profiles
+- [ ] try conditional variable / mutex instead of the per-call channel in driver.go
+- [ ] add batching calls to exec interface
 
 - [?] Bcs look for calldata arguments
 

@@ -33,7 +33,6 @@ func (x *testListener) dial() net.Conn {
 		fmt.Sprintf("%s/listener/%d", x.addr, x.naccept),
 	)
 	x.naccept += 1
-	x.net.conns[c] = true
 
 	x.ch <- c.acceptor
 
