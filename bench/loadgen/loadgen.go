@@ -74,7 +74,6 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 	blockTxsCh := make(chan []*proto.SignedTransaction)
 	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
-	go x.generateTxs(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
 	i := 0
 	for {
 
@@ -117,10 +116,10 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		fmt.Printf("gen_wait_msec=%v | nom_tps=%v val_tps=%v | avg_nom_tps=%v avg_val_tps=%v\n",
 			genDurMsec,
-			float64(x.tpb)/(nominateDurMsec/1e3),
-			float64(x.tpb)/(validateDurMsec/1e3),
-			float64(x.tpb)/(x.nominateMsec.Average()/1e3),
-			float64(x.tpb)/(x.validateMsec.Average()/1e3),
+			float64(len(txs))/(nominateDurMsec/1e3),
+			float64(len(txs))/(validateDurMsec/1e3),
+			float64(len(txs))/(x.nominateMsec.Average()/1e3),
+			float64(len(txs))/(x.validateMsec.Average()/1e3),
 		)
 		i += 1
 	}
