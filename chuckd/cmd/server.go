@@ -62,9 +62,9 @@ func init() {
 
 	serverCmd.AddCommand(serverStartCmd)
 	serverStartCmd.Flags().BoolVar(&serverQUIC, "quic", false, "use QUIC for external apis")
-	serverStartCmd.Flags().StringVar(&serverInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
-	serverStartCmd.Flags().StringVar(&serverOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
-	serverStartCmd.Flags().StringVar(&serverWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
+	serverStartCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
+	serverStartCmd.Flags().StringVar(&serverOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
+	serverStartCmd.Flags().StringVar(&serverWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")
 	serverStartCmd.Flags().IntVar(&serverCallsPerExec, "exec-par", 2, "concurrent calls per executor")
 	serverStartCmd.Flags().IntVar(&serverBatchSize, "exec-batch", 100, "batch size for executor")
 }

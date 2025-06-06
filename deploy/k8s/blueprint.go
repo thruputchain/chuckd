@@ -23,7 +23,7 @@ func BenchBroadcastBlueprint(ctx context.Context, rand *rand.Rand, numVs int) st
 	rs := MakeStatefulSet(
 		serviceName,
 		"groundhogchain:chuckd.latest",
-		"bench broadcast --addr :9111 --fanout 5 --iterations 3 --payperchan 10 --paysize 100",
+		"bench broadcast --addr :9111 --fanout 5 --iterations 3 --pay-per-chan 10 --paysize 100",
 		cfgs,
 		services,
 	)
@@ -57,7 +57,7 @@ func BenchTestClusterBlueprint(ctx context.Context, rand *rand.Rand, numVs int, 
 	quorumResources := MakeStatefulSet(
 		serviceNameQuorum,
 		"groundhogchain:chuckd.latest",
-		fmt.Sprintf("bench testcluster --tps %d --out_addr :9111 --w_addr :6666", tps),
+		fmt.Sprintf("bench testcluster --tps %d --out-addr :9111 --w-addr :6666", tps),
 		quorumCfgs,
 		quorumServices,
 	)

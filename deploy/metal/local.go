@@ -77,7 +77,7 @@ func BenchTestClusterShell(
 	for i := range quorumCfgs {
 		quorumCmd := fmt.Sprintf(
 			"chuckd -v --config config-quorum-%d.json --instance quorum-%d --seed %d --metrics :%d "+
-				"bench testcluster --tps %d --out_addr %s --w_addr %s",
+				"bench testcluster --tps %d --out-addr %s --w-addr %s",
 			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 		)
 		fmt.Fprintf(&sh, "nohup %s > quorum-%d.log 2>&1 &\n", quorumCmd, i)

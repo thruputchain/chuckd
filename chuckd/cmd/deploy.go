@@ -61,13 +61,13 @@ func init() {
 	rootCmd.AddCommand(deployCmd)
 
 	deployCmd.AddCommand(deployK8sBenchBroadcastCmd)
-	deployK8sBenchBroadcastCmd.Flags().IntVar(&deployNumVs, "numvs", 3, "number of validators")
+	deployK8sBenchBroadcastCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 
 	deployCmd.AddCommand(deployK8sBenchTestClusterCmd)
-	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "numvs", 3, "number of validators")
+	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tps", 1e3, "transactions per second")
 
 	deployCmd.AddCommand(deployLocalBenchTestClusterCmd)
-	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "numvs", 3, "number of validators")
+	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tps", 1e3, "transactions per second")
 }
