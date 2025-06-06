@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/commit"
+	"github.com/groundhogchain/chuckd/baton/exec"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
@@ -107,7 +108,16 @@ func execValidateTx(
 	blockID proto.BlockID,
 	callsPerExec int,
 ) error {
-	return execValidate(ctx, handler, vb, blockID, submitValidateTx{}, callsPerExec)
+	doneTx, err := exec.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateTx{}, callsPerExec)
+	if err != nil {
+		return err
+	}
+	for _, dtx := range doneTx {
+		if dtx.Err != nil {
+			return dtx.Err
+		}
+	}
+	return nil
 }
 
 func execValidateBatch(
@@ -118,102 +128,16 @@ func execValidateBatch(
 	callsPerExec int,
 	batchSize int,
 ) error {
-	return execValidate(ctx, handler, vb, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec)
-}
-
-func execValidate[Payload any, Submit submitPayload[Payload]](
-	ctx context.Context,
-	handler batonapi.OpsHandler,
-	vb *batonapi.ValidatableBlock,
-	blockID proto.BlockID,
-	submit Submit,
-	callsPerExec int,
-) error {
-
-	// connect to available executors
-	execs, err := handler.DialExecs(ctx)
+	doneTx, err := exec.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec)
 	if err != nil {
 		return err
 	}
-	if len(execs) == 0 {
-		return batonapi.ErrNoExecs
-	}
-	for _, exec := range execs {
-		defer exec.Close()
-	}
-
-	return doExecValidate(ctx, vb, blockID, execs, submit, callsPerExec)
-}
-
-func doExecValidate[Payload any, Submit submitPayload[Payload]](
-	ctx context.Context,
-	vb *batonapi.ValidatableBlock,
-	blockID proto.BlockID,
-	execs []batonapi.ExecCoordConn,
-	submit Submit,
-	callsPerExec int,
-) error {
-
-	// create a context to use for cancelling workers in case any of them fail
-	feedCtx, feedCtxCancel := context.WithCancel(ctx)
-	defer feedCtxCancel()
-
-	validatedCh := make(chan error, len(execs)*callsPerExec)
-
-	payCh := submit.Buffer(vb.ProposedTransactions)
-
-	for _, exec := range execs {
-		for i := 0; i < callsPerExec; i++ {
-			go feedExecValidate[Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, validatedCh)
+	for _, dtx := range doneTx {
+		if dtx.Err != nil {
+			return dtx.Err
 		}
 	}
-
-	return collectExecValidate(validatedCh, len(execs)*callsPerExec)
-}
-
-func collectExecValidate(
-	validatedCh <-chan error,
-	numResponses int,
-) error {
-
-	// collect outcomes
-	var verr error
-	for i := 0; i < numResponses; i++ {
-		err := <-validatedCh
-		if verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
-			verr = err
-		}
-	}
-
-	return verr
-}
-
-func feedExecValidate[Payload any, Submit submitPayload[Payload]](
-	ctx context.Context,
-	ctxCancel context.CancelFunc,
-	exec batonapi.ExecCoordConn,
-	blockID proto.BlockID,
-	payCh <-chan Payload,
-	validatedCh chan<- error,
-) {
-
-	// executor open validation block
-	execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
-	if err != nil {
-		validatedCh <- err
-		return
-	}
-	if execResult != proto.ExecResultOK {
-		validatedCh <- fmt.Errorf("executor open validation block rpc error")
-		return
-	}
-
-	var s Submit
-	err = s.SubmitValidate(ctx, ctxCancel, blockID, exec, payCh)
-
-	exec.Executorcoord_finish_block(ctx, blockID)
-
-	validatedCh <- err
+	return nil
 }
 
 func finalizeValidateClose(

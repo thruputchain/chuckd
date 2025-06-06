@@ -5,20 +5,12 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/exec"
 	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type submitPayload[Payload any] interface {
-	Buffer([]*proto.ProposedTransaction) <-chan Payload
-	SubmitValidate(
-		ctx context.Context,
-		ctxCancel context.CancelFunc,
-		blockID proto.BlockID,
-		exec batonapi.ExecCoordConn,
-		payCh <-chan Payload,
-	) error
-}
+type ValidatedTx = exec.DoneTx[*proto.ProposedTransaction, struct{}]
 
 type submitValidateTx struct{}
 
@@ -31,33 +23,36 @@ func (submitValidateTx) Buffer(txs []*proto.ProposedTransaction) <-chan *proto.P
 	return ch
 }
 
-func (submitValidateTx) SubmitValidate(
+func (submitValidateTx) Submit(
 	ctx context.Context,
 	ctxCancel context.CancelFunc,
 	blockID proto.BlockID,
-	exec batonapi.ExecCoordConn,
+	conn batonapi.ExecCoordConn,
 	txCh <-chan *proto.ProposedTransaction,
-) error {
+) ([]ValidatedTx, error) {
 
-	var result error
+	doneTxs := []ValidatedTx{}
 	for tx := range txCh {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled")
+			return nil, fmt.Errorf("context cancelled")
 		default:
 		}
 
-		execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
-		if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-			result = batonapi.ErrNotValid
-			ctxCancel()
-		}
+		validateResult, err := conn.Executorcoord_validate_transaction(ctx, blockID, *tx)
+		var vtx ValidatedTx
 		if err != nil {
-			result = err // networking error
+			vtx = ValidatedTx{Tx: tx, Err: err}
 			ctxCancel()
+		} else if validateResult != proto.ExecResultOK && validateResult != proto.ExecResultTxDeterministicError {
+			vtx = ValidatedTx{Tx: tx, Err: batonapi.ErrNotValid}
+			ctxCancel()
+		} else {
+			vtx = ValidatedTx{Tx: tx}
 		}
+		doneTxs = append(doneTxs, vtx)
 	}
-	return result
+	return doneTxs, nil
 }
 
 type submitValidateBatch struct {
@@ -81,34 +76,38 @@ func (x submitValidateBatch) Buffer(txs []*proto.ProposedTransaction) <-chan pro
 	return ch
 }
 
-func (x submitValidateBatch) SubmitValidate(
+func (x submitValidateBatch) Submit(
 	ctx context.Context,
 	ctxCancel context.CancelFunc,
 	blockID proto.BlockID,
-	exec batonapi.ExecCoordConn,
+	conn batonapi.ExecCoordConn,
 	batchCh <-chan proto.ProposedTransactionBatch,
-) error {
+) ([]ValidatedTx, error) {
 
-	var result error
+	doneTxs := []ValidatedTx{}
 	for batch := range batchCh {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled")
+			return nil, fmt.Errorf("context cancelled")
 		default:
 		}
 
-		execResult, err := exec.Executorcoord_validate_batch(ctx, blockID, batch)
+		validateResults, err := conn.Executorcoord_validate_batch(ctx, blockID, batch)
 
-		for _, execResult := range execResult {
-			if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-				result = batonapi.ErrNotValid
+		for i, proposeResult := range validateResults {
+			var ptx ValidatedTx
+			if err != nil {
+				ptx = ValidatedTx{Tx: &batch[i], Err: err}
 				ctxCancel()
+			} else if proposeResult != proto.ExecResultOK && proposeResult != proto.ExecResultTxDeterministicError {
+				ptx = ValidatedTx{Tx: &batch[i], Err: batonapi.ErrNotValid}
+				ctxCancel()
+			} else {
+				ptx = ValidatedTx{Tx: &batch[i]}
 			}
-		}
-		if err != nil {
-			result = err // networking error
-			ctxCancel()
+			doneTxs = append(doneTxs, ptx)
 		}
 	}
-	return result
+
+	return doneTxs, nil
 }

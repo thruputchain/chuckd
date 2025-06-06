@@ -40,10 +40,10 @@ func Exec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payl
 		defer exec.Close()
 	}
 
-	return doExec(ctx, blockID, txs, execs, submit, callsPerExec)
+	return execWithConns(ctx, blockID, txs, execs, submit, callsPerExec)
 }
 
-func doExec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+func execWithConns[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
 	ctx context.Context,
 	blockID proto.BlockID,
 	txs []Tx,
@@ -62,14 +62,14 @@ func doExec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Pa
 
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExec[Tx, Result, Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, executedCh)
+			go feedConn[Tx, Result, Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, executedCh)
 		}
 	}
 
-	return collectExec(executedCh, len(execs)*callsPerExec)
+	return collectResults(executedCh, len(execs)*callsPerExec)
 }
 
-func collectExec[Tx any, Result any](
+func collectResults[Tx any, Result any](
 	executedCh <-chan executed[Tx, Result],
 	numResponses int,
 ) ([]DoneTx[Tx, Result], error) {
@@ -93,7 +93,7 @@ func collectExec[Tx any, Result any](
 	return executedTxs, nil
 }
 
-func feedExec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+func feedConn[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
 	ctx context.Context,
 	ctxCancel context.CancelFunc,
 	exec batonapi.ExecCoordConn,
