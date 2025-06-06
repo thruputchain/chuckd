@@ -161,10 +161,10 @@ func execPropose[Payload any, Submit submitPayload[Payload]](
 		defer exec.Close()
 	}
 
-	return doExecProposeTx(ctx, blockID, txs, execs, submit, callsPerExec)
+	return doExecPropose(ctx, blockID, txs, execs, submit, callsPerExec)
 }
 
-func doExecProposeTx[Payload any, Submit submitPayload[Payload]](
+func doExecPropose[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
 	blockID proto.BlockID,
 	txs []*proto.SignedTransaction,
@@ -177,13 +177,13 @@ func doExecProposeTx[Payload any, Submit submitPayload[Payload]](
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
-	proposedCh := make(chan execProposed, len(execs))
+	proposedCh := make(chan execProposed, len(execs)*callsPerExec)
 
-	txCh := submit.Buffer(txs)
+	payCh := submit.Buffer(txs)
 
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExecPropose[Payload, Submit](feedCtx, exec, blockID, txCh, proposedCh)
+			go feedExecPropose[Payload, Submit](feedCtx, exec, blockID, payCh, proposedCh)
 		}
 	}
 
@@ -248,7 +248,7 @@ func feedExecPropose[Payload any, Submit submitPayload[Payload]](
 
 type submitPayload[Payload any] interface {
 	Buffer([]*proto.SignedTransaction) <-chan Payload
-	SubmitPropose(
+	SubmitPropose( //XXX: must be able to cancel context from inside
 		ctx context.Context,
 		blockID proto.BlockID,
 		exec batonapi.ExecCoordConn,

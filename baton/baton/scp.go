@@ -122,7 +122,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	}
 
 	go func() {
-		blockID, err := validate.ValidateClose(ctx, b.handler, vb, b.callsPerExec)
+		blockID, err := validate.ValidateClose(ctx, b.handler, vb, b.callsPerExec, b.batchSize)
 		if err == batonapi.ErrNotValid {
 			liblog.Infof("cannot validate, inconsistent")
 			reply <- scpapi.InvalidValue

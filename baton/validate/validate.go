@@ -22,6 +22,7 @@ func ValidateClose(
 	handler batonapi.OpsHandler,
 	vb *batonapi.ValidatableBlock,
 	callsPerExec int,
+	batchSize int,
 ) (proto.BlockID, error) {
 
 	db, err := handler.DialDb(ctx)
@@ -32,7 +33,7 @@ func ValidateClose(
 
 	blockID := handler.GenerateBlockID(ctx)
 
-	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec); err != nil {
+	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec, batchSize); err != nil {
 		return 0, err
 	}
 
@@ -44,6 +45,7 @@ func ValidateCommit(
 	handler batonapi.OpsHandler,
 	vb *batonapi.ValidatableBlock,
 	callsPerExec int,
+	batchSize int,
 ) (proto.BlockID, error) {
 	liblog.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
@@ -55,7 +57,7 @@ func ValidateCommit(
 
 	blockID := handler.GenerateBlockID(ctx)
 
-	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec); err != nil {
+	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec, batchSize); err != nil {
 		return 0, err
 	}
 
@@ -69,6 +71,7 @@ func Validate(
 	db batonapi.DbCoordConn,
 	blockID proto.BlockID,
 	callsPerExec int,
+	batchSize int,
 ) error {
 
 	handler.Emit(ctx, batonapi.EventValidating{ValidatableBlock: vb, BlockID: blockID})
@@ -82,7 +85,11 @@ func Validate(
 		return fmt.Errorf("db create snapshot error")
 	}
 
-	err = execValidate(ctx, handler, vb, blockID, callsPerExec)
+	if batchSize < 2 {
+		err = execValidateTx(ctx, handler, vb, blockID, callsPerExec)
+	} else {
+		err = execValidateBatch(ctx, handler, vb, blockID, callsPerExec, batchSize)
+	}
 	if err != nil {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return err
@@ -93,11 +100,33 @@ func Validate(
 	return nil
 }
 
-func execValidate(
+func execValidateTx(
 	ctx context.Context,
 	handler batonapi.OpsHandler,
 	vb *batonapi.ValidatableBlock,
 	blockID proto.BlockID,
+	callsPerExec int,
+) error {
+	return execValidate(ctx, handler, vb, blockID, submitValidateTx{}, callsPerExec)
+}
+
+func execValidateBatch(
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
+	blockID proto.BlockID,
+	callsPerExec int,
+	batchSize int,
+) error {
+	return execValidate(ctx, handler, vb, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec)
+}
+
+func execValidate[Payload any, Submit submitPayload[Payload]](
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
+	blockID proto.BlockID,
+	submit Submit,
 	callsPerExec int,
 ) error {
 
@@ -113,92 +142,81 @@ func execValidate(
 		defer exec.Close()
 	}
 
-	// buffer all transactions for validation
-	txCh := make(chan *proto.ProposedTransaction, len(vb.ProposedTransactions))
-	for _, tx := range vb.ProposedTransactions {
-		txCh <- tx
-	}
-	close(txCh)
+	return doExecValidateTx(ctx, vb, blockID, execs, submit, callsPerExec)
+}
+
+func doExecValidateTx[Payload any, Submit submitPayload[Payload]](
+	ctx context.Context,
+	vb *batonapi.ValidatableBlock,
+	blockID proto.BlockID,
+	execs []batonapi.ExecCoordConn,
+	submit Submit,
+	callsPerExec int,
+) error {
 
 	// create a context to use for cancelling workers in case any of them fail
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
-	validatedCh := make(chan error, len(execs))
+	validatedCh := make(chan error, len(execs)*callsPerExec)
+
+	payCh := submit.Buffer(vb.ProposedTransactions)
+
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExecValidate(feedCtx, exec, blockID, txCh, validatedCh)
+			go feedExecValidate[Payload, Submit](feedCtx, exec, blockID, payCh, validatedCh)
 		}
 	}
 
+	return collectExecValidate(validatedCh, len(execs)*callsPerExec, feedCtxCancel)
+}
+
+func collectExecValidate(
+	validatedCh <-chan error,
+	numResponses int,
+	feedCtxCancel context.CancelFunc,
+) error {
+
 	// collect outcomes
 	var verr error
-	for range execs {
-		for i := 0; i < callsPerExec; i++ {
-			err := <-validatedCh
-			if verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
-				verr = err
-			}
-			if verr != nil {
-				feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
-			}
+	for i := 0; i < numResponses; i++ {
+		err := <-validatedCh
+		if verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
+			verr = err
+		}
+		if verr != nil {
+			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
 		}
 	}
 
 	return verr
 }
 
-func feedExecValidate(
+func feedExecValidate[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
 	exec batonapi.ExecCoordConn,
 	blockID proto.BlockID,
-	txCh <-chan *proto.ProposedTransaction,
+	payCh <-chan Payload,
 	validatedCh chan<- error,
 ) {
-
-	// return result after other defer cleanup takes place
-	var result error
-	defer func() {
-		validatedCh <- result
-	}()
 
 	// executor open validation block
 	execResult, err := exec.Executorcoord_open_validation_block(ctx, blockID)
 	if err != nil {
-		result = err
+		validatedCh <- err
 		return
 	}
 	if execResult != proto.ExecResultOK {
-		result = fmt.Errorf("executor open validation block rpc error")
+		validatedCh <- fmt.Errorf("executor open validation block rpc error")
 		return
 	}
 
-	// close validation block
-	defer func() {
-		exec.Executorcoord_finish_block(ctx, blockID)
-	}()
+	var s Submit
+	err = s.SubmitValidate(ctx, blockID, exec, payCh)
 
-	for tx := range txCh {
-		select {
-		case <-ctx.Done():
-			result = fmt.Errorf("context cancelled")
-			return
-		default:
-		}
+	exec.Executorcoord_finish_block(ctx, blockID)
 
-		execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
-		if err != nil {
-			result = err // networking error
-			return
-		}
-		if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-			result = batonapi.ErrNotValid
-			return
-		}
-	}
-
-	result = nil
-	return
+	validatedCh <- err
 }
 
 func finalizeValidateClose(
