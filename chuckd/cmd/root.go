@@ -33,6 +33,7 @@ var (
 	rootConfigPath       string
 	rootVerbose          bool
 	rootCPUProfilePath   string
+	rootTraceProfilePath string
 	rootMemProfilePath   string
 	rootMutexProfilePath string
 	rootBlockProfilePath string
@@ -53,6 +54,7 @@ func init() {
 	rootCmd.PersistentFlags().Int64Var(&rootSeed, "seed", 0x0102030405060708, "randomness seed")
 	rootCmd.PersistentFlags().BoolVarP(&rootVerbose, "verbose", "v", false, "run in developer mode with verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
+	rootCmd.PersistentFlags().StringVarP(&rootTraceProfilePath, "trace", "t", "", "trace profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootMemProfilePath, "mem", "m", "", "memory profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootMutexProfilePath, "mutex", "x", "", "mutex profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootBlockProfilePath, "block", "k", "", "block profile path")
@@ -72,6 +74,7 @@ func initAfterFlags() {
 	}
 	liblog.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	api.SetCPUProfilePath(rootCPUProfilePath)
+	api.SetTraceProfilePath(rootTraceProfilePath)
 	api.SetMemProfilePath(rootMemProfilePath)
 	api.SetMutexProfilePath(rootMutexProfilePath)
 	api.SetBlockProfilePath(rootBlockProfilePath)

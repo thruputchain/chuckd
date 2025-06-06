@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -84,6 +85,25 @@ func Invoke(ctx context.Context, f func()) error {
 		)
 	}
 
+	// trace profile
+	if traceProfilePath != "" {
+		f, err := os.Create(traceProfilePath)
+		if err != nil {
+			liblog.Fatalf("could not create trace profile (%v)", err)
+		}
+		defer f.Close()
+		if err := trace.Start(f); err != nil {
+			liblog.Fatalf("could not start trace profile (%v)", err)
+		}
+		defer trace.Stop()
+		hooks = append(hooks,
+			func() {
+				trace.Stop()
+				f.Close()
+			},
+		)
+	}
+
 	// mutex profile
 	if mutexProfilePath != "" {
 		runtime.SetMutexProfileFraction(1)
@@ -152,6 +172,12 @@ var blockProfilePath string
 
 func SetBlockProfilePath(filepath string) {
 	blockProfilePath = filepath
+}
+
+var traceProfilePath string
+
+func SetTraceProfilePath(filepath string) {
+	traceProfilePath = filepath
 }
 
 var instanceID string
