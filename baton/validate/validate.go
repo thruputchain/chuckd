@@ -142,10 +142,10 @@ func execValidate[Payload any, Submit submitPayload[Payload]](
 		defer exec.Close()
 	}
 
-	return doExecValidateTx(ctx, vb, blockID, execs, submit, callsPerExec)
+	return doExecValidate(ctx, vb, blockID, execs, submit, callsPerExec)
 }
 
-func doExecValidateTx[Payload any, Submit submitPayload[Payload]](
+func doExecValidate[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
 	vb *batonapi.ValidatableBlock,
 	blockID proto.BlockID,

@@ -1,0 +1,121 @@
+package exec
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/groundhogchain/chuckd/baton/batonapi"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+type DoneTx[Tx any, Result any] struct {
+	Tx     Tx
+	Result Result
+	Err    error
+}
+
+type executed[Tx any, Result any] struct {
+	err         error
+	executedTxs []DoneTx[Tx, Result]
+}
+
+func Exec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	txs []Tx,
+	blockID proto.BlockID,
+	submit Submit,
+	callsPerExec int,
+) ([]DoneTx[Tx, Result], error) {
+
+	// connect to available executors
+	execs, err := handler.DialExecs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(execs) == 0 {
+		return nil, batonapi.ErrNoExecs
+	}
+	for _, exec := range execs {
+		defer exec.Close()
+	}
+
+	return doExec(ctx, blockID, txs, execs, submit, callsPerExec)
+}
+
+func doExec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+	ctx context.Context,
+	blockID proto.BlockID,
+	txs []Tx,
+	execs []batonapi.ExecCoordConn,
+	submit Submit,
+	callsPerExec int,
+) ([]DoneTx[Tx, Result], error) {
+
+	// create a context to use for cancelling workers in case any of them fail
+	feedCtx, feedCtxCancel := context.WithCancel(ctx)
+	defer feedCtxCancel()
+
+	executedCh := make(chan executed[Tx, Result], len(execs)*callsPerExec)
+
+	payCh := submit.Buffer(txs)
+
+	for _, exec := range execs {
+		for i := 0; i < callsPerExec; i++ {
+			go feedExec[Tx, Result, Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, executedCh)
+		}
+	}
+
+	return collectExec(executedCh, len(execs)*callsPerExec)
+}
+
+func collectExec[Tx any, Result any](
+	executedCh <-chan executed[Tx, Result],
+	numResponses int,
+) ([]DoneTx[Tx, Result], error) {
+
+	var executedTxs []DoneTx[Tx, Result]
+	var verr error
+	for i := 0; i < numResponses; i++ {
+		xd := <-executedCh
+		if verr == nil || xd.err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
+			verr = xd.err
+		}
+		if xd.err == nil {
+			executedTxs = append(executedTxs, xd.executedTxs...)
+		}
+	}
+
+	if verr != nil {
+		return nil, verr
+	}
+
+	return executedTxs, nil
+}
+
+func feedExec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+	ctx context.Context,
+	ctxCancel context.CancelFunc,
+	exec batonapi.ExecCoordConn,
+	blockID proto.BlockID,
+	payCh <-chan Payload,
+	executedCh chan<- executed[Tx, Result],
+) {
+
+	execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
+	if err != nil {
+		executedCh <- executed[Tx, Result]{err: err}
+		return
+	}
+	if execResult != proto.ExecResultOK {
+		executedCh <- executed[Tx, Result]{err: fmt.Errorf("executor open proposal block rpc error")}
+		return
+	}
+
+	var s Submit
+	executedTxs, err := s.Submit(ctx, ctxCancel, blockID, exec, payCh)
+
+	exec.Executorcoord_finish_block(ctx, blockID)
+
+	executedCh <- executed[Tx, Result]{err: err, executedTxs: executedTxs}
+}

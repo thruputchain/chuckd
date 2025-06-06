@@ -71,7 +71,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 		}
 		proposedTxHashes = append(proposedTxHashes, protoutil.HashSignedTx(propsedTx.Tx))
 		proposedTxNominations = append(proposedTxNominations,
-			proto.NominatedTransaction{Nondeterministic_proposal_data: *propsedTx.Nondeterministic})
+			proto.NominatedTransaction{Nondeterministic_proposal_data: *propsedTx.Result})
 	}
 
 	// construct block nomination
