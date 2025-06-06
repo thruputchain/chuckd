@@ -183,17 +183,16 @@ func doExecPropose[Payload any, Submit submitPayload[Payload]](
 
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExecPropose[Payload, Submit](feedCtx, exec, blockID, payCh, proposedCh)
+			go feedExecPropose[Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, proposedCh)
 		}
 	}
 
-	return collectExecPropose(proposedCh, len(execs)*callsPerExec, feedCtxCancel)
+	return collectExecPropose(proposedCh, len(execs)*callsPerExec)
 }
 
 func collectExecPropose(
 	proposedCh <-chan execProposed,
 	numResponses int,
-	feedCtxCancel context.CancelFunc,
 ) ([]ProposedTx, error) {
 
 	var proposedTxs []ProposedTx
@@ -206,9 +205,6 @@ func collectExecPropose(
 		if pd.err == nil {
 			proposedTxs = append(proposedTxs, pd.proposedTxs...)
 		}
-		if verr != nil {
-			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
-		}
 	}
 
 	if verr != nil {
@@ -220,6 +216,7 @@ func collectExecPropose(
 
 func feedExecPropose[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	exec batonapi.ExecCoordConn,
 	blockID proto.BlockID,
 	payCh <-chan Payload,
@@ -237,7 +234,7 @@ func feedExecPropose[Payload any, Submit submitPayload[Payload]](
 	}
 
 	var s Submit
-	proposedTxs, err := s.SubmitPropose(ctx, blockID, exec, payCh)
+	proposedTxs, err := s.SubmitPropose(ctx, ctxCancel, blockID, exec, payCh)
 
 	exec.Executorcoord_finish_block(ctx, blockID)
 
@@ -248,8 +245,9 @@ func feedExecPropose[Payload any, Submit submitPayload[Payload]](
 
 type submitPayload[Payload any] interface {
 	Buffer([]*proto.SignedTransaction) <-chan Payload
-	SubmitPropose( //XXX: must be able to cancel context from inside
+	SubmitPropose(
 		ctx context.Context,
+		ctxCancel context.CancelFunc, // cancel workers context to stop the other feeders if any of them fail
 		blockID proto.BlockID,
 		exec batonapi.ExecCoordConn,
 		payCh <-chan Payload,
@@ -269,6 +267,7 @@ func (submitProposeTx) Buffer(txs []*proto.SignedTransaction) <-chan *proto.Sign
 
 func (submitProposeTx) SubmitPropose(
 	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	blockID proto.BlockID,
 	exec batonapi.ExecCoordConn,
 	txCh <-chan *proto.SignedTransaction,
@@ -286,8 +285,10 @@ func (submitProposeTx) SubmitPropose(
 		var ptx ProposedTx
 		if err != nil {
 			ptx = ProposedTx{Tx: tx, Err: err}
+			ctxCancel()
 		} else if proposeResult.Result != proto.ExecResultOK && proposeResult.Result != proto.ExecResultTxDeterministicError {
 			ptx = ProposedTx{Tx: tx, Err: batonapi.ErrNotValid}
+			ctxCancel()
 		} else {
 			ptx = ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()}
 		}
@@ -319,6 +320,7 @@ func (x submitProposeBatch) Buffer(txs []*proto.SignedTransaction) <-chan proto.
 
 func (submitProposeBatch) SubmitPropose(
 	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	blockID proto.BlockID,
 	exec batonapi.ExecCoordConn,
 	batchCh <-chan proto.SignedTransactionBatch,
@@ -338,8 +340,10 @@ func (submitProposeBatch) SubmitPropose(
 			var ptx ProposedTx
 			if err != nil {
 				ptx = ProposedTx{Tx: &batch[i], Err: err}
+				ctxCancel()
 			} else if proposeResult.Result != proto.ExecResultOK && proposeResult.Result != proto.ExecResultTxDeterministicError {
 				ptx = ProposedTx{Tx: &batch[i], Err: batonapi.ErrNotValid}
+				ctxCancel()
 			} else {
 				ptx = ProposedTx{Tx: &batch[i], Nondeterministic: proposeResult.Proposal_data()}
 			}

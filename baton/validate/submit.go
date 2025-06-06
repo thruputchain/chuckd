@@ -13,6 +13,7 @@ type submitPayload[Payload any] interface {
 	Buffer([]*proto.ProposedTransaction) <-chan Payload
 	SubmitValidate(
 		ctx context.Context,
+		ctxCancel context.CancelFunc,
 		blockID proto.BlockID,
 		exec batonapi.ExecCoordConn,
 		payCh <-chan Payload,
@@ -32,6 +33,7 @@ func (submitValidateTx) Buffer(txs []*proto.ProposedTransaction) <-chan *proto.P
 
 func (submitValidateTx) SubmitValidate(
 	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	blockID proto.BlockID,
 	exec batonapi.ExecCoordConn,
 	txCh <-chan *proto.ProposedTransaction,
@@ -46,12 +48,13 @@ func (submitValidateTx) SubmitValidate(
 		}
 
 		execResult, err := exec.Executorcoord_validate_transaction(ctx, blockID, *tx)
-		if result == nil {
-			if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-				result = batonapi.ErrNotValid
-			} else if err != nil {
-				result = err // networking error
-			}
+		if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
+			result = batonapi.ErrNotValid
+			ctxCancel()
+		}
+		if err != nil {
+			result = err // networking error
+			ctxCancel()
 		}
 	}
 	return result
@@ -80,6 +83,7 @@ func (x submitValidateBatch) Buffer(txs []*proto.ProposedTransaction) <-chan pro
 
 func (x submitValidateBatch) SubmitValidate(
 	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	blockID proto.BlockID,
 	exec batonapi.ExecCoordConn,
 	batchCh <-chan proto.ProposedTransactionBatch,
@@ -95,15 +99,15 @@ func (x submitValidateBatch) SubmitValidate(
 
 		execResult, err := exec.Executorcoord_validate_batch(ctx, blockID, batch)
 
-		if result == nil {
-			for _, execResult := range execResult {
-				if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
-					result = batonapi.ErrNotValid
-				}
+		for _, execResult := range execResult {
+			if execResult != proto.ExecResultOK && execResult != proto.ExecResultTxDeterministicError {
+				result = batonapi.ErrNotValid
+				ctxCancel()
 			}
-			if result == nil {
-				result = err // networking error
-			}
+		}
+		if err != nil {
+			result = err // networking error
+			ctxCancel()
 		}
 	}
 	return result

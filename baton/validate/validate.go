@@ -164,17 +164,16 @@ func doExecValidateTx[Payload any, Submit submitPayload[Payload]](
 
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExecValidate[Payload, Submit](feedCtx, exec, blockID, payCh, validatedCh)
+			go feedExecValidate[Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, validatedCh)
 		}
 	}
 
-	return collectExecValidate(validatedCh, len(execs)*callsPerExec, feedCtxCancel)
+	return collectExecValidate(validatedCh, len(execs)*callsPerExec)
 }
 
 func collectExecValidate(
 	validatedCh <-chan error,
 	numResponses int,
-	feedCtxCancel context.CancelFunc,
 ) error {
 
 	// collect outcomes
@@ -184,9 +183,6 @@ func collectExecValidate(
 		if verr == nil || err == batonapi.ErrNotValid { // prioritize ErrNotValid over networking errors
 			verr = err
 		}
-		if verr != nil {
-			feedCtxCancel() // cancel workers context to stop the other feeders if any of them fail
-		}
 	}
 
 	return verr
@@ -194,6 +190,7 @@ func collectExecValidate(
 
 func feedExecValidate[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
+	ctxCancel context.CancelFunc,
 	exec batonapi.ExecCoordConn,
 	blockID proto.BlockID,
 	payCh <-chan Payload,
@@ -212,7 +209,7 @@ func feedExecValidate[Payload any, Submit submitPayload[Payload]](
 	}
 
 	var s Submit
-	err = s.SubmitValidate(ctx, blockID, exec, payCh)
+	err = s.SubmitValidate(ctx, ctxCancel, blockID, exec, payCh)
 
 	exec.Executorcoord_finish_block(ctx, blockID)
 
