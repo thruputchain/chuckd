@@ -24,6 +24,7 @@ import (
 type LoadGen struct {
 	tpb          int // txs per block
 	callsPerExec int
+	batchSize    int
 	rand         *rand.Rand
 	inside       libnet.Network
 	coord        *coord.CoordinatorService
@@ -40,10 +41,12 @@ func NewLoadGenBench(
 	inside libnet.Network,
 	tpb int, // txs per block
 	callsPerExec int,
+	batchSize int,
 ) *LoadGen {
 	x := &LoadGen{
 		tpb:          tpb,
 		callsPerExec: callsPerExec,
+		batchSize:    batchSize,
 		rand:         rand,
 		inside:       inside,
 		nominateMsec: NewStatFloat64(),
@@ -88,7 +91,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		t0 := time.Now()
 
-		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec)
+		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize)
 		must.NoError(ctx, err)
 
 		t1 := time.Now()

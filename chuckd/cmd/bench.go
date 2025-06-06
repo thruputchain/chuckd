@@ -40,6 +40,7 @@ var (
 					libnet.TCPNet{},
 					benchTPB,
 					benchCallsPerExec,
+					benchBatchSize,
 				)
 				srv.Start(ctx, benchInAddress)
 				select {}
@@ -75,6 +76,7 @@ var (
 					benchInPort,
 					benchTPB,
 					benchCallsPerExec,
+					benchBatchSize,
 				)
 			})
 		},
@@ -111,6 +113,7 @@ var (
 					*cfg,
 					testCfg,
 					benchCallsPerExec,
+					benchBatchSize,
 				)
 				srv.Start(ctx, benchInAddress, benchOutAddress, benchWalletAddress)
 				select {}
@@ -171,6 +174,7 @@ var (
 	benchNumDb        int
 	benchNumExec      int
 	benchCallsPerExec int
+	benchBatchSize    int
 	//
 	benchInPort       int
 	benchDbBasePort   int
@@ -195,7 +199,8 @@ func init() {
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out_addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w_addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")
-	benchTestClusterCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
+	benchTestClusterCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
+	benchTestClusterCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 	benchTestClusterCmd.Flags().IntVar(&benchNumDb, "numdb", 2, "number of db shards")
 	benchTestClusterCmd.Flags().IntVar(&benchNumExec, "numexec", 20, "number of executors")
 	benchTestClusterCmd.Flags().IntVar(&benchDbBasePort, "dbport", 30000, "dbs base port")
@@ -204,13 +209,15 @@ func init() {
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in_addr", "localhost:7888", "bind address for internal apis")
 	benchLoadGenCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
-	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
+	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
+	benchLoadGenCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 
 	benchCmd.AddCommand(benchLoadGenTestCmd)
 	benchLoadGenTestCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "numdb", 2, "number of db shards")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "numexec", 20, "number of executors")
-	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "execpar", 2, "concurrent calls per executor")
+	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
+	benchLoadGenTestCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 	benchLoadGenTestCmd.Flags().IntVar(&benchInPort, "inport", 54054, "coodinator port")
 	benchLoadGenTestCmd.Flags().IntVar(&benchDbBasePort, "dbport", 30000, "dbs base port")
 	benchLoadGenTestCmd.Flags().IntVar(&benchExecBasePort, "execport", 40000, "execs base port")

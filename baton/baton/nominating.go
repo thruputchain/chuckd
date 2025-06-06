@@ -55,7 +55,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 	}
 
 	// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
-	nom, err := nominate.PrepareNomination(ctx, b.handler, tip, scheduledTxs, b.callsPerExec)
+	nom, err := nominate.PrepareNomination(ctx, b.handler, tip, scheduledTxs, b.callsPerExec, b.batchSize)
 	if err != nil {
 		// XXX: ctx may be cancelled
 		// XXX: ErrNoExecs

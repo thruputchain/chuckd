@@ -55,6 +55,7 @@ func PrepareNomination(
 	tip batonapi.Tip,
 	txs []*proto.SignedTransaction,
 	callsPerExec int,
+	batchSize int,
 ) (*Nomination, error) {
 
 	// connect to db
@@ -75,7 +76,12 @@ func PrepareNomination(
 		return nil, fmt.Errorf("db create snapshot rpc error")
 	}
 
-	proposedTxs, err := execPropose(ctx, handler, txs, blockID, callsPerExec)
+	var proposedTxs []ProposedTx
+	if batchSize < 2 {
+		proposedTxs, err = execProposeTx(ctx, handler, txs, blockID, callsPerExec)
+	} else {
+		proposedTxs, err = execProposeBatch(ctx, handler, txs, blockID, callsPerExec, batchSize)
+	}
 	if err != nil {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
 		return nil, fmt.Errorf("proposal error: %v", err)
@@ -99,11 +105,47 @@ func PrepareNomination(
 	}, nil
 }
 
-func execPropose(
+func execProposeTx(
 	ctx context.Context,
 	handler batonapi.OpsHandler,
 	txs []*proto.SignedTransaction,
 	blockID proto.BlockID,
+	callsPerExec int,
+) ([]ProposedTx, error) {
+	return execPropose[*proto.SignedTransaction, submitProposeTx](
+		ctx,
+		handler,
+		txs,
+		blockID,
+		submitProposeTx{},
+		callsPerExec,
+	)
+}
+
+func execProposeBatch(
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	txs []*proto.SignedTransaction,
+	blockID proto.BlockID,
+	callsPerExec int,
+	batchSize int,
+) ([]ProposedTx, error) {
+	return execPropose[proto.SignedTransactionBatch, submitProposeBatch](
+		ctx,
+		handler,
+		txs,
+		blockID,
+		submitProposeBatch{BatchSize: batchSize},
+		callsPerExec,
+	)
+}
+
+func execPropose[Payload any, Submit submitPayload[Payload]](
+	ctx context.Context,
+	handler batonapi.OpsHandler,
+	txs []*proto.SignedTransaction,
+	blockID proto.BlockID,
+	submit Submit,
 	callsPerExec int,
 ) ([]ProposedTx, error) {
 
@@ -119,14 +161,15 @@ func execPropose(
 		defer exec.Close()
 	}
 
-	return doExecProposeTx(ctx, blockID, txs, execs, callsPerExec)
+	return doExecProposeTx(ctx, blockID, txs, execs, submit, callsPerExec)
 }
 
-func doExecProposeTx(
+func doExecProposeTx[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
 	blockID proto.BlockID,
 	txs []*proto.SignedTransaction,
 	execs []batonapi.ExecCoordConn,
+	submit Submit,
 	callsPerExec int,
 ) ([]ProposedTx, error) {
 
@@ -136,11 +179,11 @@ func doExecProposeTx(
 
 	proposedCh := make(chan execProposed, len(execs))
 
-	txCh := bufferTransactions(txs)
+	txCh := submit.Buffer(txs)
 
 	for _, exec := range execs {
 		for i := 0; i < callsPerExec; i++ {
-			go feedExecPropose(feedCtx, submitProposeTx, exec, blockID, txCh, proposedCh)
+			go feedExecPropose[Payload, Submit](feedCtx, exec, blockID, txCh, proposedCh)
 		}
 	}
 
@@ -175,38 +218,11 @@ func collectExecPropose(
 	return proposedTxs, nil
 }
 
-func bufferTransactions(txs []*proto.SignedTransaction) <-chan *proto.SignedTransaction {
-	ch := make(chan *proto.SignedTransaction, len(txs))
-	for _, tx := range txs {
-		ch <- tx
-	}
-	close(ch)
-	return ch
-}
-
-func bufferBatches(txs []*proto.SignedTransaction, batchSize int) <-chan proto.SignedTransactionBatch {
-	ch := make(chan proto.SignedTransactionBatch, util.CeilDivSigned(len(txs), batchSize))
-	batch := make(proto.SignedTransactionBatch, 0, batchSize)
-	for _, tx := range txs {
-		if len(batch) == batchSize {
-			ch <- batch
-			batch = make(proto.SignedTransactionBatch, 0, batchSize)
-		}
-		batch = append(batch, *tx)
-	}
-	if len(batch) > 0 {
-		ch <- batch
-	}
-	close(ch)
-	return ch
-}
-
-func feedExecPropose(
+func feedExecPropose[Payload any, Submit submitPayload[Payload]](
 	ctx context.Context,
-	submitPropose submitPropose,
 	exec batonapi.ExecCoordConn,
 	blockID proto.BlockID,
-	txCh <-chan *proto.SignedTransaction,
+	payCh <-chan Payload,
 	proposedCh chan<- execProposed,
 ) {
 
@@ -220,21 +236,38 @@ func feedExecPropose(
 		return
 	}
 
-	proposedTxs, err := submitPropose(ctx, blockID, exec, txCh)
+	var s Submit
+	proposedTxs, err := s.SubmitPropose(ctx, blockID, exec, payCh)
 
 	exec.Executorcoord_finish_block(ctx, blockID)
 
 	proposedCh <- execProposed{err: err, proposedTxs: proposedTxs}
 }
 
-type submitPropose func(
-	ctx context.Context,
-	blockID proto.BlockID,
-	exec batonapi.ExecCoordConn,
-	txCh <-chan *proto.SignedTransaction,
-) ([]ProposedTx, error)
+//
 
-func submitProposeTx(
+type submitPayload[Payload any] interface {
+	Buffer([]*proto.SignedTransaction) <-chan Payload
+	SubmitPropose(
+		ctx context.Context,
+		blockID proto.BlockID,
+		exec batonapi.ExecCoordConn,
+		payCh <-chan Payload,
+	) ([]ProposedTx, error)
+}
+
+type submitProposeTx struct{}
+
+func (submitProposeTx) Buffer(txs []*proto.SignedTransaction) <-chan *proto.SignedTransaction {
+	ch := make(chan *proto.SignedTransaction, len(txs))
+	for _, tx := range txs {
+		ch <- tx
+	}
+	close(ch)
+	return ch
+}
+
+func (submitProposeTx) SubmitPropose(
 	ctx context.Context,
 	blockID proto.BlockID,
 	exec batonapi.ExecCoordConn,
@@ -250,13 +283,69 @@ func submitProposeTx(
 		}
 
 		proposeResult, err := exec.Executorcoord_propose_transaction(ctx, blockID, *tx)
+		var ptx ProposedTx
 		if err != nil {
-			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: err})
+			ptx = ProposedTx{Tx: tx, Err: err}
 		} else if proposeResult.Result != proto.ExecResultOK && proposeResult.Result != proto.ExecResultTxDeterministicError {
-			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Err: batonapi.ErrNotValid})
+			ptx = ProposedTx{Tx: tx, Err: batonapi.ErrNotValid}
 		} else {
-			proposedTxs = append(proposedTxs, ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()})
+			ptx = ProposedTx{Tx: tx, Nondeterministic: proposeResult.Proposal_data()}
+		}
+		proposedTxs = append(proposedTxs, ptx)
+	}
+	return proposedTxs, nil
+}
+
+type submitProposeBatch struct {
+	BatchSize int
+}
+
+func (x submitProposeBatch) Buffer(txs []*proto.SignedTransaction) <-chan proto.SignedTransactionBatch {
+	ch := make(chan proto.SignedTransactionBatch, util.CeilDivSigned(len(txs), x.BatchSize))
+	batch := make(proto.SignedTransactionBatch, 0, x.BatchSize)
+	for _, tx := range txs {
+		if len(batch) == x.BatchSize {
+			ch <- batch
+			batch = make(proto.SignedTransactionBatch, 0, x.BatchSize)
+		}
+		batch = append(batch, *tx)
+	}
+	if len(batch) > 0 {
+		ch <- batch
+	}
+	close(ch)
+	return ch
+}
+
+func (submitProposeBatch) SubmitPropose(
+	ctx context.Context,
+	blockID proto.BlockID,
+	exec batonapi.ExecCoordConn,
+	batchCh <-chan proto.SignedTransactionBatch,
+) ([]ProposedTx, error) {
+
+	proposedTxs := []ProposedTx{}
+	for batch := range batchCh {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("context cancelled")
+		default:
+		}
+
+		proposeResults, err := exec.Executorcoord_propose_batch(ctx, blockID, batch)
+
+		for i, proposeResult := range proposeResults {
+			var ptx ProposedTx
+			if err != nil {
+				ptx = ProposedTx{Tx: &batch[i], Err: err}
+			} else if proposeResult.Result != proto.ExecResultOK && proposeResult.Result != proto.ExecResultTxDeterministicError {
+				ptx = ProposedTx{Tx: &batch[i], Err: batonapi.ErrNotValid}
+			} else {
+				ptx = ProposedTx{Tx: &batch[i], Nondeterministic: proposeResult.Proposal_data()}
+			}
+			proposedTxs = append(proposedTxs, ptx)
 		}
 	}
+
 	return proposedTxs, nil
 }

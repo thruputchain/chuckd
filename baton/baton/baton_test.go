@@ -36,7 +36,8 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 		5*tick, // committedTTL
 	)
 	callsPerExec := 2
-	baton := NewBaton(ctx, rig, callsPerExec)
+	batchSize := 10
+	baton := NewBaton(ctx, rig, callsPerExec, batchSize)
 	rig.Bind(baton)
 	return ctx, rig, baton, tick
 }
