@@ -112,7 +112,7 @@ func execProposeTx(
 	blockID proto.BlockID,
 	callsPerExec int,
 ) ([]ProposedTx, error) {
-	return execPropose[*proto.SignedTransaction, submitProposeTx](
+	return execPropose(
 		ctx,
 		handler,
 		txs,
@@ -130,7 +130,7 @@ func execProposeBatch(
 	callsPerExec int,
 	batchSize int,
 ) ([]ProposedTx, error) {
-	return execPropose[proto.SignedTransactionBatch, submitProposeBatch](
+	return execPropose(
 		ctx,
 		handler,
 		txs,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"runtime/debug"
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
@@ -91,6 +92,8 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		t0 := time.Now()
 
+		gcPervent := debug.SetGCPercent(-1) //XXX: disable GC
+
 		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize)
 		must.NoError(ctx, err)
 
@@ -116,6 +119,8 @@ func (x *LoadGen) drive(ctx context.Context) {
 		x.validateMsec.Add(validateDurMsec)
 
 		liblog.Infof("committed block at height %d", tip.Height+1)
+
+		debug.SetGCPercent(gcPervent) //XXX: reenable GC
 
 		fmt.Printf("gen_wait_msec=%v | nom_tps=%v val_tps=%v | avg_nom_tps=%v avg_val_tps=%v\n",
 			genDurMsec,
