@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 
 	"github.com/panjf2000/ants/v2"
@@ -62,17 +63,25 @@ func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
-	executedCh := make(chan executed[Tx, Result], len(conn)*callsPerExec)
+	numGo := len(conn) * callsPerExec
+	executedCh := make(chan executed[Tx, Result], numGo)
 
-	payCh := submit.Buffer(txs)
+	shards := util.ShardSlice(txs, numGo)
+	// pkgCh := submit.Buffer(txs)
 
-	for _, conn := range conn {
+	for j, conn := range conn {
 		for i := 0; i < callsPerExec; i++ {
-			go feedConn[Tx, Result, Pkg, Submit](feedCtx, feedCtxCancel, conn, blockID, payCh, executedCh)
+			go feedConn[Tx, Result, Pkg, Submit](
+				feedCtx, feedCtxCancel,
+				conn, blockID,
+				// pkgCh,
+				submit.Buffer(shards[j*callsPerExec+i]),
+				executedCh,
+			)
 		}
 	}
 
-	return collectResults(executedCh, len(conn)*callsPerExec)
+	return collectResults(executedCh, numGo)
 }
 
 func collectResults[Tx any, Result any](

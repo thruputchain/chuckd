@@ -82,7 +82,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 	defer c.Close()
 
 	blockTxsCh := make(chan []*proto.SignedTransaction)
-	go x.generateTxsWithPool(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
+	go x.generateTxsWithoutPool(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
 	txs := <-blockTxsCh
 	i := 0
 	for {
@@ -198,6 +198,52 @@ func (x *LoadGen) generateTxsWithPool(
 				},
 			)
 			must.NoError(ctx, err)
+		}
+		wg.Wait()
+
+		dur := time.Now().Sub(t0)
+		liblog.Infof("generation %v tps", float64(tpb)/(float64(dur.Milliseconds())/1e3))
+
+		select {
+		case txCh <- blockTxs:
+		case <-ctx.Done():
+			close(txCh)
+			return
+		}
+	}
+}
+
+func (x *LoadGen) generateTxsWithoutPool(
+	ctx context.Context,
+	rand *rand.Rand,
+	txCh chan<- []*proto.SignedTransaction,
+	tpb int,
+) {
+	user, err := protoutil.GenerateIdentity(rand, "test_user")
+	must.NoError(ctx, err)
+
+	k := x.genPar
+
+	gen := make([]*testutil.TestGen, k)
+	for i := range gen {
+		gen[i] = testutil.NewTestGen(ctx, libtime.RealTime{}, runtime.NewRandFromRand(rand), user.Secret_key)
+	}
+
+	for {
+		blockTxs := make([]*proto.SignedTransaction, tpb)
+
+		t0 := time.Now()
+
+		chunk := util.CeilDivSigned(tpb, k)
+		var wg sync.WaitGroup
+		for j := 0; j < k; j++ {
+			wg.Add(1)
+			go func() {
+				for i := j * chunk; i < min(tpb, (j+1)*chunk); i++ {
+					blockTxs[i] = gen[j].GenSignedTx(ctx)
+				}
+				wg.Done()
+			}()
 		}
 		wg.Wait()
 

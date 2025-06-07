@@ -19,3 +19,14 @@ func CeilDivSigned[T Signed](a, b T) T {
 		return a / b
 	}
 }
+
+func ShardSlice[T any](slice []T, k int) [][]T {
+
+	n := len(slice)
+	shard := make([][]T, k)
+	size := CeilDivSigned(len(slice), k)
+	for i := range shard {
+		shard[i] = slice[min(i*size, n):min((i+1)*size, n)]
+	}
+	return shard
+}
