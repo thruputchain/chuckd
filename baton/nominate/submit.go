@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/baton/exec"
+	"github.com/groundhogchain/chuckd/baton/exec1"
 	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type ProposedTx = exec.DoneTx[*proto.SignedTransaction, *proto.NondeterministicProposalData]
+type ProposedTx = exec1.DoneTx[*proto.SignedTransaction, *proto.NondeterministicProposalData]
 
 type submitProposeTx struct{}
 

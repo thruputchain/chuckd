@@ -1,4 +1,4 @@
-package exec
+package exec1
 
 import (
 	"context"
@@ -6,7 +6,13 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	proto "github.com/groundhogchain/protocol-go"
+
+	"github.com/panjf2000/ants/v2"
 )
+
+type Executor[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]] struct {
+	pool *ants.Pool
+}
 
 type DoneTx[Tx any, Result any] struct {
 	Tx     Tx
@@ -19,7 +25,7 @@ type executed[Tx any, Result any] struct {
 	executedTxs []DoneTx[Tx, Result]
 }
 
-func Exec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+func Exec[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	ctx context.Context,
 	handler batonapi.OpsHandler,
 	txs []Tx,
@@ -43,11 +49,11 @@ func Exec[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payl
 	return execWithConns(ctx, blockID, txs, execs, submit, callsPerExec)
 }
 
-func execWithConns[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	ctx context.Context,
 	blockID proto.BlockID,
 	txs []Tx,
-	execs []batonapi.ExecCoordConn,
+	conn []batonapi.ExecCoordConn,
 	submit Submit,
 	callsPerExec int,
 ) ([]DoneTx[Tx, Result], error) {
@@ -56,17 +62,17 @@ func execWithConns[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Res
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
-	executedCh := make(chan executed[Tx, Result], len(execs)*callsPerExec)
+	executedCh := make(chan executed[Tx, Result], len(conn)*callsPerExec)
 
 	payCh := submit.Buffer(txs)
 
-	for _, exec := range execs {
+	for _, conn := range conn {
 		for i := 0; i < callsPerExec; i++ {
-			go feedConn[Tx, Result, Payload, Submit](feedCtx, feedCtxCancel, exec, blockID, payCh, executedCh)
+			go feedConn[Tx, Result, Pkg, Submit](feedCtx, feedCtxCancel, conn, blockID, payCh, executedCh)
 		}
 	}
 
-	return collectResults(executedCh, len(execs)*callsPerExec)
+	return collectResults(executedCh, len(conn)*callsPerExec)
 }
 
 func collectResults[Tx any, Result any](
@@ -93,12 +99,12 @@ func collectResults[Tx any, Result any](
 	return executedTxs, nil
 }
 
-func feedConn[Tx any, Result any, Payload any, Submit SubmitPayload[Tx, Result, Payload]](
+func feedConn[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	ctx context.Context,
 	ctxCancel context.CancelFunc,
 	exec batonapi.ExecCoordConn,
 	blockID proto.BlockID,
-	payCh <-chan Payload,
+	payCh <-chan Pkg,
 	executedCh chan<- executed[Tx, Result],
 ) {
 

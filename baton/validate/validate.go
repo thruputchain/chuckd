@@ -6,7 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/commit"
-	"github.com/groundhogchain/chuckd/baton/exec"
+	"github.com/groundhogchain/chuckd/baton/exec1"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
@@ -108,7 +108,7 @@ func execValidateTx(
 	blockID proto.BlockID,
 	callsPerExec int,
 ) error {
-	doneTx, err := exec.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateTx{}, callsPerExec)
+	doneTx, err := exec1.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateTx{}, callsPerExec)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func execValidateBatch(
 	callsPerExec int,
 	batchSize int,
 ) error {
-	doneTx, err := exec.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec)
+	doneTx, err := exec1.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec)
 	if err != nil {
 		return err
 	}

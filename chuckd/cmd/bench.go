@@ -39,6 +39,7 @@ var (
 					runtime.NewRandFromRoot(),
 					libnet.TCPNet{},
 					benchTPB,
+					benchGenPar,
 					benchCallsPerExec,
 					benchBatchSize,
 				)
@@ -75,6 +76,7 @@ var (
 					testCfg,
 					benchInPort,
 					benchTPB,
+					benchGenPar,
 					benchCallsPerExec,
 					benchBatchSize,
 				)
@@ -173,6 +175,7 @@ var (
 	//
 	benchNumDb        int
 	benchNumExec      int
+	benchGenPar       int
 	benchCallsPerExec int
 	benchBatchSize    int
 	//
@@ -209,6 +212,7 @@ func init() {
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchLoadGenCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
+	benchLoadGenCmd.Flags().IntVar(&benchGenPar, "gen-par", 20, "generation parallelism")
 	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
 	benchLoadGenCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 
@@ -216,6 +220,7 @@ func init() {
 	benchLoadGenTestCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "num-db", 2, "number of db shards")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "num-exec", 20, "number of executors")
+	benchLoadGenTestCmd.Flags().IntVar(&benchGenPar, "gen-par", 20, "generation parallelism")
 	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
 	benchLoadGenTestCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 	benchLoadGenTestCmd.Flags().IntVar(&benchInPort, "in-port", 54054, "coodinator port")

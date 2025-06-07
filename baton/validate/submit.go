@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/baton/exec"
+	"github.com/groundhogchain/chuckd/baton/exec1"
 	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type ValidatedTx = exec.DoneTx[*proto.ProposedTransaction, struct{}]
+type ValidatedTx = exec1.DoneTx[*proto.ProposedTransaction, struct{}]
 
 type submitValidateTx struct{}
 

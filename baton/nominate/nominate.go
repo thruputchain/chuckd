@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/baton/exec"
+	"github.com/groundhogchain/chuckd/baton/exec1"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -100,8 +100,8 @@ func execProposeTx(
 	txs []*proto.SignedTransaction,
 	blockID proto.BlockID,
 	callsPerExec int,
-) ([]exec.DoneTx[*proto.SignedTransaction, *proto.NondeterministicProposalData], error) {
-	return exec.Exec(
+) ([]exec1.DoneTx[*proto.SignedTransaction, *proto.NondeterministicProposalData], error) {
+	return exec1.Exec(
 		ctx,
 		handler,
 		txs,
@@ -118,8 +118,8 @@ func execProposeBatch(
 	blockID proto.BlockID,
 	callsPerExec int,
 	batchSize int,
-) ([]exec.DoneTx[*proto.SignedTransaction, *proto.NondeterministicProposalData], error) {
-	return exec.Exec(
+) ([]exec1.DoneTx[*proto.SignedTransaction, *proto.NondeterministicProposalData], error) {
+	return exec1.Exec(
 		ctx,
 		handler,
 		txs,
