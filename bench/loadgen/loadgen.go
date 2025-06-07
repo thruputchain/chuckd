@@ -83,6 +83,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 	blockTxsCh := make(chan []*proto.SignedTransaction)
 	go x.generateTxsWithPool(ctx, runtime.NewRandFromRand(x.rand), blockTxsCh, x.tpb)
+	txs := <-blockTxsCh
 	i := 0
 	for {
 
@@ -92,7 +93,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 		liblog.Infof("proposing block at height %d", tip.Height+1)
 
 		x0 := time.Now()
-		txs := <-blockTxsCh
+		// txs := <-blockTxsCh
 		genDurMsec := float64(time.Now().Sub(x0).Milliseconds())
 
 		t0 := time.Now()
