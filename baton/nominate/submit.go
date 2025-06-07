@@ -16,10 +16,12 @@ type submitProposeTx struct{}
 
 func (submitProposeTx) Buffer(txs []*proto.SignedTransaction) <-chan *proto.SignedTransaction {
 	ch := make(chan *proto.SignedTransaction, len(txs))
-	for _, tx := range txs {
-		ch <- tx
-	}
-	close(ch)
+	go func() {
+		for _, tx := range txs {
+			ch <- tx
+		}
+		close(ch)
+	}()
 	return ch
 }
 
@@ -61,18 +63,20 @@ type submitProposeBatch struct {
 
 func (x submitProposeBatch) Buffer(txs []*proto.SignedTransaction) <-chan proto.SignedTransactionBatch {
 	ch := make(chan proto.SignedTransactionBatch, util.CeilDivSigned(len(txs), x.BatchSize))
-	batch := make(proto.SignedTransactionBatch, 0, x.BatchSize)
-	for _, tx := range txs {
-		if len(batch) == x.BatchSize {
-			ch <- batch
-			batch = make(proto.SignedTransactionBatch, 0, x.BatchSize)
+	go func() {
+		batch := make(proto.SignedTransactionBatch, 0, x.BatchSize)
+		for _, tx := range txs {
+			if len(batch) == x.BatchSize {
+				ch <- batch
+				batch = make(proto.SignedTransactionBatch, 0, x.BatchSize)
+			}
+			batch = append(batch, *tx)
 		}
-		batch = append(batch, *tx)
-	}
-	if len(batch) > 0 {
-		ch <- batch
-	}
-	close(ch)
+		if len(batch) > 0 {
+			ch <- batch
+		}
+		close(ch)
+	}()
 	return ch
 }
 
