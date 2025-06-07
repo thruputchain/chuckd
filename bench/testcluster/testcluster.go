@@ -50,12 +50,7 @@ func NewTestCluster(
 	speed bool,
 ) *TestCluster {
 
-	var db testdb.TestDb
-	if speed {
-		db = testdb.NewTestDbNoop()
-	} else {
-		db = testdb.NewTestDbConsistent(batonapi.Tip{})
-	}
+	db := testdb.NewTestDbConsistent(batonapi.Tip{})
 
 	shards := make([]*testshard.TestShard, cfg.NumDb)
 	for i := range shards {
@@ -64,7 +59,12 @@ func NewTestCluster(
 
 	execs := make([]*testexec.TestExec, cfg.NumExec)
 	for i := range execs {
-		execs[i] = testexec.NewTestExec(db)
+		if speed {
+			// give execs individual dbs to prevent cache bouncing between processor cores
+			execs[i] = testexec.NewTestExec(testdb.NewTestDbNoop())
+		} else {
+			execs[i] = testexec.NewTestExec(db)
+		}
 	}
 
 	userPriv, err := protoutil.GenerateIdentity(rand, "")
