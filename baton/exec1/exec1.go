@@ -16,8 +16,8 @@ type DoneTx[Tx any, Result any] struct {
 }
 
 type executed[Tx any, Result any] struct {
-	err         error
-	executedTxs []DoneTx[Tx, Result]
+	err error
+	txs []DoneTx[Tx, Result]
 }
 
 func Exec[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
@@ -91,7 +91,7 @@ func collectResults[Tx any, Result any](
 			verr = xd.err
 		}
 		if xd.err == nil {
-			executedTxs = append(executedTxs, xd.executedTxs...)
+			executedTxs = append(executedTxs, xd.txs...)
 		}
 	}
 
@@ -126,5 +126,5 @@ func feedConn[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 
 	exec.Executorcoord_finish_block(ctx, blockID)
 
-	executedCh <- executed[Tx, Result]{err: err, executedTxs: executedTxs}
+	executedCh <- executed[Tx, Result]{err: err, txs: executedTxs}
 }

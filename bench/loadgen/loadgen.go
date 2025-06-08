@@ -126,7 +126,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 		validateDurMsec := float64(t3.Sub(t2).Milliseconds())
 		x.validateMsec.Add(validateDurMsec)
 
-		liblog.Infof("committed block at height %d", tip.Height+1)
+		liblog.Infof("done at height %d", tip.Height+1)
 
 		// debug.SetGCPercent(gcPervent) //XXX: reenable GC
 
