@@ -3,7 +3,6 @@ package exec1
 import (
 	"context"
 	"fmt"
-	"runtime"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/util"
@@ -111,8 +110,6 @@ func feedConn[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	payCh <-chan Pkg,
 	executedCh chan<- executed[Tx, Result],
 ) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
 
 	execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
 	if err != nil {
