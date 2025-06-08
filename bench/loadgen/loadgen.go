@@ -115,13 +115,15 @@ func (x *LoadGen) drive(ctx context.Context) {
 			DbTip:                tip,
 		}
 
+		t2 := time.Now()
+
 		liblog.Infof("validating block at height %d", tip.Height+1)
 
 		_, err = validate.ValidateCommit(ctx, x.handler, vb, x.callsPerExec, x.batchSize)
 		must.NoError(ctx, err)
 
-		t2 := time.Now()
-		validateDurMsec := float64(t2.Sub(t1).Milliseconds())
+		t3 := time.Now()
+		validateDurMsec := float64(t3.Sub(t2).Milliseconds())
 		x.validateMsec.Add(validateDurMsec)
 
 		liblog.Infof("committed block at height %d", tip.Height+1)
