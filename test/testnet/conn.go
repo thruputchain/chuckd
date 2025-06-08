@@ -73,12 +73,14 @@ func (x *testHalfConn) readUnread(b []byte) (n int, err error) {
 }
 
 func (x *testHalfConn) Write(b []byte) (n int, err error) {
+	d := make([]byte, len(b))
+	copy(d, b) // don't use the user's slice, so they can reuse it
 	x.wlk.Lock()
 	defer x.wlk.Unlock()
 	if x.write == nil {
 		return 0, fmt.Errorf("test connection is closed")
 	}
-	x.write <- b
+	x.write <- d
 	return len(b), nil
 }
 
