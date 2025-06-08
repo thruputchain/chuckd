@@ -7,13 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
-
-	"github.com/panjf2000/ants/v2"
 )
-
-type Executor[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]] struct {
-	pool *ants.Pool
-}
 
 type DoneTx[Tx any, Result any] struct {
 	Tx     Tx
