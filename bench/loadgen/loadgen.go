@@ -98,7 +98,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		t0 := time.Now()
 
-		// gcPervent := debug.SetGCPercent(-1) //XXX: disable GC
+		// gcPrevent := debug.SetGCPercent(-1) //XXX: disable GC
 
 		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize)
 		must.NoError(ctx, err)
@@ -128,7 +128,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		liblog.Infof("done at height %d", tip.Height+1)
 
-		// debug.SetGCPercent(gcPervent) //XXX: reenable GC
+		// debug.SetGCPercent(gcPrevent) //XXX: reenable GC
 
 		fmt.Printf("gen_wait_msec=%v | nom_tps=%v val_tps=%v | avg_nom_tps=%v avg_val_tps=%v\n",
 			genDurMsec,
