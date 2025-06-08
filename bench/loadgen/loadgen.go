@@ -119,7 +119,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		liblog.Infof("validating block at height %d", tip.Height+1)
 
-		_, err = validate.ValidateCommit(ctx, x.handler, vb, x.callsPerExec, x.batchSize)
+		_, err = validate.ValidateClose(ctx, x.handler, vb, x.callsPerExec, x.batchSize)
 		must.NoError(ctx, err)
 
 		t3 := time.Now()
