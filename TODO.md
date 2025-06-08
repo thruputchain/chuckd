@@ -5,6 +5,7 @@ OPTIMIZATIONS
     - [x] batch propose/validate (3x)
     - [x] driver.Go no goroutine (0.5x)
     - [x] pause GC (2x)
+    - [x] use a sync.Pool for rpc.Messages in rpc.Transport
     - [?] xdr arrays with pointer elements
 
 - [ ] why hog has lower performance than mac?

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -60,16 +59,16 @@ func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg
 	numGo := len(conn) * callsPerExec
 	executedCh := make(chan executed[Tx, Result], numGo)
 
-	shards := util.ShardSlice(txs, numGo)
-	// pkgCh := submit.Buffer(txs)
+	// shards := util.ShardSlice(txs, numGo)
+	pkgCh := submit.Buffer(txs)
 
-	for j, conn := range conn {
+	for _, conn := range conn {
 		for i := 0; i < callsPerExec; i++ {
 			go feedConn[Tx, Result, Pkg, Submit](
 				feedCtx, feedCtxCancel,
 				conn, blockID,
-				// pkgCh,
-				submit.Buffer(shards[j*callsPerExec+i]),
+				pkgCh,
+				// submit.Buffer(shards[j*callsPerExec+i]),
 				executedCh,
 			)
 		}
