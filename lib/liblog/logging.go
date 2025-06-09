@@ -82,6 +82,13 @@ func Errorf(template string, args ...interface{}) {
 	log.Error().Msg(src + msg)
 }
 
+func Tracef(template string, args ...interface{}) {
+	_, file, line, _ := runtime.Caller(1)
+	src := fmt.Sprintf("%s:%d ", file, line)
+	msg := fmt.Sprintf(template, args...)
+	log.Trace().Msg(src + msg)
+}
+
 func Warnf(template string, args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	src := fmt.Sprintf("%s:%d ", file, line)
@@ -107,6 +114,10 @@ func Error() *zerolog.Event {
 
 func Warn() *zerolog.Event {
 	return log.Warn()
+}
+
+func Trace() *zerolog.Event {
+	return log.Trace()
 }
 
 // ctx logger
@@ -143,6 +154,13 @@ func CtxErrorf(ctx context.Context, template string, args ...interface{}) {
 	zerolog.Ctx(ctx).Error().Msg(src + msg)
 }
 
+func CtxTracef(ctx context.Context, template string, args ...interface{}) {
+	_, file, line, _ := runtime.Caller(1)
+	src := fmt.Sprintf("%s:%d ", file, line)
+	msg := fmt.Sprintf(template, args...)
+	zerolog.Ctx(ctx).Trace().Msg(src + msg)
+}
+
 func CtxWarnf(ctx context.Context, template string, args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	src := fmt.Sprintf("%s:%d ", file, line)
@@ -164,6 +182,10 @@ func CtxFatal(ctx context.Context) *zerolog.Event {
 
 func CtxError(ctx context.Context) *zerolog.Event {
 	return zerolog.Ctx(ctx).Error()
+}
+
+func CtxTrace(ctx context.Context) *zerolog.Event {
+	return zerolog.Ctx(ctx).Trace()
 }
 
 func CtxWarn(ctx context.Context) *zerolog.Event {

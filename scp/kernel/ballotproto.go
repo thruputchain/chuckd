@@ -2,12 +2,16 @@ package kernel
 
 import (
 	"bytes"
+	"context"
 
+	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type BallotProtocol struct {
-	slot            proto.SCPSlotIndex
+	slot            *Slot
 	heardFromQuorum bool
 
 	currentBallot   *proto.SCPBallot // b
@@ -52,7 +56,7 @@ func (x SCPPhase) String() string {
 	panic("unreachable")
 }
 
-func NewBallotProtocol(slot proto.SCPSlotIndex) *BallotProtocol {
+func NewBallotProtocol(slot *Slot) *BallotProtocol {
 	return &BallotProtocol{
 		slot:                slot,
 		heardFromQuorum:     false,
@@ -157,6 +161,36 @@ func compareBallotPtrs(b1 *proto.SCPBallot, b2 *proto.SCPBallot) int {
 }
 
 func (x *BallotProtocol) recordEnvelope(env *proto.SCPEnvelope) {
-	// st := env.Statement
+	nodeID := env.Statement.NodeID
+	x.latestEnvelopes[nodeID] = env
+	x.slot.recordStatement(&env.Statement)
+}
+
+func (x *BallotProtocol) processEnvelope(ctx context.Context, env *proto.SCPEnvelope, self bool) EnvelopeState {
+	must.Assertf(ctx, env.Statement.SlotIndex == x.slot.getSlotIndex(), "env/slot mismatch")
+
+	statement := &env.Statement
+	nodeID := statement.NodeID
+
+	if !x.isSaneStatement(ctx, statement, self) {
+		if self {
+			liblog.Errorf("not sane statement from self, skipping %v", form.Display(env))
+		}
+		return EnvelopeStateInvalid
+	}
+
+	if !x.isNewerStatement(nodeID, statement) {
+		if self {
+			liblog.Errorf("stale statement from self, skipping %v", form.Display(env))
+		} else {
+			liblog.Tracef("stale statement, skipping %d", x.slot.getSlotIndex())
+		}
+		return EnvelopeStateInvalid
+	}
+
+	panic("XXX")
+}
+
+func (x *BallotProtocol) isSaneStatement(ctx context.Context, stmt *proto.SCPStatement, self bool) bool {
 	panic("XXX")
 }
