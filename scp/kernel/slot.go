@@ -11,3 +11,7 @@ func (slot *Slot) recordStatement(stmt *proto.SCPStatement) {
 func (slot *Slot) getSlotIndex() proto.SCPSlotIndex {
 	panic("XXX")
 }
+
+func (slot *Slot) setFullyValidated(s bool) {
+	panic("XXX")
+}

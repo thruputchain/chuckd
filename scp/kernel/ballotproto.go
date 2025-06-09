@@ -188,9 +188,63 @@ func (x *BallotProtocol) processEnvelope(ctx context.Context, env *proto.SCPEnve
 		return EnvelopeStateInvalid
 	}
 
-	panic("XXX")
+	validationRes := x.validateValues(ctx, statement)
+
+	if validationRes == InvalidValue {
+		if self {
+			liblog.Errorf("invalid value from self, skipping %v", form.Display(env))
+		} else {
+			liblog.Tracef("invalid value %d", x.slot.getSlotIndex())
+		}
+		return EnvelopeStateInvalid
+	}
+
+	if x.phase != SCPPhaseExternalize {
+		if validationRes == MaybeValidValue {
+			x.slot.setFullyValidated(false)
+		}
+		x.recordEnvelope(env)
+		x.advanceSlot(statement)
+		return EnvelopeStateValid
+	}
+
+	// note: this handles also our own messages
+	// in particular our final EXTERNALIZE message
+	must.Assertf(ctx, x.phase == SCPPhaseExternalize, "expecting externalize phase")
+	if bytes.Compare(x.commit.Value, x.getWorkingBallot(statement).Value) == 0 {
+		x.recordEnvelope(env)
+		return EnvelopeStateValid
+	}
+
+	if self {
+		liblog.Errorf("externalize statement with invalid value from self, skipping %v", form.Display(env))
+	}
+
+	return EnvelopeStateInvalid
 }
 
 func (x *BallotProtocol) isSaneStatement(ctx context.Context, stmt *proto.SCPStatement, self bool) bool {
 	panic("XXX")
+}
+
+func (x *BallotProtocol) validateValues(ctx context.Context, stmt *proto.SCPStatement) ValidationLevel {
+	panic("XXX")
+}
+
+func (x *BallotProtocol) advanceSlot(stmt *proto.SCPStatement) {
+	panic("XXX")
+}
+
+func (x *BallotProtocol) getWorkingBallot(stmt *proto.SCPStatement) proto.SCPBallot {
+	switch stmt.Pledges.Type {
+	case proto.SCP_ST_PREPARE:
+		return stmt.Pledges.Prepare().Ballot
+	case proto.SCP_ST_CONFIRM:
+		con := stmt.Pledges.Confirm()
+		return proto.SCPBallot{Counter: con.NCommit, Value: con.Ballot.Value}
+	case proto.SCP_ST_EXTERNALIZE:
+		return stmt.Pledges.Externalize().Commit
+	default:
+		panic("abort")
+	}
 }
