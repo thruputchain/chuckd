@@ -11,6 +11,7 @@ import (
 )
 
 type BallotProtocol struct {
+	ctx             context.Context // XXX: must set on init
 	slot            *Slot
 	heardFromQuorum bool
 
@@ -20,8 +21,8 @@ type BallotProtocol struct {
 	highBallot      *proto.SCPBallot // h
 	commit          *proto.SCPBallot // c
 	latestEnvelopes map[proto.SCPNodeID]*proto.SCPEnvelope
-	phase           SCPPhase        // Phi
-	valueOverride   *proto.SCPValue // z
+	phase           SCPPhase       // Phi
+	valueOverride   proto.SCPValue // z
 
 	currentMessageLevel int // number of messages triggered in one run
 
@@ -245,7 +246,7 @@ func (x *BallotProtocol) isSaneStatement(ctx context.Context, stmt *proto.SCPSta
 
 		ok = ok &&
 			((p.PreparedPrime == nil || p.Prepared == nil) ||
-				(x.areBallotsLessAndIncompatible(p.PreparedPrime, p.Prepared)))
+				(x.areBallotsLessAndIncompatible(*p.PreparedPrime, *p.Prepared)))
 
 		ok = ok && (p.NH == 0 || (p.Prepared != nil && p.NH <= p.Prepared.Counter))
 
@@ -289,24 +290,24 @@ func (x *BallotProtocol) abandonBallot(ctx context.Context, n proto.SCPCount) bo
 
 	v := x.slot.getLatestCompositeCandidate()
 
-	if len(*v) == 0 {
+	if len(v) == 0 {
 		if x.currentBallot != nil {
-			v = &x.currentBallot.Value
+			v = x.currentBallot.Value
 		}
 	}
 
-	if len(*v) > 0 {
+	if len(v) > 0 {
 		if n == 0 {
-			return x.bumpState(v, true)
+			return x.bumpState(ctx, v, true)
 		} else {
-			return x.bumpStateN(v, n)
+			return x.bumpStateN(ctx, v, n)
 		}
 	}
 
 	return false
 }
 
-func (x *BallotProtocol) bumpState(value *proto.SCPValue, force bool) bool {
+func (x *BallotProtocol) bumpState(ctx context.Context, value proto.SCPValue, force bool) bool {
 
 	if !force && x.currentBallot != nil {
 		return false
@@ -318,11 +319,136 @@ func (x *BallotProtocol) bumpState(value *proto.SCPValue, force bool) bool {
 	} else {
 		n = 1
 	}
-	return x.bumpStateN(value, n)
+	return x.bumpStateN(ctx, value, n)
 }
 
-func (x *BallotProtocol) bumpStateN(value *proto.SCPValue, n proto.SCPCount) bool {
-	panic("XXX")
+func (x *BallotProtocol) bumpStateN(ctx context.Context, value proto.SCPValue, n proto.SCPCount) bool {
+
+	if x.phase != SCPPhasePrepare && x.phase != SCPPhaseConfirm {
+		return false
+	}
+
+	var newb proto.SCPBallot
+
+	newb.Counter = n
+
+	if x.valueOverride != nil {
+		// we use the value that we saw confirmed prepared
+		// or that we at least voted to commit to
+		newb.Value = x.valueOverride
+	} else {
+		newb.Value = value
+	}
+
+	liblog.Tracef("bump state i=%d v=%v",
+		x.slot.getSlotIndex(), form.Display(newb))
+
+	updated := x.updateCurrentValue(ctx, newb)
+
+	if updated {
+		x.emitCurrentStateStatement()
+		x.checkHeardFromQuorum()
+	}
+
+	return updated
+}
+
+// updates the local state based to the specified ballot
+// (that could be a prepared ballot) enforcing invariants
+func (x *BallotProtocol) updateCurrentValue(ctx context.Context, ballot proto.SCPBallot) bool {
+
+	if x.phase != SCPPhasePrepare && x.phase != SCPPhaseConfirm {
+		return false
+	}
+
+	var updated bool
+	if x.currentBallot == nil {
+		x.bumpToBallot(ctx, ballot, true)
+		updated = true
+	} else {
+		must.Assert(ctx, compareBallots(*x.currentBallot, ballot) <= 0)
+
+		if x.commit != nil && !x.areBallotsCompatible(*x.commit, ballot) {
+			return false
+		}
+
+		if q := compareBallots(*x.currentBallot, ballot); q < 0 {
+			x.bumpToBallot(ctx, ballot, true)
+			updated = true
+		} else if q > 0 {
+			// this code probably changes with the final version
+			// of the conciliator
+
+			// this case may happen if the other nodes are not
+			// following the protocol (and we end up with a smaller value)
+			// not sure what is the best way to deal
+			// with this situation
+			liblog.Errorf("attempt to bump to a smaller value")
+			// can't just bump to the value as we may already have
+			// statements at counter+1
+			return false
+		}
+	}
+
+	x.checkInvariants()
+
+	return updated
+}
+
+func (x *BallotProtocol) bumpToBallot(ctx context.Context, ballot proto.SCPBallot, check bool) {
+
+	liblog.Tracef("bump to ballot i=%d v=%v", x.slot.getSlotIndex(), form.Display(ballot))
+
+	must.Assert(ctx, x.phase != SCPPhaseExternalize)
+
+	if check {
+		// We should move mCurrentBallot monotonically only
+		must.Assert(ctx, x.currentBallot == nil ||
+			compareBallots(ballot, *x.currentBallot) >= 0)
+	}
+
+	gotBumped := x.currentBallot == nil || x.currentBallot.Counter != ballot.Counter
+
+	if x.currentBallot == nil {
+		x.slot.Driver().StartedBallotProtocol(x.slot.getSlotIndex(), ballot)
+	}
+
+	x.currentBallot = &ballot
+
+	// note: we have to clear some fields (and recompute them based on latest
+	// messages)
+	// invariant: h.value = b.value
+	if x.highBallot != nil && !x.areBallotsCompatible(*x.currentBallot, *x.highBallot) {
+		x.highBallot = nil
+		// invariant: c set only when h is set
+		x.commit = nil
+	}
+
+	if gotBumped {
+		x.heardFromQuorum = false
+	}
+}
+
+func (x *BallotProtocol) startBallotProtocolTimer() {
+	timeout := x.slot.Driver().ComputeTimeout(x.currentBallot.Counter)
+	x.slot.Driver().StartTimer(
+		x.slot.getSlotIndex(),
+		BallotProtocolTimer,
+		timeout,
+		x.ballotProtocolTimerExpired,
+	)
+}
+
+func (x *BallotProtocol) stopBallotProtocolTimer() {
+	x.slot.Driver().StopTimer(
+		x.slot.getSlotIndex(),
+		BallotProtocolTimer,
+	)
+}
+
+func (x *BallotProtocol) ballotProtocolTimerExpired() {
+	x.timerExpCount += 1
+	x.abandonBallot(x.ctx, 0)
 }
 
 func (x *BallotProtocol) validateValues(ctx context.Context, stmt *proto.SCPStatement) ValidationLevel {
@@ -330,6 +456,18 @@ func (x *BallotProtocol) validateValues(ctx context.Context, stmt *proto.SCPStat
 }
 
 func (x *BallotProtocol) advanceSlot(stmt *proto.SCPStatement) {
+	panic("XXX")
+}
+
+func (x *BallotProtocol) emitCurrentStateStatement() {
+	panic("XXX")
+}
+
+func (x *BallotProtocol) checkHeardFromQuorum() {
+	panic("XXX")
+}
+
+func (x *BallotProtocol) checkInvariants() {
 	panic("XXX")
 }
 
@@ -347,6 +485,10 @@ func (x *BallotProtocol) getWorkingBallot(stmt *proto.SCPStatement) proto.SCPBal
 	}
 }
 
-func (x *BallotProtocol) areBallotsLessAndIncompatible(b1 *proto.SCPBallot, b2 *proto.SCPBallot) bool {
+func (x *BallotProtocol) areBallotsCompatible(b1 proto.SCPBallot, b2 proto.SCPBallot) bool {
+	return bytes.Equal(b1.Value, b2.Value)
+}
+
+func (x *BallotProtocol) areBallotsLessAndIncompatible(b1 proto.SCPBallot, b2 proto.SCPBallot) bool {
 	panic("XXX")
 }

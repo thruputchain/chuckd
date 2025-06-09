@@ -15,11 +15,13 @@ func Errorf(ctx context.Context, format string, args ...any) {
 	Panic(ctx, fmt.Errorf(format, args...))
 }
 
-func Assert(ctx context.Context, cond bool, err error) {
+var ErrAssert = fmt.Errorf("assert")
+
+func Assert(ctx context.Context, cond bool) {
 	if cond {
 		return
 	}
-	Panic(ctx, err)
+	Panic(ctx, ErrAssert)
 }
 
 func Assertf(ctx context.Context, cond bool, format string, args ...any) {

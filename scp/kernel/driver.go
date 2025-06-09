@@ -1,5 +1,11 @@
 package kernel
 
+import (
+	"time"
+
+	proto "github.com/groundhogchain/protocol-go"
+)
+
 // `validateValue` is called on each message received before any processing
 // is done. It should be used to filter out values that are not compatible
 // with the current state of that node. Invalid values can never
@@ -18,3 +24,11 @@ const (
 	MaybeValidValue                     = 1 // value may be valid
 	FullyValidatedValue                 = 2 // value is valid for sure
 )
+
+type Driver interface {
+	StartedBallotProtocol(slotIndex proto.SCPSlotIndex, ballot proto.SCPBallot)
+
+	ComputeTimeout(counter proto.SCPCount) time.Duration
+	StartTimer(slotIndex proto.SCPSlotIndex, timerID TimerID, timeout time.Duration, cb func())
+	StopTimer(slotIndex proto.SCPSlotIndex, timerID TimerID)
+}
