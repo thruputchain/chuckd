@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	xruntime "github.com/groundhogchain/chuckd/runtime"
+	"github.com/xdrpp/goxdr/rpc"
 )
 
 func flushMemProfile(memProfilePath string) {
@@ -117,6 +118,8 @@ func Invoke(ctx context.Context, f func()) error {
 		defer flushBlockProfile(blockProfilePath)
 		hooks = append(hooks, func() { flushBlockProfile(blockProfilePath) })
 	}
+
+	hooks = append(hooks, func() { fmt.Println(rpc.MpoolStats()) })
 
 	xruntime.CaptureInterrupts(stackTrace, hooks...)
 
