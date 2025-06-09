@@ -15,3 +15,11 @@ func (slot *Slot) getSlotIndex() proto.SCPSlotIndex {
 func (slot *Slot) setFullyValidated(s bool) {
 	panic("XXX")
 }
+
+func (slot *Slot) getQuorumSetFromStatement(stmt *proto.SCPStatement) *proto.SCPQuorumSet {
+	panic("XXX")
+}
+
+func (slot *Slot) getLatestCompositeCandidate() *proto.SCPValue {
+	panic("XXX")
+}

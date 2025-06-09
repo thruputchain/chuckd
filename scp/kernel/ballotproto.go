@@ -224,6 +224,104 @@ func (x *BallotProtocol) processEnvelope(ctx context.Context, env *proto.SCPEnve
 }
 
 func (x *BallotProtocol) isSaneStatement(ctx context.Context, stmt *proto.SCPStatement, self bool) bool {
+
+	qSet := x.slot.getQuorumSetFromStatement(stmt)
+	if qSet == nil {
+		liblog.Debugf("unrecognized quorum set received")
+		return false
+	}
+	if err := isQuorumSetSane(qSet, false); err != nil {
+		liblog.Debugf("invalid quorum set received: %v", err)
+		return false
+	}
+
+	switch stmt.Pledges.Type {
+	case proto.SCP_ST_PREPARE:
+
+		p := stmt.Pledges.Prepare()
+
+		// self is allowed to have b = 0 (as long as it never gets emitted)
+		ok := self || p.Ballot.Counter > 0
+
+		ok = ok &&
+			((p.PreparedPrime == nil || p.Prepared == nil) ||
+				(x.areBallotsLessAndIncompatible(p.PreparedPrime, p.Prepared)))
+
+		ok = ok && (p.NH == 0 || (p.Prepared != nil && p.NH <= p.Prepared.Counter))
+
+		// c != 0 -> c <= h <= b
+		ok = ok && (p.NC == 0 || (p.NH != 0 && p.Ballot.Counter >= p.NH && p.NH >= p.NC))
+
+		if !ok {
+			liblog.Tracef("malformed PREPARE message")
+		}
+		return ok
+
+	case proto.SCP_ST_CONFIRM:
+
+		c := stmt.Pledges.Confirm()
+
+		// c <= h <= b
+		ok := c.Ballot.Counter > 0 && c.NH <= c.Ballot.Counter && c.NCommit <= c.NH
+		if !ok {
+			liblog.Tracef("malformed CONFIRM message")
+		}
+		return ok
+
+	case proto.SCP_ST_EXTERNALIZE:
+
+		e := stmt.Pledges.Externalize()
+
+		ok := e.Commit.Counter > 0 && e.NH >= e.Commit.Counter
+		if !ok {
+			liblog.Tracef("malformed EXTERNALIZE message")
+		}
+		return ok
+
+	default:
+		panic("abort")
+	}
+}
+
+func (x *BallotProtocol) abandonBallot(ctx context.Context, n proto.SCPCount) bool {
+
+	liblog.Tracef("abandoning ballot")
+
+	v := x.slot.getLatestCompositeCandidate()
+
+	if len(*v) == 0 {
+		if x.currentBallot != nil {
+			v = &x.currentBallot.Value
+		}
+	}
+
+	if len(*v) > 0 {
+		if n == 0 {
+			return x.bumpState(v, true)
+		} else {
+			return x.bumpStateN(v, n)
+		}
+	}
+
+	return false
+}
+
+func (x *BallotProtocol) bumpState(value *proto.SCPValue, force bool) bool {
+
+	if !force && x.currentBallot != nil {
+		return false
+	}
+
+	var n proto.SCPCount
+	if x.currentBallot != nil {
+		n = x.currentBallot.Counter + 1
+	} else {
+		n = 1
+	}
+	return x.bumpStateN(value, n)
+}
+
+func (x *BallotProtocol) bumpStateN(value *proto.SCPValue, n proto.SCPCount) bool {
 	panic("XXX")
 }
 
@@ -247,4 +345,8 @@ func (x *BallotProtocol) getWorkingBallot(stmt *proto.SCPStatement) proto.SCPBal
 	default:
 		panic("abort")
 	}
+}
+
+func (x *BallotProtocol) areBallotsLessAndIncompatible(b1 *proto.SCPBallot, b2 *proto.SCPBallot) bool {
+	panic("XXX")
 }
