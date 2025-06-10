@@ -568,6 +568,36 @@ func (x *BallotProtocol) checkInvariants(ctx context.Context) {
 	}
 }
 
+func (x *BallotProtocol) getPrepareCandidates(hint *proto.SCPStatement) []proto.SCPBallot {
+
+	hintBallots := map[proto.SCPHash]proto.SCPBallot{}
+
+	switch hint.Pledges.Type {
+	case proto.SCP_ST_PREPARE:
+
+		prep := hint.Pledges.Prepare()
+		hintBallots[BallotHash(prep.Ballot)] = prep.Ballot
+		if prep.Prepared != nil {
+			hintBallots[BallotHash(*prep.Prepared)] = *prep.Prepared
+		}
+		if prep.PreparedPrime != nil {
+			hintBallots[BallotHash(*prep.PreparedPrime)] = *prep.PreparedPrime
+		}
+
+	case proto.SCP_ST_CONFIRM:
+
+		panic("XXX")
+
+	case proto.SCP_ST_EXTERNALIZE:
+	default:
+	}
+
+	candidates := map[proto.SCPHash]proto.SCPBallot{}
+	_ = candidates
+
+	panic("XXX")
+}
+
 func (x *BallotProtocol) validateValues(ctx context.Context, stmt *proto.SCPStatement) ValidationLevel {
 	panic("XXX")
 }

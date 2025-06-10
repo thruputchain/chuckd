@@ -25,7 +25,7 @@ ROADMAP
 - [ ] sign over payload to bind source and payload (prevent replay)
 
 - [ ] pebble db in catchup cache
-- [ ] quic support (includes cached connections)
+- [x] quic support (includes cached connections)
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
 - [ ] tier-1 router with weighted sampling
@@ -35,7 +35,10 @@ ROADMAP
 
 
 XDR
+- [ ] equality for xdr types
+- [ ] hash for xdr types
 - [ ] implement SprintXDR (use xdr textual)
+
 
 INFRA & BENCHMARK
 - [ ] setup us/asia benchmark on aws kubernetes
