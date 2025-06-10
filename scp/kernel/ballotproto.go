@@ -346,7 +346,7 @@ func (x *BallotProtocol) bumpStateN(ctx context.Context, value proto.SCPValue, n
 	updated := x.updateCurrentValue(ctx, newb)
 
 	if updated {
-		x.emitCurrentStateStatement()
+		x.emitCurrentStateStatement(ctx)
 		x.checkHeardFromQuorum()
 	}
 
@@ -390,7 +390,7 @@ func (x *BallotProtocol) updateCurrentValue(ctx context.Context, ballot proto.SC
 		}
 	}
 
-	x.checkInvariants()
+	x.checkInvariants(ctx)
 
 	return updated
 }
@@ -446,9 +446,126 @@ func (x *BallotProtocol) stopBallotProtocolTimer() {
 	)
 }
 
+func (x *BallotProtocol) createStatement(ctx context.Context, typ proto.SCPStatementType) *proto.SCPStatement {
+	var statement proto.SCPStatement
+
+	x.checkInvariants(ctx)
+
+	statement.Pledges.Type = typ
+	switch typ {
+	case proto.SCP_ST_PREPARE:
+
+		p := statement.Pledges.Prepare()
+		p.QuorumSetHash = x.getLocalNode().getQuorumSetHash()
+		if x.currentBallot != nil {
+			p.Ballot = *x.currentBallot
+		}
+		if x.commit != nil {
+			p.NC = x.commit.Counter
+		}
+		p.Prepared = x.prepared
+		p.PreparedPrime = x.preparedPrime
+		p.NH = x.highBallot.Counter
+
+	case proto.SCP_ST_CONFIRM:
+
+		c := statement.Pledges.Confirm()
+		c.QuorumSetHash = x.getLocalNode().getQuorumSetHash()
+		c.Ballot = *x.currentBallot
+		c.NPrepared = x.prepared.Counter
+		c.NCommit = x.commit.Counter
+		c.NH = x.highBallot.Counter
+
+	case proto.SCP_ST_EXTERNALIZE:
+
+		e := statement.Pledges.Externalize()
+		e.Commit = *x.commit
+		e.NH = x.highBallot.Counter
+		e.CommitQuorumSetHash = x.getLocalNode().getQuorumSetHash()
+
+	default:
+		panic("abort")
+	}
+
+	return &statement
+}
+
 func (x *BallotProtocol) ballotProtocolTimerExpired() {
 	x.timerExpCount += 1
 	x.abandonBallot(x.ctx, 0)
+}
+
+func (x *BallotProtocol) emitCurrentStateStatement(ctx context.Context) {
+
+	var t proto.SCPStatementType
+
+	switch x.phase {
+	case SCPPhasePrepare:
+		t = proto.SCP_ST_PREPARE
+	case SCPPhaseConfirm:
+		t = proto.SCP_ST_CONFIRM
+	case SCPPhaseExternalize:
+		t = proto.SCP_ST_EXTERNALIZE
+	default:
+		panic("abort")
+	}
+
+	statement := x.createStatement(ctx, t)
+	envelope := x.slot.createEnvelope(statement)
+
+	canEmit := x.currentBallot != nil
+
+	// if we generate the same envelope, don't process it again
+	// this can occur when updating h in PREPARE phase
+	// as statements only keep track of h.n (but h.x could be different)
+	lastEnv, ok := x.latestEnvelopes[x.slot.getSCP().getLocalNodeID()]
+	if !ok || !EnvelopeEqual(lastEnv, envelope) {
+		if x.slot.processEnvelope(envelope, true) == EnvelopeStateValid {
+			if canEmit && (x.lastEnvelope == nil ||
+				isNewerStatement(&x.lastEnvelope.Statement, &envelope.Statement)) {
+				x.lastEnvelope = envelope
+				// this will no-op if invoked from advanceSlot
+				// as advanceSlot consolidates all messages sent
+				x.sendLatestEnvelope()
+			}
+		} else {
+			// there is a bug in the application if it queued up
+			// a statement for itself that it considers invalid
+			panic("moved to a bad state (ballot protocol)")
+		}
+	}
+}
+
+func (x *BallotProtocol) checkInvariants(ctx context.Context) {
+	switch x.phase {
+	case SCPPhasePrepare:
+	case SCPPhaseConfirm, SCPPhaseExternalize:
+		must.Assert(ctx, x.currentBallot != nil)
+		must.Assert(ctx, x.prepared != nil)
+		must.Assert(ctx, x.commit != nil)
+		must.Assert(ctx, x.highBallot != nil)
+	default:
+		panic("abort")
+	}
+
+	if x.currentBallot != nil {
+		must.Assert(ctx, x.currentBallot.Counter != 0)
+	}
+	if x.prepared != nil && x.preparedPrime != nil {
+		must.Assert(ctx, x.areBallotsLessAndIncompatible(
+			*x.preparedPrime,
+			*x.prepared,
+		))
+	}
+	if x.highBallot != nil {
+		must.Assert(ctx, x.currentBallot != nil)
+		must.Assert(ctx, x.areBallotsLessAndCompatible(*x.highBallot, *x.currentBallot))
+	}
+	if x.commit != nil {
+		must.Assert(ctx, x.currentBallot != nil)
+		must.Assert(ctx, x.areBallotsLessAndCompatible(*x.commit, *x.highBallot))
+		must.Assert(ctx, x.areBallotsLessAndCompatible(*x.highBallot, *x.currentBallot))
+	}
 }
 
 func (x *BallotProtocol) validateValues(ctx context.Context, stmt *proto.SCPStatement) ValidationLevel {
@@ -459,15 +576,7 @@ func (x *BallotProtocol) advanceSlot(stmt *proto.SCPStatement) {
 	panic("XXX")
 }
 
-func (x *BallotProtocol) emitCurrentStateStatement() {
-	panic("XXX")
-}
-
 func (x *BallotProtocol) checkHeardFromQuorum() {
-	panic("XXX")
-}
-
-func (x *BallotProtocol) checkInvariants() {
 	panic("XXX")
 }
 
@@ -491,4 +600,24 @@ func (x *BallotProtocol) areBallotsCompatible(b1 proto.SCPBallot, b2 proto.SCPBa
 
 func (x *BallotProtocol) areBallotsLessAndIncompatible(b1 proto.SCPBallot, b2 proto.SCPBallot) bool {
 	panic("XXX")
+}
+
+func (x *BallotProtocol) areBallotsLessAndCompatible(b1 proto.SCPBallot, b2 proto.SCPBallot) bool {
+	panic("XXX")
+}
+
+func (x *BallotProtocol) getLocalNode() *LocalNode {
+	return x.slot.getLocalNode()
+}
+
+func (x *BallotProtocol) sendLatestEnvelope() {
+	if x.currentMessageLevel == 0 &&
+		x.lastEnvelope != nil &&
+		x.slot.isFullyValidated() {
+		if x.lastEnvelopeEmit == nil ||
+			!EnvelopeEqual(x.lastEnvelope, x.lastEnvelopeEmit) {
+			x.lastEnvelopeEmit = x.lastEnvelope
+			x.slot.Driver().EmitEnvelope(x.lastEnvelopeEmit)
+		}
+	}
 }

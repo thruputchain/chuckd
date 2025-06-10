@@ -31,4 +31,6 @@ type Driver interface {
 	ComputeTimeout(counter proto.SCPCount) time.Duration
 	StartTimer(slotIndex proto.SCPSlotIndex, timerID TimerID, timeout time.Duration, cb func())
 	StopTimer(slotIndex proto.SCPSlotIndex, timerID TimerID)
+
+	EmitEnvelope(env *proto.SCPEnvelope)
 }
