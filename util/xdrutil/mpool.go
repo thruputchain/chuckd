@@ -2,6 +2,7 @@ package xdrutil
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 )
 
@@ -42,4 +43,11 @@ func (x *BufferPool) Get() *bytes.Buffer {
 
 func (x *BufferPool) Recycle(b *bytes.Buffer) {
 	x.pool.Put(b)
+}
+
+func (x *BufferPool) StatString() string {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return fmt.Sprintf("num_get=%d num_miss=%d miss_ratio=%.3f%% caps=%v",
+		x.numGet, x.numMiss, 100*float64(x.numMiss)/float64(x.numGet), x.cap)
 }
