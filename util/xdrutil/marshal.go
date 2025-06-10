@@ -6,11 +6,20 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
+var mpool = NewBufferPool()
+
 func MarshalXdr(value xdr.XdrType) []byte {
-	var w bytes.Buffer
-	out := xdr.XdrOut{Out: &w}
+
+	w := mpool.Get()
+	defer mpool.Recycle(w)
+
+	out := xdr.XdrOut{Out: w}
 	out.Marshal("", value)
-	return w.Bytes()
+
+	d := make([]byte, w.Len())
+	copy(d, w.Bytes())
+
+	return d
 }
 
 func UnmarshalXdr(val xdr.XdrType, in []byte) (e error) {
