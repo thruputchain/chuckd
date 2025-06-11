@@ -26,10 +26,9 @@ type BenchBroadcastDef struct {
 	Port int
 }
 
-func BenchBroadcastClusterScripts(
+func (def BenchBroadcastDef) ExecScripts(
 	ctx context.Context,
 	rand *rand.Rand,
-	def BenchBroadcastDef,
 	hosts []string,
 ) []string {
 
@@ -64,7 +63,7 @@ func benchBroadcastHostScript(
 
 	const format = `
 #!/bin/sh
-set -e
+set -xe
 
 cat > config.json << EOF
 {{.ConfigJSON}}
