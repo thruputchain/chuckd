@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/deploy/common"
+	"github.com/groundhogchain/chuckd/util/textutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/jay/textutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
