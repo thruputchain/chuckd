@@ -5,7 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/deploy/k8s"
-	"github.com/groundhogchain/chuckd/deploy/metal"
+	"github.com/groundhogchain/chuckd/deploy/script"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +46,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				fmt.Println(metal.BenchTestClusterShell(ctx, runtime.NewRandFromRoot(), deployNumVs, deployTPS))
+				fmt.Println(script.BenchTestClusterShellLocal(ctx, runtime.NewRandFromRoot(), deployNumVs, deployTPS))
 			})
 		},
 	}

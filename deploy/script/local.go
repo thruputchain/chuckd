@@ -1,4 +1,4 @@
-package metal
+package script
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func BenchTestClusterShell(
+func BenchTestClusterShellLocal(
 	ctx context.Context,
 	rand *rand.Rand,
 	numVs int,

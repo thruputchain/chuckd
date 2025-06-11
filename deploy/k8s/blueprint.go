@@ -23,7 +23,7 @@ func BenchBroadcastBlueprint(ctx context.Context, rand *rand.Rand, numVs int) st
 	rs := MakeStatefulSet(
 		serviceName,
 		"groundhogchain:chuckd.latest",
-		"bench broadcast --addr :9111 --fanout 5 --iterations 3 --pay-per-chan 10 --paysize 100",
+		"bench broadcast --addr :9111 --fan-out 5 --iterations 3 --pay-per-chan 10 --pay-size 100",
 		cfgs,
 		services,
 	)

@@ -28,7 +28,7 @@ func NewBroadcastBenchmark(
 	rand *rand.Rand,
 	outside libnet.Network,
 	vcfg proto.ValidatorConfig,
-	treeFanOut int, // fanout of multicast trees
+	treeFanOut int, // fan out of multicast trees
 	paySize int, // sife of message payload
 	payPerChannel int, // number of message to send on a channel
 	numIterations int,

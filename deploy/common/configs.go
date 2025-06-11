@@ -17,7 +17,7 @@ func MakeBaseConfigTPS(
 	return MakeBaseConfig(
 		time.Second,
 		numVs,
-		uint32(min(5, numVs)), // fanout
+		uint32(min(5, numVs)), // fan out
 		1e6,                   // chunk size
 		5,                     // number payload channels (aka trees)
 		2,                     // number of parity channels
