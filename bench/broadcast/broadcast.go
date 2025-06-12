@@ -71,10 +71,8 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 
 	// start benchmark sender
 	go func() {
+		defer liblog.Infof("sender done")
 		var bytesSent libstat.Counter
-		defer liblog.Infof("sent %s, at %s/sec",
-			humanize.Bytes(uint64(bytesSent.Sum())),
-			humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
 
 		chunksPerSec := util.CeilDivSigned(bench.bytesPerSec, int(bench.cfg.Chunk_size))
 		liblog.Infof("sending %d chunks/sec", chunksPerSec)
@@ -105,10 +103,8 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 
 	// start benchmark receiver
 	go func() {
+		defer liblog.Infof("receiver done")
 		var bytesReceived libstat.Counter
-		defer liblog.Infof("received %s, at %s/sec",
-			humanize.Bytes(uint64(bytesReceived.Sum())),
-			humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
 
 		for {
 			select {
@@ -118,12 +114,15 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 			}
 
 			r := bench.broadcast.StreamingAPI().AcceptChannel()
+			liblog.Infof("accepted channel")
 
-			go func() { // XXX: should we service them in sequence? does this block the service?
+			go func() {
+				defer func() {
+					liblog.Infof("received %s, at %s/sec",
+						humanize.Bytes(uint64(bytesReceived.Sum())),
+						humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
+				}()
 				defer r.Close()
-				defer liblog.Infof("received %s, at %s/sec",
-					humanize.Bytes(uint64(bytesReceived.Sum())),
-					humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
 
 				for {
 					select {
@@ -131,7 +130,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 						return
 					default:
 					}
-					rctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
+					rctx, cancel := context.WithTimeout(ctx, time.Second)
 					if _, _, payload, err := r.Receive(rctx); err != nil {
 						liblog.Errorf("receive: %v", err)
 						cancel()

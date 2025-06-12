@@ -1,7 +1,7 @@
 #!/bin/sh
 
 killall chuckd
-gi github.com/groundhogchain/chuckd/chuckd
+go install github.com/groundhogchain/chuckd/chuckd
 
 set -xe
 
@@ -57,6 +57,7 @@ cat > config-0.json << EOF
 EOF
 
 chuckd -v -l info --config config-0.json \
+    -p cpu-0.prof \
 	--instance node-0 \
 	--seed 5707798609610607655 \
 	--metrics :2222 \
@@ -64,9 +65,9 @@ chuckd -v -l info --config config-0.json \
 	--addr :4000 \
 	 \
 	--fan-out 5 \
-	--chunk-per-chan 100 \
-	--bytes-per-sec 128000 \
-	--num-iterations 1 \
+	--chunk-per-chan 200 \
+	--bytes-per-sec 160000000 \
+	--num-iterations 20 \
 	> bb-0.log 2>&1 &
 
 
@@ -125,6 +126,7 @@ cat > config-1.json << EOF
 EOF
 
 chuckd -v -l info --config config-1.json \
+    -p cpu-1.prof \
 	--instance node-1 \
 	--seed 3886150534851568708 \
 	--metrics :2223 \
@@ -132,9 +134,9 @@ chuckd -v -l info --config config-1.json \
 	--addr :4001 \
 	 \
 	--fan-out 5 \
-	--chunk-per-chan 100 \
-	--bytes-per-sec 128000 \
-	--num-iterations 1 \
+	--chunk-per-chan 200 \
+	--bytes-per-sec 160000000 \
+	--num-iterations 20 \
 	> bb-1.log 2>&1 &
 
 
@@ -193,6 +195,7 @@ cat > config-2.json << EOF
 EOF
 
 chuckd -v -l info --config config-2.json \
+    -p cpu-2.prof \
 	--instance node-2 \
 	--seed 177360397769365151 \
 	--metrics :2224 \
@@ -200,8 +203,9 @@ chuckd -v -l info --config config-2.json \
 	--addr :4002 \
 	 \
 	--fan-out 5 \
-	--chunk-per-chan 100 \
-	--bytes-per-sec 128000 \
-	--num-iterations 1 \
+	--chunk-per-chan 200 \
+	--bytes-per-sec 160000000 \
+	--num-iterations 20 \
 	> bb-2.log 2>&1 &
 
+tail -f bb-0.log | grep -E "ERR|INF"
