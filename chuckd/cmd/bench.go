@@ -150,6 +150,7 @@ var (
 					*cfg,
 					benchTreeFanOut,
 					benchChunkPerChannel,
+					benchBytesPerSec,
 					benchNumIterations,
 				)
 				srv.Start(ctx, benchServerAddress)
@@ -164,6 +165,7 @@ var (
 	benchServerAddress   string
 	benchTreeFanOut      int
 	benchChunkPerChannel int
+	benchBytesPerSec     int
 	benchNumIterations   int
 	//
 	benchInAddress     string
@@ -192,6 +194,7 @@ func init() {
 	benchBroadcastCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
 	benchBroadcastCmd.Flags().IntVar(&benchTreeFanOut, "fan-out", 5, "fan-out of multicast trees")
 	benchBroadcastCmd.Flags().IntVar(&benchChunkPerChannel, "chunk-per-chan", 100, "chunks per channel")
+	benchBroadcastCmd.Flags().IntVar(&benchBytesPerSec, "bytes-per-sec", 10000, "bytes per second")
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 1, "number of iterations")
 
 	benchCmd.AddCommand(benchTestClusterCmd)

@@ -17,6 +17,7 @@ type BenchBroadcastDef struct {
 	//
 	FanOut          int
 	ChunkPerChannel int
+	BytesPerSec     int
 	NumIterations   int
 	//
 	ChunkSize        int
@@ -79,6 +80,7 @@ EOF
 	{{ if .Def.QUIC }}--quic{{ end }} \
 	--fan-out {{ .Def.FanOut }} \
 	--chunk-per-chan {{ .Def.ChunkPerChannel }} \
+	--bytes-per-sec {{ .Def.BytesPerSec }} \
 	--num-iterations {{ .Def.NumIterations }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
