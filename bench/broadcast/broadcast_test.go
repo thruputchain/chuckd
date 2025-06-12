@@ -27,7 +27,6 @@ func TestBroadcast(t *testing.T) {
 	defer cancel()
 
 	testTreeFanOut := 5
-	testPaySize := 10
 	testPayPerChannel := 10
 	testIterations := 10
 
@@ -46,14 +45,27 @@ func TestBroadcast(t *testing.T) {
 
 	known := []proto.ValidatorPublicInfo{priv0.Public_info, priv1.Public_info, priv2.Public_info}
 
-	vcfg0 := proto.ValidatorConfig{Private_info: *priv0, Known_validators: known}
-	vcfg1 := proto.ValidatorConfig{Private_info: *priv1, Known_validators: known}
-	vcfg2 := proto.ValidatorConfig{Private_info: *priv2, Known_validators: known}
+	bcfg := &proto.BroadcastConfig{
+		Multicast_tree_ttl_msec: 1000 * 3,
+		Chunk_size:              1000,
+	}
+	cfg0 := proto.Config{
+		Validator_config: &proto.ValidatorConfig{Private_info: *priv0, Known_validators: known},
+		Broadcast_config: bcfg,
+	}
+	cfg1 := proto.Config{
+		Validator_config: &proto.ValidatorConfig{Private_info: *priv1, Known_validators: known},
+		Broadcast_config: bcfg,
+	}
+	cfg2 := proto.Config{
+		Validator_config: &proto.ValidatorConfig{Private_info: *priv2, Known_validators: known},
+		Broadcast_config: bcfg,
+	}
 
 	n := libnet.TCPNet{}
-	bb0 := NewBroadcastBenchmark(ctx, r0, n, vcfg0, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
-	bb1 := NewBroadcastBenchmark(ctx, r1, n, vcfg1, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
-	bb2 := NewBroadcastBenchmark(ctx, r2, n, vcfg2, testTreeFanOut, testPaySize, testPayPerChannel, testIterations)
+	bb0 := NewBroadcastBenchmark(ctx, r0, n, cfg0, testTreeFanOut, testPayPerChannel, testIterations)
+	bb1 := NewBroadcastBenchmark(ctx, r1, n, cfg1, testTreeFanOut, testPayPerChannel, testIterations)
+	bb2 := NewBroadcastBenchmark(ctx, r2, n, cfg2, testTreeFanOut, testPayPerChannel, testIterations)
 
 	bb0.Start(ctx, a0)
 	bb1.Start(ctx, a1)

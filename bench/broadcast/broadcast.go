@@ -18,7 +18,7 @@ import (
 )
 
 type BroadcastBenchmark struct {
-	paySize       int
+	cfg           proto.BroadcastConfig
 	payPerChannel int
 	numIterations int
 	listener      net.Listener
@@ -29,28 +29,28 @@ func NewBroadcastBenchmark(
 	ctx context.Context,
 	rand *rand.Rand,
 	outside libnet.Network,
-	vcfg proto.ValidatorConfig,
-	treeFanOut int, // fan out of multicast trees
-	paySize int, // sife of message payload
+	cfg proto.Config, // uses ValidatorConfig and BroadcastConfig
+	fanOut int, // fan out of multicast trees
 	payPerChannel int, // number of message to send on a channel
 	numIterations int,
 ) *BroadcastBenchmark {
 
-	router := router.NewFixedRouter(ctx, vcfg.Private_info.Public_info, vcfg.Known_validators, treeFanOut)
+	router := router.NewFixedRouter(
+		ctx,
+		cfg.Validator_config.Private_info.Public_info,
+		cfg.Validator_config.Known_validators,
+		fanOut,
+	)
 	broadcast := broadcast.NewBroadcastService(
 		ctx,
-		proto.BroadcastConfig{
-			Multicast_tree_ttl_msec: 3000,
-			Chunk_size:              10e3,
-		},
+		*cfg.Broadcast_config,
 		outside,
 		runtime.NewRandFromRoot(),
-		vcfg.Private_info,
+		cfg.Validator_config.Private_info,
 		router,
 		broadcast.AcceptEverything{},
 	)
 	return &BroadcastBenchmark{
-		paySize:       paySize,
 		payPerChannel: payPerChannel,
 		numIterations: numIterations,
 		broadcast:     broadcast,
@@ -62,7 +62,7 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 	// start broadcast service
 	bench.broadcast.Start(ctx, address)
 
-	zeroPayload := make([]byte, bench.paySize)
+	zeroPayload := make([]byte, bench.cfg.Chunk_size)
 
 	// start benchmark sender
 	// XXX: needs speed control

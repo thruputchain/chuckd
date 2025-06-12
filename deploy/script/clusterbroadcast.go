@@ -15,10 +15,9 @@ import (
 type BenchBroadcastDef struct {
 	QUIC bool
 	//
-	FanOut        int
-	PaySize       int
-	PayPerChannel int
-	NumIterations int
+	FanOut          int
+	ChunkPerChannel int
+	NumIterations   int
 	//
 	ChunkSize        int
 	MulticastTreeTTL time.Duration
@@ -77,8 +76,7 @@ EOF
 	--addr :{{ .Def.Port }} \
 	{{ if .Def.QUIC }}--quic{{ end }} \
 	--fan-out {{ .Def.FanOut }} \
-	--pay-size {{ .Def.PaySize }} \
-	--pay-per-chan {{ .Def.PayPerChan }} \
+	--chunk-per-chan {{ .Def.ChunkPerChan }} \
 	-- iterations {{ .Def.NumIterations }}
 `
 	return textutil.Apply(ctx, format, textutil.M{

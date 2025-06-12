@@ -129,15 +129,16 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
+				cfg := LoadConfig(ctx)
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench broadcast"),
 					attribute.Int("tree_fan_out", benchTreeFanOut),
-					attribute.Int("payload_size", benchPaySize),
-					attribute.Int("payloads_per_channel", benchPayPerChannel),
+					attribute.Int("chunk_size", int(cfg.Broadcast_config.Chunk_size)),
+					attribute.Int("chunk_per_channel", benchChunkPerChannel),
 					attribute.Int("num_iterations", benchNumIterations),
 				)
-				cfg := LoadConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				must.Assertf(ctx, cfg.Broadcast_config != nil, "missing broadcast config section")
 				outside := libnet.Network(libnet.TCPNet{})
 				if benchQUIC {
 					outside = quic.NewQUICNet(ctx)
@@ -146,10 +147,9 @@ var (
 					ctx,
 					runtime.NewRandFromRoot(),
 					outside,
-					*cfg.Validator_config,
+					*cfg,
 					benchTreeFanOut,
-					benchPaySize,
-					benchPayPerChannel,
+					benchChunkPerChannel,
 					benchNumIterations,
 				)
 				srv.Start(ctx, benchServerAddress)
@@ -160,12 +160,11 @@ var (
 )
 
 var (
-	benchQUIC          bool
-	benchServerAddress string
-	benchTreeFanOut    int
-	benchPaySize       int
-	benchPayPerChannel int
-	benchNumIterations int
+	benchQUIC            bool
+	benchServerAddress   string
+	benchTreeFanOut      int
+	benchChunkPerChannel int
+	benchNumIterations   int
 	//
 	benchInAddress     string
 	benchOutAddress    string
@@ -192,8 +191,7 @@ func init() {
 	benchBroadcastCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchBroadcastCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
 	benchBroadcastCmd.Flags().IntVar(&benchTreeFanOut, "fan-out", 5, "fan-out of multicast trees")
-	benchBroadcastCmd.Flags().IntVar(&benchPaySize, "pay-size", 1000*1000*10, "payload size")
-	benchBroadcastCmd.Flags().IntVar(&benchPayPerChannel, "pay-per-chan", 100, "payloads per channel")
+	benchBroadcastCmd.Flags().IntVar(&benchChunkPerChannel, "chunk-per-chan", 100, "chunks per channel")
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "iterations", 1, "number of iterations")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
