@@ -77,7 +77,7 @@ EOF
 	{{ if .Def.QUIC }}--quic{{ end }} \
 	--fan-out {{ .Def.FanOut }} \
 	--chunk-per-chan {{ .Def.ChunkPerChan }} \
-	-- iterations {{ .Def.NumIterations }}
+	--num-iterations {{ .Def.NumIterations }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
 		"Def":        def,
