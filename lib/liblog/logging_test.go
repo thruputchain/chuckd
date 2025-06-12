@@ -1,8 +1,12 @@
 package liblog
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/rs/zerolog"
+)
 
 func TestLogger(t *testing.T) {
-	LogVerbosely()
+	LogLevel(zerolog.DebugLevel)
 	Debugf("debug message")
 }

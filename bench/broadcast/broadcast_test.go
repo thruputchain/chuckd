@@ -11,10 +11,11 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/rs/zerolog"
 )
 
 func TestMain(m *testing.M) {
-	liblog.LogVerbosely()
+	liblog.LogLevel(zerolog.DebugLevel)
 	runtime.SetRootSeed(0)
 	runtime.CaptureInterrupts(true)
 	exitCode := m.Run()
