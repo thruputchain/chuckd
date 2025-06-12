@@ -55,6 +55,10 @@ func (def BenchBroadcastDef) ExecScripts(
 	cmdSuffix []string,
 ) (perHost []string) {
 
+	if len(cmdSuffix) == 0 {
+		cmdSuffix = make([]string, len(hosts))
+	}
+
 	addrs := make([]string, len(hosts))
 	for i, host := range hosts {
 		stagger := 0
@@ -103,7 +107,7 @@ cat > config-{{ .Stagger }}.json << EOF
 {{.ConfigJSON}}
 EOF
 
-{{ .ChuckdPath }} -v -l info --config config.json-{{ .Stagger }} \
+{{ .ChuckdPath }} -v -l info --config config-{{ .Stagger }}.json \
 	--instance node-{{ .NodeIndex }} \
 	--seed {{ .Seed }} \
 	--metrics :{{ .MetricsPort }} \

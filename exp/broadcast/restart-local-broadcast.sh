@@ -1,5 +1,8 @@
-
 #!/bin/sh
+
+killall chuckd
+gi github.com/groundhogchain/chuckd/chuckd
+
 set -xe
 
 cat > config-0.json << EOF
@@ -53,7 +56,7 @@ cat > config-0.json << EOF
 }
 EOF
 
-chuckd -v -l info --config config.json-0 \
+chuckd -v -l info --config config-0.json \
 	--instance node-0 \
 	--seed 5707798609610607655 \
 	--metrics :2222 \
@@ -121,7 +124,7 @@ cat > config-1.json << EOF
 }
 EOF
 
-chuckd -v -l info --config config.json-1 \
+chuckd -v -l info --config config-1.json \
 	--instance node-1 \
 	--seed 3886150534851568708 \
 	--metrics :2223 \
@@ -189,7 +192,7 @@ cat > config-2.json << EOF
 }
 EOF
 
-chuckd -v -l info --config config.json-2 \
+chuckd -v -l info --config config-2.json \
 	--instance node-2 \
 	--seed 177360397769365151 \
 	--metrics :2224 \
