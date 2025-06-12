@@ -1,0 +1,61 @@
+
+{
+    "validator_config": {
+        "private_info": {
+            "public_info": {
+                "public_key": "lwyboIFFL6fwlLu6UZZvSmTJEI6m/sbR3LutOOJeD1Y=",
+                "address": "localhost:60000"
+            },
+            "secret_key": "uctt4Stz8Zaa3ut8EQLZQg9pLaHJd83rFSccagkNBriXDJuggUUvp/CUu7pRlm9KZMkQjqb+xtHcu6044l4PVg=="
+        },
+        "quorum_set": {
+            "threshold": 0,
+            "validators": [
+            ],
+            "inner_sets": [
+            ]
+        },
+        "known_validators": [
+            {
+                "public_key": "mClRx95/kb3hdwE0tvMBt+S4pPTOJQoc5fn9fs3lK9c=",
+                "address": "localhost:50000"
+            },
+            {
+                "public_key": "JEVKqEYDTT2LuREHl8lxMstj+ReU21SNmm/wMknuoS4=",
+                "address": "localhost:50001"
+            },
+            {
+                "public_key": "eJOCvsH4nfQSZdKTySLutdWojYpGHAbs8H5iAKzMXQA=",
+                "address": "localhost:50002"
+            }
+        ]
+    },
+    "wallet_config": null,
+    "discovery_config": null,
+    "router_config": null,
+    "broadcast_config": null,
+    "spectra_config": null,
+    "mempool_config": null,
+    "catchup_config": null,
+    "solo_config": {
+        "leader": {
+            "public_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "address": ""
+        },
+        "quorum": [
+            {
+                "public_key": "mClRx95/kb3hdwE0tvMBt+S4pPTOJQoc5fn9fs3lK9c=",
+                "address": "localhost:50000"
+            },
+            {
+                "public_key": "JEVKqEYDTT2LuREHl8lxMstj+ReU21SNmm/wMknuoS4=",
+                "address": "localhost:50001"
+            },
+            {
+                "public_key": "eJOCvsH4nfQSZdKTySLutdWojYpGHAbs8H5iAKzMXQA=",
+                "address": "localhost:50002"
+            }
+        ]
+    },
+    "baton_config": null
+}
