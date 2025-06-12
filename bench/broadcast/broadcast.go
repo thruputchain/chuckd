@@ -12,17 +12,19 @@ import (
 	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util"
 	proto "github.com/groundhogchain/protocol-go"
 
 	"github.com/dustin/go-humanize"
 )
 
 type BroadcastBenchmark struct {
-	cfg           proto.BroadcastConfig
-	payPerChannel int
-	numIterations int
-	listener      net.Listener
-	broadcast     *broadcast.BroadcastService
+	cfg              proto.BroadcastConfig
+	chunksPerChannel int
+	bytesPerSec      int
+	numIterations    int
+	listener         net.Listener
+	broadcast        *broadcast.BroadcastService
 }
 
 func NewBroadcastBenchmark(
@@ -31,7 +33,8 @@ func NewBroadcastBenchmark(
 	outside libnet.Network,
 	cfg proto.Config, // uses ValidatorConfig and BroadcastConfig
 	fanOut int, // fan out of multicast trees
-	payPerChannel int, // number of message to send on a channel
+	chunksPerChannel int, // number of message to send on a channel
+	bytesPerSec int,
 	numIterations int,
 ) *BroadcastBenchmark {
 
@@ -51,9 +54,11 @@ func NewBroadcastBenchmark(
 		broadcast.AcceptEverything{},
 	)
 	return &BroadcastBenchmark{
-		payPerChannel: payPerChannel,
-		numIterations: numIterations,
-		broadcast:     broadcast,
+		cfg:              *cfg.Broadcast_config,
+		chunksPerChannel: chunksPerChannel,
+		bytesPerSec:      bytesPerSec,
+		numIterations:    numIterations,
+		broadcast:        broadcast,
 	}
 }
 
@@ -65,36 +70,33 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 	zeroPayload := make([]byte, bench.cfg.Chunk_size)
 
 	// start benchmark sender
-	// XXX: needs speed control
-	// XXX: is there backpressure on Send?
 	go func() {
 		var bytesSent libstat.Counter
 		defer liblog.Infof("sent %s, at %s/sec",
 			humanize.Bytes(uint64(bytesSent.Sum())),
 			humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
 
+		chunksPerSec := util.CeilDivSigned(bench.bytesPerSec, int(bench.cfg.Chunk_size))
+		liblog.Infof("sending %d chunks/sec", chunksPerSec)
+
 		for j := 0; j < bench.numIterations; j++ {
+
 			s := bench.broadcast.StreamingAPI().MakeChannel(ctx)
-			for i := 0; i < bench.payPerChannel; i++ {
-				select {
-				case <-ctx.Done(): // benchmark timeout
-					return
-				default:
-				}
 
-				// liblog.Infof("bench server %s sending message %d on channel %d",
-				// 	protoutil.VIDString(bench.broadcast.ValidatorID()), i, j)
-
-				sctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
-				if err := s.Send(sctx, zeroPayload); err != nil {
-					liblog.Errorf("bench send: %v", err)
-				}
-				cancel()
-
-				bytesSent.Add(float64(len(zeroPayload)))
-			}
+			Drip(
+				ctx,
+				chunksPerSec,
+				bench.chunksPerChannel,
+				func(i int) {
+					if err := s.Send(ctx, zeroPayload); err != nil {
+						liblog.Errorf("bench send: %v", err)
+					}
+					bytesSent.Add(float64(len(zeroPayload)))
+				},
+			)
 
 			s.Close()
+
 			liblog.Infof("sent %s, at %s/sec",
 				humanize.Bytes(uint64(bytesSent.Sum())),
 				humanize.Bytes(uint64(bytesSent.SpeedPerSec())))

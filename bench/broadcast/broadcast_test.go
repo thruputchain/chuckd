@@ -28,7 +28,8 @@ func TestBroadcast(t *testing.T) {
 	defer cancel()
 
 	testTreeFanOut := 5
-	testPayPerChannel := 10
+	testChunksPerChannel := 10
+	testBytesPerSec := 10000
 	testIterations := 10
 
 	rr := runtime.NewRandFromRoot()
@@ -64,9 +65,9 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	n := libnet.TCPNet{}
-	bb0 := NewBroadcastBenchmark(ctx, r0, n, cfg0, testTreeFanOut, testPayPerChannel, testIterations)
-	bb1 := NewBroadcastBenchmark(ctx, r1, n, cfg1, testTreeFanOut, testPayPerChannel, testIterations)
-	bb2 := NewBroadcastBenchmark(ctx, r2, n, cfg2, testTreeFanOut, testPayPerChannel, testIterations)
+	bb0 := NewBroadcastBenchmark(ctx, r0, n, cfg0, testTreeFanOut, testChunksPerChannel, testBytesPerSec, testIterations)
+	bb1 := NewBroadcastBenchmark(ctx, r1, n, cfg1, testTreeFanOut, testChunksPerChannel, testBytesPerSec, testIterations)
+	bb2 := NewBroadcastBenchmark(ctx, r2, n, cfg2, testTreeFanOut, testChunksPerChannel, testBytesPerSec, testIterations)
 
 	bb0.Start(ctx, a0)
 	bb1.Start(ctx, a1)
