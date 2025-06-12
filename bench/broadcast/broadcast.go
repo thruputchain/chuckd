@@ -8,11 +8,13 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
+
+	"github.com/dustin/go-humanize"
 )
 
 type BroadcastBenchmark struct {
@@ -60,52 +62,80 @@ func (bench *BroadcastBenchmark) Start(ctx context.Context, address string) {
 	// start broadcast service
 	bench.broadcast.Start(ctx, address)
 
+	zeroPayload := make([]byte, bench.paySize)
+
 	// start benchmark sender
+	// XXX: needs speed control
+	// XXX: is there backpressure on Send?
 	go func() {
+		var bytesSent libstat.Counter
+		defer liblog.Infof("sent %s, at %s/sec",
+			humanize.Bytes(uint64(bytesSent.Sum())),
+			humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
+
 		for j := 0; j < bench.numIterations; j++ {
 			s := bench.broadcast.StreamingAPI().MakeChannel(ctx)
-		sendLoop:
 			for i := 0; i < bench.payPerChannel; i++ {
 				select {
 				case <-ctx.Done(): // benchmark timeout
-					break sendLoop
+					return
 				default:
 				}
+
+				// liblog.Infof("bench server %s sending message %d on channel %d",
+				// 	protoutil.VIDString(bench.broadcast.ValidatorID()), i, j)
+
 				sctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
-				liblog.Infof("bench server %s sending message %d on channel %d", protoutil.VIDString(bench.broadcast.ValidatorID()), i, j)
-				if err := s.Send(sctx, make([]byte, bench.paySize)); err != nil {
+				if err := s.Send(sctx, zeroPayload); err != nil {
 					liblog.Errorf("bench send: %v", err)
 				}
 				cancel()
+
+				bytesSent.Add(float64(len(zeroPayload)))
 			}
+
 			s.Close()
+			liblog.Infof("sent %s, at %s/sec",
+				humanize.Bytes(uint64(bytesSent.Sum())),
+				humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
 		}
 	}()
 
 	// start benchmark receiver
 	go func() {
-	acceptLoop:
+		var bytesReceived libstat.Counter
+		defer liblog.Infof("received %s, at %s/sec",
+			humanize.Bytes(uint64(bytesReceived.Sum())),
+			humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
+
 		for {
 			select {
 			case <-ctx.Done(): // benchmark timeout
-				break acceptLoop
+				return
 			default:
 			}
+
 			r := bench.broadcast.StreamingAPI().AcceptChannel()
-			go func() {
+
+			go func() { // XXX: should we service them in sequence? does this block the service?
 				defer r.Close()
-			receiveLoop:
+				defer liblog.Infof("received %s, at %s/sec",
+					humanize.Bytes(uint64(bytesReceived.Sum())),
+					humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
+
 				for {
 					select {
 					case <-ctx.Done(): // benchmark timeout
-						break receiveLoop
+						return
 					default:
 					}
 					rctx, cancel := context.WithTimeout(ctx, time.Minute) //XXX
-					if _, _, _, err := r.Receive(rctx); err != nil {
+					if _, _, payload, err := r.Receive(rctx); err != nil {
 						liblog.Errorf("receive: %v", err)
 						cancel()
-						break receiveLoop
+						return
+					} else {
+						bytesReceived.Add(float64(len(payload)))
 					}
 					cancel()
 				}

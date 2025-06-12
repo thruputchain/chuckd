@@ -18,6 +18,7 @@ require (
 )
 
 require (
+	github.com/dustin/go-humanize v1.0.1
 	github.com/goccy/go-yaml v1.17.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/groundhogchain/protocol-go v0.0.0-20250602232338-ffcec629435a
