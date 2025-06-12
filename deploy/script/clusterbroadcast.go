@@ -28,6 +28,7 @@ type BenchBroadcastDef struct {
 func (def BenchBroadcastDef) ExecScripts(
 	ctx context.Context,
 	rand *rand.Rand,
+	chuckdPath string,
 	hosts []string,
 ) []string {
 
@@ -47,7 +48,7 @@ func (def BenchBroadcastDef) ExecScripts(
 	scripts := make([]string, len(hosts))
 	nodeCfgs, _ := common.GenQuorumConfigs(ctx, rand, base, addrs)
 	for i, cfg := range nodeCfgs {
-		scripts[i] = benchBroadcastHostScript(ctx, rand, def, i, cfg)
+		scripts[i] = benchBroadcastHostScript(ctx, rand, def, i, cfg, chuckdPath)
 	}
 	return scripts
 }
@@ -58,6 +59,7 @@ func benchBroadcastHostScript(
 	def BenchBroadcastDef,
 	index int,
 	cfg proto.Config,
+	chuckdPath string,
 ) string {
 
 	const format = `
@@ -68,7 +70,7 @@ cat > config.json << EOF
 {{.ConfigJSON}}
 EOF
 
-./chuckd -v --config config.json \
+{{ .ChuckdPath }} -v -l info --config config.json \
 	--instance node-{{ .NodeIndex }} \
 	--seed {{ .Seed }} \
 	--metrics :2222 \
@@ -76,7 +78,7 @@ EOF
 	--addr :{{ .Def.Port }} \
 	{{ if .Def.QUIC }}--quic{{ end }} \
 	--fan-out {{ .Def.FanOut }} \
-	--chunk-per-chan {{ .Def.ChunkPerChan }} \
+	--chunk-per-chan {{ .Def.ChunkPerChannel }} \
 	--num-iterations {{ .Def.NumIterations }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
@@ -84,5 +86,6 @@ EOF
 		"ConfigJSON": xdrutil.MustXdrToJsonString(&cfg),
 		"NodeIndex":  index,
 		"Seed":       rand.Int63(),
+		"ChuckdPath": chuckdPath,
 	})
 }

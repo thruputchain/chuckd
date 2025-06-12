@@ -12,18 +12,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var verbose bool
-
 func init() {
-	LogQuietly()
+	LogLevel(zerolog.ErrorLevel)
 }
 
 func IsVerbose() bool {
-	return verbose
+	return zerolog.GlobalLevel() < zerolog.WarnLevel
 }
 
-func LogQuietly() {
-	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+func LogLevel(level zerolog.Level) error {
+	zerolog.SetGlobalLevel(level)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log.Logger = log.Output(
 		zerolog.ConsoleWriter{
@@ -32,20 +30,7 @@ func LogQuietly() {
 			TimeFormat: time.RFC3339,
 		},
 	)
-	verbose = false
-}
-
-func LogVerbosely() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log.Logger = log.Output(
-		zerolog.ConsoleWriter{
-			Out:        os.Stderr,
-			NoColor:    true,
-			TimeFormat: time.RFC3339,
-		},
-	)
-	verbose = true
+	return nil
 }
 
 // global logger
