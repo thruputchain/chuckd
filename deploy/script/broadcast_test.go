@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/jay/lib/librand"
+	"github.com/groundhogchain/chuckd/lib/librand"
 )
 
 func TestBroadcastLocalScript(t *testing.T) {
