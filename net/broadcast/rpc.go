@@ -12,6 +12,11 @@ func (svc *BroadcastService) Broadcast_null(ctx context.Context) error {
 }
 
 func (svc *BroadcastService) Broadcast_deliver(ctx context.Context, delivery Delivery) error {
+	svc.pool.Submit(func() { svc.processDeliver(ctx, delivery) })
+	return nil
+}
+
+func (svc *BroadcastService) processDeliver(ctx context.Context, delivery Delivery) error {
 
 	liblog.Debugf("receiving message %d on channel %s at %s from %s",
 		delivery.Msg.Header.Seqno,
