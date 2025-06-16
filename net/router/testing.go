@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
+
+var testM = xdrutil.NewXdrMarshaler()
 
 type TestRouter struct {
 	Trees map[TestTreeKey]*TestTreeNode
@@ -26,7 +29,7 @@ func TestTreeMerkle(tt *TestTreeNode) MulticastTreeNodes {
 	for _, c := range tt.Children {
 		subNodes := TestTreeMerkle(c)
 		all = append(all, subNodes...)
-		node.Children = append(node.Children, protoutil.MulticastTreeNodeHash(subNodes[0]))
+		node.Children = append(node.Children, protoutil.MulticastTreeNodeHash(testM, subNodes[0]))
 	}
 	return append(MulticastTreeNodes{node}, all...)
 }
@@ -46,5 +49,5 @@ func (x *TestRouter) BuildTree(vid ValidatorID, _ ChannelID) (MulticastTreeNodes
 	for i := range tt.Children {
 		children[i] = tt.Children[i].V
 	}
-	return nodes, children, protoutil.MulticastTreeNodeHash(nodes[0])
+	return nodes, children, protoutil.MulticastTreeNodeHash(testM, nodes[0])
 }

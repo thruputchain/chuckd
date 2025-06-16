@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -27,6 +28,8 @@ type DiscoveryService struct {
 	cachedStamp      time.Time
 	cachedSnapshots  []proto.SignedQuorumSetSnapshot
 	cachedValidators []proto.SignedValidatorInfoSnapshot
+	//
+	m xdrutil.XdrMarshaler
 }
 
 func NewDiscoveryService(
@@ -45,6 +48,7 @@ func NewDiscoveryService(
 		ourValidators: vcfg.Known_validators,
 		knownQSets:    map[proto.ValidatorID]proto.SignedQuorumSetSnapshot{},
 		knownVs:       map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{},
+		m:             xdrutil.NewXdrMarshaler(),
 	}
 
 	go s.advertise(ctx)
@@ -82,7 +86,7 @@ func (s *DiscoveryService) updateKnown(known proto.KnownQuorumSets) {
 }
 
 func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
-	if !protoutil.VerifySignedQuorumSetSnapshot(qset) {
+	if !protoutil.VerifySignedQuorumSetSnapshot(s.m, qset) {
 		return
 	}
 
@@ -98,7 +102,7 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 }
 
 func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
-	if !protoutil.VerifySignedValidatorInfoSnapshot(v) {
+	if !protoutil.VerifySignedValidatorInfoSnapshot(s.m, v) {
 		return
 	}
 
@@ -129,7 +133,7 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 	s.lk.Lock()
 
 	// qsets
-	ourSignedQSet := protoutil.MakeSignedQuorumSetSnapshot(s.privInfo, s.ourQSet)
+	ourSignedQSet := protoutil.MakeSignedQuorumSetSnapshot(s.m, s.privInfo, s.ourQSet)
 	allQsets := []proto.SignedQuorumSetSnapshot{ourSignedQSet}
 	for _, signedQSet := range s.knownQSets {
 		allQsets = append(allQsets, signedQSet)
@@ -142,7 +146,7 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 		vv[protoutil.VIDOfPublic(v.Signer)] = v
 	}
 	for _, v := range s.ourValidators {
-		vv[protoutil.VIDOfPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.privInfo, v)
+		vv[protoutil.VIDOfPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.m, s.privInfo, v)
 	}
 	allVs := []proto.SignedValidatorInfoSnapshot{}
 	for _, v := range vv {

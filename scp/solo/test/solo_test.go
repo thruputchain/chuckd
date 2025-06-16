@@ -33,6 +33,7 @@ func TestSolo(t *testing.T) {
 	ctx := context.Background()
 	testnet := testnet.NewTestNetwork()
 	rand := runtime.NewRandFromRoot()
+	m := xdrutil.NewXdrMarshaler()
 
 	leaderCred := protoutil.MustGenerateIdentity(ctx, rand, "solo_leader")
 
@@ -72,7 +73,7 @@ func TestSolo(t *testing.T) {
 	x := proto.SoloStatement{Statement_type: proto.SoloStatementAlpha}
 	y := proto.SoloStatement{Statement_type: proto.SoloStatementBeta}
 
-	followerSvc[0].Nominate(ctx, slot, xdrutil.MarshalXdr(&x), xdrutil.MarshalXdr(&y))
+	followerSvc[0].Nominate(ctx, slot, m.MarshalXdr(&x), m.MarshalXdr(&y))
 
 	// validate
 	var wgValidate sync.WaitGroup

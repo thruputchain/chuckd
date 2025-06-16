@@ -4,10 +4,12 @@ import (
 	"sort"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 func MakeSignedQuorumSetSnapshot(
+	m xdrutil.XdrMarshaler,
 	privInfo proto.ValidatorPrivateInfo,
 	qset proto.QuorumSet,
 ) proto.SignedQuorumSetSnapshot {
@@ -17,12 +19,13 @@ func MakeSignedQuorumSetSnapshot(
 	}
 	return proto.SignedQuorumSetSnapshot{
 		Signer:              privInfo.Public_info,
-		Signature:           SignXdr(privInfo.Secret_key, &qss),
+		Signature:           SignXdr(m, privInfo.Secret_key, &qss),
 		Quorum_set_snapshot: qss,
 	}
 }
 
 func MakeSignedValidatorInfoSnapshot(
+	m xdrutil.XdrMarshaler,
 	privInfo proto.ValidatorPrivateInfo,
 	v proto.ValidatorPublicInfo,
 ) proto.SignedValidatorInfoSnapshot {
@@ -32,7 +35,7 @@ func MakeSignedValidatorInfoSnapshot(
 	}
 	return proto.SignedValidatorInfoSnapshot{
 		Signer:             privInfo.Public_info,
-		Signature:          SignXdr(privInfo.Secret_key, &w),
+		Signature:          SignXdr(m, privInfo.Secret_key, &w),
 		Validator_snapshot: w,
 	}
 }
@@ -83,12 +86,12 @@ func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Sort() { sort.Sort(x
 
 // verification
 
-func VerifySignedQuorumSetSnapshot(v proto.SignedQuorumSetSnapshot) bool {
-	return VerifyXdr(v.Signer.Public_key, &v.Quorum_set_snapshot, v.Signature)
+func VerifySignedQuorumSetSnapshot(m xdrutil.XdrMarshaler, v proto.SignedQuorumSetSnapshot) bool {
+	return VerifyXdr(m, v.Signer.Public_key, &v.Quorum_set_snapshot, v.Signature)
 }
 
-func VerifySignedValidatorInfoSnapshot(v proto.SignedValidatorInfoSnapshot) bool {
-	return VerifyXdr(v.Signer.Public_key, &v.Validator_snapshot, v.Signature)
+func VerifySignedValidatorInfoSnapshot(m xdrutil.XdrMarshaler, v proto.SignedValidatorInfoSnapshot) bool {
+	return VerifyXdr(m, v.Signer.Public_key, &v.Validator_snapshot, v.Signature)
 }
 
 // misc

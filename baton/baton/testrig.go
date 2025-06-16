@@ -16,6 +16,7 @@ import (
 	"github.com/groundhogchain/chuckd/test/testexec"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
@@ -111,12 +112,12 @@ func (h *TestRig) Signer() proto.ValidatorPublicInfo {
 	return h.signer.Public_info
 }
 
-func (h *TestRig) SignXdr(v xdr.XdrType) proto.Signature {
-	return protoutil.SignXdr(h.signer.Secret_key, v)
+func (h *TestRig) SignXdr(m xdrutil.XdrMarshaler, v xdr.XdrType) proto.Signature {
+	return protoutil.SignXdr(m, h.signer.Secret_key, v)
 }
 
-func (h *TestRig) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
-	return protoutil.VerifyXdr(signer, value, sig)
+func (h *TestRig) VerifyXdr(m xdrutil.XdrMarshaler, signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+	return protoutil.VerifyXdr(m, signer, value, sig)
 }
 
 func (h *TestRig) GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo {

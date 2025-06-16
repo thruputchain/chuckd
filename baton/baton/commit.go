@@ -12,9 +12,9 @@ import (
 func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
 	if vb.AlreadyValidatedBlockID != nil {
 		// skip validation when committing our own nomination
-		return commit.CommitAlreadyValidated(ctx, b.handler, vb)
+		return commit.CommitAlreadyValidated(ctx, b.txM, b.handler, vb)
 	} else {
-		return validate.ValidateCommit(ctx, b.handler, vb, b.callsPerExec, b.batchSize)
+		return validate.ValidateCommit(ctx, b.txM, b.handler, vb, b.callsPerExec, b.batchSize)
 	}
 }
 

@@ -7,18 +7,20 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestCatchupStaged struct {
 	time   libtime.Time
 	Signer proto.ValidatorPrivateInfo
+	m      xdrutil.XdrMarshaler
 	lk     sync.Mutex
 	result [][]proto.CatchupBlock
 }
 
 func NewTestCatchup(time libtime.Time, signer proto.ValidatorPrivateInfo) *TestCatchupStaged {
-	return &TestCatchupStaged{time: time, Signer: signer}
+	return &TestCatchupStaged{time: time, Signer: signer, m: xdrutil.NewXdrMarshaler()}
 }
 
 func (x *TestCatchupStaged) Catchup_null(context.Context) error {
@@ -41,7 +43,7 @@ func (x *TestCatchupStaged) Catchup_solicit(ctx context.Context, req proto.Signe
 	}
 	r := proto.SignedCatchupBlocksResult{
 		Signer:    x.Signer.Public_info,
-		Signature: protoutil.SignXdr(x.Signer.Secret_key, &result),
+		Signature: protoutil.SignXdr(x.m, x.Signer.Secret_key, &result),
 		Result:    result,
 	}
 	x.result = x.result[1:]

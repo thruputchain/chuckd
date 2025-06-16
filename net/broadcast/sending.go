@@ -59,7 +59,7 @@ func (x *sending) Send(ctx context.Context, payload []byte) error {
 	var attachTree bool
 	var prevMsgHash *MessageHash
 	if len(x.sent) > 0 {
-		h := protoutil.HashOfMessage(x.sent[len(x.sent)-1])
+		h := protoutil.HashOfMessage(x.svc.msgMarshaler, x.sent[len(x.sent)-1])
 		prevMsgHash = &h
 	} else {
 		attachTree = true
@@ -68,7 +68,7 @@ func (x *sending) Send(ctx context.Context, payload []byte) error {
 	msg := Message{
 		Header: Header{
 			Source:           x.svc.ValidatorPublicInfo(),
-			Source_signature: protoutil.SignXdr(x.svc.SecretKey(), &x.channel),
+			Source_signature: protoutil.SignXdr(x.svc.msgMarshaler, x.svc.SecretKey(), &x.channel),
 			Channel:          x.channel,
 			Seqno:            SeqNo(len(x.sent)),
 			Prev_msg:         prevMsgHash,
@@ -118,5 +118,5 @@ func (x *sending) Close() {
 func (x *sending) reconcile(msgHashes []MessageHash) []Message {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	return protoutil.FindMessages(msgHashes, x.sent)
+	return protoutil.FindMessages(x.svc.msgMarshaler, msgHashes, x.sent)
 }

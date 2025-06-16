@@ -7,8 +7,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func MulticastTreeNodeHash(treeNode proto.MulticastTreeNode) proto.MulticastTreeHash {
-	return sha256.Sum256(xdrutil.MarshalXdr(&treeNode))
+func MulticastTreeNodeHash(m xdrutil.XdrMarshaler, treeNode proto.MulticastTreeNode) proto.MulticastTreeHash {
+	return sha256.Sum256(m.MarshalXdr(&treeNode))
 }
 
 type LinkedTreeNode struct {
@@ -40,31 +40,31 @@ func (l *LinkedTreeNode) FindChildren(v proto.ValidatorPublicInfo) ([]proto.Vali
 	return nil, false
 }
 
-func VerifyBuildLinkedTree(h proto.MulticastTreeHash, treeNodes proto.MulticastTreeNodes) *LinkedTreeNode {
+func VerifyBuildLinkedTree(m xdrutil.XdrMarshaler, h proto.MulticastTreeHash, treeNodes proto.MulticastTreeNodes) *LinkedTreeNode {
 
 	if len(treeNodes) == 0 {
 		return nil
 	}
-	if MulticastTreeNodeHash(treeNodes[0]) != h {
+	if MulticastTreeNodeHash(m, treeNodes[0]) != h {
 		return nil
 	}
 
-	return BuildLinkedTree(treeNodes)
+	return BuildLinkedTree(m, treeNodes)
 }
 
 // BuildLinkedTree reconstructs a linked tree from the Merkle MulticastTreeNodes.
 // The first node must be the root. All nodes must be part of the same tree.
-func BuildLinkedTree(treeNodes proto.MulticastTreeNodes) *LinkedTreeNode {
+func BuildLinkedTree(m xdrutil.XdrMarshaler, treeNodes proto.MulticastTreeNodes) *LinkedTreeNode {
 
 	if len(treeNodes) == 0 {
 		return nil
 	}
-	rootHash := MulticastTreeNodeHash(treeNodes[0])
+	rootHash := MulticastTreeNodeHash(m, treeNodes[0])
 
 	// index all nodes by hash
 	hs := map[proto.MulticastTreeHash]proto.MulticastTreeNode{}
 	for _, treeNode := range treeNodes {
-		h := MulticastTreeNodeHash(treeNode)
+		h := MulticastTreeNodeHash(m, treeNode)
 		if _, ok := hs[h]; ok {
 			return nil // duplicate
 		}

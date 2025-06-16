@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -15,6 +16,7 @@ type SubmittedMempool struct {
 	txTTL    time.Duration
 	arriving chan *arrivingTxs
 	waiting  chan *waitingTxs
+	m        xdrutil.XdrMarshaler
 	lk       sync.Mutex
 	tx       map[proto.SignedTransactionHash]*transaction
 }
@@ -44,6 +46,7 @@ func NewTransactionMempool(ctx context.Context, time libtime.Time, txTTL time.Du
 		txTTL:    txTTL,
 		arriving: make(chan *arrivingTxs),
 		waiting:  make(chan *waitingTxs),
+		m:        xdrutil.NewXdrMarshaler(),
 		tx:       map[proto.SignedTransactionHash]*transaction{},
 	}
 	go mp.supervise(ctx)
@@ -61,7 +64,7 @@ func (mp *SubmittedMempool) AddTxs(ctx context.Context, txs ...*proto.SignedTran
 }
 
 func (mp *SubmittedMempool) addTx(_ context.Context, tx *proto.SignedTransaction) {
-	mp.tx[protoutil.HashSignedTx(tx)] = &transaction{created: mp.time.Now(), proto: tx}
+	mp.tx[protoutil.HashSignedTx(mp.m, tx)] = &transaction{created: mp.time.Now(), proto: tx}
 }
 
 func (mp *SubmittedMempool) TxCount() int {

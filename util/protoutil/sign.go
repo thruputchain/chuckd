@@ -10,8 +10,8 @@ import (
 
 type Signatory interface {
 	Signer() proto.ValidatorPublicInfo
-	SignXdr(xdr.XdrType) proto.Signature
-	VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
+	SignXdr(xdrutil.XdrMarshaler, xdr.XdrType) proto.Signature
+	VerifyXdr(m xdrutil.XdrMarshaler, signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
 }
 
 type signer struct {
@@ -26,12 +26,12 @@ func (s *signer) Signer() proto.ValidatorPublicInfo {
 	return s.priv.Public_info
 }
 
-func (s *signer) SignXdr(value xdr.XdrType) proto.Signature {
-	return SignXdr(s.priv.Secret_key, value)
+func (s *signer) SignXdr(m xdrutil.XdrMarshaler, value xdr.XdrType) proto.Signature {
+	return SignXdr(m, s.priv.Secret_key, value)
 }
 
-func (s *signer) VerifyXdr(signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
-	return VerifyXdr(s.Signer().Public_key, value, sig)
+func (s *signer) VerifyXdr(m xdrutil.XdrMarshaler, signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+	return VerifyXdr(m, s.Signer().Public_key, value, sig)
 }
 
 func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
@@ -42,18 +42,18 @@ func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 	return signature
 }
 
-func SignXdr(secretKey proto.ValidatorSecretKey, value xdr.XdrType) proto.Signature {
-	return SignBytes(secretKey, xdrutil.MarshalXdr(value))
+func SignXdr(m xdrutil.XdrMarshaler, secretKey proto.ValidatorSecretKey, value xdr.XdrType) proto.Signature {
+	return SignBytes(secretKey, m.MarshalXdr(value))
 }
 
 func VerifyBytes(pubKey proto.ValidatorPublicKey, msg []byte, signature []byte) bool {
 	return ed25519.Verify(pubKey[:], msg, signature)
 }
 
-func VerifyXdr(pubKey proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+func VerifyXdr(m xdrutil.XdrMarshaler, pubKey proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
 	if sig.Scheme != proto.Ed25519 {
 		return false
 	}
 	sigBytes := *sig.Ed25519()
-	return VerifyBytes(pubKey, xdrutil.MarshalXdr(value), sigBytes[:])
+	return VerifyBytes(pubKey, m.MarshalXdr(value), sigBytes[:])
 }

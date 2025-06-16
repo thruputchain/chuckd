@@ -96,7 +96,7 @@ func (x *receiving) Receive(ctx context.Context) (seqno SeqNo, msgHash MessageHa
 	case <-ctx.Done():
 		return 0, MessageHash{}, nil, fmt.Errorf("broadcast channel receive context expired")
 	case msg := <-x.deliverCh:
-		return msg.Header.Seqno, protoutil.HashOfMessage(msg), msg.Payload, nil
+		return msg.Header.Seqno, protoutil.HashOfMessage(x.svc.msgMarshaler, msg), msg.Payload, nil
 	}
 }
 
@@ -118,5 +118,5 @@ func (x *receiving) Close() {
 func (x *receiving) reconcile(msgHashes []MessageHash) []Message {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	return protoutil.FindMessages(msgHashes, x.received)
+	return protoutil.FindMessages(x.svc.msgMarshaler, msgHashes, x.received)
 }

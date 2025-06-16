@@ -67,7 +67,7 @@ func (a *accepting) accept(ctx context.Context) {
 		liblog.Infof("recovered multicast tree from relayer %s", protoutil.VPublicShortString(first.Relayer))
 	}
 
-	linked := protoutil.VerifyBuildLinkedTree(a.channel.Tree_hash, *treeNodes)
+	linked := protoutil.VerifyBuildLinkedTree(a.svc.treeMarshaler, a.channel.Tree_hash, *treeNodes)
 	if linked == nil {
 		liblog.Errorf("invalid multicast tree: %s", form.Display(treeNodes))
 		a.abort()

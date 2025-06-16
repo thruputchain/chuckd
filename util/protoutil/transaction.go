@@ -31,6 +31,6 @@ func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.Propose
 	return Unpack(ts)
 }
 
-func HashSignedTx(tx *proto.SignedTransaction) proto.SignedTransactionHash {
-	return sha256.Sum256(xdrutil.MarshalXdr(tx))
+func HashSignedTx(m xdrutil.XdrMarshaler, tx *proto.SignedTransaction) proto.SignedTransactionHash {
+	return sha256.Sum256(m.MarshalXdr(tx))
 }

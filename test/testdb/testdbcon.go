@@ -7,10 +7,12 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type testDbConsistent struct {
+	m   xdrutil.XdrMarshaler
 	lk  sync.Mutex
 	id  map[proto.BlockID]*testDbSnapshot
 	top *testDbSnapshot
@@ -24,6 +26,7 @@ type testDbSnapshot struct {
 
 func NewTestDbConsistent(tip batonapi.Tip) TestDb {
 	db := &testDbConsistent{
+		m:  xdrutil.NewXdrMarshaler(),
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
 	db.top = &testDbSnapshot{
@@ -64,7 +67,7 @@ func (db *testDbConsistent) AddProposedTx(ctx context.Context, id proto.BlockID,
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Hash = testutil.BlendPropopsedTx(snap.tip.Hash, ptx)
+	snap.tip.Hash = testutil.BlendPropopsedTx(db.m, snap.tip.Hash, ptx)
 }
 
 func (db *testDbConsistent) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
@@ -72,7 +75,7 @@ func (db *testDbConsistent) AddSignedTx(ctx context.Context, id proto.BlockID, s
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Hash = testutil.BlendSignedTx(snap.tip.Hash, stx)
+	snap.tip.Hash = testutil.BlendSignedTx(db.m, snap.tip.Hash, stx)
 }
 
 func (db *testDbConsistent) Dbcoord_null(ctx context.Context) error {

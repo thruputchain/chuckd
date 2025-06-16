@@ -8,12 +8,14 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestGen struct {
 	time libtime.Time
 	user proto.ValidatorSecretKey // wallet user who signs txs
+	m    xdrutil.XdrMarshaler
 	lk   sync.Mutex
 	rand *rand.Rand
 }
@@ -24,7 +26,7 @@ func NewTestGen(
 	rand *rand.Rand,
 	user proto.ValidatorSecretKey,
 ) *TestGen {
-	return &TestGen{time: time, user: user, rand: rand}
+	return &TestGen{time: time, user: user, m: xdrutil.NewXdrMarshaler(), rand: rand}
 }
 
 func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
@@ -39,7 +41,7 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 		Created: h.time.Now().UnixNano(),
 	}
 	return &proto.SignedTransaction{
-		Signature: protoutil.SignXdr(h.user, &tx),
+		Signature: protoutil.SignXdr(h.m, h.user, &tx),
 		Tx:        tx,
 	}
 }
@@ -88,13 +90,13 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	hash := onto.Hash
 	for i := range txs {
 		txs[i] = *h.GenSignedTx(ctx)
-		hashes[i] = protoutil.HashSignedTx(&txs[i])
+		hashes[i] = protoutil.HashSignedTx(h.m, &txs[i])
 		ntxs[i] = proto.NominatedTransaction{Nondeterministic_proposal_data: TestNondeterministicData}
 		ptxs[i] = proto.ProposedTransaction{
 			Signed_tx:                      txs[i],
 			Nondeterministic_proposal_data: TestNondeterministicData,
 		}
-		hash = BlendPropopsedTx(hash, &ptxs[i])
+		hash = BlendPropopsedTx(h.m, hash, &ptxs[i])
 	}
 	return &TestBlock{
 		Nomination: proto.Nomination{
@@ -114,12 +116,12 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 }
 
-func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
-	return xorBlockHash(base, protoutil.HashSignedTx(&ptx.Signed_tx))
+func BlendPropopsedTx(m xdrutil.XdrMarshaler, base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
+	return xorBlockHash(base, protoutil.HashSignedTx(m, &ptx.Signed_tx))
 }
 
-func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
-	return xorBlockHash(base, protoutil.HashSignedTx(stx))
+func BlendSignedTx(m xdrutil.XdrMarshaler, base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
+	return xorBlockHash(base, protoutil.HashSignedTx(m, stx))
 }
 
 func xorBlockHash(p, q proto.BlockHash) proto.BlockHash {

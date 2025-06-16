@@ -6,12 +6,18 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-var mpool = NewBufferPool()
+type XdrMarshaler struct {
+	bpool *BufferPool
+}
 
-func MarshalXdr(value xdr.XdrType) []byte {
+func NewXdrMarshaler() XdrMarshaler {
+	return XdrMarshaler{bpool: NewBufferPool()}
+}
 
-	w := mpool.Get()
-	defer mpool.Recycle(w)
+func (x XdrMarshaler) MarshalXdr(value xdr.XdrType) []byte {
+
+	w := x.bpool.Get()
+	defer x.bpool.Recycle(w)
 
 	out := xdr.XdrOut{Out: w}
 	out.Marshal("", value)

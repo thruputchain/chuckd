@@ -120,7 +120,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		}
 		signed := proto.SignedCatchupBlocksRequest{
 			Signer:    b.handler.Signer(),
-			Signature: b.handler.SignXdr(&req),
+			Signature: b.handler.SignXdr(b.catchupReqM, &req),
 			Request:   req,
 		}
 
@@ -130,7 +130,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 			return
 		}
 
-		if !b.handler.VerifyXdr(src.Public_key, &reply.Result, reply.Signature) {
+		if !b.handler.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
 			liblog.Errorf("catchup with invalid signature")
 			return
 		}

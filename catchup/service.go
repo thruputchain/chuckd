@@ -14,6 +14,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -29,6 +30,9 @@ type CatchupService struct {
 	lk      sync.Mutex
 	highest proto.BlockHeight
 	block   map[proto.BlockHeight]stampedCatchupBlock
+	//
+	reqM  xdrutil.XdrMarshaler
+	resultM xdrutil.XdrMarshaler
 }
 
 type DialDb interface {
@@ -59,6 +63,8 @@ func NewCatchupService(
 		ttl:    ttl,
 		age:    age,
 		block:  map[proto.BlockHeight]stampedCatchupBlock{},
+		reqM:   xdrutil.NewXdrMarshaler(),
+		resultM:  xdrutil.NewXdrMarshaler(),
 	}
 	go svc.expire(ctx)
 	return svc
@@ -106,7 +112,7 @@ func (svc *CatchupService) Catchup_null(context.Context) error {
 func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
 
 	// check signatures
-	if !protoutil.VerifyXdr(sreq.Signer.Public_key, &sreq.Request, sreq.Signature) {
+	if !protoutil.VerifyXdr(svc.reqM, sreq.Signer.Public_key, &sreq.Request, sreq.Signature) {
 		return proto.SignedCatchupBlocksResult{}, fmt.Errorf("signature verification")
 	}
 
@@ -139,7 +145,7 @@ func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.Signe
 
 	return proto.SignedCatchupBlocksResult{
 		Signer:    svc.signer.Signer(),
-		Signature: svc.signer.SignXdr(&result),
+		Signature: svc.signer.SignXdr(svc.resultM, &result),
 		Result:    result,
 	}, nil
 }

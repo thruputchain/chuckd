@@ -61,7 +61,7 @@ func (s *slot) nominate(_ context.Context, nomination proto.SoloNomination) {
 				}
 				signed := proto.SoloSignedValidate{
 					Signer:    s.svc.self.Public_info,
-					Signature: protoutil.SignXdr(s.svc.self.Secret_key, &validate),
+					Signature: protoutil.SignXdr(s.svc.m, s.svc.self.Secret_key, &validate),
 					Validate:  validate,
 				}
 

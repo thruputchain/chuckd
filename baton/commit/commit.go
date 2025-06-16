@@ -9,10 +9,16 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func CommitAlreadyValidated(ctx context.Context, handler batonapi.OpsHandler, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
+func CommitAlreadyValidated(
+	ctx context.Context,
+	txM xdrutil.XdrMarshaler,
+	handler batonapi.OpsHandler,
+	vb *batonapi.ValidatableBlock,
+) (proto.BlockID, error) {
 	liblog.Debugf("committing already validated [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
 	// connect to db
@@ -33,11 +39,12 @@ func CommitAlreadyValidated(ctx context.Context, handler batonapi.OpsHandler, vb
 		return 0, fmt.Errorf("db open snapshot error")
 	}
 
-	return FinalizeCommit(ctx, handler, vb, blockID, db)
+	return FinalizeCommit(ctx, txM, handler, vb, blockID, db)
 }
 
 func FinalizeCommit(
 	ctx context.Context,
+	txM xdrutil.XdrMarshaler,
 	handler batonapi.OpsHandler,
 	vb *batonapi.ValidatableBlock,
 	blockID proto.BlockID,
@@ -59,7 +66,7 @@ func FinalizeCommit(
 
 	// record committed transactions to prevent replay
 	for _, ptx := range vb.ProposedTransactions {
-		hash := protoutil.HashSignedTx(&ptx.Signed_tx)
+		hash := protoutil.HashSignedTx(txM, &ptx.Signed_tx)
 		handler.AddCommittedTx(ctx, hash)
 		handler.RemoveTx(ctx, hash)
 	}

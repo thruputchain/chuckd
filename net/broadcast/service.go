@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/panjf2000/ants/v2"
 )
@@ -38,7 +39,9 @@ type BroadcastService struct {
 	streamingAcceptCh chan *receiving
 	bulkAcceptCh      chan *receiving
 	//
-	pool *ants.Pool
+	pool          *ants.Pool
+	msgMarshaler  xdrutil.XdrMarshaler
+	treeMarshaler xdrutil.XdrMarshaler
 }
 
 func NewBroadcastService(
@@ -79,7 +82,9 @@ func NewBroadcastService(
 		streamingAcceptCh: make(chan *receiving),
 		bulkAcceptCh:      make(chan *receiving),
 		//
-		pool: pool,
+		pool:          pool,
+		msgMarshaler:  xdrutil.NewXdrMarshaler(),
+		treeMarshaler: xdrutil.NewXdrMarshaler(),
 	}
 	return s
 }

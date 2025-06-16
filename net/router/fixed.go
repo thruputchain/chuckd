@@ -6,10 +6,12 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type FixedRouter struct {
+	m          xdrutil.XdrMarshaler
 	maxFanOut  int
 	self       proto.ValidatorPublicInfo
 	validators []proto.ValidatorPublicInfo
@@ -22,6 +24,7 @@ func NewFixedRouter(
 	maxFanOut int,
 ) Router {
 	return &FixedRouter{
+		m:          xdrutil.NewXdrMarshaler(),
 		maxFanOut:  maxFanOut,
 		self:       self,
 		validators: vs,
@@ -47,5 +50,5 @@ func (x *FixedRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 	treeHash MulticastTreeHash,
 ) {
 	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
-	return buildTree(x.maxFanOut, vs, rootID, cid)
+	return buildTree(x.m, x.maxFanOut, vs, rootID, cid)
 }

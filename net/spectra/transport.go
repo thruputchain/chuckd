@@ -20,6 +20,7 @@ type SpectraTransport struct {
 	cfg proto.SpectraConfig
 	rr  *rand.Rand
 	bb  broadcast.BulkBroadcast
+	m   xdrutil.XdrMarshaler
 	// TODO: use a pool of encoders in parallel
 	elk sync.Mutex
 	enc reedsolomon.Encoder
@@ -93,6 +94,7 @@ func NewSpectraTransport(
 		cfg:     cfg,
 		rr:      rr,
 		bb:      bb,
+		m:       xdrutil.NewXdrMarshaler(),
 		enc:     enc,
 		dec:     dec,
 		partial: map[transmissionKey]*partialTransmission{},
@@ -118,7 +120,7 @@ func (x *SpectraTransport) expire() {
 	}
 }
 
-var headerSize int = len(xdrutil.MarshalXdr(&proto.SpectraHeader{}))
+var headerSize int = len(xdrutil.NewXdrMarshaler().MarshalXdr(&proto.SpectraHeader{}))
 
 func (x *SpectraTransport) BulkSend(ctx context.Context, bulk []byte) (proto.SpectraTransmissionID, error) {
 
@@ -147,7 +149,7 @@ func (x *SpectraTransport) BulkSend(ctx context.Context, bulk []byte) (proto.Spe
 	for i := 0; i < p; i++ {
 		shardsWithHeader[i] = make([]byte, headerSize+s)
 		h.Shard_index = uint32(i)
-		copy(shardsWithHeader[i][:headerSize], xdrutil.MarshalXdr(&h))            // prepend header
+		copy(shardsWithHeader[i][:headerSize], x.m.MarshalXdr(&h))                // prepend header
 		copy(shardsWithHeader[i][headerSize:], bulk[min(i*s, n):min((i+1)*s, n)]) // append shard payload
 	}
 
@@ -155,7 +157,7 @@ func (x *SpectraTransport) BulkSend(ctx context.Context, bulk []byte) (proto.Spe
 	for i := 0; i < q; i++ {
 		shardsWithHeader[p+i] = make([]byte, headerSize+s)
 		h.Shard_index = uint32(p + i)
-		copy(shardsWithHeader[p+i][:headerSize], xdrutil.MarshalXdr(&h)) // prepend header
+		copy(shardsWithHeader[p+i][:headerSize], x.m.MarshalXdr(&h)) // prepend header
 	}
 
 	shardsWithoutHeader := make([][]byte, p+q)

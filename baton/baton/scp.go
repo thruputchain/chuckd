@@ -37,7 +37,7 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, val
 	if len(nominations) == 0 {
 		return nil
 	} else {
-		return xdrutil.MarshalXdr(nominations[0])
+		return x.baton.nomM.MarshalXdr(nominations[0])
 	}
 }
 

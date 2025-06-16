@@ -34,6 +34,7 @@ type LiveHandler struct {
 	*mempool.CommittedMempool
 	multiplex *multiplex.Multiplex
 	scp       scpapi.SCPController
+	m         xdrutil.XdrMarshaler
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -63,6 +64,7 @@ func NewLiveHandler(
 		SubmittedMempool: submitted,
 		CommittedMempool: committed,
 		multiplex:        multiplex,
+		m:                xdrutil.NewXdrMarshaler(),
 		rand:             rand,
 		live:             make(chan struct{}),
 	}
@@ -75,7 +77,7 @@ func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.live
-	return x.scp.Nominate(ctx, slot, xdrutil.MarshalXdr(value), xdrutil.MarshalXdr(prev))
+	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value), x.m.MarshalXdr(prev))
 }
 
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {

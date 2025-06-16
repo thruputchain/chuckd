@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -22,6 +23,10 @@ func NewBaton(ctx context.Context, h batonapi.Handler, callsPerExec int, batchSi
 		scp:             make(chan struct{}),
 		catchupRequests: map[batonapi.ID64]catchupRequest{},
 		validated:       map[proto.BlockHash]validated{},
+		txM:             xdrutil.NewXdrMarshaler(),
+		nomM:            xdrutil.NewXdrMarshaler(),
+		catchupReqM:     xdrutil.NewXdrMarshaler(),
+		catchupResultM:  xdrutil.NewXdrMarshaler(),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
@@ -44,6 +49,11 @@ type Baton struct {
 	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.Nomination
 	validated       map[proto.BlockHash]validated
+	//
+	txM            xdrutil.XdrMarshaler
+	nomM           xdrutil.XdrMarshaler
+	catchupReqM    xdrutil.XdrMarshaler
+	catchupResultM xdrutil.XdrMarshaler
 }
 
 type validated struct {

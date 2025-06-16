@@ -11,6 +11,7 @@ import (
 
 // scp msgs, proposed txsets,
 type Multiplex struct {
+	m         xdrutil.XdrMarshaler
 	transport *spectra.SpectraTransport
 	submitted chan submittedTxsFrom
 }
@@ -22,6 +23,7 @@ type submittedTxsFrom struct {
 
 func NewMultiplex(ctx context.Context, s *spectra.SpectraTransport) *Multiplex {
 	x := &Multiplex{
+		m:         xdrutil.NewXdrMarshaler(),
 		transport: s,
 		submitted: make(chan submittedTxsFrom),
 	}
@@ -55,7 +57,7 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
-	_, err := x.transport.BulkSend(ctx, xdrutil.MarshalXdr(&xmsg))
+	_, err := x.transport.BulkSend(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
 		liblog.Errorf("multiplex bulk send: %v", err)
 	}

@@ -25,7 +25,7 @@ func (svc *BroadcastService) processDeliver(ctx context.Context, delivery Delive
 		protoutil.VPublicShortString(delivery.Relayer),
 	)
 
-	if !protoutil.VerifyDelivery(delivery) {
+	if !protoutil.VerifyDelivery(svc.msgMarshaler, delivery) {
 		liblog.Errorf("discarding (verification) message %d on channel %s at %s from %s",
 			delivery.Msg.Header.Seqno,
 			protoutil.ChannelString(delivery.Msg.Header.Channel),

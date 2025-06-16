@@ -8,13 +8,14 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashOfMessage(msg proto.BroadcastMessage) proto.BroadcastMessageHash {
-	return sha256.Sum256(xdrutil.MarshalXdr(&msg))
+func HashOfMessage(m xdrutil.XdrMarshaler, msg proto.BroadcastMessage) proto.BroadcastMessageHash {
+	return sha256.Sum256(m.MarshalXdr(&msg))
 }
 
-func VerifyDelivery(delivery proto.Delivery) bool {
+func VerifyDelivery(m xdrutil.XdrMarshaler, delivery proto.Delivery) bool {
 
 	if !VerifyXdr(
+		m,
 		delivery.Msg.Header.Source.Public_key,
 		&delivery.Msg.Header.Channel,
 		delivery.Msg.Header.Source_signature,
@@ -32,7 +33,11 @@ func VerifyDelivery(delivery proto.Delivery) bool {
 	return true
 }
 
-func FindMessages(msgHashes []proto.BroadcastMessageHash, msgs []proto.BroadcastMessage) []proto.BroadcastMessage {
+func FindMessages(
+	m xdrutil.XdrMarshaler,
+	msgHashes []proto.BroadcastMessageHash,
+	msgs []proto.BroadcastMessage,
+) []proto.BroadcastMessage {
 
 	hs := map[proto.BroadcastMessageHash]bool{}
 	for _, h := range msgHashes {
@@ -41,7 +46,7 @@ func FindMessages(msgHashes []proto.BroadcastMessageHash, msgs []proto.Broadcast
 
 	found := []proto.BroadcastMessage{}
 	for _, msg := range msgs {
-		if hs[HashOfMessage(msg)] {
+		if hs[HashOfMessage(m, msg)] {
 			found = append(found, msg)
 		}
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
 func TestBasic(t *testing.T) {
@@ -14,6 +15,7 @@ func TestBasic(t *testing.T) {
 	ctx := context.Background()
 	runtime.SetRootSeed(0)
 	rr := runtime.NewRandFromRoot()
+	m := xdrutil.NewXdrMarshaler()
 
 	// generate validator identities
 	nv := 7
@@ -23,7 +25,7 @@ func TestBasic(t *testing.T) {
 	}
 
 	maxFanOut := 3
-	treeNodes, _, treeHash := buildRootedTree(maxFanOut, vs[0], vs[1:])
+	treeNodes, _, treeHash := buildRootedTree(m, maxFanOut, vs[0], vs[1:])
 	_ = treeNodes
 	// for _, tn := range treeNodes {
 	// 	h := protoutil.MulticastTreeNodeHash(tn)

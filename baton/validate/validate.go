@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/exec1"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -43,6 +44,7 @@ func ValidateClose(
 
 func ValidateCommit(
 	ctx context.Context,
+	txM xdrutil.XdrMarshaler,
 	handler batonapi.OpsHandler,
 	vb *batonapi.ValidatableBlock,
 	callsPerExec int,
@@ -62,7 +64,7 @@ func ValidateCommit(
 		return 0, err
 	}
 
-	return commit.FinalizeCommit(ctx, handler, vb, blockID, db)
+	return commit.FinalizeCommit(ctx, txM, handler, vb, blockID, db)
 }
 
 func Validate(

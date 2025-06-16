@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -17,6 +18,7 @@ type SoloFollowerService struct {
 	leader  proto.ValidatorPublicInfo
 	self    proto.ValidatorPrivateInfo
 	handler scpapi.SCPHandler
+	m       xdrutil.XdrMarshaler
 }
 
 func NewSoloFollowerService(
@@ -31,6 +33,7 @@ func NewSoloFollowerService(
 		leader:  leader,
 		self:    self,
 		handler: handler,
+		m:       xdrutil.NewXdrMarshaler(),
 	}
 }
 
@@ -47,7 +50,7 @@ func (svc *SoloFollowerService) Solofollower_validate(ctx context.Context, signe
 	// log.Infof("solo follower received validation request %v", form.SprintJSON(signed.Validate))
 
 	// check signatures
-	if !protoutil.VerifyXdr(signed.Signer.Public_key, &signed.Validate, signed.Signature) {
+	if !protoutil.VerifyXdr(svc.m, signed.Signer.Public_key, &signed.Validate, signed.Signature) {
 		return proto.SoloInvalidValue, nil
 	}
 
@@ -57,7 +60,7 @@ func (svc *SoloFollowerService) Solofollower_validate(ctx context.Context, signe
 func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, signed proto.SoloSignedExternalized) error {
 
 	// check signatures
-	if !protoutil.VerifyXdr(signed.Signer.Public_key, &signed.Externalized, signed.Signature) {
+	if !protoutil.VerifyXdr(svc.m, signed.Signer.Public_key, &signed.Externalized, signed.Signature) {
 		return nil
 	}
 
@@ -82,7 +85,7 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot scpapi.Slot, 
 	}
 	signed := proto.SoloSignedNomination{
 		Signer:     svc.self.Public_info,
-		Signature:  protoutil.SignXdr(svc.self.Secret_key, &nomination),
+		Signature:  protoutil.SignXdr(svc.m, svc.self.Secret_key, &nomination),
 		Nomination: nomination,
 	}
 

@@ -39,14 +39,14 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 
 	txs := []*proto.SignedTransaction{}
 	for _, tx := range b.handler.ListTxs(ctx) {
-		if !b.handler.IsCommittedTx(ctx, protoutil.HashSignedTx(tx)) {
+		if !b.handler.IsCommittedTx(ctx, protoutil.HashSignedTx(b.txM, tx)) {
 			txs = append(txs, tx)
 		}
 	}
 
 	scheduledTxs, rejectedTxs := b.handler.ScheduleTxs(ctx, txs)
 	for _, rtx := range rejectedTxs {
-		hash := protoutil.HashSignedTx(&rtx.Transaction)
+		hash := protoutil.HashSignedTx(b.txM, &rtx.Transaction)
 		b.handler.AddCommittedTx(ctx, hash) // adding to committed so they are not tried again
 		b.handler.RejectedTx(ctx, rtx)
 	}
@@ -69,7 +69,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 			// XXX: should invalid transaction be marked AddCommittedTx so they are not tried again?
 			continue
 		}
-		proposedTxHashes = append(proposedTxHashes, protoutil.HashSignedTx(propsedTx.Tx))
+		proposedTxHashes = append(proposedTxHashes, protoutil.HashSignedTx(b.txM, propsedTx.Tx))
 		proposedTxNominations = append(proposedTxNominations,
 			proto.NominatedTransaction{Nondeterministic_proposal_data: *propsedTx.Result})
 	}

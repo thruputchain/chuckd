@@ -9,11 +9,13 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type basicRouter struct {
 	discovery  *discovery.DiscoveryService
+	m          xdrutil.XdrMarshaler
 	treeFanOut int
 }
 
@@ -24,6 +26,7 @@ func NewBasicRouter(
 ) Router {
 	return &basicRouter{
 		discovery:  discovery,
+		m:          xdrutil.NewXdrMarshaler(),
 		treeFanOut: treeFanOut,
 	}
 }
@@ -47,11 +50,11 @@ func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 	treeHash MulticastTreeHash,
 ) {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
-	return buildTree(x.treeFanOut, vs, rootID, cid)
+	return buildTree(x.m, x.treeFanOut, vs, rootID, cid)
 }
 
 // Info about rootID must be available inside vs.
-func buildTree(maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID, cid ChannelID) (
+func buildTree(m xdrutil.XdrMarshaler, maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID, cid ChannelID) (
 	treeNodes MulticastTreeNodes,
 	children []ValidatorPublicInfo,
 	treeHash MulticastTreeHash,
@@ -66,10 +69,11 @@ func buildTree(maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID
 	root, vs := dedupFilterOutValidators(vs, rootID)
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
 
-	return buildRootedTree(maxFanOut, root, vs)
+	return buildRootedTree(m, maxFanOut, root, vs)
 }
 
 func buildRootedTree(
+	xm xdrutil.XdrMarshaler,
 	maxFanOut int,
 	root ValidatorPublicInfo,
 	unused []ValidatorPublicInfo,
@@ -92,13 +96,13 @@ func buildRootedTree(
 		m := divideRoundUp(len(unused), len(children))
 		for _, child := range children {
 			chop := min(m, len(unused))
-			childTreeNodes, _, childTreeHash := buildRootedTree(maxFanOut, child, unused[:chop])
+			childTreeNodes, _, childTreeHash := buildRootedTree(xm, maxFanOut, child, unused[:chop])
 			unused = unused[chop:]
 			treeNodes = append(treeNodes, childTreeNodes...)
 			treeNodes[0].Children = append(treeNodes[0].Children, childTreeHash)
 		}
 	}
-	treeHash = protoutil.MulticastTreeNodeHash(treeNodes[0])
+	treeHash = protoutil.MulticastTreeNodeHash(xm, treeNodes[0])
 
 	return treeNodes, children, treeHash
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -22,6 +23,7 @@ type SoloLeaderService struct {
 	slotDelay time.Duration
 	self      proto.ValidatorPrivateInfo
 	quorum    []proto.ValidatorPublicInfo
+	m         xdrutil.XdrMarshaler
 	lk        sync.Mutex
 	slot      map[proto.SoloSlotIndex]*slot
 }
@@ -43,6 +45,7 @@ func NewSoloLeaderService(
 		slotDelay: slotDelay,
 		self:      self,
 		quorum:    quorum,
+		m:         xdrutil.NewXdrMarshaler(),
 		slot:      map[proto.SoloSlotIndex]*slot{},
 	}
 	go svc.flush(ctx)
@@ -63,7 +66,7 @@ func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nominatio
 		nomination.Nomination.Slot_index, protoutil.VIDString(protoutil.VIDOfPublic(nomination.Signer)))
 
 	// check signatures
-	if !protoutil.VerifyXdr(nomination.Signer.Public_key, &nomination.Nomination, nomination.Signature) {
+	if !protoutil.VerifyXdr(svc.m, nomination.Signer.Public_key, &nomination.Nomination, nomination.Signature) {
 		return fmt.Errorf("bad signature")
 	}
 
@@ -101,7 +104,7 @@ func (svc *SoloLeaderService) externalize(ctx context.Context, slotIndex proto.S
 			}
 			signed := proto.SoloSignedExternalized{
 				Signer:       svc.self.Public_info,
-				Signature:    protoutil.SignXdr(svc.self.Secret_key, &externalized),
+				Signature:    protoutil.SignXdr(svc.m, svc.self.Secret_key, &externalized),
 				Externalized: externalized,
 			}
 
