@@ -9,6 +9,7 @@ EFFICIENCY
 - [ ] consider using unreliable broadcast (quic datagram) and still error correct across trees/shreds
 - [ ] send multicast tree in first relayed message (if intermediate node)
 - [ ] recycle multicast trees
+  - [ ] enable out of order delivery (after processing for validity)
 - [ ] expire/cancel backed up deliveries in queue
 
 TEST AND BENCHMARK

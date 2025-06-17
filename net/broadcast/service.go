@@ -8,13 +8,11 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
 type BroadcastService struct {
@@ -39,7 +37,6 @@ type BroadcastService struct {
 	streamingAcceptCh chan *receiving
 	bulkAcceptCh      chan *receiving
 	//
-	pool          *ants.Pool
 	msgMarshaler  xdrutil.XdrMarshaler
 	treeMarshaler xdrutil.XdrMarshaler
 }
@@ -55,13 +52,6 @@ func NewBroadcastService(
 ) *BroadcastService {
 	liblog.Infof("starting broadcast service for %s", protoutil.VPublicShortString(privInfo.Public_info))
 	m := NewBroadcastMetrics(ctx)
-	pool, err := ants.NewPool(
-		10,
-		// ants.WithOptions(
-		// 	ants.Options{},
-		// ),
-	) //XXX
-	must.NoError(ctx, err)
 	s := &BroadcastService{
 		ctx:      ctx,
 		cfg:      cfg,
@@ -82,7 +72,6 @@ func NewBroadcastService(
 		streamingAcceptCh: make(chan *receiving),
 		bulkAcceptCh:      make(chan *receiving),
 		//
-		pool:          pool,
 		msgMarshaler:  xdrutil.NewXdrMarshaler(),
 		treeMarshaler: xdrutil.NewXdrMarshaler(),
 	}
