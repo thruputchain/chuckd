@@ -1,5 +1,11 @@
 package dogwood
 
+import "context"
+
 type DogwoodService struct {
-	dialer DogwoodClientDialer
+	dialer DogwoodDialer
+	nav    *Navigator
+}
+
+func (svc *DogwoodService) Start(ctx context.Context) {
 }

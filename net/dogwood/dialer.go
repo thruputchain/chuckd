@@ -7,7 +7,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type DogwoodClientDialer interface {
+type DogwoodDialer interface {
 	Dial(context.Context, proto.ValidatorID) (DogwoodClientCloser, error)
 }
 
@@ -31,6 +31,6 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	return c, nil
 }
 
-func NewDogwoodClientDialer(net libnet.Network, resolve ResolveFn) DogwoodClientDialer {
+func NewDogwoodClientDialer(net libnet.Network, resolve ResolveFn) DogwoodDialer {
 	return dogwoodClientDialer{net: net, resolve: resolve}
 }
