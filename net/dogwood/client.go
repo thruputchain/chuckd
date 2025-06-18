@@ -10,6 +10,11 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
+type DogwoodClientCloser interface {
+	proto.Dogwood1
+	Close()
+}
+
 type DogwoodClient struct {
 	proto.Dogwood1_Client
 	driver *rpc.Driver
