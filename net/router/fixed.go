@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -42,6 +43,11 @@ func (x *FixedRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
 	return vs[:1]
+}
+
+func (x *FixedRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.LinkedTreeNode {
+	vs := protoutil.ValidatorPublicToIDs(x.validators)
+	return buildDogwoodTree(x.maxFanOut, rootID, vs)
 }
 
 func (x *FixedRouter) BuildTree(rootID ValidatorID, cid ChannelID) (

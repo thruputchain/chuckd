@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -50,4 +51,19 @@ func (x *TestRouter) BuildTree(vid ValidatorID, _ ChannelID) (MulticastTreeNodes
 		children[i] = tt.Children[i].V
 	}
 	return nodes, children, protoutil.MulticastTreeNodeHash(testM, nodes[0])
+}
+
+func (x *TestRouter) BuildDogwoodTree(vid ValidatorID) *dogwoodutil.LinkedTreeNode {
+	return TestTreeLinked(x.Trees[TestTreeKey{VID: vid}])
+}
+
+func TestTreeLinked(tt *TestTreeNode) *dogwoodutil.LinkedTreeNode {
+	l := &dogwoodutil.LinkedTreeNode{
+		Node:     protoutil.VIDOfPublic(tt.V),
+		Children: make([]*dogwoodutil.LinkedTreeNode, len(tt.Children)),
+	}
+	for i, tc := range tt.Children {
+		l.Children[i] = TestTreeLinked(tc)
+	}
+	return l
 }

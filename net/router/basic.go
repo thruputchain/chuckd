@@ -8,14 +8,15 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
+	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type basicRouter struct {
-	discovery  *discovery.DiscoveryService
 	m          xdrutil.XdrMarshaler
+	discovery  *discovery.DiscoveryService
 	treeFanOut int
 }
 
@@ -42,6 +43,34 @@ func (x *basicRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
 	return vs[:1]
+}
+
+func (x *basicRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.LinkedTreeNode {
+	vs := protoutil.SnapshotValidatorIDs(x.discovery.CachedSnapshots())
+	return buildDogwoodTree(x.treeFanOut, rootID, vs)
+}
+
+func buildDogwoodTree(fanOut int, rootID ValidatorID, vs map[proto.ValidatorID]bool) *dogwoodutil.LinkedTreeNode {
+	delete(vs, rootID)
+	root := &dogwoodutil.LinkedTreeNode{Node: rootID}
+	ch := make(chan *dogwoodutil.LinkedTreeNode, len(vs)+1)
+	ch <- root
+	for n := range ch {
+		d := min(len(vs), fanOut)
+		n.Children = make([]*dogwoodutil.LinkedTreeNode, d)
+		for i := range n.Children {
+			for id := range vs {
+				delete(vs, id)
+				n.Children[i] = &dogwoodutil.LinkedTreeNode{Node: id}
+				ch <- n.Children[i]
+				break
+			}
+		}
+		if len(vs) == 0 {
+			break
+		}
+	}
+	return root
 }
 
 func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (

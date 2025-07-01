@@ -9,9 +9,15 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// Navigator maintains a cache of routes rooted at this node that have been socialized with others,
+// and can be used for broadcasting. It also maintains a cache of trees socialized by others.
 type Navigator struct {
-	dialer  DogwoodDialer
-	ttl     time.Duration
+	// systems
+	dialer DogwoodDialer
+	// params
+	ttl time.Duration
+	cap int
+	// state
 	lk      sync.Mutex
 	reserve map[proto.DogwoodTreeHash]*dogwoodutil.LinkedTreeNode
 	cached  map[proto.DogwoodTreeHash]*dogwoodutil.LinkedTreeNode
@@ -21,10 +27,12 @@ func NewNavigator(
 	ctx context.Context,
 	dialer DogwoodDialer,
 	ttl time.Duration, // tree ttl
+	cap int, // min reserve capacity
 ) *Navigator {
 	return &Navigator{
 		dialer: dialer,
 		ttl:    ttl,
+		cap:    cap,
 	}
 }
 

@@ -32,6 +32,14 @@ func ValidatorIDEqual(vid1 proto.ValidatorID, vid2 proto.ValidatorID) bool {
 	return vid1 == vid2
 }
 
+func ValidatorPublicToIDs(vs []proto.ValidatorPublicInfo) map[proto.ValidatorID]bool {
+	ids := map[proto.ValidatorID]bool{}
+	for _, v := range vs {
+		ids[VIDOfPublic(v)] = true
+	}
+	return ids
+}
+
 // sorting
 
 type ValidatorPublicInfos []proto.ValidatorPublicInfo

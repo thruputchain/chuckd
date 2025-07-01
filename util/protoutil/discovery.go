@@ -103,3 +103,11 @@ func SnapshotValidators(known proto.KnownQuorumSets) []proto.ValidatorPublicInfo
 	}
 	return vs
 }
+
+func SnapshotValidatorIDs(known proto.KnownQuorumSets) map[proto.ValidatorID]bool {
+	vs := map[proto.ValidatorID]bool{}
+	for _, v := range known.Validator_snapshots {
+		vs[VIDOfPublic(v.Validator_snapshot.Validator)] = true
+	}
+	return vs
+}

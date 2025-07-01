@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/groundhogchain/chuckd/lib/librand"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -36,4 +38,29 @@ func TestBasic(t *testing.T) {
 	if protoutil.EncodeBase64(treeHash[:]) != "xiw065z4TuLdFmeshjXMH8yFuw7dtl4E1tyPB0qvcr8=" {
 		t.Errorf("incorrect tree")
 	}
+}
+
+func TestBasicDogwood(t *testing.T) {
+
+	ctx := context.Background()
+	rr := librand.New()
+
+	// generate validator identities
+	nv := 7
+	vs := make([]ValidatorPublicInfo, nv)
+	for i := range vs {
+		vs[i] = protoutil.MustGenerateIdentity(ctx, rr, strconv.Itoa(i)).Public_info
+	}
+
+	maxFanOut := 3
+	tree := buildDogwoodTree(
+		maxFanOut,
+		protoutil.VIDOfPublic(vs[0]),
+		protoutil.ValidatorPublicToIDs(vs[1:]),
+	)
+
+	must.Assert(ctx, len(tree.Children) == 3)
+	must.Assert(ctx, len(tree.Children[0].Children) == 3)
+	must.Assert(ctx, len(tree.Children[1].Children) == 0)
+	must.Assert(ctx, len(tree.Children[2].Children) == 0)
 }
