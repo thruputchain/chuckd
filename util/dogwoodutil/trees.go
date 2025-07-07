@@ -48,6 +48,10 @@ func (l *LinkedTreeNode) FindChildren(v proto.ValidatorID) ([]proto.ValidatorID,
 	return nil, false
 }
 
+func TreeHash(m xdrutil.XdrMarshaler, t *LinkedTreeNode) proto.DogwoodTreeHash {
+	return TreeNodeHash(m, t.TreeNodes(m)[0])
+}
+
 func TreeNodeHash(m xdrutil.XdrMarshaler, treeNode proto.DogwoodTreeNode) proto.DogwoodTreeHash {
 	return sha256.Sum256(m.MarshalXdr(&treeNode))
 }

@@ -13,13 +13,6 @@ RPC OPTIMIZATIONS
   - [ ] cache misses? hog_miss = 13%
 
 
-
-
-
-
-- [ ] reuse broadcast trees (because each tree used for one bag ~200KB)
-
-
 ROADMAP
 
 - [ ] sign over payload to bind source and payload (prevent replay)
