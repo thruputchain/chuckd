@@ -145,11 +145,15 @@ func (x *endpoint) Start(ctx context.Context) {
 		}
 	}()
 
+	eq := make(chan error)
+
 	// drain rq and dq
 	defer func() {
 		for range x.dq {
 		}
 		for range x.rq {
+		}
+		for range eq {
 		}
 	}()
 
@@ -160,20 +164,27 @@ func (x *endpoint) Start(ctx context.Context) {
 			return
 		case <-ctx.Done():
 			return
+		case <-eq:
+			c, _ = x.dial(ctx)
 		case rcall := <-x.rq:
-			// XXX: make client calls non-blocking
-			err := c.Dogwood_route(ctx, rcall.arg)
-			if err != nil {
-				liblog.Errorf("calling route on endpoint %v: %v", form.Display(x.addr), err)
-				c, _ = x.dial(ctx)
-			}
+			// XXX: support discard-reply semantics in goxdr driver
+			go func() {
+				err := c.Dogwood_route(ctx, rcall.arg)
+				if err != nil {
+					liblog.Errorf("calling route on endpoint %v: %v", form.Display(x.addr), err)
+					eq <- err
+				}
+			}()
 		case dcall := <-x.dq:
 			for _, arg := range dcall.args {
-				err := c.Dogwood_deliver(ctx, arg)
-				if err != nil {
-					liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
-					c, _ = x.dial(ctx)
-				}
+				// XXX: support discard-reply semantics in goxdr driver
+				go func() {
+					err := c.Dogwood_deliver(ctx, arg)
+					if err != nil {
+						liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
+						eq <- err
+					}
+				}()
 			}
 		}
 	}
