@@ -10,10 +10,6 @@ func (x *DogwoodService) Dogwood_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *DogwoodService) Dogwood_route(ctx context.Context, env proto.DogwoodRouteEnvelope) error {
-	panic("XXX")
-}
-
 func (x *DogwoodService) Dogwood_deliver(ctx context.Context, env proto.DogwoodDeliveryEnvelope) error {
 	panic("XXX")
 }

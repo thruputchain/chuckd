@@ -13,8 +13,7 @@ import (
 )
 
 type Caller interface {
-	DogwoodRoute(context.Context, proto.ValidatorID, proto.DogwoodRouteEnvelope) error
-	DogwoodDeliver(context.Context, proto.ValidatorID, []proto.DogwoodDeliveryEnvelope) error
+	DogwoodDeliver(context.Context, proto.ValidatorID, proto.DogwoodDeliveryEnvelope) error
 }
 
 type caller struct {
@@ -37,19 +36,13 @@ type endpoint struct {
 	dialer    DogwoodDialer
 	redialTTL time.Duration
 	stop      chan struct{}
-	rq        chan routeCall
 	dq        chan deliverCall
 	failed    *time.Time // accessed synchronously in Start
 }
 
-type routeCall struct {
-	stamp time.Time
-	arg   proto.DogwoodRouteEnvelope
-}
-
 type deliverCall struct {
 	stamp time.Time
-	args  []proto.DogwoodDeliveryEnvelope
+	arg   proto.DogwoodDeliveryEnvelope
 }
 
 // caller
@@ -107,12 +100,8 @@ func (x *caller) getEndpoint(addr proto.ValidatorID) *endpoint {
 	return e
 }
 
-func (x *caller) DogwoodRoute(ctx context.Context, addr proto.ValidatorID, arg proto.DogwoodRouteEnvelope) error {
-	return x.getEndpoint(addr).DogwoodRoute(ctx, arg)
-}
-
-func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, args []proto.DogwoodDeliveryEnvelope) error {
-	return x.getEndpoint(addr).DogwoodDeliver(ctx, args)
+func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, arg proto.DogwoodDeliveryEnvelope) error {
+	return x.getEndpoint(addr).DogwoodDeliver(ctx, arg)
 }
 
 // endpoint
@@ -124,7 +113,6 @@ func (x *caller) newEndpoint(addr proto.ValidatorID) *endpoint {
 		time:      x.time,
 		dialer:    x.dialer,
 		redialTTL: x.redialTTL,
-		rq:        make(chan routeCall, x.queueSize),
 		dq:        make(chan deliverCall, x.queueSize),
 		stop:      make(chan struct{}),
 	}
@@ -151,8 +139,6 @@ func (x *endpoint) Start(ctx context.Context) {
 	defer func() {
 		for range x.dq {
 		}
-		for range x.rq {
-		}
 		for range eq {
 		}
 	}()
@@ -166,26 +152,15 @@ func (x *endpoint) Start(ctx context.Context) {
 			return
 		case <-eq:
 			c, _ = x.dial(ctx)
-		case rcall := <-x.rq:
+		case dcall := <-x.dq:
 			// XXX: support discard-reply semantics in goxdr driver
 			go func() {
-				err := c.Dogwood_route(ctx, rcall.arg)
+				err := c.Dogwood_deliver(ctx, dcall.arg)
 				if err != nil {
-					liblog.Errorf("calling route on endpoint %v: %v", form.Display(x.addr), err)
+					liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
 					eq <- err
 				}
 			}()
-		case dcall := <-x.dq:
-			for _, arg := range dcall.args {
-				// XXX: support discard-reply semantics in goxdr driver
-				go func() {
-					err := c.Dogwood_deliver(ctx, arg)
-					if err != nil {
-						liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
-						eq <- err
-					}
-				}()
-			}
 		}
 	}
 }
@@ -205,12 +180,7 @@ func (x *endpoint) dial(ctx context.Context) (DogwoodClientCloser, error) {
 	return c, nil
 }
 
-func (x *endpoint) DogwoodRoute(ctx context.Context, arg proto.DogwoodRouteEnvelope) error {
-	x.rq <- routeCall{stamp: x.time.Now(), arg: arg}
-	return nil
-}
-
-func (x *endpoint) DogwoodDeliver(ctx context.Context, args []proto.DogwoodDeliveryEnvelope) error {
-	x.dq <- deliverCall{stamp: x.time.Now(), args: args}
+func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
+	x.dq <- deliverCall{stamp: x.time.Now(), arg: arg}
 	return nil
 }
