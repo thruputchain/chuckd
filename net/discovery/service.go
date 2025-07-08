@@ -19,6 +19,7 @@ type DiscoveryService struct {
 	privInfo      proto.ValidatorPrivateInfo
 	ourQSet       proto.QuorumSet
 	ourValidators []proto.ValidatorPublicInfo
+	ourVIDs       map[proto.ValidatorID]proto.ValidatorPublicInfo
 	//
 	lk         sync.Mutex
 	knownQSets map[proto.ValidatorID]proto.SignedQuorumSetSnapshot
@@ -51,12 +52,27 @@ func NewDiscoveryService(
 		m:             xdrutil.NewXdrMarshaler(),
 	}
 
+	s.ourVIDs = map[proto.ValidatorID]proto.ValidatorPublicInfo{}
+	s.ourVIDs[s.SelfID()] = s.Self()
+	for _, v := range s.ourValidators {
+		s.ourVIDs[protoutil.VIDOfPublic(v)] = v
+	}
+
 	go s.advertise(ctx)
 	return s
 }
 
 func (s *DiscoveryService) Self() proto.ValidatorPublicInfo {
 	return s.privInfo.Public_info
+}
+
+func (s *DiscoveryService) SelfID() proto.ValidatorID {
+	return protoutil.VIDOfPublic(s.Self())
+}
+
+func (s *DiscoveryService) LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
+	v, ok := s.ourVIDs[vid]
+	return v, ok
 }
 
 func (s *DiscoveryService) Discovery_null(ctx context.Context) error {
