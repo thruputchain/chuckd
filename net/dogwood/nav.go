@@ -112,6 +112,7 @@ func (nav *Navigator) LookupRoute(ctx context.Context, h proto.DogwoodTreeHash) 
 	return NavRoute{}, fmt.Errorf("route not found")
 }
 
+// XXX: return non-overlapping routes across multiple invokations of GetRoute(1)
 func (nav *Navigator) GetRoutes(ctx context.Context, n int) ([]NavRoute, error) {
 
 	nav.lk.Lock()

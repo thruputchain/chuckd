@@ -62,6 +62,10 @@ func NewDiscoveryService(
 	return s
 }
 
+func (s *DiscoveryService) SecretKey() proto.ValidatorSecretKey {
+	return s.privInfo.Secret_key
+}
+
 func (s *DiscoveryService) Self() proto.ValidatorPublicInfo {
 	return s.privInfo.Public_info
 }

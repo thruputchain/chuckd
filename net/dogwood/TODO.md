@@ -1,4 +1,5 @@
 
+[ ] protoutil sign over hash?
 
 [ ] worker pool for ingesting deliveries (signature verification and decoding)
     [ ] config parameter for pool size

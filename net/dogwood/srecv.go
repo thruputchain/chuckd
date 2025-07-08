@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/panjf2000/ants/v2"
@@ -31,7 +32,7 @@ type StreamReceiver struct {
 type ReceiveStream struct {
 	parent *StreamReceiver
 	stream proto.DogwoodStream
-	route  NavRoute
+	nav    NavRoute
 	pkgQ   chan *proto.DogwoodPackage
 }
 
@@ -41,9 +42,9 @@ func NewStreamReceiver(
 	nav *Navigator,
 	caller Caller,
 	receiveQueueSize int,
-	verifyPoolSize int,
+	poolSize int,
 ) *StreamReceiver {
-	wp, err := ants.NewPool(verifyPoolSize)
+	wp, err := ants.NewPool(poolSize)
 	must.NoError(ctx, err)
 	return &StreamReceiver{
 		discovery: discovery,
@@ -106,7 +107,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	// verify signature, if coming from a trusted validator
 	// XXX: what should we do with signatures from non-direct contact validators?
 	if v, ok := r.discovery.LookupTrustedValidator(env.Delivery.Stream.Source_id); ok {
-		if !dogwoodutil.VerifyDelivery(r.m, env, v.Public_key) {
+		if !protoutil.VerifyXdr(r.m, v.Public_key, &env.Delivery, env.Signature) {
 			return
 		}
 	}
@@ -135,9 +136,17 @@ func (r *StreamReceiver) newReceivingStream(
 	return &ReceiveStream{
 		parent: r,
 		stream: stream,
-		route:  route,
+		nav:    route,
 		pkgQ:   make(chan *proto.DogwoodPackage),
 	}
+}
+
+func (s *ReceiveStream) Close() {
+
+	s.parent.lk.Lock()
+	defer s.parent.lk.Unlock()
+
+	delete(s.parent.stream, s.stream)
 }
 
 func (s *ReceiveStream) Stream() proto.DogwoodStream {
@@ -157,7 +166,7 @@ func (s *ReceiveStream) process(ctx context.Context, env proto.DogwoodDeliveryEn
 
 	s.pkgQ <- &env.Delivery.Pkg
 
-	for _, d := range s.route.Downstream {
+	for _, d := range s.nav.Downstream {
 		s.parent.caller.DogwoodDeliver(ctx, d, env)
 	}
 }
