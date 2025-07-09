@@ -20,59 +20,59 @@ func (x Range) Len() int {
 	return x.To - x.From
 }
 
-type Place struct {
+type BallsToBins struct {
 	NumBalls    int
 	NumBins     int
 	BallsPerBin int
 }
 
-func PlaceTight(nballs int, nbins int) Place {
-	return Place{NumBalls: nballs, NumBins: nbins, BallsPerBin: divideRoundUp(nballs, nbins)}
+func MkBallsToBins(nballs int, nbins int) BallsToBins {
+	return BallsToBins{NumBalls: nballs, NumBins: nbins, BallsPerBin: divideRoundUp(nballs, nbins)}
 }
 
-func (x Place) Range(binIndex int) Range { // ball range
+func (x BallsToBins) Range(binIndex int) Range { // ball range
 	return R(
 		min(binIndex*x.BallsPerBin, x.NumBalls),
 		min((binIndex+1)*x.BallsPerBin, x.NumBalls),
 	)
 }
 
-type ShardChunk struct {
+type BytesToSheafChunks struct {
 	NumBytes       int
-	NumShards      int
-	ChunksPerShard int
-	BytesPerShard  int
+	NumSheaves     int
+	ChunksPerSheaf int
+	BytesPerSheaf  int
 	BytesPerChunk  int
 }
 
-func ShardChunkTight(nbytes, nshards, maxBytesPerChunk int) ShardChunk {
+func MkBytesToSheafChunks(nbytes, nsheaves, maxBytesPerChunk int) BytesToSheafChunks {
 
-	bytesPerShard := divideRoundUp(nbytes, nshards)
-	chunksPerShard := divideRoundUp(bytesPerShard, maxBytesPerChunk)
-	bytesPerChunk := divideRoundUp(bytesPerShard, chunksPerShard)
+	bytesPerSheaf := divideRoundUp(nbytes, nsheaves)
+	chunksPerSheaf := divideRoundUp(bytesPerSheaf, maxBytesPerChunk)
+	bytesPerChunk := divideRoundUp(bytesPerSheaf, chunksPerSheaf)
 
-	return ShardChunk{
+	return BytesToSheafChunks{
 		NumBytes:       nbytes,
-		NumShards:      nshards,
-		ChunksPerShard: chunksPerShard,
-		BytesPerShard:  bytesPerShard,
+		NumSheaves:     nsheaves,
+		ChunksPerSheaf: chunksPerSheaf,
+		BytesPerSheaf:  bytesPerSheaf,
 		BytesPerChunk:  bytesPerChunk,
 	}
 }
 
-func (x ShardChunk) Range(shardIndex int, chunkIndex int) Range { // byte range
+func (x BytesToSheafChunks) Range(sheafIndex int, chunkIndex int) Range { // byte range
 
-	bytesToShards := Place{NumBalls: x.NumBytes, NumBins: x.NumShards, BallsPerBin: x.BytesPerShard}
-	shardIntoBytes := bytesToShards.Range(shardIndex)
+	bytesToSheaves := BallsToBins{NumBalls: x.NumBytes, NumBins: x.NumSheaves, BallsPerBin: x.BytesPerSheaf}
+	sheafIntoBytes := bytesToSheaves.Range(sheafIndex)
 
-	shardBytesToChunks := Place{
-		NumBalls:    shardIntoBytes.Len(),
-		NumBins:     x.ChunksPerShard,
+	sheafBytesToChunks := BallsToBins{
+		NumBalls:    sheafIntoBytes.Len(),
+		NumBins:     x.ChunksPerSheaf,
 		BallsPerBin: x.BytesPerChunk,
 	}
-	chunkIntoShard := shardBytesToChunks.Range(chunkIndex)
+	chunkIntoSheaf := sheafBytesToChunks.Range(chunkIndex)
 
-	return shardIntoBytes.Subrange(chunkIntoShard)
+	return sheafIntoBytes.Subrange(chunkIntoSheaf)
 }
 
 func divideRoundUp(dividend, divisor int) int {

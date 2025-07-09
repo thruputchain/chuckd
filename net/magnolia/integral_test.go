@@ -17,14 +17,14 @@ func TestPour(t *testing.T) {
 }
 
 var testPour = []struct {
-	Place
+	BallsToBins
 	Bins []Range
 }{
-	{PlaceTight(0, 2), []Range{{0, 0}, {0, 0}}},
-	{PlaceTight(1, 3), []Range{{0, 1}, {1, 1}, {1, 1}}},
-	{PlaceTight(2, 1), []Range{{0, 2}}},
-	{PlaceTight(3, 2), []Range{{0, 2}, {2, 3}}},
-	{PlaceTight(4, 2), []Range{{0, 2}, {2, 4}}},
-	{PlaceTight(5, 2), []Range{{0, 3}, {3, 5}}},
-	{PlaceTight(5, 3), []Range{{0, 2}, {2, 4}, {4, 5}}},
+	{MkBallsToBins(0, 2), []Range{{0, 0}, {0, 0}}},
+	{MkBallsToBins(1, 3), []Range{{0, 1}, {1, 1}, {1, 1}}},
+	{MkBallsToBins(2, 1), []Range{{0, 2}}},
+	{MkBallsToBins(3, 2), []Range{{0, 2}, {2, 3}}},
+	{MkBallsToBins(4, 2), []Range{{0, 2}, {2, 4}}},
+	{MkBallsToBins(5, 2), []Range{{0, 3}, {3, 5}}},
+	{MkBallsToBins(5, 3), []Range{{0, 2}, {2, 4}, {4, 5}}},
 }
