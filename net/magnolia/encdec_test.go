@@ -26,21 +26,21 @@ func TestEncDec(t *testing.T) {
 
 		// decode
 		dec := NewDecoder(ctx, v.NPaySheaves, v.NParitySheaves, v.MaxBytesPerChunk)
-		ing := dec.StartDecoding(v.NBytes)
+		ding := dec.StartDecoding(v.NBytes)
 
 		// erase some sheaves
 		for s := v.NParitySheaves; s < v.NPaySheaves+v.NParitySheaves; s++ {
 			for c := range cs {
-				ing.Place(s, c, cs[c][s])
+				ding.Place(s, c, cs[c][s])
 			}
 		}
 
-		repay, err := ing.Decode()
+		repay, err := ding.Decode()
 		if err != nil {
 			t.Error(err)
 		}
 
-		if bytes.Compare(pay, repay) != 0 {
+		if !bytes.Equal(pay, repay) {
 			t.Errorf("corrupt reconstructed payload")
 		}
 

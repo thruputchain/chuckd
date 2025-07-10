@@ -39,5 +39,5 @@ func (x *Counter) Average() float64 {
 func (x *Counter) SpeedPerSec() float64 {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	return x.sum / time.Now().Sub(x.start).Seconds()
+	return x.sum / time.Since(x.start).Seconds()
 }
