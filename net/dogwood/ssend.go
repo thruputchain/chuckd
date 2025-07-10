@@ -57,6 +57,14 @@ func NewStreamSender(
 	}
 }
 
+func (x *StreamSender) DialOptRoute(ctx context.Context, optRoute *dogwoodutil.LinkedTreeNode) (*SendStream, error) {
+	if optRoute == nil {
+		return x.Dial(ctx)
+	} else {
+		return x.DialRoute(ctx, optRoute)
+	}
+}
+
 func (x *StreamSender) DialRoute(ctx context.Context, t *dogwoodutil.LinkedTreeNode) (*SendStream, error) {
 
 	downstream, _ := t.FindChildren(x.discovery.SelfID())
@@ -89,7 +97,7 @@ func (x *StreamSender) DialRoute(ctx context.Context, t *dogwoodutil.LinkedTreeN
 
 func (x *StreamSender) Dial(ctx context.Context) (*SendStream, error) {
 
-	nav, err := x.nav.GetRoutes(ctx, 1)
+	nav, err := x.nav.GetRoute(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -100,11 +108,11 @@ func (x *StreamSender) Dial(ctx context.Context) (*SendStream, error) {
 	}
 
 	route := proto.DogwoodRoute{
-		Route_hash:  &nav[0].Hash,
+		Route_hash:  &nav.Hash,
 		Route_nodes: nil,
 	}
 
-	ss := x.newSendStream(ctx, stream, route, nav[0])
+	ss := x.newSendStream(ctx, stream, route, nav)
 
 	x.lk.Lock()
 	defer x.lk.Unlock()

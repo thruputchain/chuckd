@@ -33,6 +33,22 @@ func NewEncoder(
 	}
 }
 
+func (x *Encoder) NumSheaves() int {
+	return x.numPaySheaves + x.numParitySheaves
+}
+
+func (x *Encoder) NumPaySheaves() int {
+	return x.numPaySheaves
+}
+
+func (x *Encoder) NumParitySheaves() int {
+	return x.numParitySheaves
+}
+
+func (x *Encoder) MaxBytesPerChunk() int {
+	return x.maxBytesPerChunk
+}
+
 func (x *Encoder) Encode(pay []byte) ChunkSheaf {
 
 	place := MkBytesToSheafChunks(len(pay), x.numPaySheaves, x.maxBytesPerChunk)

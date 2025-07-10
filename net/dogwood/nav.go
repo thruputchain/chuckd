@@ -81,6 +81,19 @@ type NavRoute struct {
 	Downstream []proto.ValidatorID   // downstream validators on route
 }
 
+// GenRoute builds a new route, which is not cached and not disseminated
+func (nav *Navigator) GenRoute(ctx context.Context) *dogwoodutil.LinkedTreeNode {
+
+	r := nav.router.BuildDogwoodTree(nav.self)
+
+	nav.lk.Lock()
+	h := dogwoodutil.TreeHash(nav.marshaler, r)
+	nav.ours[h] = &stampedRoute{Stamp: nav.time.Now(), Tree: r}
+	nav.lk.Unlock()
+
+	return r
+}
+
 func (nav *Navigator) CacheRoute(ctx context.Context, t *dogwoodutil.LinkedTreeNode) {
 
 	nav.lk.Lock()
@@ -113,32 +126,23 @@ func (nav *Navigator) LookupRoute(ctx context.Context, h proto.DogwoodTreeHash) 
 }
 
 // XXX: return non-overlapping routes across multiple invokations of GetRoute(1)
-func (nav *Navigator) GetRoutes(ctx context.Context, n int) ([]NavRoute, error) {
+func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 
 	nav.lk.Lock()
 	defer nav.lk.Unlock()
 
 	now := nav.time.Now()
-	routes := []NavRoute{}
-	for h, sr := range nav.ours { // ranging over a map randomizes the route choices
-		if len(routes) >= n {
-			break
-		}
-		// filter routes that are too old (use routes no older than stamp+ttLive)
+	for h, sr := range nav.ours { // ranging over a map randomizes the route choice
+		// skip routes that are too old (use routes no older than stamp+ttLive)
 		if now.Sub(sr.Stamp) > nav.ttLive {
 			continue
 		}
 		downstream, ok := sr.Tree.FindChildren(nav.self)
 		must.Assert(ctx, ok)
-		r := NavRoute{Hash: h, Downstream: downstream}
-		routes = append(routes, r)
+		return NavRoute{Hash: h, Downstream: downstream}, nil
 	}
 
-	if n > 0 && len(routes) == 0 {
-		return nil, fmt.Errorf("no available routes")
-	}
-
-	return routes, nil
+	return NavRoute{}, fmt.Errorf("no available routes")
 }
 
 func (nav *Navigator) refill(_ context.Context) {

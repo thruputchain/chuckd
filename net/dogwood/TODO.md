@@ -1,4 +1,7 @@
 
+[ ] understand how many cores reedsolomon uses
+[ ] shuffle code chunks
+
 [ ] protoutil sign over hash of message (vs over message)?
 
 [ ] worker pool for ingesting deliveries (signature verification and decoding)

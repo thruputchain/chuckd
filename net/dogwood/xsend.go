@@ -5,49 +5,52 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/panjf2000/ants/v2"
 )
 
-// XXX: GetRoutes must return the requested number of routes, even when fewer available!
-
 type TransmissionSender struct {
-	cfg  proto.TransmissionConfig
-	m    xdrutil.XdrMarshaler
-	wp   *ants.Pool
-	enc  *EncoderPool
-	bulk BulkSender
-	rlk  sync.Mutex
-	rand *rand.Rand
+	cfg      proto.TransmissionConfig
+	nav      *Navigator
+	sender   *StreamSender
+	m        xdrutil.XdrMarshaler
+	workPool *ants.Pool
+	encPool  *MagnoliaEncoderPool
+	rlk      sync.Mutex
+	rand     *rand.Rand
 }
 
 func NewTransmissionSender(
 	ctx context.Context,
 	cfg proto.TransmissionConfig,
+	nav *Navigator,
+	sender *StreamSender,
 	rand *rand.Rand,
-	bulk BulkSender,
 	numWorkers int,
 ) *TransmissionSender {
 	wp, err := ants.NewPool(numWorkers)
 	must.NoError(ctx, err)
 	return &TransmissionSender{
-		cfg:  cfg,
-		rand: rand,
-		m:    xdrutil.NewXdrMarshaler(),
-		wp:   wp,
-		enc:  NewEncoderPool(ctx, int(cfg.Num_payload_sheaves), int(cfg.Num_parity_sheaves)),
-		bulk: bulk,
+		cfg:      cfg,
+		nav:      nav,
+		sender:   sender,
+		rand:     rand,
+		m:        xdrutil.NewXdrMarshaler(),
+		workPool: wp,
+		encPool: NewMagnoliaEncoderPool(
+			ctx,
+			int(cfg.Num_payload_sheaves),
+			int(cfg.Num_parity_sheaves),
+			int(cfg.Max_chunk_bytes),
+		),
 	}
 }
 
-func (x *TransmissionSender) Send(ctx context.Context, bulk []byte) {
-	x.wp.Submit(
-		func() {
-			x.send(ctx, bulk)
-		},
-	)
+func (x *TransmissionSender) Send(ctx context.Context, pay []byte, genRoute bool) {
+	x.workPool.Submit(func() { x.send(ctx, pay, genRoute) })
 }
 
 func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
@@ -56,11 +59,62 @@ func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
 	return x.rand.Int63()
 }
 
-type chunk = []byte
+func (x *TransmissionSender) send(ctx context.Context, pay []byte, genRoute bool) {
 
-func (x *TransmissionSender) send(ctx context.Context, bulk []byte) (proto.SpectraTransmissionID, error) {
+	must.Assert(ctx, len(pay) > 0)
 
-	must.Assertf(ctx, len(bulk) > 0, "spectra empty payload")
+	enc := x.encPool.Get()
+	defer x.encPool.Recycle(enc)
 
-	panic("XXX")
+	cs := enc.Encode(pay)
+
+	// header
+	transmission := proto.DogwoodTransmission{
+		Transmission_id:     x.genID(),
+		Num_payload_bytes:   proto.DogwoodInt64(len(pay)),
+		Num_payload_sheaves: proto.DogwoodInt32(enc.NumPaySheaves()),
+		Num_parity_sheaves:  proto.DogwoodInt32(enc.NumParitySheaves()),
+		Max_bytes_per_chunk: proto.DogwoodInt32(enc.MaxBytesPerChunk()),
+		Shuffle_seed:        0, // XXX: DogwoodInt32, shuffle not implemented
+	}
+
+	// open streams
+	var err error
+	stream := make([]*SendStream, enc.NumSheaves())
+
+	ndialed := 0
+	for s := 0; s < enc.NumSheaves(); s++ {
+		if genRoute {
+			stream[s], err = x.sender.DialRoute(ctx, x.nav.GenRoute(ctx))
+		} else {
+			stream[s], err = x.sender.Dial(ctx)
+		}
+		if err != nil {
+			liblog.Errorf("transmission %d, sheaf %d, stream not created: %v",
+				transmission.Transmission_id, s, err)
+		}
+		ndialed += 1
+	}
+
+	// check that enough streams opened for recovery
+	if ndialed < enc.NumPaySheaves() {
+		liblog.Errorf("dropping transmission %d, not enough streams, have %d, need %d",
+			transmission.Transmission_id, ndialed, enc.NumPaySheaves())
+		return
+	}
+
+	// send round robin
+	for c := range cs {
+		for s := range cs[c] {
+			pkg := proto.DogwoodPackage{
+				Transmission: transmission,
+				Chunk: proto.DogwoodChunk{
+					Sheaf_index: proto.DogwoodInt32(s),
+					Chunk_index: proto.DogwoodInt32(c),
+					Chunk:       cs[c][s],
+				},
+			}
+			stream[s].Send(ctx, &pkg)
+		}
+	}
 }
