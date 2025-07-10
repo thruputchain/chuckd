@@ -47,12 +47,15 @@ func (x *Encoder) Encode(pay []byte) ChunkSheaf {
 			case r.Len() == place.BytesPerChunk:
 				cs[c][s] = pay[r.From:r.To]
 			case r.Len() < place.BytesPerChunk: // padding
-				b := make([]byte, place.BytesPerChunk)
+				b := make(Block, place.BytesPerChunk)
 				copy(b[:r.Len()], pay[r.From:r.To])
 				cs[c][s] = b
 			default:
 				panic("bug")
 			}
+		}
+		for s := x.numPaySheaves; s < x.numPaySheaves+x.numParitySheaves; s++ {
+			cs[c][s] = make(Block, place.BytesPerChunk) // XXX: can be optimized to one alloc
 		}
 		// encode parity sheaves
 		err := x.enc.Encode(cs[c])
