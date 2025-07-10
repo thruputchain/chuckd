@@ -1,6 +1,7 @@
 
 [ ] understand how many cores reedsolomon uses
 [ ] shuffle code chunks
+[ ] vary code parameters based on message size
 
 [ ] protoutil sign over hash of message (vs over message)?
 

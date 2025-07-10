@@ -7,7 +7,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/panjf2000/ants/v2"
 )
@@ -16,7 +15,6 @@ type TransmissionSender struct {
 	cfg      proto.TransmissionConfig
 	nav      *Navigator
 	sender   *StreamSender
-	m        xdrutil.XdrMarshaler
 	workPool *ants.Pool
 	encPool  *MagnoliaEncoderPool
 	rlk      sync.Mutex
@@ -38,7 +36,6 @@ func NewTransmissionSender(
 		nav:      nav,
 		sender:   sender,
 		rand:     rand,
-		m:        xdrutil.NewXdrMarshaler(),
 		workPool: wp,
 		encPool: NewMagnoliaEncoderPool(
 			ctx,

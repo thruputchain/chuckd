@@ -40,14 +40,9 @@ func (x *Decoder) StartDecoding(numPayBytes int) *Decoding {
 	cs := make(ChunkSheaf, place.ChunksPerSheaf)
 	for c := range cs {
 		cs[c] = make(Sheaf, x.numPaySheaves+x.numParitySheaves)
-		// don't allocate chunks
 	}
 
-	return &Decoding{
-		dec:   x,
-		place: place,
-		cs:    cs,
-	}
+	return &Decoding{dec: x, place: place, cs: cs}
 }
 
 type Decoding struct {

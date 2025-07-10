@@ -39,6 +39,36 @@ func (x *MagnoliaEncoderPool) Recycle(v *magnolia.Encoder) {
 	x.pool.Put(v)
 }
 
+type MagnoliaDecoderPool struct {
+	pool sync.Pool
+}
+
+func NewMagnoliaDecoderPool(
+	ctx context.Context,
+	nPaySheaves int,
+	nParitySheaves int,
+	maxBytesPerChunk int,
+) *MagnoliaDecoderPool {
+	x := &MagnoliaDecoderPool{}
+	x.pool.New = func() any {
+		return magnolia.NewDecoder(
+			ctx,
+			nPaySheaves,
+			nParitySheaves,
+			maxBytesPerChunk,
+		)
+	}
+	return x
+}
+
+func (x *MagnoliaDecoderPool) Get() *magnolia.Decoder {
+	return x.pool.Get().(*magnolia.Decoder)
+}
+
+func (x *MagnoliaDecoderPool) Recycle(v *magnolia.Decoder) {
+	x.pool.Put(v)
+}
+
 type RSEncoderPool struct {
 	pool sync.Pool
 }
