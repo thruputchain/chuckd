@@ -34,7 +34,7 @@ var testBallsIntoBins = []struct {
 func TestPlace(t *testing.T) {
 	for i, v := range testPlace {
 
-		got := MkBytesToSheafChunks(v.NBytes, v.NSheaves, v.NBytesPerChunk)
+		got := MkBytesToSheafChunks(v.NBytes, v.NSheaves, v.MaxBytesPerChunk)
 		if got != v.Place {
 			t.Errorf("test %d, expecting %v, got %v", i, form.Display(v.Place), form.Display(got))
 		}
@@ -52,25 +52,58 @@ func TestPlace(t *testing.T) {
 }
 
 var testPlace = []struct {
-	NBytes         int
-	NSheaves       int
-	NBytesPerChunk int
-	Place          BytesToSheafChunks
-	R              [][]Range // sheaf, chunk
+	NBytes           int
+	NSheaves         int
+	MaxBytesPerChunk int
+	Place            BytesToSheafChunks
+	R                [][]Range // sheaf, chunk
 }{
 	{
 		NBytes: 11, NSheaves: 2,
-		NBytesPerChunk: 4,
+		MaxBytesPerChunk: 4,
 		Place: BytesToSheafChunks{
 			NumBytes:       11,
 			NumSheaves:     2,
-			ChunksPerSheaf: 2,
 			BytesPerSheaf:  6,
+			ChunksPerSheaf: 2,
 			BytesPerChunk:  3,
 		},
 		R: [][]Range{
 			{{0, 3}, {3, 6}},  // sheaf 0, bytes [0:6]
 			{{6, 9}, {9, 11}}, // sheaf 1, bytes [6:11]
+		},
+	},
+	{
+		NBytes: 11, NSheaves: 2,
+		MaxBytesPerChunk: 7,
+		Place: BytesToSheafChunks{
+			NumBytes:       11,
+			NumSheaves:     2,
+			BytesPerSheaf:  6,
+			ChunksPerSheaf: 1,
+			BytesPerChunk:  6,
+		},
+		R: [][]Range{
+			{{0, 6}},
+			{{6, 11}},
+		},
+	},
+	// #sheaves > #bytes
+	{
+		NBytes: 3, NSheaves: 4,
+		MaxBytesPerChunk: 2,
+		Place: BytesToSheafChunks{
+			NumBytes:       3,
+			NumSheaves:     4,
+			BytesPerSheaf:  1,
+			ChunksPerSheaf: 1,
+			BytesPerChunk:  1,
+		},
+		R: [][]Range{
+			{{0, 1}},
+			{{1, 2}},
+			{{2, 3}},
+			{{3, 3}},
 		},
 	},
 }
