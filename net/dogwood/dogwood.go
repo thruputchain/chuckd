@@ -7,9 +7,15 @@ import (
 )
 
 type DogwoodService struct {
-	router router.DogwoodRouter
-	dialer DogwoodDialer
-	nav    *Navigator
+	router         router.DogwoodRouter
+	dialer         DogwoodDialer
+	nav            *Navigator
+	caller         Caller
+	streamReceiver *StreamReceiver
+	streamSender   *StreamSender
+	xReceiver      *TransmissionReceiver
+	xSender        *TransmissionSender
+	mplex          *Multiplex
 }
 
 func NewDogwoodService(
@@ -24,6 +30,6 @@ func NewDogwoodService(
 	}
 }
 
-func (svc *DogwoodService) Start(ctx context.Context) {
+func (x *DogwoodService) Start(ctx context.Context) {
 	// XXX
 }

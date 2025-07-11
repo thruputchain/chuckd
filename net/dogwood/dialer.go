@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/net/router"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -14,13 +15,13 @@ type DogwoodDialer interface {
 type ResolveFn func(proto.ValidatorID) (string, error)
 
 type dogwoodClientDialer struct {
-	net     libnet.Network
-	resolve ResolveFn
+	net    libnet.Network
+	router router.DogwoodRouter
 }
 
 func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (DogwoodClientCloser, error) {
 
-	addr, err := x.resolve(vid)
+	addr, err := x.router.ResolveAddress(vid)
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +32,6 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	return c, nil
 }
 
-func NewDogwoodClientDialer(net libnet.Network, resolve ResolveFn) DogwoodDialer {
-	return dogwoodClientDialer{net: net, resolve: resolve}
+func NewDogwoodClientDialer(net libnet.Network, router router.DogwoodRouter) DogwoodDialer {
+	return dogwoodClientDialer{net: net, router: router}
 }

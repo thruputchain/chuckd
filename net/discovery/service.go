@@ -74,6 +74,10 @@ func (s *DiscoveryService) SelfID() proto.ValidatorID {
 	return protoutil.VIDOfPublic(s.Self())
 }
 
+func (s *DiscoveryService) LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
+	panic("XXX")
+}
+
 func (s *DiscoveryService) LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
 	v, ok := s.ourVIDs[vid]
 	return v, ok
@@ -142,7 +146,7 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 	defer s.cachedLk.Unlock()
 
 	// don't rebuild snapshots more frequently than once every 10 seconds
-	if time.Now().Sub(s.cachedStamp) < time.Duration(s.cfg.Snapshot_ttl_msec)*time.Millisecond {
+	if time.Since(s.cachedStamp) < time.Duration(s.cfg.Snapshot_ttl_msec)*time.Millisecond {
 		return proto.KnownQuorumSets{
 			Quorum_set_snapshots: s.cachedSnapshots,
 			Validator_snapshots:  s.cachedValidators,

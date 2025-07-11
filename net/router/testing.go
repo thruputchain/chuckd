@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -37,6 +38,14 @@ func TestTreeMerkle(tt *TestTreeNode) MulticastTreeNodes {
 
 func (x *TestRouter) Self() proto.ValidatorPublicInfo {
 	panic("not used")
+}
+
+func (x *TestRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
+	n, ok := x.Trees[TestTreeKey{vid}]
+	if !ok {
+		return "", fmt.Errorf("validator not found")
+	}
+	return n.V.Address, nil
 }
 
 func (x *TestRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {

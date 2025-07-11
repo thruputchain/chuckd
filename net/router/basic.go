@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -34,6 +35,14 @@ func NewBasicRouter(
 
 func (x *basicRouter) Self() proto.ValidatorPublicInfo {
 	return x.discovery.Self()
+}
+
+func (x *basicRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
+	v, found := x.discovery.LookupValidator(vid)
+	if !found {
+		return "", fmt.Errorf("validator not found")
+	}
+	return v.Address, nil
 }
 
 func (x *basicRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {

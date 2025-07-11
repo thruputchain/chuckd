@@ -23,4 +23,5 @@ type Router interface {
 
 type DogwoodRouter interface {
 	BuildDogwoodTree(ValidatorID) *dogwoodutil.LinkedTreeNode
+	ResolveAddress(ValidatorID) (string, error)
 }

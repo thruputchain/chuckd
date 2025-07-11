@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -34,6 +35,18 @@ func NewFixedRouter(
 
 func (x *FixedRouter) Self() proto.ValidatorPublicInfo {
 	return x.self
+}
+
+func (x *FixedRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
+	if vid == protoutil.VIDOfPublic(x.self) {
+		return x.self.Address, nil
+	}
+	for _, k := range x.validators {
+		if vid == protoutil.VIDOfPublic(k) {
+			return k.Address, nil
+		}
+	}
+	return "", fmt.Errorf("validator not found")
 }
 
 func (x *FixedRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
