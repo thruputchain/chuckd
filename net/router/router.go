@@ -15,13 +15,13 @@ type ValidatorPublicInfo = proto.ValidatorPublicInfo
 type MulticastTreeHash = proto.MulticastTreeHash
 
 type Router interface {
-	Self() ValidatorPublicInfo
 	BuildTree(ValidatorID, ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash)
 	ChooseCatchupProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 	DogwoodRouter
 }
 
 type DogwoodRouter interface {
+	Self() ValidatorPublicInfo
 	BuildDogwoodTree(ValidatorID) *dogwoodutil.LinkedTreeNode
 	ResolveAddress(ValidatorID) (string, error)
 }

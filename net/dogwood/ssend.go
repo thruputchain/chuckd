@@ -41,10 +41,9 @@ func NewStreamSender(
 	discovery *discovery.DiscoveryService,
 	nav *Navigator,
 	caller Caller,
-	receiveQueueSize int,
-	poolSize int,
+	numWorkers int,
 ) *StreamSender {
-	wp, err := ants.NewPool(poolSize)
+	wp, err := ants.NewPool(numWorkers)
 	must.NoError(ctx, err)
 	return &StreamSender{
 		rand:      rand,
@@ -125,7 +124,7 @@ func (x *StreamSender) Dial(ctx context.Context) (*SendStream, error) {
 // stream
 
 func (x *StreamSender) newSendStream(
-	ctx context.Context,
+	_ context.Context,
 	stream proto.DogwoodStream,
 	route proto.DogwoodRoute,
 	nav NavRoute,

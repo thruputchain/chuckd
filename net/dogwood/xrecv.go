@@ -57,7 +57,7 @@ func NewTransmissionReceiver(
 	time_ libtime.Time,
 	nav *Navigator,
 	receiver *StreamReceiver,
-	numWorkers int,
+	numWorkers int, //XXX: use worker pool for decoding
 ) *TransmissionReceiver {
 
 	return &TransmissionReceiver{

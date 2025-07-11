@@ -12,6 +12,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type Discovery interface {
+	SecretKey() proto.ValidatorSecretKey
+	LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
+	LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
+	CachedSnapshots() proto.KnownQuorumSets
+}
+
 type DiscoveryService struct {
 	cfg proto.DiscoveryConfig
 	net libnet.Network

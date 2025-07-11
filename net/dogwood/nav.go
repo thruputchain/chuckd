@@ -13,6 +13,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -51,29 +52,27 @@ func NewNavigator(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
-	disseminator RouteDisseminator,
 	router router.DogwoodRouter,
-	self proto.ValidatorID,
 	ttLive time.Duration, // route ttl
 	ttUse time.Duration, // max duration of route in use, i.e. max duration of dissemination
 	nRoutes int, // number of available routes at any time
 ) *Navigator {
 	return &Navigator{
-		time:         time,
-		rand:         rand,
-		disseminator: disseminator,
-		router:       router,
-		self:         self,
-		ttLive:       ttLive,
-		ttUse:        ttUse,
-		nRoutes:      nRoutes,
-		ours:         map[proto.DogwoodTreeHash]*stampedRoute{},
-		theirs:       map[proto.DogwoodTreeHash]*stampedRoute{},
-		marshaler:    xdrutil.NewXdrMarshaler(),
+		time:      time,
+		rand:      rand,
+		router:    router,
+		self:      protoutil.VIDOfPublic(router.Self()),
+		ttLive:    ttLive,
+		ttUse:     ttUse,
+		nRoutes:   nRoutes,
+		ours:      map[proto.DogwoodTreeHash]*stampedRoute{},
+		theirs:    map[proto.DogwoodTreeHash]*stampedRoute{},
+		marshaler: xdrutil.NewXdrMarshaler(),
 	}
 }
 
-func (nav *Navigator) Start(ctx context.Context) {
+func (nav *Navigator) Start(ctx context.Context, disseminator RouteDisseminator) {
+	nav.disseminator = disseminator
 	go nav.refill(ctx)
 	go nav.expire(ctx)
 }

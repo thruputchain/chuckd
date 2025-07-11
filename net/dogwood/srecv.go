@@ -42,9 +42,9 @@ func NewStreamReceiver(
 	nav *Navigator,
 	caller Caller,
 	receiveQueueSize int,
-	poolSize int,
+	numWorkers int,
 ) *StreamReceiver {
-	wp, err := ants.NewPool(poolSize)
+	wp, err := ants.NewPool(numWorkers)
 	must.NoError(ctx, err)
 	return &StreamReceiver{
 		discovery: discovery,
