@@ -75,7 +75,18 @@ func (s *DiscoveryService) SelfID() proto.ValidatorID {
 }
 
 func (s *DiscoveryService) LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
-	panic("XXX")
+
+	pub, ok := s.ourVIDs[vid]
+	if ok {
+		return pub, true
+	}
+
+	spub, ok := s.knownVs[vid]
+	if ok {
+		return spub.Validator_snapshot.Validator, true
+	}
+
+	return proto.ValidatorPublicInfo{}, false
 }
 
 func (s *DiscoveryService) LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
@@ -126,12 +137,15 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 }
 
 func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
+
+	//XXX: determine if the signer is trusted
+
 	if !protoutil.VerifySignedValidatorInfoSnapshot(s.m, v) {
 		return
 	}
 
-	// add qsets only if more recent than currently known
-	key := protoutil.ValidatorPublicKeyToID(v.Signer.Public_key)
+	// add validator info only if more recent than currently known
+	key := protoutil.ValidatorPublicKeyToID(v.Validator_snapshot.Validator.Public_key)
 	if current, ok := s.knownVs[key]; ok {
 		if current.Validator_snapshot.Timestamp < v.Validator_snapshot.Timestamp {
 			s.knownVs[key] = v
@@ -166,11 +180,15 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 
 	// validators
 	vv := map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{}
-	for _, v := range s.knownVs {
-		vv[protoutil.VIDOfPublic(v.Signer)] = v
-	}
 	for _, v := range s.ourValidators {
 		vv[protoutil.VIDOfPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.m, s.privInfo, v)
+	}
+	for _, v := range s.knownVs {
+		key := protoutil.VIDOfPublic(v.Signer)
+		_, ok := vv[key]
+		if !ok { // prioritize our info
+			vv[key] = v
+		}
 	}
 	allVs := []proto.SignedValidatorInfoSnapshot{}
 	for _, v := range vv {
