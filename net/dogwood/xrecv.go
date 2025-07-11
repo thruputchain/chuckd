@@ -12,7 +12,9 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// XXX: should recently received transmissions linger so they are not received twice
+// NOTE: transmission can be received twice if code redundancy exceeds 100%.
+// For this case, the receiver caches received transmission IDs for the TTL of a partial transmission,
+// reducing the likelihood of duplicate receptions.
 
 type TransmissionReceiver struct {
 	cfg      proto.TransmissionConfig
@@ -29,6 +31,7 @@ type TransmissionReceiver struct {
 
 type receivedTransmission struct {
 	key transmissionKey
+	typ proto.DogwoodTransmissionType
 	pay []byte
 }
 
@@ -74,7 +77,7 @@ func NewTransmissionReceiver(
 	}
 }
 
-func (x *TransmissionReceiver) Receive(ctx context.Context) ([]byte, proto.ValidatorID) {
+func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransmissionType, []byte, proto.ValidatorID) {
 	for {
 		r := <-x.receiveQ
 
@@ -86,7 +89,7 @@ func (x *TransmissionReceiver) Receive(ctx context.Context) ([]byte, proto.Valid
 		x.rlk.Unlock()
 
 		if !ok {
-			return r.pay, r.key.ValidatorID
+			return r.typ, r.pay, r.key.ValidatorID
 		}
 	}
 }
@@ -97,7 +100,6 @@ func (x *TransmissionReceiver) Start(ctx context.Context) {
 	go x.expireReceived(ctx)
 }
 
-// NOTE: transmission can be received twice only if the code redundancy exceeds 100%
 func (x *TransmissionReceiver) expireReceived(_ context.Context) {
 	ttl := time.Duration(x.cfg.Partial_ttl_msec) * time.Millisecond
 	for {
@@ -234,7 +236,7 @@ func (x *partialTransmission) Place(sheafIndex int, chunkIndex int, chunk []byte
 		return false, nil // not ready to decode
 	}
 
-	x.done.Do(func() { x.parent.receiveQ <- receivedTransmission{key: x.key, pay: pay} })
+	x.done.Do(func() { x.parent.receiveQ <- receivedTransmission{key: x.key, typ: x.header.Type, pay: pay} })
 
 	return true, nil
 }

@@ -46,8 +46,13 @@ func NewTransmissionSender(
 	}
 }
 
-func (x *TransmissionSender) Send(ctx context.Context, pay []byte, genRoute bool) {
-	x.workPool.Submit(func() { x.send(ctx, pay, genRoute) })
+func (x *TransmissionSender) Send(
+	ctx context.Context,
+	typ proto.DogwoodTransmissionType,
+	pay []byte,
+	genRoute bool,
+) {
+	x.workPool.Submit(func() { x.send(ctx, typ, pay, genRoute) })
 }
 
 func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
@@ -56,7 +61,12 @@ func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
 	return x.rand.Int63()
 }
 
-func (x *TransmissionSender) send(ctx context.Context, pay []byte, genRoute bool) {
+func (x *TransmissionSender) send(
+	ctx context.Context,
+	typ proto.DogwoodTransmissionType,
+	pay []byte,
+	genRoute bool,
+) {
 
 	must.Assert(ctx, len(pay) > 0)
 
@@ -68,6 +78,7 @@ func (x *TransmissionSender) send(ctx context.Context, pay []byte, genRoute bool
 	// header
 	transmission := proto.DogwoodTransmission{
 		Transmission_id:     x.genID(),
+		Type:                typ,
 		Num_payload_bytes:   proto.DogwoodInt64(len(pay)),
 		Num_payload_sheaves: proto.DogwoodInt32(enc.NumPaySheaves()),
 		Num_parity_sheaves:  proto.DogwoodInt32(enc.NumParitySheaves()),
