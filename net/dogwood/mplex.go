@@ -13,7 +13,8 @@ type Multiplex struct {
 	sender   *TransmissionSender
 	receiver *TransmissionReceiver
 	nav      *Navigator
-	m        xdrutil.XdrMarshaler
+	mMsg     xdrutil.XdrMarshaler
+	mTree    xdrutil.XdrMarshaler
 }
 
 func NewMultiplex(
@@ -26,7 +27,8 @@ func NewMultiplex(
 		sender:   s,
 		receiver: r,
 		nav:      n,
-		m:        xdrutil.NewXdrMarshaler(),
+		mMsg:     xdrutil.NewXdrMarshaler(),
+		mTree:    xdrutil.NewXdrMarshaler(),
 	}
 }
 
@@ -49,8 +51,16 @@ loop:
 	}
 }
 
+func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedTreeNode) {
+	rs := make([]proto.DogwoodTreeNodes, len(ts))
+	for i := range rs {
+		rs[i] = ts[i].TreeNodes(x.mTree)
+	}
+	x.sendRouting(ctx, proto.DogwoodRouting{Routes: rs})
+}
+
 func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRouting) {
-	p := x.m.MarshalXdr(&routing)
+	p := x.mMsg.MarshalXdr(&routing)
 	x.sender.Send(ctx, proto.DogwoodTransmissionRoute, p, true)
 }
 
@@ -65,7 +75,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 	}
 
 	for _, treeNodes := range routing.Routes {
-		linked, err := dogwoodutil.BuildLinkedTree(x.m, treeNodes)
+		linked, err := dogwoodutil.BuildLinkedTree(x.mTree, treeNodes)
 		if err != nil {
 			liblog.Errorf("encountered invalid routing tree: %v", err)
 			continue

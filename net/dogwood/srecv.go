@@ -83,25 +83,19 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 
 	// recover route
 	var route NavRoute
-	var err error
 	switch {
 	case env.Delivery.Route.Route_nodes != nil:
 		t, err := dogwoodutil.BuildLinkedTree(r.m, *env.Delivery.Route.Route_nodes)
 		if err != nil {
-			return
+			break
 		}
 		downstream, ok := t.FindChildren(r.discovery.SelfID())
 		if !ok {
-			return
+			break
 		}
 		route = NavRoute{Hash: dogwoodutil.TreeHash(r.m, t), Downstream: downstream}
 	case env.Delivery.Route.Route_hash != nil:
-		route, err = r.nav.LookupRoute(ctx, *env.Delivery.Route.Route_hash)
-		if err != nil {
-			return
-		}
-	default:
-		return
+		route, _ = r.nav.LookupRoute(ctx, *env.Delivery.Route.Route_hash)
 	}
 
 	// verify signature, if coming from a trusted validator

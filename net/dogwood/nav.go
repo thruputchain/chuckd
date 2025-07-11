@@ -21,10 +21,10 @@ import (
 // and can be used for broadcasting. It also maintains a cache of trees socialized by others.
 type Navigator struct {
 	// systems
-	time        libtime.Time
-	rand        *rand.Rand
-	disseminate DisseminateRoutesFn
-	router      router.DogwoodRouter
+	time         libtime.Time
+	rand         *rand.Rand
+	disseminator RouteDisseminator
+	router       router.DogwoodRouter
 	// params
 	self    proto.ValidatorID
 	ttLive  time.Duration // ttl for a reusable route
@@ -38,7 +38,9 @@ type Navigator struct {
 	marshaler xdrutil.XdrMarshaler
 }
 
-type DisseminateRoutesFn func([]*dogwoodutil.LinkedTreeNode)
+type RouteDisseminator interface {
+	DisseminateRoutes(context.Context, []*dogwoodutil.LinkedTreeNode)
+}
 
 type stampedRoute struct {
 	Stamp time.Time
@@ -49,7 +51,7 @@ func NewNavigator(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
-	disseminate DisseminateRoutesFn,
+	disseminator RouteDisseminator,
 	router router.DogwoodRouter,
 	self proto.ValidatorID,
 	ttLive time.Duration, // route ttl
@@ -57,17 +59,17 @@ func NewNavigator(
 	nRoutes int, // number of available routes at any time
 ) *Navigator {
 	return &Navigator{
-		time:        time,
-		rand:        rand,
-		disseminate: disseminate,
-		router:      router,
-		self:        self,
-		ttLive:      ttLive,
-		ttUse:       ttUse,
-		nRoutes:     nRoutes,
-		ours:        map[proto.DogwoodTreeHash]*stampedRoute{},
-		theirs:      map[proto.DogwoodTreeHash]*stampedRoute{},
-		marshaler:   xdrutil.NewXdrMarshaler(),
+		time:         time,
+		rand:         rand,
+		disseminator: disseminator,
+		router:       router,
+		self:         self,
+		ttLive:       ttLive,
+		ttUse:        ttUse,
+		nRoutes:      nRoutes,
+		ours:         map[proto.DogwoodTreeHash]*stampedRoute{},
+		theirs:       map[proto.DogwoodTreeHash]*stampedRoute{},
+		marshaler:    xdrutil.NewXdrMarshaler(),
 	}
 }
 
@@ -145,7 +147,7 @@ func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 	return NavRoute{}, fmt.Errorf("no available routes")
 }
 
-func (nav *Navigator) refill(_ context.Context) {
+func (nav *Navigator) refill(ctx context.Context) {
 	tick := nav.ttLive / 3
 	for {
 		nav.time.Sleep(tick)
@@ -169,7 +171,7 @@ func (nav *Navigator) refill(_ context.Context) {
 		for i := 0; i < m; i++ {
 			rs[m] = nav.router.BuildDogwoodTree(nav.self)
 		}
-		nav.disseminate(rs)
+		nav.disseminator.DisseminateRoutes(ctx, rs)
 
 		if len(rs) > 0 {
 			nav.lk.Lock()
