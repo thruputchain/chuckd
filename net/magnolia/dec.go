@@ -2,6 +2,7 @@ package magnolia
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/klauspost/reedsolomon"
@@ -52,12 +53,12 @@ type Decoding struct {
 }
 
 // XXX: (sheafIndex, chunkIndex) can be packed into symbolIndex
-// XXX: caller must verify data has correct size
-func (x *Decoding) Place(sheafIndex int, chunkIndex int, data Block) {
+func (x *Decoding) Place(sheafIndex int, chunkIndex int, data Block) error {
 	if len(data) != x.place.BytesPerChunk {
-		panic("invalid block size")
+		return fmt.Errorf("invalid chunk size")
 	}
 	x.cs[chunkIndex][sheafIndex] = data
+	return nil
 }
 
 func (x *Decoding) Decode() ([]byte, error) {

@@ -1,3 +1,5 @@
+[ ] payload and route transmission on different paths
+
 
 [ ] understand how many cores reedsolomon uses
 [ ] shuffle code chunks
