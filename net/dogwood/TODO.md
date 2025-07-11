@@ -1,5 +1,6 @@
 [x] payload and route transmission on different paths
 
+[ ] process receptions even if route not known
 
 [ ] understand how many cores reedsolomon uses
 [ ] shuffle code chunks

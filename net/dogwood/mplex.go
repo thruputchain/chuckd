@@ -1,0 +1,80 @@
+package dogwood
+
+import (
+	"context"
+
+	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/util/dogwoodutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+type Multiplex struct {
+	sender   *TransmissionSender
+	receiver *TransmissionReceiver
+	nav      *Navigator
+	m        xdrutil.XdrMarshaler
+}
+
+func NewMultiplex(
+	ctx context.Context,
+	s *TransmissionSender,
+	r *TransmissionReceiver,
+	n *Navigator,
+) *Multiplex {
+	return &Multiplex{
+		sender:   s,
+		receiver: r,
+		nav:      n,
+		m:        xdrutil.NewXdrMarshaler(),
+	}
+}
+
+func (x *Multiplex) Receive(ctx context.Context) ([]byte, proto.ValidatorID, error) {
+loop:
+	for {
+		typ, pay, from, err := x.receiver.Receive(ctx)
+		if err != nil {
+			return nil, proto.ValidatorID{}, err
+		}
+
+		switch typ {
+		case proto.DogwoodTransmissionPayload:
+			return pay, from, nil
+		case proto.DogwoodTransmissionRoute:
+			x.receiveRouting(ctx, pay)
+			continue loop
+		default: // unknown type
+		}
+	}
+}
+
+func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRouting) {
+	p := x.m.MarshalXdr(&routing)
+	x.sender.Send(ctx, proto.DogwoodTransmissionRoute, p, true)
+}
+
+func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
+
+	routing := proto.DogwoodRouting{}
+
+	err := xdrutil.UnmarshalXdr(&routing, p)
+	if err != nil {
+		liblog.Errorf("unmarshalling routing message: %v", err)
+		return
+	}
+
+	for _, treeNodes := range routing.Routes {
+		linked, err := dogwoodutil.BuildLinkedTree(x.m, treeNodes)
+		if err != nil {
+			liblog.Errorf("encountered invalid routing tree: %v", err)
+			continue
+		}
+		x.nav.CacheRoute(ctx, linked)
+	}
+}
+
+func (x *Multiplex) Send(ctx context.Context, pay []byte) error {
+	x.sender.Send(ctx, proto.DogwoodTransmissionPayload, pay, false)
+	return nil
+}

@@ -77,19 +77,24 @@ func NewTransmissionReceiver(
 	}
 }
 
-func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransmissionType, []byte, proto.ValidatorID) {
+func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransmissionType, []byte, proto.ValidatorID, error) {
 	for {
-		r := <-x.receiveQ
+		select {
+		case r := <-x.receiveQ:
 
-		x.rlk.Lock()
-		_, ok := x.received[r.key]
-		if !ok {
-			x.received[r.key] = x.time.Now()
-		}
-		x.rlk.Unlock()
+			x.rlk.Lock()
+			_, ok := x.received[r.key]
+			if !ok {
+				x.received[r.key] = x.time.Now()
+			}
+			x.rlk.Unlock()
 
-		if !ok {
-			return r.typ, r.pay, r.key.ValidatorID
+			if !ok {
+				return r.typ, r.pay, r.key.ValidatorID, nil
+			}
+
+		case <-ctx.Done():
+			return 0, nil, proto.ValidatorID{}, ctx.Err()
 		}
 	}
 }
