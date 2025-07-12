@@ -21,23 +21,23 @@ type caller struct {
 	time   libtime.Time
 	dialer DogwoodDialer
 	// params
-	queueSize int           // number of calls in each endpoint's call queue
-	idleTTL   time.Duration // discard idle endpoints after ttl
-	redialTTL time.Duration
+	queueSize   int           // number of calls in each endpoint's call queue
+	idleTTL     time.Duration // discard idle endpoints after ttl
+	redialDelay time.Duration
 	// state
 	lk       sync.Mutex
 	endpoint map[proto.ValidatorID]*endpoint
 }
 
 type endpoint struct {
-	lastUse   time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
-	addr      proto.ValidatorID
-	time      libtime.Time
-	dialer    DogwoodDialer
-	redialTTL time.Duration
-	stop      chan struct{}
-	dq        chan deliverCall
-	failed    *time.Time // accessed synchronously in Start
+	lastUse     time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
+	addr        proto.ValidatorID
+	time        libtime.Time
+	dialer      DogwoodDialer
+	redialDelay time.Duration
+	stop        chan struct{}
+	dq          chan deliverCall
+	failed      *time.Time // accessed synchronously in Start
 }
 
 type deliverCall struct {
@@ -53,16 +53,16 @@ func NewCaller(
 	dialer DogwoodDialer,
 	endpointQueueSize int,
 	idleEndpointTTL time.Duration,
-	endpointRedialTTL time.Duration,
+	endpointRedialDelay time.Duration,
 ) Caller {
 	return &caller{
-		ctx:       ctx,
-		time:      time,
-		dialer:    dialer,
-		queueSize: endpointQueueSize,
-		idleTTL:   idleEndpointTTL,
-		redialTTL: endpointRedialTTL,
-		endpoint:  map[proto.ValidatorID]*endpoint{},
+		ctx:         ctx,
+		time:        time,
+		dialer:      dialer,
+		queueSize:   endpointQueueSize,
+		idleTTL:     idleEndpointTTL,
+		redialDelay: endpointRedialDelay,
+		endpoint:    map[proto.ValidatorID]*endpoint{},
 	}
 }
 
@@ -109,12 +109,12 @@ func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, arg
 func (x *caller) newEndpoint(addr proto.ValidatorID) *endpoint {
 	return &endpoint{
 		// last: set by getEndpoint; accessed under caller.lk
-		addr:      addr,
-		time:      x.time,
-		dialer:    x.dialer,
-		redialTTL: x.redialTTL,
-		dq:        make(chan deliverCall, x.queueSize),
-		stop:      make(chan struct{}),
+		addr:        addr,
+		time:        x.time,
+		dialer:      x.dialer,
+		redialDelay: x.redialDelay,
+		dq:          make(chan deliverCall, x.queueSize),
+		stop:        make(chan struct{}),
 	}
 }
 
@@ -167,7 +167,7 @@ func (x *endpoint) Start(ctx context.Context) {
 
 // if the endpoint is unreachable, makes a note, and fails all redials within a given duration
 func (x *endpoint) dial(ctx context.Context) (DogwoodClientCloser, error) {
-	if x.failed != nil && x.time.Now().Sub(*x.failed) < x.redialTTL {
+	if x.failed != nil && x.time.Now().Sub(*x.failed) < x.redialDelay {
 		return nil, fmt.Errorf("recently unreachable")
 	}
 	c, err := x.dialer.Dial(ctx, x.addr)

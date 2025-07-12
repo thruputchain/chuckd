@@ -8,8 +8,10 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/magnolia"
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/panjf2000/ants/v2"
 )
 
 // NOTE: transmission can be received twice if code redundancy exceeds 100%.
@@ -21,6 +23,7 @@ type TransmissionReceiver struct {
 	time     libtime.Time
 	nav      *Navigator
 	receiver *StreamReceiver
+	workPool *ants.Pool
 	decPool  *MagnoliaDecoderPool
 	receiveQ chan receivedTransmission
 	rlk      sync.Mutex
@@ -60,11 +63,14 @@ func NewTransmissionReceiver(
 	numWorkers int, //XXX: use worker pool for decoding
 ) *TransmissionReceiver {
 
+	wp, err := ants.NewPool(numWorkers)
+	must.NoError(ctx, err)
 	return &TransmissionReceiver{
 		cfg:      cfg,
 		time:     time_,
 		nav:      nav,
 		receiver: receiver,
+		workPool: wp,
 		decPool: NewMagnoliaDecoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
@@ -174,7 +180,7 @@ func (x *TransmissionReceiver) do(ctx context.Context) {
 					continue // only this package is corrupt
 				}
 
-				done, err := par.Place(
+				done, err := par.PlaceUsingWorker(
 					int(pkg.Chunk.Sheaf_index),
 					int(pkg.Chunk.Chunk_index),
 					pkg.Chunk.Chunk,
@@ -220,6 +226,24 @@ func (x *TransmissionReceiver) getMakePartial(
 	}
 
 	return p, nil
+}
+
+type placeResult struct {
+	done bool
+	err  error
+}
+
+func (x *partialTransmission) PlaceUsingWorker(sheafIndex int, chunkIndex int, chunk []byte) (done bool, err error) {
+
+	resultQ := make(chan placeResult, 1)
+	x.parent.workPool.Submit(
+		func() {
+			done, err := x.Place(sheafIndex, chunkIndex, chunk)
+			resultQ <- placeResult{done, err}
+		},
+	)
+	result := <-resultQ
+	return result.done, result.err
 }
 
 func (x *partialTransmission) Place(sheafIndex int, chunkIndex int, chunk []byte) (done bool, err error) {

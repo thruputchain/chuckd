@@ -9,7 +9,7 @@
 
 [x] worker pool for ingesting deliveries (signature verification and decoding)
     [ ] config parameter for pool size
-    [ ] additional worker pool for decoding?
+    [x] additional worker pool for decoding
 
 [ ] rpc improvements (caller won't need a worker pool to fire calls on one goroutine)
     [ ] client: don't wait for reply

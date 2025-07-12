@@ -11,5 +11,6 @@ func (x *DogwoodService) Dogwood_null(ctx context.Context) error {
 }
 
 func (x *DogwoodService) Dogwood_deliver(ctx context.Context, env proto.DogwoodDeliveryEnvelope) error {
-	panic("XXX")
+	x.streamReceiver.Deliver(ctx, env)
+	return nil
 }

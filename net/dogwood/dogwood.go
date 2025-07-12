@@ -29,11 +29,12 @@ func NewDogwoodService(
 	router router.DogwoodRouter,
 ) *DogwoodService {
 
-	return &DogwoodService{
-		router: router,
-		dialer: NewDogwoodClientDialer(net, router),
-		// nav:    XXX,
-	}
+	x := &DogwoodService{}
+	x.router = router
+	x.dialer = NewDogwoodClientDialer(net, router)
+	// x.nav = NewNavigator(ctx, time, randXXX, x.router, X, X, X)
+
+	return x
 }
 
 func (x *DogwoodService) Start(ctx context.Context) {
