@@ -13,7 +13,8 @@ import (
 var testM = xdrutil.NewXdrMarshaler()
 
 type TestRouter struct {
-	Trees map[TestTreeKey]*TestTreeNode
+	self  proto.ValidatorPublicInfo
+	trees map[TestTreeKey]*TestTreeNode
 }
 
 type TestTreeKey struct {
@@ -23,6 +24,13 @@ type TestTreeKey struct {
 type TestTreeNode struct {
 	V        ValidatorPublicInfo
 	Children []*TestTreeNode
+}
+
+func NewTestRouter(self proto.ValidatorPublicInfo, trees map[TestTreeKey]*TestTreeNode) *TestRouter {
+	return &TestRouter{
+		self:  self,
+		trees: trees,
+	}
 }
 
 func TestTreeMerkle(tt *TestTreeNode) MulticastTreeNodes {
@@ -37,11 +45,11 @@ func TestTreeMerkle(tt *TestTreeNode) MulticastTreeNodes {
 }
 
 func (x *TestRouter) Self() proto.ValidatorPublicInfo {
-	panic("not used")
+	return x.self
 }
 
 func (x *TestRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
-	n, ok := x.Trees[TestTreeKey{vid}]
+	n, ok := x.trees[TestTreeKey{vid}]
 	if !ok {
 		return "", fmt.Errorf("validator not found")
 	}
@@ -53,7 +61,7 @@ func (x *TestRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []p
 }
 
 func (x *TestRouter) BuildTree(vid ValidatorID, _ ChannelID) (MulticastTreeNodes, []ValidatorPublicInfo, MulticastTreeHash) {
-	tt := x.Trees[TestTreeKey{VID: vid}]
+	tt := x.trees[TestTreeKey{VID: vid}]
 	nodes := TestTreeMerkle(tt)
 	children := make([]ValidatorPublicInfo, len(tt.Children))
 	for i := range tt.Children {
@@ -63,7 +71,7 @@ func (x *TestRouter) BuildTree(vid ValidatorID, _ ChannelID) (MulticastTreeNodes
 }
 
 func (x *TestRouter) BuildDogwoodTree(vid ValidatorID) *dogwoodutil.LinkedTreeNode {
-	return TestTreeLinked(x.Trees[TestTreeKey{VID: vid}])
+	return TestTreeLinked(x.trees[TestTreeKey{VID: vid}])
 }
 
 func TestTreeLinked(tt *TestTreeNode) *dogwoodutil.LinkedTreeNode {

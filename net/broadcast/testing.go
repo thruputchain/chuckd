@@ -17,7 +17,7 @@ type Broadcast3Harness struct {
 	Ctx    context.Context
 	Rand   []*rand.Rand
 	V      []*proto.ValidatorPrivateInfo
-	Router router.Router
+	Router []router.Router
 	Net    libnet.Network
 	B      []*BroadcastService
 }
@@ -47,47 +47,50 @@ func NewBroadcast3Harness(cfg proto.BroadcastConfig, n libnet.Network, a0, a1, a
 	for i := range t.V {
 		liblog.Infof("test validator #%d: %s", i, protoutil.VPublicShortString(t.V[i].Public_info))
 	}
-	t.Router = &router.TestRouter{
-		Trees: map[router.TestTreeKey]*router.TestTreeNode{
-			// 0 -> 1, 0 -> 2
-			{VID: protoutil.VIDOfPublic(t.V[0].Public_info)}: {
-				V: t.V[0].Public_info,
-				Children: []*router.TestTreeNode{
-					{V: t.V[1].Public_info},
-					{V: t.V[2].Public_info},
-				},
+	trees := map[router.TestTreeKey]*router.TestTreeNode{
+		// 0 -> 1, 0 -> 2
+		{VID: protoutil.VIDOfPublic(t.V[0].Public_info)}: {
+			V: t.V[0].Public_info,
+			Children: []*router.TestTreeNode{
+				{V: t.V[1].Public_info},
+				{V: t.V[2].Public_info},
 			},
-			// 1 -> 2 -> 0
-			{VID: protoutil.VIDOfPublic(t.V[1].Public_info)}: {
-				V: t.V[1].Public_info,
-				Children: []*router.TestTreeNode{
-					{
-						V: t.V[2].Public_info,
-						Children: []*router.TestTreeNode{
-							{V: t.V[0].Public_info},
-						},
+		},
+		// 1 -> 2 -> 0
+		{VID: protoutil.VIDOfPublic(t.V[1].Public_info)}: {
+			V: t.V[1].Public_info,
+			Children: []*router.TestTreeNode{
+				{
+					V: t.V[2].Public_info,
+					Children: []*router.TestTreeNode{
+						{V: t.V[0].Public_info},
 					},
 				},
 			},
-			// 2 -> 0 -> 1
-			{VID: protoutil.VIDOfPublic(t.V[2].Public_info)}: {
-				V: t.V[2].Public_info,
-				Children: []*router.TestTreeNode{
-					{
-						V: t.V[0].Public_info,
-						Children: []*router.TestTreeNode{
-							{V: t.V[1].Public_info},
-						},
+		},
+		// 2 -> 0 -> 1
+		{VID: protoutil.VIDOfPublic(t.V[2].Public_info)}: {
+			V: t.V[2].Public_info,
+			Children: []*router.TestTreeNode{
+				{
+					V: t.V[0].Public_info,
+					Children: []*router.TestTreeNode{
+						{V: t.V[1].Public_info},
 					},
 				},
 			},
 		},
 	}
+	t.Router = []router.Router{
+		router.NewTestRouter(t.V[0].Public_info, trees),
+		router.NewTestRouter(t.V[1].Public_info, trees),
+		router.NewTestRouter(t.V[2].Public_info, trees),
+	}
 	t.Net = n
 	t.B = []*BroadcastService{
-		NewBroadcastService(t.Ctx, cfg, t.Net, t.Rand[0], *t.V[0], t.Router, AcceptEverything{}),
-		NewBroadcastService(t.Ctx, cfg, t.Net, t.Rand[1], *t.V[1], t.Router, AcceptEverything{}),
-		NewBroadcastService(t.Ctx, cfg, t.Net, t.Rand[2], *t.V[2], t.Router, AcceptEverything{}),
+		NewBroadcastService(t.Ctx, cfg, t.Net, t.Rand[0], *t.V[0], t.Router[0], AcceptEverything{}),
+		NewBroadcastService(t.Ctx, cfg, t.Net, t.Rand[1], *t.V[1], t.Router[1], AcceptEverything{}),
+		NewBroadcastService(t.Ctx, cfg, t.Net, t.Rand[2], *t.V[2], t.Router[2], AcceptEverything{}),
 	}
 	return t
 }
