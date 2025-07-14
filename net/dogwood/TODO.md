@@ -3,13 +3,9 @@
 
 [ ] understand how many cores reedsolomon uses
 [ ] shuffle code chunks
-[ ] vary code parameters based on message size
 
-[ ] protoutil sign/verify over hash of message (vs over message)?
-
-[x] worker pool for ingesting deliveries (signature verification and decoding)
-    [ ] config parameter for pool size
-    [x] additional worker pool for decoding
+[x] protoutil sign/verify over hash of message (1.7GB/sec)
+[ ] unit test does not work with QUIC???
 
 [ ] rpc improvements (caller won't need a worker pool to fire calls on one goroutine)
     [ ] client: don't wait for reply
@@ -17,4 +13,5 @@
 
 [?] expire deliveries waiting in send queue
 
+[ ] vary code parameters based on message size
 [ ] transmission affinity/priority
