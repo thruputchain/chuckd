@@ -15,7 +15,7 @@ import (
 
 type StreamReceiver struct {
 	// systems
-	discovery *discovery.DiscoveryService
+	discovery discovery.Discovery
 	nav       *Navigator
 	caller    Caller
 	// performance
@@ -38,7 +38,7 @@ type ReceiveStream struct {
 
 func NewStreamReceiver(
 	ctx context.Context,
-	discovery *discovery.DiscoveryService,
+	discovery discovery.Discovery,
 	nav *Navigator,
 	caller Caller,
 	receiveQueueSize int,

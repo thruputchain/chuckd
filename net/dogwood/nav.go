@@ -84,15 +84,7 @@ type NavRoute struct {
 
 // GenRoute builds a new route, which is not cached and not disseminated
 func (nav *Navigator) GenRoute(ctx context.Context) *dogwoodutil.LinkedTreeNode {
-
-	r := nav.router.BuildDogwoodTree(nav.self)
-
-	nav.lk.Lock()
-	h := dogwoodutil.TreeHash(nav.marshaler, r)
-	nav.ours[h] = &stampedRoute{Stamp: nav.time.Now(), Tree: r}
-	nav.lk.Unlock()
-
-	return r
+	return nav.router.BuildDogwoodTree(nav.self)
 }
 
 func (nav *Navigator) CacheRoute(ctx context.Context, t *dogwoodutil.LinkedTreeNode) {
@@ -149,12 +141,11 @@ func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 func (nav *Navigator) refill(ctx context.Context) {
 	tick := nav.ttLive / 3
 	for {
-		nav.time.Sleep(tick)
 		now := nav.time.Now()
 		next := now.Add(2 * tick)
 
-		nav.lk.Lock()
 		// count number of routes which will still be live on the next iteration
+		nav.lk.Lock()
 		nDying := 0
 		for _, sr := range nav.ours {
 			eol := sr.Stamp.Add(nav.ttLive) // end of life for route; it won't be used after
@@ -180,6 +171,8 @@ func (nav *Navigator) refill(ctx context.Context) {
 			}
 			nav.lk.Unlock()
 		}
+
+		nav.time.Sleep(tick)
 	}
 }
 

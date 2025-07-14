@@ -32,6 +32,8 @@ func NewMultiplex(
 	}
 }
 
+func (x *Multiplex) Start(context.Context) {}
+
 func (x *Multiplex) Receive(ctx context.Context) ([]byte, proto.ValidatorID, error) {
 loop:
 	for {

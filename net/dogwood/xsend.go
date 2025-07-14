@@ -46,6 +46,8 @@ func NewTransmissionSender(
 	}
 }
 
+func (x *TransmissionSender) Start(context.Context) {}
+
 func (x *TransmissionSender) Send(
 	ctx context.Context,
 	typ proto.DogwoodTransmissionType,

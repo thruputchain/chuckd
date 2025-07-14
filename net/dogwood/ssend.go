@@ -17,7 +17,7 @@ import (
 type StreamSender struct {
 	// systems
 	rand      *rand.Rand
-	discovery *discovery.DiscoveryService
+	discovery discovery.Discovery
 	nav       *Navigator
 	caller    Caller
 	// performance
@@ -38,7 +38,7 @@ type SendStream struct {
 func NewStreamSender(
 	ctx context.Context,
 	rand *rand.Rand,
-	discovery *discovery.DiscoveryService,
+	discovery discovery.Discovery,
 	nav *Navigator,
 	caller Caller,
 	numWorkers int,
@@ -55,6 +55,8 @@ func NewStreamSender(
 		stream:    map[proto.DogwoodStream]*SendStream{},
 	}
 }
+
+func (x *StreamSender) Start(context.Context) {}
 
 func (x *StreamSender) DialOptRoute(ctx context.Context, optRoute *dogwoodutil.LinkedTreeNode) (*SendStream, error) {
 	if optRoute == nil {

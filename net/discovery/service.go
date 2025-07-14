@@ -13,6 +13,7 @@ import (
 )
 
 type Discovery interface {
+	SelfID() proto.ValidatorID
 	SecretKey() proto.ValidatorSecretKey
 	LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
 	LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
