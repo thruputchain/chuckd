@@ -3,12 +3,16 @@ package dogwood
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
@@ -48,55 +52,66 @@ func TestSendReceiveTransmission(t *testing.T) {
 		},
 	}
 
-	tn := NewDogwood3Testnet(cfg)
+	tn := NewDogwood3TCPNet(cfg)
 	tn.Start(ctx)
-	tn.Time().Sleep(time.Millisecond) // wait for route generation and dissemination
+	tn.Time().Sleep(10 * time.Millisecond) // wait for route generation and dissemination
 
 	payload := make([]byte, 300e3) // 300KB
 	for i := range payload {
 		payload[i] = byte(i)
 	}
 
+	const N = 1000
+
 	// send from V0
 	go func() {
-		err := tn.dogwood[0].Send(ctx, payload)
-		if err != nil {
-			t.Error(err)
+		for i := 0; i < N; i++ {
+			err := tn.dogwood[0].Send(ctx, payload)
+			if err != nil {
+				t.Error(err)
+			}
 		}
 	}()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	// receive at V1
-	go func() {
+	numReceived := make([]int, 3) // 3 validators
+	throughput := make([]libstat.Counter, 3)
+
+	receiveFn := func(vIndex int, check bool) {
 		defer wg.Done()
-		p, v, err := tn.Dogwood(1).Receive(ctx)
-		if err != nil {
-			t.Error(err)
+		for {
+			rCtx, rCancel := context.WithTimeout(ctx, time.Second)
+			p, v, err := tn.Dogwood(vIndex).Receive(rCtx)
+			rCancel()
+			if errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			if check && !bytes.Equal(p, payload) {
+				t.Errorf("unexpected payload")
+			}
+			if check && v != tn.VID(0) {
+				t.Errorf("unexpected source")
+			}
+			numReceived[vIndex] += 1
+			throughput[vIndex].Add(float64(len(p)))
 		}
-		if !bytes.Equal(p, payload) {
-			t.Errorf("unexpected payload")
-		}
-		if v != tn.VID(0) {
-			t.Errorf("unexpected source")
-		}
-	}()
+	}
+
+	// receive at V1
+	go receiveFn(1, true)
 
 	// receive at V2
-	go func() {
-		defer wg.Done()
-		p, v, err := tn.Dogwood(2).Receive(ctx)
-		if err != nil {
-			t.Error(err)
-		}
-		if !bytes.Equal(p, payload) {
-			t.Errorf("unexpected payload")
-		}
-		if v != tn.VID(0) {
-			t.Errorf("unexpected source")
-		}
-	}()
+	go receiveFn(2, true)
 
 	wg.Wait()
+
+	for vIndex := 1; vIndex < 3; vIndex++ {
+		fmt.Printf("validator %d received %d transmission out of %d, throughput %v/sec\n",
+			vIndex, numReceived[vIndex], N, humanize.Bytes(uint64(throughput[vIndex].SpeedPerSec())))
+	}
 }
