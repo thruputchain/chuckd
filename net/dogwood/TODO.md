@@ -1,6 +1,8 @@
 [x] payload and route transmission on different paths
 [x] process receptions even if route not known
 
+[ ] try using a pool of argument messages in XDR client call stubs
+
 [ ] understand how many cores reedsolomon uses
 [ ] shuffle code chunks
 

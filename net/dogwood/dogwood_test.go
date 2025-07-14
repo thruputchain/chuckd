@@ -61,7 +61,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		payload[i] = byte(i)
 	}
 
-	const N = 1000
+	const N = 10000
 
 	// send from V0
 	go func() {
