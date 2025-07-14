@@ -275,16 +275,16 @@ func (x *partialTransmission) Close() {
 	// deregister from receiver
 	x.parent.plk.Lock()
 	p, ok := x.parent.partial[x.key]
-	if ok {
-		if p == x {
-			delete(x.parent.partial, x.key)
-		}
+	if ok && p == x {
+		delete(x.parent.partial, x.key)
 	}
 	x.parent.plk.Unlock()
 
 	// recycle decoder
 	x.lk.Lock()
-	x.parent.decPool.Recycle(x.dec)
-	x.dec, x.ding = nil, nil
+	if x.dec != nil {
+		x.parent.decPool.Recycle(x.dec)
+		x.dec, x.ding = nil, nil
+	}
 	x.lk.Unlock()
 }

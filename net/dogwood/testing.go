@@ -123,7 +123,7 @@ func (x *Dogwood3Harness) Dogwood(i int) *DogwoodService {
 }
 
 func (x *Dogwood3Harness) Start(ctx context.Context) {
-	x.dogwood[0].Start(ctx)
-	x.dogwood[1].Start(ctx)
-	x.dogwood[2].Start(ctx)
+	x.dogwood[0].Start(ctx, x.vs[0].Public_info.Address)
+	x.dogwood[1].Start(ctx, x.vs[1].Public_info.Address)
+	x.dogwood[2].Start(ctx, x.vs[2].Public_info.Address)
 }

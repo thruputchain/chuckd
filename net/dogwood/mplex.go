@@ -4,12 +4,15 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type Multiplex struct {
+	router   router.DogwoodRouter
 	sender   *TransmissionSender
 	receiver *TransmissionReceiver
 	nav      *Navigator
@@ -19,11 +22,13 @@ type Multiplex struct {
 
 func NewMultiplex(
 	ctx context.Context,
+	router router.DogwoodRouter,
 	s *TransmissionSender,
 	r *TransmissionReceiver,
 	n *Navigator,
 ) *Multiplex {
 	return &Multiplex{
+		router:   router,
 		sender:   s,
 		receiver: r,
 		nav:      n,
@@ -53,7 +58,12 @@ loop:
 	}
 }
 
+func (x *Multiplex) selfString() string {
+	return protoutil.VIDString(protoutil.VIDOfPublic(x.router.Self()))
+}
+
 func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedTreeNode) {
+	liblog.Infof("dogwood multiplex at %v: disseminating %d routes", x.selfString(), len(ts))
 	rs := make([]proto.DogwoodTreeNodes, len(ts))
 	for i := range rs {
 		rs[i] = ts[i].TreeNodes(x.mTree)
@@ -67,6 +77,7 @@ func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRoutin
 }
 
 func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
+	liblog.Infof("dogwood multiplex at %v: receiving routes", x.selfString())
 
 	routing := proto.DogwoodRouting{}
 

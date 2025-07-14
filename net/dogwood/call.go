@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -154,14 +155,21 @@ func (x *endpoint) Start(ctx context.Context) {
 		case <-eq:
 			c, _ = x.dial(ctx)
 		case dcall := <-x.dq:
+			if c == nil {
+				c, _ = x.dial(ctx)
+			}
 			// XXX: support discard-reply semantics in goxdr driver
-			go func() {
-				err := c.Dogwood_deliver(ctx, dcall.arg)
-				if err != nil {
-					liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
-					eq <- err
-				}
-			}()
+			if c != nil {
+				go func(c DogwoodClientCloser) {
+					err := c.Dogwood_deliver(ctx, dcall.arg)
+					if err != nil {
+						liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
+						eq <- err
+					}
+				}(c)
+			} else {
+				liblog.Errorf("dogwood call: dropping delivery to %v (no connection)", protoutil.VIDString(x.addr))
+			}
 		}
 	}
 }
@@ -169,12 +177,14 @@ func (x *endpoint) Start(ctx context.Context) {
 // if the endpoint is unreachable, makes a note, and fails all redials within a given duration
 func (x *endpoint) dial(ctx context.Context) (DogwoodClientCloser, error) {
 	if x.failed != nil && x.time.Now().Sub(*x.failed) < x.redialDelay {
+		liblog.Infof("dogwood dial: %v recently unreachable, not dialing", protoutil.VIDString(x.addr))
 		return nil, fmt.Errorf("recently unreachable")
 	}
 	c, err := x.dialer.Dial(ctx, x.addr)
 	if err != nil {
 		now := x.time.Now()
 		x.failed = &now
+		liblog.Errorf("dogwood dial: %v dialing (%v)", protoutil.VIDString(x.addr), err)
 		return nil, err
 	}
 	x.failed = nil

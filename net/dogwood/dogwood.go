@@ -10,10 +10,12 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type DogwoodService struct {
+	net            libnet.Network
 	router         router.DogwoodRouter
 	dialer         DogwoodDialer
 	nav            *Navigator
@@ -36,6 +38,7 @@ func NewDogwoodService(
 ) *DogwoodService {
 
 	x := &DogwoodService{}
+	x.net = net
 	x.router = router
 	x.dialer = NewDogwoodClientDialer(net, router)
 
@@ -75,12 +78,13 @@ func NewDogwoodService(
 		int(cfg.Transmission_sender_worker_count),
 	)
 
-	x.mplex = NewMultiplex(ctx, x.xSender, x.xReceiver, x.nav)
+	x.mplex = NewMultiplex(ctx, x.router, x.xSender, x.xReceiver, x.nav)
 
 	return x
 }
 
-func (x *DogwoodService) Start(ctx context.Context) { // only start services constructed by dogwood service
+func (x *DogwoodService) Start(ctx context.Context, address string) {
+	// only start systems constructed by dogwood service
 	x.dialer.Start(ctx)         // no dependency
 	x.caller.Start(ctx)         // depends on dialer
 	x.streamReceiver.Start(ctx) // depends on discovery, navigator, and caller
@@ -89,4 +93,6 @@ func (x *DogwoodService) Start(ctx context.Context) { // only start services con
 	x.xSender.Start(ctx)        // depends on navigator, and stream sender
 	x.mplex.Start(ctx)          // depends on navigator, transmission receiver, and transmission sender
 	x.nav.Start(ctx, x.mplex)   // depends on router and multiplex
+
+	rpcutil.Start(ctx, x.net, address, proto.Dogwood1_Server{Srv: x})
 }

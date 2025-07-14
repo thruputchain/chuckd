@@ -146,20 +146,20 @@ func (nav *Navigator) refill(ctx context.Context) {
 
 		// count number of routes which will still be live on the next iteration
 		nav.lk.Lock()
-		nDying := 0
+		nWillBeLive := 0
 		for _, sr := range nav.ours {
 			eol := sr.Stamp.Add(nav.ttLive) // end of life for route; it won't be used after
-			if next.Compare(eol) >= 0 {
-				nDying += 1
+			if next.Compare(eol) < 0 {
+				nWillBeLive += 1
 			}
 		}
 		nav.lk.Unlock()
 
 		// replenish routes
-		m := max(0, nav.nRoutes-nDying)
+		m := max(0, nav.nRoutes-nWillBeLive)
 		rs := make([]*dogwoodutil.LinkedTreeNode, m)
 		for i := 0; i < m; i++ {
-			rs[m] = nav.router.BuildDogwoodTree(nav.self)
+			rs[i] = nav.router.BuildDogwoodTree(nav.self)
 		}
 		nav.disseminator.DisseminateRoutes(ctx, rs)
 
