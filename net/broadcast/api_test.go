@@ -41,7 +41,7 @@ func TestStreaming(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if bytes.Compare(p, payload) != 0 {
+		if !bytes.Equal(p, payload) {
 			t.Errorf("unexpected payload")
 		}
 	}()
@@ -53,7 +53,7 @@ func TestStreaming(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if bytes.Compare(p, payload) != 0 {
+		if !bytes.Equal(p, payload) {
 			t.Errorf("unexpected payload")
 		}
 	}()
@@ -92,7 +92,7 @@ func TestBulk(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if bytes.Compare(p, payload) != 0 {
+		if !bytes.Equal(p, payload) {
 			t.Errorf("unexpected payload")
 		}
 	}()
@@ -103,7 +103,7 @@ func TestBulk(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if bytes.Compare(p, payload) != 0 {
+		if !bytes.Equal(p, payload) {
 			t.Errorf("unexpected payload")
 		}
 	}()

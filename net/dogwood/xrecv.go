@@ -60,7 +60,7 @@ func NewTransmissionReceiver(
 	time_ libtime.Time,
 	nav *Navigator,
 	receiver *StreamReceiver,
-	numWorkers int, //XXX: use worker pool for decoding
+	numWorkers int,
 ) *TransmissionReceiver {
 
 	wp, err := ants.NewPool(numWorkers)
