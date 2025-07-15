@@ -98,7 +98,7 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 
 		for j := 0; j < bench.numIterations; j++ {
 			if j%10 == 0 {
-				liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+				liblog.Infof("resource usage: %s", runtime.ResourceUsage())
 			}
 
 			select {
@@ -136,7 +136,7 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 		j := 0
 		for {
 			if j%10 == 0 {
-				liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+				liblog.Infof("resource usage: %s", runtime.ResourceUsage())
 			}
 
 			select {
