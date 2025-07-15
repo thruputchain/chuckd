@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"sync"
 	"testing"
 	"time"
@@ -26,6 +27,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestSendReceiveTransmission(t *testing.T) {
+
+	// MemoryBallast()
+	debug.SetMemoryLimit(64 << 30)
 
 	ctx := context.Background()
 	cfg := proto.DogwoodConfig{
@@ -61,7 +65,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		payload[i] = byte(i)
 	}
 
-	const N = 10000
+	const N = 100000
 
 	// send from V0
 	go func() {
