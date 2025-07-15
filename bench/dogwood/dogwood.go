@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -14,13 +15,16 @@ import (
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type DogwoodBenchmark struct {
 	numPayBytes   int
 	numIterations int
+	discovery     discovery.Discovery
 	dogwood       *dogwood.DogwoodService
+	wg            sync.WaitGroup
 }
 
 func NewDogwoodBenchmark(
@@ -57,8 +61,13 @@ func NewDogwoodBenchmark(
 	return &DogwoodBenchmark{
 		numPayBytes:   numPayBytes,
 		numIterations: numIterations,
+		discovery:     discovery,
 		dogwood:       dw,
 	}
+}
+
+func (bench *DogwoodBenchmark) selfString() string {
+	return protoutil.VIDString(bench.discovery.SelfID())
 }
 
 func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
@@ -69,37 +78,53 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 	zeroPayload := make([]byte, bench.numPayBytes)
 
 	// start benchmark sender
+	bench.wg.Add(1)
 	go func() {
+		defer bench.wg.Done()
+
+		defer liblog.Infof("%v sender done", bench.selfString())
+		var bytesSent libstat.Counter
+
+		defer func() {
+			liblog.Infof("%v sent %s, at %s/sec",
+				bench.selfString(),
+				humanize.Bytes(uint64(bytesSent.Sum())),
+				humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
+		}()
 
 		time.Sleep(3 * time.Second) // XXX: wait for all nodes to warmup (flag???)
-		liblog.Infof("starting to send")
-
-		defer liblog.Infof("sender done")
-		var bytesSent libstat.Counter
+		liblog.Infof("%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
 
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
 			err := bench.dogwood.Send(ctx, zeroPayload)
 			if err != nil {
-				liblog.Errorf("bench send: %v", err)
+				liblog.Errorf("%v bench send: %v", bench.selfString(), err)
 			} else {
 				bytesSent.Add(float64(len(zeroPayload)))
 			}
 
 		}
 
-		liblog.Infof("sent %s, at %s/sec",
-			humanize.Bytes(uint64(bytesSent.Sum())),
-			humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
 	}()
 
 	// start benchmark receiver
+	bench.wg.Add(1)
 	go func() {
-		defer liblog.Infof("receiver done")
+		defer bench.wg.Done()
+
+		defer liblog.Infof("%v receiver done", bench.selfString())
 		var bytesReceived libstat.Counter
 
 		defer func() {
-			liblog.Infof("received %s, at %s/sec",
+			liblog.Infof("%v received %s, at %s/sec",
+				bench.selfString(),
 				humanize.Bytes(uint64(bytesReceived.Sum())),
 				humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
 		}()
@@ -110,17 +135,23 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 				return
 			default:
 			}
-			rctx, cancel := context.WithTimeout(ctx, time.Second)
+			rctx, cancel := context.WithTimeout(ctx, 5*time.Second) // absorb 3 sec warm up + if nothing comes for more than a second, end
 			payload, _, err := bench.dogwood.Receive(rctx)
 			cancel()
+			// payload, _, err := bench.dogwood.Receive(ctx)
 			if errors.Is(err, context.DeadlineExceeded) {
+				liblog.Errorf("%v receive: %v", bench.selfString(), err)
 				return
 			}
 			if err != nil {
-				liblog.Errorf("receive: %v", err)
+				liblog.Errorf("%v receive: %v", bench.selfString(), err)
 			} else {
 				bytesReceived.Add(float64(len(payload)))
 			}
 		}
 	}()
+}
+
+func (bench *DogwoodBenchmark) Wait() {
+	bench.wg.Wait()
 }

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -163,7 +162,7 @@ func (x *endpoint) Start(ctx context.Context) {
 				go func(c DogwoodClientCloser) {
 					err := c.Dogwood_deliver(ctx, dcall.arg)
 					if err != nil {
-						liblog.Errorf("calling deliver on endpoint %v: %v", form.Display(x.addr), err)
+						liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
 						eq <- err
 					}
 				}(c)
