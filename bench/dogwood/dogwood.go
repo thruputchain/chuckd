@@ -15,6 +15,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -96,6 +97,9 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 		liblog.Infof("%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
+			if j%10 == 0 {
+				liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+			}
 
 			select {
 			case <-ctx.Done():
@@ -129,12 +133,18 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 				humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
 		}()
 
+		j := 0
 		for {
+			if j%10 == 0 {
+				liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+			}
+
 			select {
 			case <-ctx.Done(): // benchmark timeout
 				return
 			default:
 			}
+
 			rctx, cancel := context.WithTimeout(ctx, 5*time.Second) // absorb 3 sec warm up + if nothing comes for more than a second, end
 			payload, _, err := bench.dogwood.Receive(rctx)
 			cancel()
@@ -148,6 +158,8 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 			} else {
 				bytesReceived.Add(float64(len(payload)))
 			}
+
+			j += 1
 		}
 	}()
 }

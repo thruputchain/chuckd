@@ -1,7 +1,9 @@
 [x] payload and route transmission on different paths
 [x] process receptions even if route not known
 
-[ ] try using a pool of argument messages in XDR client call stubs
+INVESTIGATE
+[ ] check for memory leaks in dogwood
+[ ] why is quic slower than tcp
 
 [ ] understand how many cores reedsolomon uses
 [ ] shuffle code chunks
