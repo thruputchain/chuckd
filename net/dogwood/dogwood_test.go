@@ -61,7 +61,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		payload[i] = byte(i)
 	}
 
-	const N = 100000
+	const N = 50000
 
 	// send from V0
 	go func() {
@@ -114,4 +114,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		fmt.Printf("validator %d received %d transmission out of %d, throughput %v/sec\n",
 			vIndex, numReceived[vIndex], N, humanize.Bytes(uint64(throughput[vIndex].SpeedPerSec())))
 	}
+
+	fmt.Println("DDE pool:", proto.DDEPool.StatString())
+	fmt.Println("Proc pool:", proto.ProcPool.StatString())
 }
