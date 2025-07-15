@@ -2,6 +2,7 @@ package cmd
 
 import (
 	benchbroadcast "github.com/groundhogchain/chuckd/bench/broadcast"
+	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
 	"github.com/groundhogchain/chuckd/bench/loadgen"
 	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
@@ -158,6 +159,40 @@ var (
 			})
 		},
 	}
+
+	benchDogwoodCmd = &cobra.Command{
+		Use:   "dogwood",
+		Short: "start dogwood benchmark server",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+				cfg := LoadConfig(ctx)
+				ctx = libmetrics.WithMetricAttributes(ctx,
+					attribute.String("cmd", "bench dogwood"),
+					attribute.Int("tree_fan_out", benchTreeFanOut),
+					attribute.Int("bytes_per_pay", benchBytesPerPay),
+					attribute.Int("num_iterations", benchNumIterations),
+				)
+				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				must.Assertf(ctx, cfg.Dogwood_config != nil, "missing dogwood config section")
+				outside := libnet.Network(libnet.TCPNet{})
+				if benchQUIC {
+					outside = quic.NewQUICNet(ctx)
+				}
+				srv := benchdogwood.NewDogwoodBenchmark(
+					ctx,
+					runtime.NewRandFromRoot(),
+					outside,
+					*cfg,
+					benchTreeFanOut,
+					benchBytesPerPay,
+					benchNumIterations,
+				)
+				srv.Start(ctx, benchServerAddress)
+				srv.Wait()
+			})
+		},
+	}
 )
 
 var (
@@ -167,6 +202,7 @@ var (
 	benchChunkPerChannel int
 	benchBytesPerSec     int
 	benchNumIterations   int
+	benchBytesPerPay     int
 	//
 	benchInAddress     string
 	benchOutAddress    string
@@ -196,6 +232,13 @@ func init() {
 	benchBroadcastCmd.Flags().IntVar(&benchChunkPerChannel, "chunk-per-chan", 100, "chunks per channel")
 	benchBroadcastCmd.Flags().IntVar(&benchBytesPerSec, "bytes-per-sec", 10000, "bytes per second")
 	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 1, "number of iterations")
+
+	benchCmd.AddCommand(benchDogwoodCmd)
+	benchDogwoodCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
+	benchDogwoodCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
+	benchDogwoodCmd.Flags().IntVar(&benchTreeFanOut, "fan-out", 5, "fan-out of multicast trees")
+	benchDogwoodCmd.Flags().IntVar(&benchBytesPerPay, "bytes-per-pay", 300000, "bytes per payload")
+	benchDogwoodCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 10000, "number of iterations")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
 	benchTestClusterCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")

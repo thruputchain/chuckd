@@ -13,7 +13,7 @@ func TestBroadcastLocalScript(t *testing.T) {
 
 	ctx := context.Background()
 
-	def := BenchBroadcastDef{
+	def := BenchBroadcastExecDef{
 		QUIC:             false,
 		FanOut:           5,
 		ChunkPerChannel:  100,

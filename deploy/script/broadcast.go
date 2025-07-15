@@ -13,7 +13,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type BenchBroadcastDef struct {
+type BenchBroadcastExecDef struct {
 	QUIC bool
 	//
 	FanOut          int
@@ -28,7 +28,7 @@ type BenchBroadcastDef struct {
 	BenchPort   int
 }
 
-func (def BenchBroadcastDef) LocalScript(
+func (def BenchBroadcastExecDef) LocalScript(
 	ctx context.Context,
 	rand *rand.Rand,
 	chuckdPath string,
@@ -46,7 +46,7 @@ func (def BenchBroadcastDef) LocalScript(
 	return strings.Join(scripts, "\n")
 }
 
-func (def BenchBroadcastDef) ExecScripts(
+func (def BenchBroadcastExecDef) ExecScripts(
 	ctx context.Context,
 	rand *rand.Rand,
 	chuckdPath string,
@@ -91,7 +91,7 @@ func (def BenchBroadcastDef) ExecScripts(
 func benchBroadcastHostScript(
 	ctx context.Context,
 	rand *rand.Rand,
-	def BenchBroadcastDef,
+	def BenchBroadcastExecDef,
 	index int,
 	cfg proto.Config,
 	chuckdPath string,
