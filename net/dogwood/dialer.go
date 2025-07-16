@@ -13,8 +13,6 @@ type DogwoodDialer interface {
 	Start(context.Context)
 }
 
-type ResolveFn func(proto.ValidatorID) (string, error)
-
 type dogwoodClientDialer struct {
 	net    libnet.Network
 	router router.DogwoodRouter

@@ -181,13 +181,6 @@ func (x *endpoint) Start(ctx context.Context) {
 					},
 				)
 
-				// go func(c DogwoodClientCloser) {
-				// err := c.Dogwood_deliver(ctx, dcall.arg)
-				// if err != nil {
-				// 	liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
-				// 	eq <- err
-				// }
-				// }(c)
 			} else {
 				liblog.Errorf("dogwood call: dropping delivery to %v (no connection)", protoutil.VIDString(x.addr))
 			}
