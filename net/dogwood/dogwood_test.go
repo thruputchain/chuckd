@@ -36,6 +36,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		//
 		Endpoint_queue_length:      20,
 		Endpoint_max_pending:       10,
+		Endpoint_num_clients:       10,
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
 		Endpoint_redial_delay_msec: 50,   // 50 msec
 		//
