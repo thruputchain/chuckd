@@ -2,6 +2,7 @@ package dogwood
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -19,17 +20,17 @@ import (
 // reducing the likelihood of duplicate receptions.
 
 type TransmissionReceiver struct {
-	cfg      proto.TransmissionConfig
-	time     libtime.Time
-	nav      *Navigator
-	receiver *StreamReceiver
-	workPool *ants.Pool
-	decPool  *MagnoliaDecoderPool
-	receiveQ chan receivedTransmission
-	rlk      sync.Mutex
-	received map[transmissionKey]time.Time
-	plk      sync.Mutex
-	partial  map[transmissionKey]*partialTransmission
+	partialTTL time.Duration // ttl for partial transmissions
+	time       libtime.Time
+	nav        *Navigator
+	receiver   *StreamReceiver
+	workPool   *ants.Pool
+	decPool    *MagnoliaDecoderPool
+	receiveQ   chan receivedTransmission
+	rlk        sync.Mutex
+	received   map[transmissionKey]time.Time
+	plk        sync.Mutex
+	partial    map[transmissionKey]*partialTransmission
 }
 
 type receivedTransmission struct {
@@ -48,7 +49,7 @@ type partialTransmission struct {
 	key     transmissionKey
 	arrived time.Time // time first chunk of transmission arrived
 	header  proto.DogwoodTransmission
-	done    sync.Once
+	emit    sync.Once
 	lk      sync.Mutex
 	dec     *magnolia.Decoder
 	ding    *magnolia.Decoding
@@ -66,11 +67,11 @@ func NewTransmissionReceiver(
 	wp, err := ants.NewPool(numWorkers)
 	must.NoError(ctx, err)
 	return &TransmissionReceiver{
-		cfg:      cfg,
-		time:     time_,
-		nav:      nav,
-		receiver: receiver,
-		workPool: wp,
+		partialTTL: time.Duration(cfg.Partial_ttl_msec) * time.Millisecond,
+		time:       time_,
+		nav:        nav,
+		receiver:   receiver,
+		workPool:   wp,
 		decPool: NewMagnoliaDecoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
@@ -81,6 +82,12 @@ func NewTransmissionReceiver(
 		received: map[transmissionKey]time.Time{},
 		partial:  map[transmissionKey]*partialTransmission{},
 	}
+}
+
+func (x *TransmissionReceiver) NumPartial() int {
+	x.plk.Lock()
+	defer x.plk.Unlock()
+	return len(x.partial)
 }
 
 func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransmissionType, []byte, proto.ValidatorID, error) {
@@ -112,14 +119,13 @@ func (x *TransmissionReceiver) Start(ctx context.Context) {
 }
 
 func (x *TransmissionReceiver) expireReceived(_ context.Context) {
-	ttl := time.Duration(x.cfg.Partial_ttl_msec) * time.Millisecond
 	for {
-		x.time.Sleep(ttl)
+		x.time.Sleep(x.partialTTL)
 		now := x.time.Now()
 
 		x.rlk.Lock()
 		for key, stamp := range x.received {
-			if now.Sub(stamp) > ttl {
+			if now.Sub(stamp) > x.partialTTL {
 				delete(x.received, key)
 			}
 		}
@@ -129,15 +135,14 @@ func (x *TransmissionReceiver) expireReceived(_ context.Context) {
 
 // expirePartial transmissions that have exceeded ttl
 func (x *TransmissionReceiver) expirePartial(_ context.Context) {
-	ttl := time.Duration(x.cfg.Partial_ttl_msec) * time.Millisecond
 	for {
-		x.time.Sleep(ttl)
+		x.time.Sleep(x.partialTTL)
 		now := x.time.Now()
 
 		x.plk.Lock()
 		scrub := []*partialTransmission{}
 		for _, par := range x.partial {
-			if now.Sub(par.arrived) > ttl {
+			if now.Sub(par.arrived) > x.partialTTL {
 				scrub = append(scrub, par)
 			}
 		}
@@ -160,13 +165,22 @@ func (x *TransmissionReceiver) do(ctx context.Context) {
 		go func() {
 			defer rs.Close()
 
+			// every stream is dedicated to a transmission
+			// close it when the transmission is complete or discarded
 			stream := rs.Stream()
 			for {
 
-				pkg, err := rs.Receive(ctx)
-				if err != nil {
+				rCtx, rCtxCancel := context.WithTimeout(ctx, x.partialTTL)
+				pkg, err := rs.Receive(rCtx)
+				rCtxCancel()
+
+				switch {
+				case errors.Is(err, context.DeadlineExceeded):
+					return
+				case err != nil:
 					liblog.Errorf("broken stream: %v", err)
 					return
+				default:
 				}
 
 				key := transmissionKey{
@@ -174,10 +188,10 @@ func (x *TransmissionReceiver) do(ctx context.Context) {
 					DogwoodTransmissionID: pkg.Transmission.Transmission_id,
 				}
 
-				par, err := x.getMakePartial(key, pkg.Transmission)
+				par, err := x.getPartial(key, pkg.Transmission)
 				if err != nil {
-					liblog.Errorf("retrieving partial transmission: %v", err)
-					continue // only this package is corrupt
+					liblog.Errorf("partial transmission: %v", err)
+					continue // only this message is corrupt
 				}
 
 				done, err := par.PlaceUsingWorker(
@@ -199,7 +213,7 @@ func (x *TransmissionReceiver) do(ctx context.Context) {
 	}
 }
 
-func (x *TransmissionReceiver) getMakePartial(
+func (x *TransmissionReceiver) getPartial(
 	key transmissionKey,
 	transmission proto.DogwoodTransmission,
 ) (*partialTransmission, error) {
@@ -221,7 +235,7 @@ func (x *TransmissionReceiver) getMakePartial(
 		x.partial[key] = p
 	} else {
 		if transmission != p.header {
-			return nil, fmt.Errorf("mismatched transmission header")
+			return nil, fmt.Errorf("corrupt transmission")
 		}
 	}
 
@@ -265,7 +279,11 @@ func (x *partialTransmission) Place(sheafIndex int, chunkIndex int, chunk []byte
 		return false, nil // not ready to decode
 	}
 
-	x.done.Do(func() { x.parent.receiveQ <- receivedTransmission{key: x.key, typ: x.header.Type, pay: pay} })
+	x.emit.Do(
+		func() {
+			x.parent.receiveQ <- receivedTransmission{key: x.key, typ: x.header.Type, pay: pay}
+		},
+	)
 
 	return true, nil
 }

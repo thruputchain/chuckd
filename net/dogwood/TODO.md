@@ -1,8 +1,10 @@
 [x] payload and route transmission on different paths
 [x] process receptions even if route not known
 
-INVESTIGATE
+OPEN
 [ ] check for memory leaks in dogwood
+    [ ] goroutine leak
+        - too many Receive <= too many accepted streams
 [ ] why is quic slower than tcp
 
 [ ] understand how many cores reedsolomon uses

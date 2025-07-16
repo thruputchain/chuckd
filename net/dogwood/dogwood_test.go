@@ -66,6 +66,10 @@ func TestSendReceiveTransmission(t *testing.T) {
 	// send from V0
 	go func() {
 		for i := 0; i < N; i++ {
+			if i%10 == 0 {
+				liblog.Infof("%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
+				liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
+			}
 			err := tn.dogwood[0].Send(ctx, payload)
 			if err != nil {
 				t.Error(err)
@@ -81,7 +85,12 @@ func TestSendReceiveTransmission(t *testing.T) {
 
 	receiveFn := func(vIndex int, check bool) {
 		defer wg.Done()
+		j := 0
 		for {
+			if j%10 == 0 {
+				liblog.Infof("%v resource usage: %s", tn.String(vIndex), runtime.ResourceUsage())
+				liblog.Infof("%v dogwood stats: %v", tn.String(vIndex), tn.dogwood[vIndex].Stats())
+			}
 			rCtx, rCancel := context.WithTimeout(ctx, time.Second)
 			p, v, err := tn.Dogwood(vIndex).Receive(rCtx)
 			rCancel()
@@ -99,6 +108,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 			}
 			numReceived[vIndex] += 1
 			throughput[vIndex].Add(float64(len(p)))
+			j += 1
 		}
 	}
 

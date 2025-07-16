@@ -29,6 +29,8 @@ type StreamSender struct {
 }
 
 type SendStream struct {
+	ctx    context.Context
+	cancel context.CancelFunc
 	parent *StreamSender
 	stream proto.DogwoodStream
 	route  proto.DogwoodRoute
@@ -54,6 +56,12 @@ func NewStreamSender(
 		wp:        wp,
 		stream:    map[proto.DogwoodStream]*SendStream{},
 	}
+}
+
+func (x *StreamSender) NumStreams() int {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return len(x.stream)
 }
 
 func (x *StreamSender) Start(context.Context) {}
@@ -126,12 +134,15 @@ func (x *StreamSender) Dial(ctx context.Context) (*SendStream, error) {
 // stream
 
 func (x *StreamSender) newSendStream(
-	_ context.Context,
+	ctx context.Context,
 	stream proto.DogwoodStream,
 	route proto.DogwoodRoute,
 	nav NavRoute,
 ) *SendStream {
+	ctx, cancel := context.WithCancel(ctx)
 	return &SendStream{
+		ctx:    ctx,
+		cancel: cancel,
 		parent: x,
 		stream: stream,
 		route:  route,
@@ -166,6 +177,8 @@ func (x *SendStream) Send(ctx context.Context, pkg *proto.DogwoodPackage) {
 }
 
 func (x *SendStream) Close() {
+	x.cancel()
+
 	x.parent.lk.Lock()
 	defer x.parent.lk.Unlock()
 

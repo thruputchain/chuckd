@@ -19,6 +19,9 @@ type TransmissionSender struct {
 	encPool  *MagnoliaEncoderPool
 	rlk      sync.Mutex
 	rand     *rand.Rand
+	lk       sync.Mutex
+	nsending int
+	nwaiting int
 }
 
 func NewTransmissionSender(
@@ -46,6 +49,18 @@ func NewTransmissionSender(
 	}
 }
 
+func (x *TransmissionSender) NumSending() int {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return x.nsending
+}
+
+func (x *TransmissionSender) NumWaiting() int {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return x.nwaiting
+}
+
 func (x *TransmissionSender) Start(context.Context) {}
 
 func (x *TransmissionSender) Send(
@@ -54,7 +69,27 @@ func (x *TransmissionSender) Send(
 	pay []byte,
 	genRoute bool,
 ) {
-	x.workPool.Submit(func() { x.send(ctx, typ, pay, genRoute) })
+	x.lk.Lock()
+	x.nwaiting += 1
+	x.lk.Unlock()
+
+	x.workPool.Submit(
+		func() {
+			x.lk.Lock()
+			x.nsending += 1
+			x.lk.Unlock()
+
+			x.send(ctx, typ, pay, genRoute)
+
+			x.lk.Lock()
+			x.nsending -= 1
+			x.lk.Unlock()
+		},
+	)
+
+	x.lk.Lock()
+	x.nwaiting -= 1
+	x.lk.Unlock()
 }
 
 func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {

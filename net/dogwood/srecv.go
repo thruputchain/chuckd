@@ -2,6 +2,7 @@ package dogwood
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -30,6 +31,8 @@ type StreamReceiver struct {
 }
 
 type ReceiveStream struct {
+	ctx    context.Context
+	cancel context.CancelFunc
 	parent *StreamReceiver
 	stream proto.DogwoodStream
 	nav    NavRoute
@@ -56,6 +59,12 @@ func NewStreamReceiver(
 		acceptQ:   make(chan *ReceiveStream),
 		stream:    map[proto.DogwoodStream]*ReceiveStream{},
 	}
+}
+
+func (r *StreamReceiver) NumStreams() int {
+	r.lk.Lock()
+	defer r.lk.Unlock()
+	return len(r.stream)
 }
 
 func (r *StreamReceiver) Start(ctx context.Context) {
@@ -109,7 +118,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	r.lk.Lock()
 	s, ok := r.stream[env.Delivery.Stream]
 	if !ok {
-		s = r.newReceivingStream(env.Delivery.Stream, route)
+		s = r.newReceivingStream(ctx, env.Delivery.Stream, route)
 		r.stream[env.Delivery.Stream] = s
 	}
 	r.lk.Unlock()
@@ -124,22 +133,27 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 // stream
 
 func (r *StreamReceiver) newReceivingStream(
+	ctx context.Context,
 	stream proto.DogwoodStream,
 	route NavRoute,
 ) *ReceiveStream {
+	ctx, ctxCancel := context.WithCancel(ctx)
 	return &ReceiveStream{
+		ctx:    ctx,
+		cancel: ctxCancel,
 		parent: r,
 		stream: stream,
 		nav:    route,
-		pkgQ:   make(chan *proto.DogwoodPackage),
+		pkgQ:   make(chan *proto.DogwoodPackage, 1),
 	}
 }
 
 func (s *ReceiveStream) Close() {
 
+	s.cancel()
+
 	s.parent.lk.Lock()
 	defer s.parent.lk.Unlock()
-
 	delete(s.parent.stream, s.stream)
 }
 
@@ -149,6 +163,8 @@ func (s *ReceiveStream) Stream() proto.DogwoodStream {
 
 func (s *ReceiveStream) Receive(ctx context.Context) (*proto.DogwoodPackage, error) {
 	select {
+	case <-s.ctx.Done():
+		return nil, fmt.Errorf("stream closed")
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case x := <-s.pkgQ:
@@ -158,7 +174,13 @@ func (s *ReceiveStream) Receive(ctx context.Context) (*proto.DogwoodPackage, err
 
 func (s *ReceiveStream) process(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
 
-	s.pkgQ <- &env.Delivery.Pkg
+	select {
+	case <-s.ctx.Done():
+		return
+	case <-ctx.Done():
+		return
+	case s.pkgQ <- &env.Delivery.Pkg:
+	}
 
 	for _, d := range s.nav.Downstream {
 		s.parent.caller.DogwoodDeliver(ctx, d, env)

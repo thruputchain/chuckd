@@ -120,6 +120,10 @@ func (x *Dogwood3Harness) VID(i int) proto.ValidatorID {
 	return protoutil.VIDOfPublic(x.vs[i].Public_info)
 }
 
+func (x *Dogwood3Harness) String(i int) string {
+	return protoutil.VIDString(x.VID(i))
+}
+
 func (x *Dogwood3Harness) Time() libtime.Time {
 	return x.time
 }
