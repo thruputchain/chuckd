@@ -55,7 +55,8 @@ func NewDogwoodService(
 
 	x.caller = NewCaller(
 		ctx, time_, x.dialer,
-		int(cfg.Endpoint_queue_length), endpointIdleTTL, endpointRedialDelay,
+		int(cfg.Endpoint_queue_length), int(cfg.Endpoint_max_pending),
+		endpointIdleTTL, endpointRedialDelay,
 	)
 
 	x.streamReceiver = NewStreamReceiver(

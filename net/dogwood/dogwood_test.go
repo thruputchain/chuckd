@@ -20,6 +20,7 @@ import (
 
 func TestMain(m *testing.M) {
 	liblog.LogLevel(zerolog.DebugLevel)
+	runtime.CaptureInterrupts(true)
 	runtime.SetRootSeed(0)
 	exitCode := m.Run()
 	os.Exit(exitCode)
@@ -34,6 +35,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		Route_time_to_use_msec:  200,  // 200 msec
 		//
 		Endpoint_queue_length:      20,
+		Endpoint_max_pending:       10,
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
 		Endpoint_redial_delay_msec: 50,   // 50 msec
 		//

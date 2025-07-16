@@ -8,8 +8,10 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/panjf2000/ants/v2"
 )
 
 type Caller interface {
@@ -22,9 +24,10 @@ type caller struct {
 	time   libtime.Time
 	dialer DogwoodDialer
 	// params
-	queueSize   int           // number of calls in each endpoint's call queue
-	idleTTL     time.Duration // discard idle endpoints after ttl
-	redialDelay time.Duration
+	endpointQueueLen    int           // maximum number of calls in endpoint call queue
+	endpointMaxPending  int           // maximum number of pending (inflight) calls to an endpoint
+	endpointIdleTTL     time.Duration // discard idle endpoints after ttl
+	endpointRedialDelay time.Duration
 	// state
 	lk       sync.Mutex
 	endpoint map[proto.ValidatorID]*endpoint
@@ -38,7 +41,8 @@ type endpoint struct {
 	redialDelay time.Duration
 	stop        chan struct{}
 	dq          chan deliverCall
-	failed      *time.Time // accessed synchronously in Start
+	pending     *ants.Pool
+	failed      *time.Time // accessed synchronously in endpoint.Start
 }
 
 type deliverCall struct {
@@ -52,18 +56,20 @@ func NewCaller(
 	ctx context.Context,
 	time libtime.Time,
 	dialer DogwoodDialer,
-	endpointQueueSize int,
-	idleEndpointTTL time.Duration,
+	endpointQueueLen int,
+	endpointMaxPending int,
+	endpointIdleTTL time.Duration,
 	endpointRedialDelay time.Duration,
 ) Caller {
 	return &caller{
-		ctx:         ctx,
-		time:        time,
-		dialer:      dialer,
-		queueSize:   endpointQueueSize,
-		idleTTL:     idleEndpointTTL,
-		redialDelay: endpointRedialDelay,
-		endpoint:    map[proto.ValidatorID]*endpoint{},
+		ctx:                 ctx,
+		time:                time,
+		dialer:              dialer,
+		endpointQueueLen:    endpointQueueLen,
+		endpointMaxPending:  endpointMaxPending,
+		endpointIdleTTL:     endpointIdleTTL,
+		endpointRedialDelay: endpointRedialDelay,
+		endpoint:            map[proto.ValidatorID]*endpoint{},
 	}
 }
 
@@ -73,11 +79,11 @@ func (x *caller) Start(ctx context.Context) {
 
 func (x *caller) expire(_ context.Context) {
 	for {
-		x.time.Sleep(x.idleTTL)
+		x.time.Sleep(x.endpointIdleTTL)
 		now := x.time.Now()
 		x.lk.Lock()
 		for key, e := range x.endpoint {
-			if now.Sub(e.lastUse) > x.idleTTL {
+			if now.Sub(e.lastUse) > x.endpointIdleTTL {
 				delete(x.endpoint, key)
 				e.Stop()
 			}
@@ -86,13 +92,13 @@ func (x *caller) expire(_ context.Context) {
 	}
 }
 
-func (x *caller) getEndpoint(addr proto.ValidatorID) *endpoint {
+func (x *caller) getEndpoint(ctx context.Context, addr proto.ValidatorID) *endpoint {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
 	e, ok := x.endpoint[addr]
 	if !ok {
-		e = x.newEndpoint(addr)
+		e = x.newEndpoint(ctx, addr)
 		go e.Start(x.ctx)
 		x.endpoint[addr] = e
 	}
@@ -102,19 +108,23 @@ func (x *caller) getEndpoint(addr proto.ValidatorID) *endpoint {
 }
 
 func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, arg proto.DogwoodDeliveryEnvelope) error {
-	return x.getEndpoint(addr).DogwoodDeliver(ctx, arg)
+	return x.getEndpoint(ctx, addr).DogwoodDeliver(ctx, arg)
 }
 
 // endpoint
 
-func (x *caller) newEndpoint(addr proto.ValidatorID) *endpoint {
+func (x *caller) newEndpoint(ctx context.Context, addr proto.ValidatorID) *endpoint {
+
+	pending, err := ants.NewPool(x.endpointMaxPending)
+	must.NoError(ctx, err)
 	return &endpoint{
 		// last: set by getEndpoint; accessed under caller.lk
 		addr:        addr,
 		time:        x.time,
 		dialer:      x.dialer,
-		redialDelay: x.redialDelay,
-		dq:          make(chan deliverCall, x.queueSize),
+		redialDelay: x.endpointRedialDelay,
+		dq:          make(chan deliverCall, x.endpointQueueLen),
+		pending:     pending,
 		stop:        make(chan struct{}),
 	}
 }
@@ -157,15 +167,27 @@ func (x *endpoint) Start(ctx context.Context) {
 			if c == nil {
 				c, _ = x.dial(ctx)
 			}
-			// XXX: support discard-reply semantics in goxdr driver
+			// XXX: support discard-reply semantics in goxdr driver???
 			if c != nil {
-				go func(c DogwoodClientCloser) {
-					err := c.Dogwood_deliver(ctx, dcall.arg)
-					if err != nil {
-						liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
-						eq <- err
-					}
-				}(c)
+
+				cc := c
+				x.pending.Submit(
+					func() {
+						err := cc.Dogwood_deliver(ctx, dcall.arg)
+						if err != nil {
+							liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
+							eq <- err
+						}
+					},
+				)
+
+				// go func(c DogwoodClientCloser) {
+				// err := c.Dogwood_deliver(ctx, dcall.arg)
+				// if err != nil {
+				// 	liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
+				// 	eq <- err
+				// }
+				// }(c)
 			} else {
 				liblog.Errorf("dogwood call: dropping delivery to %v (no connection)", protoutil.VIDString(x.addr))
 			}
