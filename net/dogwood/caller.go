@@ -102,7 +102,7 @@ func (x *caller) getEndpoint(ctx context.Context, addr proto.ValidatorID) *endpo
 	e, ok := x.endpoint[addr]
 	if !ok {
 		e = x.newEndpoint(ctx, addr)
-		go e.Start(x.ctx)
+		// XXX: go e.Start(x.ctx)
 		x.endpoint[addr] = e
 	}
 	e.lastUse = x.time.Now() // update time to ensure no expiry for next call duration
@@ -163,7 +163,19 @@ func (x *endpoint) Start(ctx context.Context) {
 	}
 }
 
-func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
+func (x *endpoint) DogwoodDeliverXXX(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
 	x.dq <- deliverCall{stamp: x.time.Now(), arg: arg}
+	return nil
+}
+
+func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
+	x.pending.Submit(
+		func() {
+			err := x.client.Dogwood_deliver(ctx, arg)
+			if err != nil {
+				liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
+			}
+		},
+	)
 	return nil
 }
