@@ -2,7 +2,6 @@
 [x] process receptions even if route not known
 
 OPEN
-[ ] rpc Message.Recycle called twice (reproduce?) use once?
 [ ] should endpoint.Start not used a background loop?
 [ ] why is quic slower than tcp
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -84,7 +84,8 @@ func TestDogwood(t *testing.T) {
 		Dogwood_config:   dcfg,
 	}
 
-	n := libnet.TCPNet{}
+	// n := libnet.TCPNet{}
+	n := quic.NewQUICNet(ctx)
 	bb0 := NewDogwoodBenchmark(ctx, r0, n, cfg0, testFanOut, testBytesPerPay, testNumIterations)
 	bb1 := NewDogwoodBenchmark(ctx, r1, n, cfg1, testFanOut, testBytesPerPay, testNumIterations)
 	bb2 := NewDogwoodBenchmark(ctx, r2, n, cfg2, testFanOut, testBytesPerPay, testNumIterations)
