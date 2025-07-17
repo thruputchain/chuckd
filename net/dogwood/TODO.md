@@ -2,12 +2,11 @@
 [x] process receptions even if route not known
 
 OPEN
-[ ] check for memory leaks in dogwood
-    [ ] goroutine leak
-        - too many Receive <= too many accepted streams
+[ ] rpc Message.Recycle called twice (reproduce?) use once?
+[ ] should endpoint.Start not used a background loop?
 [ ] why is quic slower than tcp
 
-[ ] understand how many cores reedsolomon uses
+[ ] understand how many cores reed solomon uses
 [ ] shuffle code chunks
 
 [x] protoutil sign/verify over hash of message (1.7GB/sec)
