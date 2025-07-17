@@ -153,17 +153,23 @@ func (x *ClientPool) evict(client DogwoodClientCloser) {
 func (x *ClientPool) Dogwood_null(ctx context.Context) error {
 	c, err := x.getClient(ctx)
 	if err != nil {
-		x.evict(c)
 		return err
 	}
-	return c.Dogwood_null(ctx)
+	err = c.Dogwood_null(ctx)
+	if err != nil {
+		x.evict(c)
+	}
+	return err
 }
 
 func (x *ClientPool) Dogwood_deliver(ctx context.Context, env proto.DogwoodDeliveryEnvelope) error {
 	c, err := x.getClient(ctx)
 	if err != nil {
-		x.evict(c)
 		return err
 	}
-	return c.Dogwood_deliver(ctx, env)
+	err = c.Dogwood_deliver(ctx, env)
+	if err != nil {
+		x.evict(c)
+	}
+	return err
 }
