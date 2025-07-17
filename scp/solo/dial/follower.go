@@ -24,7 +24,7 @@ func DialSoloFollowerClient(ctx context.Context, dialer libnet.AddressDialer, ad
 }
 
 func NewSoloFollowerClient(ctx context.Context, sock net.Conn) *SoloFollowerClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &SoloFollowerClient{

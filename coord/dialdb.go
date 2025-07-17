@@ -24,7 +24,7 @@ func DialDbCoordClient(ctx context.Context, dialer libnet.AddressDialer, address
 }
 
 func NewDbCoordClient(ctx context.Context, sock net.Conn) *DbCoordClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &DbCoordClient{

@@ -24,7 +24,7 @@ func DialShardClient(ctx context.Context, dialer libnet.AddressDialer, address s
 }
 
 func NewShardClient(ctx context.Context, sock net.Conn) *ShardClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &ShardClient{

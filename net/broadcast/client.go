@@ -31,7 +31,7 @@ func DialBroadcastClientTCP(ctx context.Context, addr string) *BroadcastClient {
 }
 
 func NewBroadcastClient(ctx context.Context, sock net.Conn) *BroadcastClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &BroadcastClient{

@@ -2,6 +2,7 @@
 [x] process receptions even if route not known
 
 OPEN
+[ ] should rpc MsgPool be shared across drivers and transports
 [ ] should endpoint.Start not used a background loop?
 [ ] why is quic slower than tcp
 

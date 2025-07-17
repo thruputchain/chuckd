@@ -24,7 +24,7 @@ func DialExecutorCoordClient(ctx context.Context, dialer libnet.AddressDialer, a
 }
 
 func NewExecutorCoordClient(ctx context.Context, sock net.Conn) *ExecutorCoordClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &ExecutorCoordClient{

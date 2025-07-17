@@ -24,7 +24,7 @@ func DialCatchupClient(ctx context.Context, dialer libnet.AddressDialer, addr st
 }
 
 func NewCatchupClient(ctx context.Context, sock net.Conn) *CatchupClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewStreamTransport(sock))
+	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &CatchupClient{

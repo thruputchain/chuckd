@@ -6,6 +6,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/net/router"
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/xdrpp/goxdr/rpc"
 )
 
 type DogwoodDialer interface {
@@ -14,6 +15,7 @@ type DogwoodDialer interface {
 }
 
 type dogwoodClientDialer struct {
+	mp     *rpc.MsgPool
 	net    libnet.Network
 	router router.DogwoodRouter
 }
@@ -26,7 +28,7 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	if err != nil {
 		return nil, err
 	}
-	c, err := DialDogwoodClient(ctx, x.net, addr)
+	c, err := DialDogwoodClient(ctx, x.net, x.mp, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -34,5 +36,5 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 }
 
 func NewDogwoodClientDialer(net libnet.Network, router router.DogwoodRouter) DogwoodDialer {
-	return dogwoodClientDialer{net: net, router: router}
+	return dogwoodClientDialer{mp: rpc.NewMsgPool(), net: net, router: router}
 }

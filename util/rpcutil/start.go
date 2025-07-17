@@ -13,8 +13,8 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func NewDriver(ctx context.Context, t rpc.Transport) *rpc.Driver {
-	driver := rpc.NewDriver(ctx, t)
+func NewDriver(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
+	driver := rpc.NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
 	// don't process in parallel, as the per-call goroutine is expensive
 	// driver.Lock = nil // process all calls in parallel
 	_ = liblog.Writer
@@ -31,7 +31,7 @@ func Start(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv
 		for {
 			sock, err := l.Accept()
 			must.NoError(ctx, err)
-			driver := NewDriver(ctx, rpc.NewStreamTransport(sock))
+			driver := NewDriver(ctx, rpc.NewMsgPool(), sock)
 			for _, srv := range srv {
 				driver.Register(srv)
 			}
