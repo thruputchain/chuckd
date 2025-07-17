@@ -71,7 +71,8 @@ func NewDogwoodService(
 
 	x.xReceiver = NewTransmissionReceiver(
 		ctx, *cfg.Transmission_config, time_, x.nav, x.streamReceiver,
-		int(cfg.Transmission_receiver_worker_count),
+		int(cfg.Transmission_receiver_decode_worker_count),
+		int(cfg.Transmission_receiver_stream_worker_count),
 	)
 
 	x.xSender = NewTransmissionSender(

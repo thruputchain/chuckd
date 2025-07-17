@@ -20,17 +20,18 @@ import (
 // reducing the likelihood of duplicate receptions.
 
 type TransmissionReceiver struct {
-	partialTTL time.Duration // ttl for partial transmissions
-	time       libtime.Time
-	nav        *Navigator
-	receiver   *StreamReceiver
-	workPool   *ants.Pool
-	decPool    *MagnoliaDecoderPool
-	receiveQ   chan receivedTransmission
-	rlk        sync.Mutex
-	received   map[transmissionKey]time.Time
-	plk        sync.Mutex
-	partial    map[transmissionKey]*partialTransmission
+	partialTTL    time.Duration // ttl for partial transmissions
+	time          libtime.Time
+	nav           *Navigator
+	receiver      *StreamReceiver
+	decWorkers    *ants.Pool
+	decPool       *MagnoliaDecoderPool
+	streamWorkers *ants.Pool
+	receiveQ      chan receivedTransmission
+	rlk           sync.Mutex
+	received      map[transmissionKey]time.Time
+	plk           sync.Mutex
+	partial       map[transmissionKey]*partialTransmission
 }
 
 type receivedTransmission struct {
@@ -61,26 +62,32 @@ func NewTransmissionReceiver(
 	time_ libtime.Time,
 	nav *Navigator,
 	receiver *StreamReceiver,
-	numWorkers int,
+	numDecWorkers int,
+	numStreamWorkers int,
 ) *TransmissionReceiver {
 
-	wp, err := ants.NewPool(numWorkers)
+	decWorkers, err := ants.NewPool(numDecWorkers)
 	must.NoError(ctx, err)
+
+	streamWorkers, err := ants.NewPool(numStreamWorkers)
+	must.NoError(ctx, err)
+
 	return &TransmissionReceiver{
 		partialTTL: time.Duration(cfg.Partial_ttl_msec) * time.Millisecond,
 		time:       time_,
 		nav:        nav,
 		receiver:   receiver,
-		workPool:   wp,
+		decWorkers: decWorkers,
 		decPool: NewMagnoliaDecoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
 			int(cfg.Num_parity_sheaves),
 			int(cfg.Max_chunk_bytes),
 		),
-		receiveQ: make(chan receivedTransmission),
-		received: map[transmissionKey]time.Time{},
-		partial:  map[transmissionKey]*partialTransmission{},
+		streamWorkers: streamWorkers,
+		receiveQ:      make(chan receivedTransmission),
+		received:      map[transmissionKey]time.Time{},
+		partial:       map[transmissionKey]*partialTransmission{},
 	}
 }
 
@@ -162,54 +169,56 @@ func (x *TransmissionReceiver) do(ctx context.Context) {
 			continue
 		}
 
-		go func() {
-			defer rs.Close()
+		x.streamWorkers.Submit(
+			func() {
+				defer rs.Close()
 
-			// every stream is dedicated to a transmission
-			// close it when the transmission is complete or discarded
-			stream := rs.Stream()
-			for {
+				// every stream is dedicated to a transmission
+				// close it when the transmission is complete or discarded
+				stream := rs.Stream()
+				for {
 
-				rCtx, rCtxCancel := context.WithTimeout(ctx, x.partialTTL)
-				pkg, err := rs.Receive(rCtx)
-				rCtxCancel()
+					rCtx, rCtxCancel := context.WithTimeout(ctx, x.partialTTL)
+					pkg, err := rs.Receive(rCtx)
+					rCtxCancel()
 
-				switch {
-				case errors.Is(err, context.DeadlineExceeded):
-					return
-				case err != nil:
-					liblog.Errorf("broken stream: %v", err)
-					return
-				default:
+					switch {
+					case errors.Is(err, context.DeadlineExceeded):
+						return
+					case err != nil:
+						liblog.Errorf("broken stream: %v", err)
+						return
+					default:
+					}
+
+					key := transmissionKey{
+						ValidatorID:           stream.Source_id,
+						DogwoodTransmissionID: pkg.Transmission.Transmission_id,
+					}
+
+					par, err := x.getPartial(key, pkg.Transmission)
+					if err != nil {
+						liblog.Errorf("partial transmission: %v", err)
+						continue // only this message is corrupt
+					}
+
+					done, err := par.PlaceUsingWorker(
+						int(pkg.Chunk.Sheaf_index),
+						int(pkg.Chunk.Chunk_index),
+						pkg.Chunk.Chunk,
+					)
+					if done {
+						par.Close()
+						return
+					}
+					if err != nil {
+						liblog.Errorf("corrupt transmission package: %v", err)
+						continue // only this pkg is corrupt
+					}
+
 				}
-
-				key := transmissionKey{
-					ValidatorID:           stream.Source_id,
-					DogwoodTransmissionID: pkg.Transmission.Transmission_id,
-				}
-
-				par, err := x.getPartial(key, pkg.Transmission)
-				if err != nil {
-					liblog.Errorf("partial transmission: %v", err)
-					continue // only this message is corrupt
-				}
-
-				done, err := par.PlaceUsingWorker(
-					int(pkg.Chunk.Sheaf_index),
-					int(pkg.Chunk.Chunk_index),
-					pkg.Chunk.Chunk,
-				)
-				if done {
-					par.Close()
-					return
-				}
-				if err != nil {
-					liblog.Errorf("corrupt transmission package: %v", err)
-					continue // only this pkg is corrupt
-				}
-
-			}
-		}()
+			},
+		)
 	}
 }
 
@@ -250,7 +259,7 @@ type placeResult struct {
 func (x *partialTransmission) PlaceUsingWorker(sheafIndex int, chunkIndex int, chunk []byte) (done bool, err error) {
 
 	resultQ := make(chan placeResult, 1)
-	x.parent.workPool.Submit(
+	x.parent.decWorkers.Submit(
 		func() {
 			done, err := x.Place(sheafIndex, chunkIndex, chunk)
 			resultQ <- placeResult{done, err}

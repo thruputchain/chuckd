@@ -85,8 +85,9 @@ func (def BenchDogwoodExecDef) ExecScripts(
 			Stream_receiver_worker_count: 40, //XXX
 			Stream_sender_worker_count:   40, //XXX
 			//
-			Transmission_receiver_worker_count: 40, //XXX
-			Transmission_sender_worker_count:   40, //XXX
+			Transmission_receiver_decode_worker_count: 40, //XXX
+			Transmission_receiver_stream_worker_count: 5000,
+			Transmission_sender_worker_count:          40, //XXX
 			//
 			Transmission_config: &proto.TransmissionConfig{
 				Num_payload_sheaves: 5,

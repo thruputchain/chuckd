@@ -61,8 +61,9 @@ func TestDogwood(t *testing.T) {
 		Stream_receiver_worker_count: 10,
 		Stream_sender_worker_count:   10,
 		//
-		Transmission_receiver_worker_count: 10,
-		Transmission_sender_worker_count:   10,
+		Transmission_receiver_decode_worker_count: 10,
+		Transmission_receiver_stream_worker_count: 5000,
+		Transmission_sender_worker_count:          10,
 		//
 		Transmission_config: &proto.TransmissionConfig{
 			Num_payload_sheaves: 5,
