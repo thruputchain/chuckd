@@ -68,11 +68,12 @@ func (r *StreamReceiver) NumStreams() int {
 }
 
 func (r *StreamReceiver) Start(ctx context.Context) {
-	go func() {
-		for env := range r.deliveryQ {
-			r.wp.Submit(func() { r.process(ctx, env) })
-		}
-	}()
+	// XXX
+	// go func() {
+	// 	for env := range r.deliveryQ {
+	// 		r.wp.Submit(func() { r.process(ctx, env) })
+	// 	}
+	// }()
 }
 
 func (r *StreamReceiver) Accept(ctx context.Context) (*ReceiveStream, error) {
@@ -85,6 +86,10 @@ func (r *StreamReceiver) Accept(ctx context.Context) (*ReceiveStream, error) {
 }
 
 func (r *StreamReceiver) Deliver(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
+	r.wp.Submit(func() { r.process(ctx, env) })
+}
+
+func (r *StreamReceiver) DeliverXXX(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
 	r.deliveryQ <- env
 }
 
