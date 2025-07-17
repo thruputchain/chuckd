@@ -29,7 +29,7 @@ func TestDogwood(t *testing.T) {
 
 	testFanOut := 5
 	testBytesPerPay := 300000
-	testNumIterations := 20000
+	testNumIterations := 50000
 
 	rr := runtime.NewRandFromRoot()
 	r0 := runtime.NewRandFromRoot()

@@ -21,6 +21,11 @@ type BenchDogwoodExecDef struct {
 	//
 	MetricsPort int
 	BenchPort   int
+	//
+	CPUProfile   bool
+	MemProfile   bool
+	BlockProfile bool
+	TraceProfile bool
 }
 
 func (def BenchDogwoodExecDef) LocalScript(
@@ -71,17 +76,17 @@ func (def BenchDogwoodExecDef) ExecScripts(
 			Route_time_to_use_msec:  200,  // 200 msec
 			//
 			Endpoint_queue_length:      20,
-			Endpoint_max_pending:       10,
+			Endpoint_max_pending:       20, //XXX
 			Endpoint_num_clients:       10,
 			Endpoint_idle_ttl_msec:     60e3, // 1 minute
 			Endpoint_redial_delay_msec: 50,   // 50 msec
 			//
 			Stream_receiver_queue_length: 20,
-			Stream_receiver_worker_count: 10,
-			Stream_sender_worker_count:   10,
+			Stream_receiver_worker_count: 20, //XXX
+			Stream_sender_worker_count:   20, //XXX
 			//
-			Transmission_receiver_worker_count: 10,
-			Transmission_sender_worker_count:   10,
+			Transmission_receiver_worker_count: 20, //XXX
+			Transmission_sender_worker_count:   20, //XXX
 			//
 			Transmission_config: &proto.TransmissionConfig{
 				Num_payload_sheaves: 5,
@@ -99,7 +104,7 @@ func (def BenchDogwoodExecDef) ExecScripts(
 		if staggerPorts {
 			stagger = i
 		}
-		scripts[i] = benchDogwoodHostScript(ctx, rand, def, i, cfg, chuckdPath, stagger, cmdSuffix[i])
+		scripts[i] = benchDogwoodHostScript(ctx, rand, def, i, hosts[i], cfg, chuckdPath, stagger, cmdSuffix[i])
 	}
 	return scripts
 }
@@ -109,6 +114,7 @@ func benchDogwoodHostScript(
 	rand *rand.Rand,
 	def BenchDogwoodExecDef,
 	index int,
+	host string,
 	cfg proto.Config,
 	chuckdPath string,
 	stagger int,
@@ -123,7 +129,13 @@ cat > config-{{ .Stagger }}.json << EOF
 {{.ConfigJSON}}
 EOF
 
+echo "benchmark working directory $(pwd)"
+
 {{ .ChuckdPath }} -v -l info --config config-{{ .Stagger }}.json \
+	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \
+	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \
+	{{ if .Def.BlockProfile }}--block {{ .BlockProfileName }} {{ end }} \
+	{{ if .Def.TraceProfile }}--trace {{ .TraceProfileName }} {{ end }} \
 	--instance node-{{ .NodeIndex }} \
 	--seed {{ .Seed }} \
 	--metrics :{{ .MetricsPort }} \
@@ -136,14 +148,18 @@ EOF
 	{{ .Suffix }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
-		"Def":         def,
-		"ConfigJSON":  xdrutil.MustXdrToJsonString(&cfg),
-		"NodeIndex":   index,
-		"Seed":        rand.Int63(),
-		"ChuckdPath":  chuckdPath,
-		"MetricsPort": def.MetricsPort + stagger,
-		"BenchPort":   def.BenchPort + stagger,
-		"Stagger":     stagger,
-		"Suffix":      cmdSuffix,
+		"Def":              def,
+		"ConfigJSON":       xdrutil.MustXdrToJsonString(&cfg),
+		"NodeIndex":        index,
+		"Seed":             rand.Int63(),
+		"ChuckdPath":       chuckdPath,
+		"MetricsPort":      def.MetricsPort + stagger,
+		"BenchPort":        def.BenchPort + stagger,
+		"Stagger":          stagger,
+		"Suffix":           cmdSuffix,
+		"CPUProfileName":   "cpu-" + host + ".prof",
+		"MemProfileName":   "mem-" + host + ".prof",
+		"BlockProfileName": "block-" + host + ".prof",
+		"TraceProfileName": "trace-" + host + ".prof",
 	})
 }
