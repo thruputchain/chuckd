@@ -132,7 +132,7 @@ EOF
 
 echo "benchmark working directory $(pwd)"
 
-{{ .ChuckdPath }} -v -l info --config {{ .ConfigName }} \
+{{ .ChuckdPath }} -l info --config {{ .ConfigName }} \
 	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \
 	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \
 	{{ if .Def.BlockProfile }}--block {{ .BlockProfileName }} {{ end }} \

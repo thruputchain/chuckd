@@ -107,7 +107,7 @@ cat > config-{{ .Stagger }}.json << EOF
 {{.ConfigJSON}}
 EOF
 
-{{ .ChuckdPath }} -v -l info --config config-{{ .Stagger }}.json \
+{{ .ChuckdPath }} -l info --config config-{{ .Stagger }}.json \
 	--instance node-{{ .NodeIndex }} \
 	--seed {{ .Seed }} \
 	--metrics :{{ .MetricsPort }} \

@@ -56,7 +56,7 @@ cat > config-0.json << EOF
 }
 EOF
 
-chuckd -v -l info --config config-0.json \
+chuckd -l info --config config-0.json \
     -p cpu-0.prof \
 	--instance node-0 \
 	--seed 5707798609610607655 \
@@ -125,7 +125,7 @@ cat > config-1.json << EOF
 }
 EOF
 
-chuckd -v -l info --config config-1.json \
+chuckd -l info --config config-1.json \
     -p cpu-1.prof \
 	--instance node-1 \
 	--seed 3886150534851568708 \
@@ -194,7 +194,7 @@ cat > config-2.json << EOF
 }
 EOF
 
-chuckd -v -l info --config config-2.json \
+chuckd -l info --config config-2.json \
     -p cpu-2.prof \
 	--instance node-2 \
 	--seed 177360397769365151 \

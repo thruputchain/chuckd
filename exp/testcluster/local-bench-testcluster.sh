@@ -307,8 +307,8 @@ cat > config-quorum-2.json << EOF
     }
 }
 EOF
-nohup chuckd -v --config config-leader.json --instance leader --seed 8502489525653699386 --metrics :2222 solo leader --addr :60000 --delay 100 > leader.log 2>&1 &
-nohup chuckd -v --config config-quorum-0.json --instance quorum-0 --seed 6311280341148717924 --metrics :2223 bench testcluster --tps 1000 --out-addr :50000 --w-addr :40000 > quorum-0.log 2>&1 &
-nohup chuckd -v --config config-quorum-1.json --instance quorum-1 --seed 2622264106489803354 --metrics :2224 bench testcluster --tps 1000 --out-addr :50001 --w-addr :40001 > quorum-1.log 2>&1 &
-nohup chuckd -v --config config-quorum-2.json --instance quorum-2 --seed 7964169681022589069 --metrics :2225 bench testcluster --tps 1000 --out-addr :50002 --w-addr :40002 > quorum-2.log 2>&1 &
+nohup chuckd --config config-leader.json --instance leader --seed 8502489525653699386 --metrics :2222 solo leader --addr :60000 --delay 100 > leader.log 2>&1 &
+nohup chuckd --config config-quorum-0.json --instance quorum-0 --seed 6311280341148717924 --metrics :2223 bench testcluster --tps 1000 --out-addr :50000 --w-addr :40000 > quorum-0.log 2>&1 &
+nohup chuckd --config config-quorum-1.json --instance quorum-1 --seed 2622264106489803354 --metrics :2224 bench testcluster --tps 1000 --out-addr :50001 --w-addr :40001 > quorum-1.log 2>&1 &
+nohup chuckd --config config-quorum-2.json --instance quorum-2 --seed 7964169681022589069 --metrics :2225 bench testcluster --tps 1000 --out-addr :50002 --w-addr :40002 > quorum-2.log 2>&1 &
 

@@ -65,7 +65,7 @@ func BenchTestClusterShellLocal(
 
 	// start leader
 	leaderCmd := fmt.Sprintf(
-		"chuckd -v --config config-leader.json --instance %s --seed %d --metrics :2222 "+
+		"chuckd --config config-leader.json --instance %s --seed %d --metrics :2222 "+
 			"solo leader --addr %s --delay %d",
 		"leader", rand.Int63(), leaderBind, leaderDelayMsec,
 	)
@@ -76,7 +76,7 @@ func BenchTestClusterShellLocal(
 	metricsBasePort := 2223
 	for i := range quorumCfgs {
 		quorumCmd := fmt.Sprintf(
-			"chuckd -v --config config-quorum-%d.json --instance quorum-%d --seed %d --metrics :%d "+
+			"chuckd --config config-quorum-%d.json --instance quorum-%d --seed %d --metrics :%d "+
 				"bench testcluster --tps %d --out-addr %s --w-addr %s",
 			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 		)

@@ -54,7 +54,7 @@ func MakeStatefulSet(
 								"-c",
 								strings.Join([]string{
 									"source /app/config/env.sh", // exports INSTANCE and SEED, prepared by InitContainers
-									"exec /app/chuckd -v --config=/app/config/config.json --instance $INSTANCE --seed $SEED " + subcmd,
+									"exec /app/chuckd --config=/app/config/config.json --instance $INSTANCE --seed $SEED " + subcmd,
 								}, "\n"),
 							},
 							Env: []corev1.EnvVar{

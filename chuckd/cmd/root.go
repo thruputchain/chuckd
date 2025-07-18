@@ -33,7 +33,6 @@ var (
 
 var (
 	rootConfigPath       string
-	rootVerbose          bool
 	rootCPUProfilePath   string
 	rootTraceProfilePath string
 	rootMemProfilePath   string
@@ -55,7 +54,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&rootConfigPath, "config", "c", "",
 		"config file (default is $HOME/"+api.LocalAgentPath+"/"+api.LocalAgentConfigFilebase+")")
 	rootCmd.PersistentFlags().Int64Var(&rootSeed, "seed", 0x0102030405060708, "randomness seed")
-	rootCmd.PersistentFlags().BoolVarP(&rootVerbose, "verbose", "v", false, "run in developer mode with verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&rootLogLevel, "level", "l", "info", "log level")
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootTraceProfilePath, "trace", "t", "", "trace profile path")
@@ -72,12 +70,7 @@ func initAfterFlags() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if rootVerbose {
-		liblog.LogLevel(min(zerolog.DebugLevel, level))
-	} else {
-		liblog.LogLevel(level)
-	}
+	liblog.LogLevel(level)
 
 	if rootStackTrace {
 		api.SetStackTrace(true)
