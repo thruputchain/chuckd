@@ -50,7 +50,7 @@ loop:
 
 		switch typ {
 		case proto.DogwoodTransmissionPayload:
-			liblog.Infof("dogwood multiplex at %v: receiving payload, message size %d", x.selfString(), len(pay))
+			liblog.Debugf("dogwood multiplex at %v: receiving payload, message size %d", x.selfString(), len(pay))
 			return pay, from, nil
 		case proto.DogwoodTransmissionRoute:
 			x.receiveRouting(ctx, pay)

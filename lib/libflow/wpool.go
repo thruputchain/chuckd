@@ -2,8 +2,8 @@ package libflow
 
 import (
 	"context"
-	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -11,6 +11,7 @@ import (
 )
 
 type WorkerPool struct {
+	label  string
 	ctx    context.Context
 	cancel context.CancelFunc
 	//
@@ -39,13 +40,17 @@ func NewWorkerPool(
 	must.NoError(ctx, err)
 
 	x := &WorkerPool{
-		ctx:       ctx,
-		cancel:    cancel,
-		queue:     make(chan submission, numWorkers),
-		pool:      p,
-		submitLat: libstat.NewLatencyWithReport(libtime.RealTime{}, label+":submit", time.Second*3),
-		waitLat:   libstat.NewLatencyWithReport(libtime.RealTime{}, label+":wait", time.Second*3),
-		workLat:   libstat.NewLatencyWithReport(libtime.RealTime{}, label+":work", time.Second*3),
+		label:  label,
+		ctx:    ctx,
+		cancel: cancel,
+		queue:  make(chan submission, numWorkers),
+		pool:   p,
+		// submitLat: libstat.NewLatencyWithReport(libtime.RealTime{}, label+":submit", time.Second*3),
+		// waitLat:   libstat.NewLatencyWithReport(libtime.RealTime{}, label+":wait", time.Second*3),
+		// workLat:   libstat.NewLatencyWithReport(libtime.RealTime{}, label+":work", time.Second*3),
+		submitLat: libstat.NewLatency(libtime.RealTime{}),
+		waitLat:   libstat.NewLatency(libtime.RealTime{}),
+		workLat:   libstat.NewLatency(libtime.RealTime{}),
 	}
 
 	go x.do()
@@ -76,9 +81,16 @@ func (x *WorkerPool) do() {
 		}
 	}()
 
+	i := 0
 	for {
+		if i%1000 == 0 {
+			liblog.Infof("%s submit: %v, wait: %v, work: %v",
+				x.label, x.submitLat, x.waitLat, x.workLat)
+		}
+
 		select {
 		case <-x.ctx.Done():
+			return
 		case s := <-x.queue:
 			s.waitSpan.Stop()
 
@@ -92,5 +104,6 @@ func (x *WorkerPool) do() {
 
 			must.NoError(x.ctx, err)
 		}
+		i += 1
 	}
 }
