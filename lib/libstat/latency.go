@@ -29,7 +29,7 @@ func NewLatencyWithReport(time_ libtime.Time, label string, freq time.Duration) 
 	go func() {
 		for {
 			time_.Sleep(freq)
-			liblog.Infof("%s latency %s", label, d.String())
+			liblog.Infof("%s %s", label, d.String())
 		}
 	}()
 	return d
@@ -67,6 +67,6 @@ func (x *LatencyMeter) Stddev() time.Duration {
 }
 
 func (x *LatencyMeter) String() string {
-	return fmt.Sprintf("%s ±%s [%s, %s]",
+	return fmt.Sprintf("%s ± %s [%s, %s]",
 		libtime.FmtDur(x.Average()), libtime.FmtDur(x.Stddev()), libtime.FmtDur(x.Min()), libtime.FmtDur(x.Max()))
 }
