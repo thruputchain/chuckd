@@ -126,7 +126,7 @@ func benchDogwoodHostScript(
 #!/bin/sh
 set -xe
 
-cat > config-{{ .Stagger }}.json << EOF
+cat > {{ .ConfigName }} << EOF
 {{.ConfigJSON}}
 EOF
 
@@ -146,10 +146,11 @@ echo "benchmark working directory $(pwd)"
 	--fan-out {{ .Def.FanOut }} \
 	--bytes-per-pay {{ .Def.BytesPerPay }} \
 	--num-iterations {{ .Def.NumIterations }} \
-	{{ .Suffix }}
+	{{ .Suffix }} &> {{ .LogName }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
 		"Def":              def,
+		"ConfigName":       "bench-dogwood-config-" + host + ".json",
 		"ConfigJSON":       xdrutil.MustXdrToJsonString(&cfg),
 		"NodeIndex":        index,
 		"Seed":             rand.Int63(),
@@ -158,9 +159,10 @@ echo "benchmark working directory $(pwd)"
 		"BenchPort":        def.BenchPort + stagger,
 		"Stagger":          stagger,
 		"Suffix":           cmdSuffix,
-		"CPUProfileName":   "cpu-" + host + ".prof",
-		"MemProfileName":   "mem-" + host + ".prof",
-		"BlockProfileName": "block-" + host + ".prof",
-		"TraceProfileName": "trace-" + host + ".prof",
+		"CPUProfileName":   "bench-dogwood-cpu-" + host + ".prof",
+		"MemProfileName":   "bench-dogwood-mem-" + host + ".prof",
+		"BlockProfileName": "bench-dogwood-block-" + host + ".prof",
+		"TraceProfileName": "bench-dogwood-trace-" + host + ".prof",
+		"LogName":          "bench-dogwood-" + host + ".log",
 	})
 }
