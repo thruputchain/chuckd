@@ -67,6 +67,6 @@ func (x *LatencyMeter) Stddev() time.Duration {
 }
 
 func (x *LatencyMeter) String() string {
-	return fmt.Sprintf("%dnsec(±%dnsec) [%dnsec, %dnsec]",
-		x.Average(), x.Stddev(), x.Min(), x.Max())
+	return fmt.Sprintf("%s ±%s [%s, %s]",
+		libtime.FmtDur(x.Average()), libtime.FmtDur(x.Stddev()), libtime.FmtDur(x.Min()), libtime.FmtDur(x.Max()))
 }
