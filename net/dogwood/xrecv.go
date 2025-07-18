@@ -2,17 +2,15 @@ package dogwood
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/magnolia"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
 // NOTE: transmission can be received twice if code redundancy exceeds 100%.
@@ -20,18 +18,17 @@ import (
 // reducing the likelihood of duplicate receptions.
 
 type TransmissionReceiver struct {
-	partialTTL    time.Duration // ttl for partial transmissions
-	time          libtime.Time
-	nav           *Navigator
-	receiver      *StreamReceiver
-	decWorkers    *ants.Pool
-	decPool       *MagnoliaDecoderPool
-	streamWorkers *ants.Pool
-	receiveQ      chan receivedTransmission
-	rlk           sync.Mutex
-	received      map[transmissionKey]time.Time
-	plk           sync.Mutex
-	partial       map[transmissionKey]*partialTransmission
+	partialTTL time.Duration // ttl for partial transmissions
+	time       libtime.Time
+	nav        *Navigator
+	receiver   *StreamReceiver
+	decWorkers *libflow.WorkerPool
+	decPool    *MagnoliaDecoderPool
+	receiveQ   chan receivedTransmission
+	rlk        sync.Mutex
+	received   map[transmissionKey]time.Time
+	plk        sync.Mutex
+	partial    map[transmissionKey]*partialTransmission
 }
 
 type receivedTransmission struct {
@@ -63,32 +60,27 @@ func NewTransmissionReceiver(
 	nav *Navigator,
 	receiver *StreamReceiver,
 	numDecWorkers int,
-	numStreamWorkers int,
+	numStreamWorkers int, //XXX: not used
 ) *TransmissionReceiver {
 
-	decWorkers, err := ants.NewPool(numDecWorkers)
-	must.NoError(ctx, err)
-
-	streamWorkers, err := ants.NewPool(numStreamWorkers)
-	must.NoError(ctx, err)
-
-	return &TransmissionReceiver{
+	x := &TransmissionReceiver{
 		partialTTL: time.Duration(cfg.Partial_ttl_msec) * time.Millisecond,
 		time:       time_,
 		nav:        nav,
 		receiver:   receiver,
-		decWorkers: decWorkers,
+		decWorkers: libflow.NewWorkerPool(ctx, "transmission-receive-decode-workers", numDecWorkers),
 		decPool: NewMagnoliaDecoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
 			int(cfg.Num_parity_sheaves),
 			int(cfg.Max_chunk_bytes),
 		),
-		streamWorkers: streamWorkers,
-		receiveQ:      make(chan receivedTransmission),
-		received:      map[transmissionKey]time.Time{},
-		partial:       map[transmissionKey]*partialTransmission{},
+		receiveQ: make(chan receivedTransmission),
+		received: map[transmissionKey]time.Time{},
+		partial:  map[transmissionKey]*partialTransmission{},
 	}
+	x.receiver.SetProcessor(x)
+	return x
 }
 
 func (x *TransmissionReceiver) NumPartial() int {
@@ -120,7 +112,6 @@ func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransm
 }
 
 func (x *TransmissionReceiver) Start(ctx context.Context) {
-	go x.do(ctx)
 	go x.expirePartial(ctx)
 	go x.expireReceived(ctx)
 }
@@ -161,64 +152,31 @@ func (x *TransmissionReceiver) expirePartial(_ context.Context) {
 	}
 }
 
-func (x *TransmissionReceiver) do(ctx context.Context) {
-	for {
-		rs, err := x.receiver.Accept(ctx)
-		if err != nil {
-			liblog.Errorf("accepting stream: %v", err)
-			continue
-		}
+func (x *TransmissionReceiver) OnReceive(from proto.ValidatorID, pkg *proto.DogwoodPackage) {
 
-		x.streamWorkers.Submit(
-			func() {
-				defer rs.Close()
+	key := transmissionKey{
+		ValidatorID:           from,
+		DogwoodTransmissionID: pkg.Transmission.Transmission_id,
+	}
 
-				// every stream is dedicated to a transmission
-				// close it when the transmission is complete or discarded
-				stream := rs.Stream()
-				for {
+	par, err := x.getPartial(key, pkg.Transmission)
+	if err != nil {
+		liblog.Errorf("partial transmission: %v", err)
+		return
+	}
 
-					rCtx, rCtxCancel := context.WithTimeout(ctx, x.partialTTL)
-					pkg, err := rs.Receive(rCtx)
-					rCtxCancel()
-
-					switch {
-					case errors.Is(err, context.DeadlineExceeded):
-						return
-					case err != nil:
-						liblog.Errorf("broken stream: %v", err)
-						return
-					default:
-					}
-
-					key := transmissionKey{
-						ValidatorID:           stream.Source_id,
-						DogwoodTransmissionID: pkg.Transmission.Transmission_id,
-					}
-
-					par, err := x.getPartial(key, pkg.Transmission)
-					if err != nil {
-						liblog.Errorf("partial transmission: %v", err)
-						continue // only this message is corrupt
-					}
-
-					done, err := par.PlaceUsingWorker(
-						int(pkg.Chunk.Sheaf_index),
-						int(pkg.Chunk.Chunk_index),
-						pkg.Chunk.Chunk,
-					)
-					if done {
-						par.Close()
-						return
-					}
-					if err != nil {
-						liblog.Errorf("corrupt transmission package: %v", err)
-						continue // only this pkg is corrupt
-					}
-
-				}
-			},
-		)
+	done, err := par.PlaceUsingWorker(
+		int(pkg.Chunk.Sheaf_index),
+		int(pkg.Chunk.Chunk_index),
+		pkg.Chunk.Chunk,
+	)
+	if done {
+		par.Close()
+		return
+	}
+	if err != nil {
+		liblog.Errorf("corrupt transmission package: %v", err)
+		return
 	}
 }
 

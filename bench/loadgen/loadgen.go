@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/nominate"
 	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -21,7 +22,6 @@ import (
 	"github.com/groundhogchain/chuckd/util"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
 type LoadGen struct {
@@ -180,8 +180,7 @@ func (x *LoadGen) generateTxsWithPool(
 		gen[i] = testutil.NewTestGen(ctx, libtime.RealTime{}, runtime.NewRandFromRand(rand), user.Secret_key)
 	}
 
-	pool, err := ants.NewPool(k)
-	must.NoError(ctx, err)
+	pool := libflow.NewWorkerPool(ctx, "gen-txs-pool", k)
 	for {
 		blockTxs := make([]*proto.SignedTransaction, tpb)
 
@@ -191,7 +190,7 @@ func (x *LoadGen) generateTxsWithPool(
 		var wg sync.WaitGroup
 		for j := 0; j < k; j++ {
 			wg.Add(1)
-			err = pool.Submit(
+			pool.Submit(
 				func() {
 					for i := j * chunk; i < min(tpb, (j+1)*chunk); i++ {
 						blockTxs[i] = gen[j].GenSignedTx(ctx)
@@ -199,7 +198,6 @@ func (x *LoadGen) generateTxsWithPool(
 					wg.Done()
 				},
 			)
-			must.NoError(ctx, err)
 		}
 		wg.Wait()
 

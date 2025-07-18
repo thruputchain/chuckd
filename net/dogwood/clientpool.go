@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -21,6 +22,9 @@ type ClientPool struct {
 	lk           sync.Mutex
 	lastDialFail *time.Time
 	client       map[DogwoodClientCloser]struct{}
+	//
+	getClientLat *libstat.LatencyMeter
+	deliverLat   *libstat.LatencyMeter
 }
 
 func NewClientPool(
@@ -38,6 +42,9 @@ func NewClientPool(
 		maxClients:  maxClients,
 		redialDelay: redialDelay,
 		client:      map[DogwoodClientCloser]struct{}{},
+		//
+		getClientLat: libstat.NewLatencyWithReport(time_, "caller.getClient latency", 3*time.Second),
+		deliverLat:   libstat.NewLatencyWithReport(time_, "caller.Dogwood_deliver latency", 3*time.Second),
 	}
 }
 
@@ -51,6 +58,9 @@ func (x *ClientPool) NumClients() int {
 }
 
 func (x *ClientPool) getClient(ctx context.Context) (client DogwoodClientCloser, err error) {
+
+	span := x.getClientLat.Start()
+	defer span.Stop()
 
 	// get a client from the pool, if it is not closed and full
 	x.lk.Lock()
@@ -167,7 +177,9 @@ func (x *ClientPool) Dogwood_deliver(ctx context.Context, env proto.DogwoodDeliv
 	if err != nil {
 		return err
 	}
+	span := x.deliverLat.Start()
 	err = c.Dogwood_deliver(ctx, env)
+	span.Stop()
 	if err != nil {
 		x.evict(c)
 	}

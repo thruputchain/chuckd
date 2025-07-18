@@ -5,12 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
 type Caller interface {
@@ -34,21 +33,11 @@ type caller struct {
 }
 
 type endpoint struct {
-	lastUse time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
-	addr    proto.ValidatorID
-	time    libtime.Time
-	// dialer      DogwoodDialer
-	// redialDelay time.Duration
-	stop    chan struct{}
-	dq      chan deliverCall
-	pending *ants.Pool
-	// failed      *time.Time // accessed synchronously in endpoint.Start
-	client DogwoodClientCloser
-}
-
-type deliverCall struct {
-	stamp time.Time
-	arg   proto.DogwoodDeliveryEnvelope
+	lastUse     time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
+	addr        proto.ValidatorID
+	time        libtime.Time
+	callWorkers *libflow.WorkerPool
+	client      DogwoodClientCloser
 }
 
 // caller
@@ -102,7 +91,6 @@ func (x *caller) getEndpoint(ctx context.Context, addr proto.ValidatorID) *endpo
 	e, ok := x.endpoint[addr]
 	if !ok {
 		e = x.newEndpoint(ctx, addr)
-		// XXX: go e.Start(x.ctx)
 		x.endpoint[addr] = e
 	}
 	e.lastUse = x.time.Now() // update time to ensure no expiry for next call duration
@@ -118,58 +106,21 @@ func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, arg
 
 func (x *caller) newEndpoint(ctx context.Context, addr proto.ValidatorID) *endpoint {
 
-	pending, err := ants.NewPool(x.endpointMaxPending)
-	must.NoError(ctx, err)
 	return &endpoint{
 		// last: set by getEndpoint; accessed under caller.lk
-		addr:    addr,
-		time:    x.time,
-		dq:      make(chan deliverCall, x.endpointQueueLen),
-		pending: pending,
-		stop:    make(chan struct{}),
-		client:  NewClientPool(ctx, x.time, x.dialer, addr, x.endpointNumClients, x.endpointRedialDelay),
+		addr:        addr,
+		time:        x.time,
+		callWorkers: libflow.NewWorkerPool(ctx, protoutil.VIDString(addr)+"-call-workers", x.endpointMaxPending),
+		client:      NewClientPool(ctx, x.time, x.dialer, addr, x.endpointNumClients, x.endpointRedialDelay),
 	}
 }
 
 func (x *endpoint) Stop() {
-	close(x.stop)
-}
-
-func (x *endpoint) Start(ctx context.Context) {
-
-	defer x.client.Close()
-
-	defer func() {
-		for range x.dq {
-		}
-	}()
-
-	for {
-		select {
-		case <-x.stop:
-			return
-		case <-ctx.Done():
-			return
-		case dcall := <-x.dq:
-			x.pending.Submit(
-				func() {
-					err := x.client.Dogwood_deliver(ctx, dcall.arg)
-					if err != nil {
-						liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
-					}
-				},
-			)
-		}
-	}
-}
-
-func (x *endpoint) DogwoodDeliverXXX(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
-	x.dq <- deliverCall{stamp: x.time.Now(), arg: arg}
-	return nil
+	x.callWorkers.Stop()
 }
 
 func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
-	x.pending.Submit(
+	x.callWorkers.Submit(
 		func() {
 			err := x.client.Dogwood_deliver(ctx, arg)
 			if err != nil {

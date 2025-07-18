@@ -2,41 +2,38 @@ package dogwood
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
+type StreamProcessor interface {
+	OnReceive(proto.ValidatorID, *proto.DogwoodPackage)
+}
+
 type StreamReceiver struct {
+	proc StreamProcessor
 	// systems
 	discovery discovery.Discovery
 	nav       *Navigator
 	caller    Caller
 	// performance
-	m  xdrutil.XdrMarshaler
-	wp *ants.Pool
-	// flow
-	deliveryQ chan proto.DogwoodDeliveryEnvelope
-	acceptQ   chan *ReceiveStream
+	m              xdrutil.XdrMarshaler
+	receiveWorkers *libflow.WorkerPool
 	// state
 	lk     sync.Mutex
 	stream map[proto.DogwoodStream]*ReceiveStream
 }
 
 type ReceiveStream struct {
-	ctx    context.Context
-	cancel context.CancelFunc
 	parent *StreamReceiver
 	stream proto.DogwoodStream
 	nav    NavRoute
-	pkgQ   chan *proto.DogwoodPackage
 }
 
 func NewStreamReceiver(
@@ -44,21 +41,22 @@ func NewStreamReceiver(
 	discovery discovery.Discovery,
 	nav *Navigator,
 	caller Caller,
-	receiveQueueSize int,
+	receiveQueueSize int, //XXX: not used
 	numWorkers int,
 ) *StreamReceiver {
-	wp, err := ants.NewPool(numWorkers)
-	must.NoError(ctx, err)
+
 	return &StreamReceiver{
-		discovery: discovery,
-		nav:       nav,
-		caller:    caller,
-		m:         xdrutil.NewXdrMarshaler(),
-		wp:        wp,
-		deliveryQ: make(chan proto.DogwoodDeliveryEnvelope, receiveQueueSize),
-		acceptQ:   make(chan *ReceiveStream),
-		stream:    map[proto.DogwoodStream]*ReceiveStream{},
+		discovery:      discovery,
+		nav:            nav,
+		caller:         caller,
+		m:              xdrutil.NewXdrMarshaler(),
+		receiveWorkers: libflow.NewWorkerPool(ctx, "stream-receive-workers", numWorkers),
+		stream:         map[proto.DogwoodStream]*ReceiveStream{},
 	}
+}
+
+func (r *StreamReceiver) SetProcessor(proc StreamProcessor) {
+	r.proc = proc
 }
 
 func (r *StreamReceiver) NumStreams() int {
@@ -67,30 +65,10 @@ func (r *StreamReceiver) NumStreams() int {
 	return len(r.stream)
 }
 
-func (r *StreamReceiver) Start(ctx context.Context) {
-	// XXX
-	// go func() {
-	// 	for env := range r.deliveryQ {
-	// 		r.wp.Submit(func() { r.process(ctx, env) })
-	// 	}
-	// }()
-}
-
-func (r *StreamReceiver) Accept(ctx context.Context) (*ReceiveStream, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case x := <-r.acceptQ:
-		return x, nil
-	}
-}
+func (r *StreamReceiver) Start(ctx context.Context) {}
 
 func (r *StreamReceiver) Deliver(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
-	r.wp.Submit(func() { r.process(ctx, env) })
-}
-
-func (r *StreamReceiver) DeliverXXX(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
-	r.deliveryQ <- env
+	r.receiveWorkers.Submit(func() { r.process(ctx, env) })
 }
 
 func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
@@ -128,10 +106,6 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	}
 	r.lk.Unlock()
 
-	if !ok {
-		r.acceptQ <- s
-	}
-
 	s.process(ctx, env)
 }
 
@@ -142,50 +116,23 @@ func (r *StreamReceiver) newReceivingStream(
 	stream proto.DogwoodStream,
 	route NavRoute,
 ) *ReceiveStream {
-	ctx, ctxCancel := context.WithCancel(ctx)
 	return &ReceiveStream{
-		ctx:    ctx,
-		cancel: ctxCancel,
 		parent: r,
 		stream: stream,
 		nav:    route,
-		pkgQ:   make(chan *proto.DogwoodPackage, 1),
 	}
 }
 
 func (s *ReceiveStream) Close() {
-
-	s.cancel()
 
 	s.parent.lk.Lock()
 	defer s.parent.lk.Unlock()
 	delete(s.parent.stream, s.stream)
 }
 
-func (s *ReceiveStream) Stream() proto.DogwoodStream {
-	return s.stream
-}
-
-func (s *ReceiveStream) Receive(ctx context.Context) (*proto.DogwoodPackage, error) {
-	select {
-	case <-s.ctx.Done():
-		return nil, fmt.Errorf("stream closed")
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case x := <-s.pkgQ:
-		return x, nil
-	}
-}
-
 func (s *ReceiveStream) process(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
 
-	select {
-	case <-s.ctx.Done():
-		return
-	case <-ctx.Done():
-		return
-	case s.pkgQ <- &env.Delivery.Pkg:
-	}
+	s.parent.proc.OnReceive(s.stream.Source_id, &env.Delivery.Pkg)
 
 	for _, d := range s.nav.Downstream {
 		s.parent.caller.DogwoodDeliver(ctx, d, env)

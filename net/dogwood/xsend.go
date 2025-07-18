@@ -5,23 +5,23 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
 type TransmissionSender struct {
-	cfg      proto.TransmissionConfig
-	nav      *Navigator
-	sender   *StreamSender
-	workPool *ants.Pool
-	encPool  *MagnoliaEncoderPool
-	rlk      sync.Mutex
-	rand     *rand.Rand
-	lk       sync.Mutex
-	nsending int
-	nwaiting int
+	cfg         proto.TransmissionConfig
+	nav         *Navigator
+	sender      *StreamSender
+	sendWorkers *libflow.WorkerPool
+	encPool     *MagnoliaEncoderPool
+	rlk         sync.Mutex
+	rand        *rand.Rand
+	lk          sync.Mutex
+	nsending    int
+	nwaiting    int
 }
 
 func NewTransmissionSender(
@@ -32,14 +32,13 @@ func NewTransmissionSender(
 	rand *rand.Rand,
 	numWorkers int,
 ) *TransmissionSender {
-	wp, err := ants.NewPool(numWorkers)
-	must.NoError(ctx, err)
+
 	return &TransmissionSender{
-		cfg:      cfg,
-		nav:      nav,
-		sender:   sender,
-		rand:     rand,
-		workPool: wp,
+		cfg:         cfg,
+		nav:         nav,
+		sender:      sender,
+		rand:        rand,
+		sendWorkers: libflow.NewWorkerPool(ctx, "transmission-send-workers", numWorkers),
 		encPool: NewMagnoliaEncoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
@@ -73,7 +72,7 @@ func (x *TransmissionSender) Send(
 	x.nwaiting += 1
 	x.lk.Unlock()
 
-	x.workPool.Submit(
+	x.sendWorkers.Submit(
 		func() {
 			x.lk.Lock()
 			x.nsending += 1
@@ -110,6 +109,7 @@ func (x *TransmissionSender) send(
 	enc := x.encPool.Get()
 	defer x.encPool.Recycle(enc)
 
+	// encode
 	cs := enc.Encode(pay)
 
 	// header

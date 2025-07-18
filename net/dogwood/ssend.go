@@ -5,13 +5,12 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/panjf2000/ants/v2"
 )
 
 type StreamSender struct {
@@ -21,8 +20,8 @@ type StreamSender struct {
 	nav       *Navigator
 	caller    Caller
 	// performance
-	m  xdrutil.XdrMarshaler
-	wp *ants.Pool
+	m           xdrutil.XdrMarshaler
+	sendWorkers *libflow.WorkerPool
 	// state
 	lk     sync.Mutex
 	stream map[proto.DogwoodStream]*SendStream
@@ -45,16 +44,15 @@ func NewStreamSender(
 	caller Caller,
 	numWorkers int,
 ) *StreamSender {
-	wp, err := ants.NewPool(numWorkers)
-	must.NoError(ctx, err)
+
 	return &StreamSender{
-		rand:      rand,
-		discovery: discovery,
-		nav:       nav,
-		caller:    caller,
-		m:         xdrutil.NewXdrMarshaler(),
-		wp:        wp,
-		stream:    map[proto.DogwoodStream]*SendStream{},
+		rand:        rand,
+		discovery:   discovery,
+		nav:         nav,
+		caller:      caller,
+		m:           xdrutil.NewXdrMarshaler(),
+		sendWorkers: libflow.NewWorkerPool(ctx, "stream-send-workers", numWorkers),
+		stream:      map[proto.DogwoodStream]*SendStream{},
 	}
 }
 
@@ -156,7 +154,7 @@ func (s *SendStream) Stream() proto.DogwoodStream {
 
 func (x *SendStream) Send(ctx context.Context, pkg *proto.DogwoodPackage) {
 
-	x.parent.wp.Submit(
+	x.parent.sendWorkers.Submit(
 		func() {
 
 			delivery := proto.DogwoodDelivery{
