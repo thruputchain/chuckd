@@ -41,3 +41,18 @@ INFRA & BENCHMARK
 GITHUB
 - [ ] code coverage
 - [ ] code builds and tests
+
+
+
+IDEAS
+
+- Marco: nodes disseminate network topology (instead of trees), can even use set reconciliation
+- active queue management https://en.wikipedia.org/wiki/CoDel
+
+- multiple channels per worker pools
+- or, one goroutine that stays with a packet through all its life
+    https://vimeo.com/649009599
+
+- raptorQ
+  - https://datatracker.ietf.org/doc/html/rfc6330
+  - https://datatracker.ietf.org/ipr/2554/

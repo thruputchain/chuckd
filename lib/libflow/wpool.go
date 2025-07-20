@@ -10,6 +10,11 @@ import (
 	"github.com/panjf2000/ants/v2"
 )
 
+type WorkerXXX interface {
+	Submit(func())
+	Stop()
+}
+
 type WorkerPool struct {
 	label  string
 	ctx    context.Context

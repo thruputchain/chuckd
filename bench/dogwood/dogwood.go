@@ -97,7 +97,7 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 		liblog.Infof("%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
-			if j%10 == 0 {
+			if j%300 == 0 {
 				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
 			}
 
@@ -135,7 +135,7 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 
 		j := 0
 		for {
-			if j%10 == 0 {
+			if j%300 == 0 {
 				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
 			}
 

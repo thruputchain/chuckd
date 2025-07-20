@@ -93,7 +93,7 @@ func (def BenchDogwoodExecDef) ExecScripts(
 				Num_payload_sheaves: 5,
 				Num_parity_sheaves:  2,
 				Max_chunk_bytes:     60e3, // 60K
-				Partial_ttl_msec:    1e3,  // 1 sec
+				Partial_ttl_msec:    3e3,  // 2 sec
 			},
 		},
 	}
@@ -132,7 +132,7 @@ EOF
 
 echo "benchmark working directory $(pwd)"
 
-{{ .ChuckdPath }} -l info --config {{ .ConfigName }} \
+{{ .Prefix }} {{ .ChuckdPath }} -l info --config {{ .ConfigName }} \
 	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \
 	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \
 	{{ if .Def.BlockProfile }}--block {{ .BlockProfileName }} {{ end }} \
@@ -149,6 +149,7 @@ echo "benchmark working directory $(pwd)"
 	{{ .Suffix }} &> {{ .LogName }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
+		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
 		"ConfigName":       "bench-dogwood-config-" + host + ".json",
 		"ConfigJSON":       xdrutil.MustXdrToJsonString(&cfg),
