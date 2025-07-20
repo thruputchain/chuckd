@@ -88,9 +88,11 @@ func (x *WorkerPool) do() {
 
 	i := 0
 	for {
-		if i%1000 == 0 {
-			liblog.Infof("%s submit: %v, wait: %v, work: %v",
-				x.label, x.submitLat, x.waitLat, x.workLat)
+		if i%100 == 0 {
+			liblog.Infof("%s total: %v, submit: %v, wait: %v, work: %v",
+				x.label,
+				libtime.FmtDur(x.submitLat.Average()+x.waitLat.Average()+x.workLat.Average()),
+				x.submitLat, x.waitLat, x.workLat)
 		}
 
 		select {
