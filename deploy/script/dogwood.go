@@ -22,6 +22,7 @@ type BenchDogwoodExecDef struct {
 	MetricsPort int
 	BenchPort   int
 	//
+	Stack        bool
 	CPUProfile   bool
 	MemProfile   bool
 	BlockProfile bool
@@ -133,6 +134,7 @@ EOF
 echo "benchmark working directory $(pwd)"
 
 {{ .Prefix }} {{ .ChuckdPath }} -l info --config {{ .ConfigName }} \
+	{{ if .Def.Stack }}--stack {{ end }} \
 	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \
 	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \
 	{{ if .Def.BlockProfile }}--block {{ .BlockProfileName }} {{ end }} \

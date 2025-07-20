@@ -5,9 +5,9 @@
 20 TCP connections between node pairs
 60kb/rpc <— ???
 7 multicast trees (5 payload + 2 parity)
-28% cpu utilization on all 128 cores
+28%-40% cpu utilization on all 128 cores
 3 nodes
-1GB/sec (650Mb/sec receive, 400MB/sec send)
+1GB/sec - 3GB/sec (650Mb/sec-1.5GB/sec receive, 400MB/sec-1.5GB/sec send)
 100% reception within 1 sec (max latency)
 20% cpu cache misses (perf stat)
 
