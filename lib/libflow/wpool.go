@@ -45,14 +45,11 @@ func NewWorkerPool(
 	must.NoError(ctx, err)
 
 	x := &WorkerPool{
-		label:  label,
-		ctx:    ctx,
-		cancel: cancel,
-		queue:  make(chan submission, numWorkers),
-		pool:   p,
-		// submitLat: libstat.NewLatencyWithReport(libtime.RealTime{}, label+":submit", time.Second*3),
-		// waitLat:   libstat.NewLatencyWithReport(libtime.RealTime{}, label+":wait", time.Second*3),
-		// workLat:   libstat.NewLatencyWithReport(libtime.RealTime{}, label+":work", time.Second*3),
+		label:     label,
+		ctx:       ctx,
+		cancel:    cancel,
+		queue:     make(chan submission, numWorkers),
+		pool:      p,
 		submitLat: libstat.NewLatency(libtime.RealTime{}),
 		waitLat:   libstat.NewLatency(libtime.RealTime{}),
 		workLat:   libstat.NewLatency(libtime.RealTime{}),
@@ -99,10 +96,10 @@ func (x *WorkerPool) do() {
 		case <-x.ctx.Done():
 			return
 		case s := <-x.queue:
-			s.waitSpan.Stop()
 
 			err := x.pool.Submit(
 				func() {
+					s.waitSpan.Stop()
 					workSpan := x.workLat.Start()
 					s.task()
 					workSpan.Stop()

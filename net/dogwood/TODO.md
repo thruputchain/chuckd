@@ -3,7 +3,6 @@
 
 - multiple channels per worker pools
 - or, one goroutine that stays with a packet through all its life
-    https://vimeo.com/649009599
 
 OPEN
 [ ] measure wait for worker routines
