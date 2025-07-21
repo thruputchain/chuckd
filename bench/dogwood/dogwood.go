@@ -125,10 +125,12 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 
 		defer liblog.Infof("%v receiver done", bench.selfString())
 		var bytesReceived libstat.Counter
+		var transmissionsReceived int
 
 		defer func() {
-			liblog.Infof("%v received %s, at %s/sec",
+			liblog.Infof("%v received %.2f%% transmissions: %s at %s/sec",
 				bench.selfString(),
+				100*float64(transmissionsReceived)/float64(bench.numIterations),
 				humanize.Bytes(uint64(bytesReceived.Sum())),
 				humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
 		}()
@@ -157,6 +159,7 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 				liblog.Errorf("%v receive: %v", bench.selfString(), err)
 			} else {
 				bytesReceived.Add(float64(len(payload)))
+				transmissionsReceived += 1
 			}
 
 			j += 1
