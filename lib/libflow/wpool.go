@@ -41,7 +41,10 @@ func NewWorkerPool(
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	p, err := ants.NewPool(numWorkers)
+	p, err := ants.NewPool(
+		numWorkers,
+		ants.WithPanicHandler(func(p any) { panic(p) }),
+	)
 	must.NoError(ctx, err)
 
 	x := &WorkerPool{
