@@ -15,7 +15,7 @@ type TransmissionSender struct {
 	cfg         proto.TransmissionConfig
 	nav         *Navigator
 	sender      *StreamSender
-	sendWorkers *libflow.WorkerPool
+	sendWorkers libflow.WorkerPool
 	encPool     *MagnoliaEncoderPool
 	rlk         sync.Mutex
 	rand        *rand.Rand

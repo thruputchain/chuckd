@@ -24,7 +24,7 @@ type StreamReceiver struct {
 	caller    Caller
 	// performance
 	m              xdrutil.XdrMarshaler
-	receiveWorkers *libflow.WorkerPool
+	receiveWorkers libflow.WorkerPool
 	// state
 	lk     sync.Mutex
 	stream map[proto.DogwoodStream]*ReceiveStream

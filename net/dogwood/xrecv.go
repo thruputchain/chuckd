@@ -24,7 +24,7 @@ type TransmissionReceiver struct {
 	time           libtime.Time
 	nav            *Navigator
 	receiver       *StreamReceiver
-	decWorkers     *libflow.WorkerPool
+	decWorkers     libflow.WorkerPool
 	decPool        *MagnoliaDecoderPool
 	receiveQ       chan receivedTransmission
 	rlk            sync.Mutex

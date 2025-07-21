@@ -36,7 +36,7 @@ type endpoint struct {
 	lastUse     time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
 	addr        proto.ValidatorID
 	time        libtime.Time
-	callWorkers *libflow.WorkerPool
+	callWorkers libflow.WorkerPool
 	client      DogwoodClientCloser
 }
 

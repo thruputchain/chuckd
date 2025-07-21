@@ -21,7 +21,7 @@ type StreamSender struct {
 	caller    Caller
 	// performance
 	m           xdrutil.XdrMarshaler
-	sendWorkers *libflow.WorkerPool
+	sendWorkers libflow.WorkerPool
 	// state
 	lk     sync.Mutex
 	stream map[proto.DogwoodStream]*SendStream

@@ -16,7 +16,7 @@ import (
 func NewDriver(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
 	driver := rpc.NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
 	// don't process in parallel, as the per-call goroutine is expensive
-	driver.Lock = nil // process all calls in parallel
+	// driver.Lock = nil // process all calls in parallel
 	_ = liblog.Writer
 	// driver.Log = log.Writer()
 	driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
