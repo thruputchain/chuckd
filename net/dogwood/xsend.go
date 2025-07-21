@@ -125,32 +125,33 @@ func (x *TransmissionSender) send(
 
 	// open streams
 	var err error
-	stream := make([]*SendStream, enc.NumSheaves())
+	stream := make([]*SendStream, 0, enc.NumSheaves())
 
-	ndialed := 0
 	for s := 0; s < enc.NumSheaves(); s++ {
+		var dialed *SendStream
 		if genRoute {
-			stream[s], err = x.sender.DialRoute(ctx, x.nav.GenRoute(ctx))
+			dialed, err = x.sender.DialRoute(ctx, x.nav.GenRoute(ctx))
 		} else {
-			stream[s], err = x.sender.Dial(ctx)
+			dialed, err = x.sender.Dial(ctx)
 		}
 		if err != nil {
 			liblog.Errorf("transmission %d, sheaf %d, stream not created: %v",
 				transmission.Transmission_id, s, err)
+		} else {
+			stream = append(stream, dialed)
 		}
-		ndialed += 1
 	}
 
 	// check that enough streams opened for recovery
-	if ndialed < enc.NumPaySheaves() {
+	if len(stream) < enc.NumPaySheaves() {
 		liblog.Errorf("dropping transmission %d, not enough streams, have %d, need %d",
-			transmission.Transmission_id, ndialed, enc.NumPaySheaves())
+			transmission.Transmission_id, len(stream), enc.NumPaySheaves())
 		return
 	}
 
 	// send round robin
 	for c := range cs {
-		for s := range cs[c] {
+		for s := range stream {
 			pkg := proto.DogwoodPackage{
 				Transmission: transmission,
 				Chunk: proto.DogwoodChunk{

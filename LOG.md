@@ -1,5 +1,10 @@
+LOOK AT:
+- worker pool latencies
+- transmission reception latency
+- drop rate
+- cpu utilization
 
-- [ ] measure end-to-end transmission latency?
+
 
 300kb blobs (1000 txs)
 20 TCP connections between node pairs
@@ -18,7 +23,7 @@
 7 multicast trees (5 payload + 2 parity)
 45% cpu utilization on all 128 cores
 3 nodes
-1GB/sec (3.2GB/sec receive, 1.2GB/sec send)
+4GB/sec (3.2GB/sec receive, 1.2GB/sec send)
 98% reception within 3 sec (max latency)
 17% cpu cache misses (perf stat)
 
