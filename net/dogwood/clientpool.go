@@ -13,6 +13,9 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// XXX: pick client with smallest number of outstanding connections
+// XXX: log pending call distribution
+
 type ClientPool struct {
 	address      proto.ValidatorID
 	time         libtime.Time

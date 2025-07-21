@@ -5,6 +5,7 @@ LOOK AT:
 - cpu utilization
 - block profile
 
+[ ] confirm multiple connections to endpoint used uniformly
 [ ] rpc parallel server responses
 [ ] no worker queue
 

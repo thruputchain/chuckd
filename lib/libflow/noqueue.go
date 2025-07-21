@@ -23,7 +23,7 @@ type WorkerPoolNoQueue struct {
 	completed libstat.Counter
 }
 
-func NewWorkerPool(
+func NewWorkerPoolNoQueue(
 	ctx context.Context,
 	label string,
 	numWorkers int,
