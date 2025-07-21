@@ -56,6 +56,8 @@ func MakeBaseConfig(
 			Multicast_tree_ttl_msec: round.Milliseconds(), // how long to cache multicast tree topology
 			Chunk_size:              chunkSize,            // size of individual broadcast chunks
 		},
+		// XXX: Dogwood
+		// XXX: Transmission
 		Spectra_config: &proto.SpectraConfig{
 			Num_payload_channels: numPayloadChannels,
 			Num_parity_channels:  numParityChannels,

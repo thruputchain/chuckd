@@ -18,17 +18,18 @@ import (
 // reducing the likelihood of duplicate receptions.
 
 type TransmissionReceiver struct {
-	partialTTL time.Duration // ttl for partial transmissions
-	time       libtime.Time
-	nav        *Navigator
-	receiver   *StreamReceiver
-	decWorkers *libflow.WorkerPool
-	decPool    *MagnoliaDecoderPool
-	receiveQ   chan receivedTransmission
-	rlk        sync.Mutex
-	received   map[transmissionKey]time.Time
-	plk        sync.Mutex
-	partial    map[transmissionKey]*partialTransmission
+	partialMaxTTL  time.Duration
+	partialIdleTTL time.Duration
+	time           libtime.Time
+	nav            *Navigator
+	receiver       *StreamReceiver
+	decWorkers     *libflow.WorkerPool
+	decPool        *MagnoliaDecoderPool
+	receiveQ       chan receivedTransmission
+	rlk            sync.Mutex
+	received       map[transmissionKey]time.Time
+	plk            sync.Mutex
+	partial        map[transmissionKey]*partialTransmission
 }
 
 type receivedTransmission struct {
@@ -45,10 +46,11 @@ type transmissionKey struct {
 type partialTransmission struct {
 	parent  *TransmissionReceiver
 	key     transmissionKey
-	arrived time.Time // time first chunk of transmission arrived
+	arrived time.Time // first chunk arrival
 	header  proto.DogwoodTransmission
 	emit    sync.Once
 	lk      sync.Mutex
+	latest  time.Time // latest chunk arrival
 	dec     *magnolia.Decoder
 	ding    *magnolia.Decoding
 }
@@ -64,11 +66,12 @@ func NewTransmissionReceiver(
 ) *TransmissionReceiver {
 
 	x := &TransmissionReceiver{
-		partialTTL: time.Duration(cfg.Partial_ttl_msec) * time.Millisecond,
-		time:       time_,
-		nav:        nav,
-		receiver:   receiver,
-		decWorkers: libflow.NewWorkerPool(ctx, "transmission-receive-decode-workers", numDecWorkers),
+		partialMaxTTL:  time.Duration(cfg.Partial_max_ttl_msec) * time.Millisecond,
+		partialIdleTTL: time.Duration(cfg.Partial_idle_ttl_msec) * time.Millisecond,
+		time:           time_,
+		nav:            nav,
+		receiver:       receiver,
+		decWorkers:     libflow.NewWorkerPool(ctx, "transmission-receive-decode-workers", numDecWorkers),
 		decPool: NewMagnoliaDecoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
@@ -118,12 +121,12 @@ func (x *TransmissionReceiver) Start(ctx context.Context) {
 
 func (x *TransmissionReceiver) expireReceived(_ context.Context) {
 	for {
-		x.time.Sleep(x.partialTTL)
+		x.time.Sleep(x.partialMaxTTL)
 		now := x.time.Now()
 
 		x.rlk.Lock()
 		for key, stamp := range x.received {
-			if now.Sub(stamp) > x.partialTTL {
+			if now.Sub(stamp) > x.partialMaxTTL {
 				delete(x.received, key)
 			}
 		}
@@ -131,22 +134,25 @@ func (x *TransmissionReceiver) expireReceived(_ context.Context) {
 	}
 }
 
-// expirePartial transmissions that have exceeded ttl
+// expirePartial transmissions that have exceeded max or idle ttl
 func (x *TransmissionReceiver) expirePartial(_ context.Context) {
+	tick := min(x.partialMaxTTL, x.partialIdleTTL)
 	for {
-		x.time.Sleep(x.partialTTL)
+		x.time.Sleep(tick)
 		now := x.time.Now()
 
 		x.plk.Lock()
 		scrub := []*partialTransmission{}
 		for _, par := range x.partial {
-			if now.Sub(par.arrived) > x.partialTTL {
+			if now.Sub(par.arrived) > x.partialMaxTTL ||
+				now.Sub(par.getLatest()) > x.partialIdleTTL {
 				scrub = append(scrub, par)
 			}
 		}
 		x.plk.Unlock()
 
 		for _, par := range scrub {
+			liblog.Infof("dogwood dropping partial transmission")
 			par.Close()
 		}
 	}
@@ -164,6 +170,8 @@ func (x *TransmissionReceiver) OnReceive(from proto.ValidatorID, pkg *proto.Dogw
 		liblog.Errorf("partial transmission: %v", err)
 		return
 	}
+
+	par.setLatest(x.time.Now())
 
 	done, err := par.PlaceUsingWorker(
 		int(pkg.Chunk.Sheaf_index),
@@ -191,11 +199,13 @@ func (x *TransmissionReceiver) getPartial(
 	p, ok := x.partial[key]
 	if !ok {
 		dec := x.decPool.Get()
+		now := x.time.Now()
 		p = &partialTransmission{
 			parent:  x,
 			key:     key,
-			arrived: x.time.Now(),
+			arrived: now,
 			header:  transmission,
+			latest:  now,
 			dec:     dec,
 			ding:    dec.StartDecoding(int(transmission.Num_payload_bytes)),
 		}
@@ -212,6 +222,18 @@ func (x *TransmissionReceiver) getPartial(
 type placeResult struct {
 	done bool
 	err  error
+}
+
+func (x *partialTransmission) setLatest(v time.Time) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	x.latest = v
+}
+
+func (x *partialTransmission) getLatest() time.Time {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return x.latest
 }
 
 func (x *partialTransmission) PlaceUsingWorker(sheafIndex int, chunkIndex int, chunk []byte) (done bool, err error) {

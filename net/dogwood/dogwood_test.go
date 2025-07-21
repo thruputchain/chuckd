@@ -49,10 +49,11 @@ func TestSendReceiveTransmission(t *testing.T) {
 		Transmission_sender_worker_count:          10,
 		//
 		Transmission_config: &proto.TransmissionConfig{
-			Num_payload_sheaves: 5,
-			Num_parity_sheaves:  2,
-			Max_chunk_bytes:     60e3, // 60K
-			Partial_ttl_msec:    1e3,  // 1 sec
+			Num_payload_sheaves:   5,
+			Num_parity_sheaves:    2,
+			Max_chunk_bytes:       60e3, // 60K
+			Partial_max_ttl_msec:  10e3, // 10 sec
+			Partial_idle_ttl_msec: 1e3,  // 1 sec
 		},
 	}
 
