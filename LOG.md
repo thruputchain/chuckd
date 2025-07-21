@@ -5,6 +5,8 @@ LOOK AT:
 - cpu utilization
 - block profile
 
+[ ] rpc parallel server responses
+[ ] no worker queue
 
 
 300kb blobs (1000 txs)
