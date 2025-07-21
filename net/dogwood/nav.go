@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/router"
@@ -37,6 +37,8 @@ type Navigator struct {
 	theirs map[proto.DogwoodTreeHash]*stampedRoute
 	// other
 	marshaler xdrutil.XdrMarshaler
+	// meters
+	routeNotFound libstat.Counter
 }
 
 type RouteDisseminator interface {
@@ -113,7 +115,9 @@ func (nav *Navigator) LookupRoute(ctx context.Context, h proto.DogwoodTreeHash) 
 		return NavRoute{Hash: h, Downstream: d}, nil
 	}
 
-	liblog.Errorf("route %v not found", form.Display(h))
+	if k := nav.routeNotFound.Add(1); k%100 == 0 && k > 0 {
+		liblog.Errorf("route not found: %d", k)
+	}
 
 	return NavRoute{}, fmt.Errorf("route not found")
 }

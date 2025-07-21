@@ -3,6 +3,7 @@ LOOK AT:
 - transmission reception latency
 - drop rate
 - cpu utilization
+- block profile
 
 
 
@@ -17,6 +18,7 @@ LOOK AT:
 20% cpu cache misses (perf stat)
 
 
+
 30MB blobs (1 nomination 1M tx hashes)
 20 TCP connections between node pairs
 60kb/rpc <— ???
@@ -28,4 +30,10 @@ LOOK AT:
 17% cpu cache misses (perf stat)
 
 
-QUIC is too slow
+
+ISSUES:
+- 30Mb one node receives nothing
+  - transmissions dropped at sender (no routes)
+  - transmissions dropped at received (timeout)
+- no available routes
+- QUIC is too slow
