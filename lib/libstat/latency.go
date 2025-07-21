@@ -42,12 +42,19 @@ func (x *LatencyMeter) Start() LatencyMeterSpan {
 	}
 }
 
+func (x *LatencyMeter) StartAt(s time.Time) LatencyMeterSpan {
+	return LatencyMeterSpan{
+		meter: x,
+		start: s,
+	}
+}
+
 func (x LatencyMeterSpan) Stop() {
 	x.meter.Add(x.meter.time.Now().Sub(x.start))
 }
 
-func (x *LatencyMeter) Add(d time.Duration) {
-	x.ctr.Add(float64(d.Nanoseconds()))
+func (x *LatencyMeter) Add(d time.Duration) int {
+	return x.ctr.Add(float64(d.Nanoseconds()))
 }
 
 func (x *LatencyMeter) Average() time.Duration {

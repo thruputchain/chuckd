@@ -8,6 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/magnolia"
 	proto "github.com/groundhogchain/protocol-go"
@@ -30,6 +31,8 @@ type TransmissionReceiver struct {
 	received       map[transmissionKey]time.Time
 	plk            sync.Mutex
 	partial        map[transmissionKey]*partialTransmission
+	//
+	latency *libstat.LatencyMeter
 }
 
 type receivedTransmission struct {
@@ -81,6 +84,7 @@ func NewTransmissionReceiver(
 		receiveQ: make(chan receivedTransmission),
 		received: map[transmissionKey]time.Time{},
 		partial:  map[transmissionKey]*partialTransmission{},
+		latency:  libstat.NewLatency(time_),
 	}
 	x.receiver.SetProcessor(x)
 	return x
@@ -268,8 +272,15 @@ func (x *partialTransmission) Place(sheafIndex int, chunkIndex int, chunk []byte
 		return false, nil // not ready to decode
 	}
 
+	latency := x.latest.Sub(x.arrived)
+
 	x.emit.Do(
 		func() {
+			count := x.parent.latency.Add(latency)
+			if count%10 == 0 {
+				liblog.Infof("transmission reception latency: %v", x.parent.latency)
+			}
+
 			x.parent.receiveQ <- receivedTransmission{key: x.key, typ: x.header.Type, pay: pay}
 		},
 	)

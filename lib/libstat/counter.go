@@ -16,7 +16,7 @@ type Counter struct {
 	count int
 }
 
-func (x *Counter) Add(v float64) {
+func (x *Counter) Add(v float64) int {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	if x.start.IsZero() {
@@ -31,6 +31,13 @@ func (x *Counter) Add(v float64) {
 		x.sum2 += v * v
 		x.count += 1
 	}
+	return x.count
+}
+
+func (x *Counter) Count() int {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return x.count
 }
 
 func (x *Counter) Min() float64 {
