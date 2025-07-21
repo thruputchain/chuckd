@@ -24,13 +24,14 @@ type TransmissionReceiver struct {
 	time           libtime.Time
 	nav            *Navigator
 	receiver       *StreamReceiver
-	decWorkers     libflow.WorkerPool
-	decPool        *MagnoliaDecoderPool
-	receiveQ       chan receivedTransmission
-	rlk            sync.Mutex
-	received       map[transmissionKey]time.Time
-	plk            sync.Mutex
-	partial        map[transmissionKey]*partialTransmission
+	//
+	decWorkers libflow.WorkerPool
+	decPool    *MagnoliaDecoderPool
+	//
+	receiveQ chan receivedTransmission
+	//
+	plk     sync.Mutex
+	partial map[transmissionKey]*partialTransmission
 	//
 	latency *libstat.LatencyMeter
 }
@@ -51,11 +52,11 @@ type partialTransmission struct {
 	key     transmissionKey
 	arrived time.Time // first chunk arrival
 	header  proto.DogwoodTransmission
-	emit    sync.Once
-	lk      sync.Mutex
-	latest  time.Time // latest chunk arrival
-	dec     *magnolia.Decoder
-	ding    *magnolia.Decoding
+	//
+	lk       sync.Mutex
+	latest   time.Time // latest chunk arrival
+	decoder  *magnolia.Decoder
+	decoding *magnolia.Decoding
 }
 
 func NewTransmissionReceiver(
@@ -82,7 +83,6 @@ func NewTransmissionReceiver(
 			int(cfg.Max_chunk_bytes),
 		),
 		receiveQ: make(chan receivedTransmission),
-		received: map[transmissionKey]time.Time{},
 		partial:  map[transmissionKey]*partialTransmission{},
 		latency:  libstat.NewLatency(time_),
 	}
@@ -100,18 +100,7 @@ func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransm
 	for {
 		select {
 		case r := <-x.receiveQ:
-
-			x.rlk.Lock()
-			_, ok := x.received[r.key]
-			if !ok {
-				x.received[r.key] = x.time.Now()
-			}
-			x.rlk.Unlock()
-
-			if !ok {
-				return r.typ, r.pay, r.key.ValidatorID, nil
-			}
-
+			return r.typ, r.pay, r.key.ValidatorID, nil
 		case <-ctx.Done():
 			return 0, nil, proto.ValidatorID{}, ctx.Err()
 		}
@@ -120,22 +109,6 @@ func (x *TransmissionReceiver) Receive(ctx context.Context) (proto.DogwoodTransm
 
 func (x *TransmissionReceiver) Start(ctx context.Context) {
 	go x.expirePartial(ctx)
-	go x.expireReceived(ctx)
-}
-
-func (x *TransmissionReceiver) expireReceived(_ context.Context) {
-	for {
-		x.time.Sleep(x.partialMaxTTL)
-		now := x.time.Now()
-
-		x.rlk.Lock()
-		for key, stamp := range x.received {
-			if now.Sub(stamp) > x.partialMaxTTL {
-				delete(x.received, key)
-			}
-		}
-		x.rlk.Unlock()
-	}
 }
 
 // expirePartial transmissions that have exceeded max or idle ttl
@@ -148,15 +121,16 @@ func (x *TransmissionReceiver) expirePartial(_ context.Context) {
 		x.plk.Lock()
 		scrub := []*partialTransmission{}
 		for _, par := range x.partial {
-			if now.Sub(par.arrived) > x.partialMaxTTL ||
-				now.Sub(par.getLatest()) > x.partialIdleTTL {
+			if now.Sub(par.arrived) > x.partialMaxTTL || now.Sub(par.getLatest()) > x.partialIdleTTL {
 				scrub = append(scrub, par)
 			}
 		}
 		x.plk.Unlock()
 
 		for _, par := range scrub {
-			liblog.Infof("dogwood dropping partial transmission")
+			if !par.IsComplete() {
+				liblog.Infof("dogwood dropping partial incomplete transmission")
+			}
 			par.Close()
 		}
 	}
@@ -177,19 +151,15 @@ func (x *TransmissionReceiver) OnReceive(from proto.ValidatorID, pkg *proto.Dogw
 
 	par.setLatest(x.time.Now())
 
-	done, err := par.PlaceUsingWorker(
+	if par.IsComplete() {
+		return
+	}
+
+	par.PlaceUsingWorker(
 		int(pkg.Chunk.Sheaf_index),
 		int(pkg.Chunk.Chunk_index),
 		pkg.Chunk.Chunk,
 	)
-	if done {
-		par.Close()
-		return
-	}
-	if err != nil {
-		liblog.Errorf("corrupt transmission package: %v", err)
-		return
-	}
 }
 
 func (x *TransmissionReceiver) getPartial(
@@ -205,13 +175,13 @@ func (x *TransmissionReceiver) getPartial(
 		dec := x.decPool.Get()
 		now := x.time.Now()
 		p = &partialTransmission{
-			parent:  x,
-			key:     key,
-			arrived: now,
-			header:  transmission,
-			latest:  now,
-			dec:     dec,
-			ding:    dec.StartDecoding(int(transmission.Num_payload_bytes)),
+			parent:   x,
+			key:      key,
+			arrived:  now,
+			header:   transmission,
+			latest:   now,
+			decoder:  dec,
+			decoding: dec.StartDecoding(int(transmission.Num_payload_bytes)),
 		}
 		x.partial[key] = p
 	} else {
@@ -221,11 +191,6 @@ func (x *TransmissionReceiver) getPartial(
 	}
 
 	return p, nil
-}
-
-type placeResult struct {
-	done bool
-	err  error
 }
 
 func (x *partialTransmission) setLatest(v time.Time) {
@@ -240,52 +205,61 @@ func (x *partialTransmission) getLatest() time.Time {
 	return x.latest
 }
 
-func (x *partialTransmission) PlaceUsingWorker(sheafIndex int, chunkIndex int, chunk []byte) (done bool, err error) {
-
-	resultQ := make(chan placeResult, 1)
+func (x *partialTransmission) PlaceUsingWorker(sheafIndex int, chunkIndex int, chunk []byte) {
 	x.parent.decWorkers.Submit(
 		func() {
-			done, err := x.Place(sheafIndex, chunkIndex, chunk)
-			resultQ <- placeResult{done, err}
+			x.Place(sheafIndex, chunkIndex, chunk)
 		},
 	)
-	result := <-resultQ
-	return result.done, result.err
 }
 
-func (x *partialTransmission) Place(sheafIndex int, chunkIndex int, chunk []byte) (done bool, err error) {
+func (x *partialTransmission) IsComplete() bool {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return x.decoding == nil
+}
+
+func (x *partialTransmission) Place(sheafIndex int, chunkIndex int, chunk []byte) {
+
+	pay, decoded := x.place(sheafIndex, chunkIndex, chunk)
+	if !decoded {
+		return
+	}
+
+	x.parent.receiveQ <- receivedTransmission{key: x.key, typ: x.header.Type, pay: pay}
+}
+
+func (x *partialTransmission) place(sheafIndex int, chunkIndex int, chunk []byte) (pay []byte, decoded bool) {
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	if x.ding == nil {
-		return true, fmt.Errorf("partial transmission already closed")
+	if x.decoding == nil {
+		return nil, false // partial transmission already completed
 	}
 
-	err = x.ding.Place(sheafIndex, chunkIndex, chunk)
+	err := x.decoding.Place(sheafIndex, chunkIndex, chunk)
 	if err != nil {
-		return false, err
+		liblog.Debugf("dogwood placing chunk: %v", err)
+		return nil, false
 	}
 
-	pay, err := x.ding.Decode()
+	pay, err = x.decoding.Decode()
 	if err != nil {
-		return false, nil // not ready to decode
+		return nil, false // not ready to decode
 	}
 
 	latency := x.latest.Sub(x.arrived)
+	count := x.parent.latency.Add(latency)
+	if count%100 == 0 {
+		liblog.Infof("transmission reception latency: %v", x.parent.latency)
+	}
 
-	x.emit.Do(
-		func() {
-			count := x.parent.latency.Add(latency)
-			if count%10 == 0 {
-				liblog.Infof("transmission reception latency: %v", x.parent.latency)
-			}
+	// indicate completion, but leave the partial transmission registered with the parent
+	x.parent.decPool.Recycle(x.decoder)
+	x.decoder, x.decoding = nil, nil // indicate completion
 
-			x.parent.receiveQ <- receivedTransmission{key: x.key, typ: x.header.Type, pay: pay}
-		},
-	)
-
-	return true, nil
+	return pay, true
 }
 
 func (x *partialTransmission) Close() {
@@ -300,9 +274,9 @@ func (x *partialTransmission) Close() {
 
 	// recycle decoder
 	x.lk.Lock()
-	if x.dec != nil {
-		x.parent.decPool.Recycle(x.dec)
-		x.dec, x.ding = nil, nil
+	if x.decoder != nil {
+		x.parent.decPool.Recycle(x.decoder)
+		x.decoder, x.decoding = nil, nil
 	}
 	x.lk.Unlock()
 }

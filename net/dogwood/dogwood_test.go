@@ -19,7 +19,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	liblog.LogLevel(zerolog.DebugLevel)
+	liblog.LogLevel(zerolog.InfoLevel)
 	runtime.CaptureInterrupts(true)
 	runtime.SetRootSeed(0)
 	exitCode := m.Run()
@@ -38,7 +38,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		Endpoint_max_pending:       10,
 		Endpoint_num_clients:       10,
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
-		Endpoint_redial_delay_msec: 50,   // 50 msec
+		Endpoint_redial_delay_msec: 100,  // 100 msec
 		//
 		Stream_receiver_queue_length: 20,
 		Stream_receiver_worker_count: 10,
@@ -71,7 +71,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 	// send from V0
 	go func() {
 		for i := 0; i < N; i++ {
-			if i%10 == 0 {
+			if i%100 == 0 {
 				liblog.Infof("%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
 				liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
 			}
@@ -96,9 +96,10 @@ func TestSendReceiveTransmission(t *testing.T) {
 				liblog.Infof("%v resource usage: %s", tn.String(vIndex), runtime.ResourceUsage())
 				liblog.Infof("%v dogwood stats: %v", tn.String(vIndex), tn.dogwood[vIndex].Stats())
 			}
-			rCtx, rCancel := context.WithTimeout(ctx, time.Second)
+			rCtx, rCancel := context.WithTimeout(ctx, 2*time.Second)
 			p, v, err := tn.Dogwood(vIndex).Receive(rCtx)
 			rCancel()
+			// p, v, err := tn.Dogwood(vIndex).Receive(ctx)
 			if errors.Is(err, context.DeadlineExceeded) {
 				return
 			}

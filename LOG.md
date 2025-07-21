@@ -5,6 +5,8 @@ LOOK AT:
 - cpu utilization
 - block profile
 
+- while partialX is decoding, other methods are locked
+
 [ ] confirm multiple connections to endpoint used uniformly
 [ ] rpc parallel server responses
 [ ] no worker queue
