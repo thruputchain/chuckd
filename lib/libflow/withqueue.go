@@ -28,7 +28,7 @@ type submission struct {
 	waitSpan libstat.LatencyMeterSpan
 }
 
-func NewWorkerPool(
+func NewWorkerPoolWithQueue(
 	ctx context.Context,
 	label string,
 	numWorkers int,
