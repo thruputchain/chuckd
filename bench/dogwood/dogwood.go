@@ -116,20 +116,22 @@ func (bench *DogwoodBenchmark) selfString() string {
 	return protoutil.VIDString(bench.discovery.SelfID())
 }
 
-func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
+func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 
 	// start broadcast service
 	bench.dogwood.Start(ctx, address)
 
 	zeroPayload := make([]byte, bench.numPayBytes)
 
+	var wg sync.WaitGroup
+
 	// start benchmark sender
 
 	var bytesSent libstat.Counter
 
-	bench.wg.Add(1)
+	wg.Add(1)
 	go func() {
-		defer bench.wg.Done()
+		defer wg.Done()
 		defer func() {
 			liblog.Infof("%v sent %s, at %s/sec",
 				bench.selfString(),
@@ -168,9 +170,9 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 	var transmissionsReceived int
 	var stats dogwood.Stats
 
-	bench.wg.Add(1)
+	wg.Add(1)
 	go func() {
-		defer bench.wg.Done()
+		defer wg.Done()
 		defer func() {
 			liblog.Infof("%v received %.2f%% transmissions: %s at %s/sec",
 				bench.selfString(),
@@ -213,6 +215,8 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 		}
 	}()
 
+	wg.Wait()
+
 	// report
 
 	report := DogwoodBenchmarkReport{
@@ -230,6 +234,14 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 	fmt.Println(form.Display(report.Summarize()))
 	fmt.Println()
 	fmt.Println(form.Display(report))
+}
+
+func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
+	bench.wg.Add(1)
+	go func() {
+		defer bench.wg.Done()
+		bench.Run(ctx, address)
+	}()
 }
 
 func (bench *DogwoodBenchmark) Wait() {
