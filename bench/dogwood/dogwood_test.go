@@ -51,19 +51,16 @@ func TestDogwood(t *testing.T) {
 		Route_time_to_live_msec: 60e3, // 1 minute
 		Route_time_to_use_msec:  200,  // 200 msec
 		//
-		Endpoint_queue_length:      20,
-		Endpoint_max_pending:       10,
+		Endpoint_max_pending:       100,
 		Endpoint_num_clients:       10,
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
 		Endpoint_redial_delay_msec: 50,   // 50 msec
 		//
-		Stream_receiver_queue_length: 20,
 		Stream_receiver_worker_count: 10,
-		Stream_sender_worker_count:   10,
+		Stream_sender_worker_count:   2,
 		//
 		Transmission_receiver_decode_worker_count: 10,
-		Transmission_receiver_stream_worker_count: 20000,
-		Transmission_sender_worker_count:          10,
+		Transmission_sender_worker_count:          2,
 		//
 		Transmission_config: &proto.TransmissionConfig{
 			Num_payload_sheaves:   5,

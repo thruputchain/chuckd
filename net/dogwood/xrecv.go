@@ -66,7 +66,6 @@ func NewTransmissionReceiver(
 	nav *Navigator,
 	receiver *StreamReceiver,
 	numDecWorkers int,
-	numStreamWorkers int, //XXX: not used
 ) *TransmissionReceiver {
 
 	x := &TransmissionReceiver{

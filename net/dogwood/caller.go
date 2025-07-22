@@ -22,7 +22,6 @@ type caller struct {
 	time   libtime.Time
 	dialer DogwoodDialer
 	// params
-	endpointQueueLen    int           // maximum number of calls in endpoint call queue
 	endpointMaxPending  int           // maximum number of pending (inflight) calls to an endpoint
 	endpointNumClients  int           // number of client connections to endpoint
 	endpointIdleTTL     time.Duration // discard idle endpoints after ttl
@@ -46,7 +45,6 @@ func NewCaller(
 	ctx context.Context,
 	time libtime.Time,
 	dialer DogwoodDialer,
-	endpointQueueLen int,
 	endpointMaxPending int,
 	endpointNumClients int,
 	endpointIdleTTL time.Duration,
@@ -56,7 +54,6 @@ func NewCaller(
 		ctx:                 ctx,
 		time:                time,
 		dialer:              dialer,
-		endpointQueueLen:    endpointQueueLen,
 		endpointMaxPending:  endpointMaxPending,
 		endpointNumClients:  endpointNumClients,
 		endpointIdleTTL:     endpointIdleTTL,

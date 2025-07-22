@@ -41,7 +41,6 @@ func NewStreamReceiver(
 	discovery discovery.Discovery,
 	nav *Navigator,
 	caller Caller,
-	receiveQueueSize int, //XXX: not used
 	numWorkers int,
 ) *StreamReceiver {
 
