@@ -77,18 +77,18 @@ func (def BenchDogwoodExecDef) ExecScripts(
 			Route_time_to_use_msec:  1e3,  // 1 sec
 			//
 			Endpoint_queue_length:      20,
-			Endpoint_max_pending:       200, //XXX: 10x40
-			Endpoint_num_clients:       10,
+			Endpoint_max_pending:       2000, //XXX: 10x40
+			Endpoint_num_clients:       20,
 			Endpoint_idle_ttl_msec:     60e3, // 1 minute
 			Endpoint_redial_delay_msec: 100,  // 100 msec
 			//
 			Stream_receiver_queue_length: 20,
-			Stream_receiver_worker_count: 64, //XXX
-			Stream_sender_worker_count:   64, //XXX
+			Stream_receiver_worker_count: 128, //XXX
+			Stream_sender_worker_count:   128, //XXX
 			//
-			Transmission_receiver_decode_worker_count: 32,    //XXX
+			Transmission_receiver_decode_worker_count: 64,    //XXX
 			Transmission_receiver_stream_worker_count: 40000, // XXX" not used;
-			Transmission_sender_worker_count:          16,    //XXX
+			Transmission_sender_worker_count:          32,    //XXX
 			//
 			Transmission_config: &proto.TransmissionConfig{
 				Num_payload_sheaves:   5,

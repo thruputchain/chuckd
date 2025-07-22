@@ -142,6 +142,13 @@ func (x *TransmissionSender) send(
 		}
 	}
 
+	// close all streams
+	defer func() {
+		for _, s := range stream {
+			s.Close()
+		}
+	}()
+
 	// check that enough streams opened for recovery
 	if len(stream) < enc.NumPaySheaves() {
 		liblog.Errorf("dropping transmission %d, not enough streams, have %d, need %d",
