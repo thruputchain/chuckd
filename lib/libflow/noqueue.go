@@ -17,10 +17,11 @@ type WorkerPoolNoQueue struct {
 	//
 	pool *ants.Pool
 	//
-	submitLat *libstat.LatencyMeter // time to submit
-	waitLat   *libstat.LatencyMeter // time in queue
-	workLat   *libstat.LatencyMeter // time working
-	completed libstat.Counter
+	utilization libstat.Counter
+	submitLat   *libstat.LatencyMeter // time to submit
+	waitLat     *libstat.LatencyMeter // time in queue
+	workLat     *libstat.LatencyMeter // time working
+	completed   libstat.Counter
 }
 
 func NewWorkerPoolNoQueue(
@@ -54,6 +55,8 @@ func (x *WorkerPoolNoQueue) Stop() {
 
 func (x *WorkerPoolNoQueue) Submit(task func()) {
 
+	x.utilization.Add(float64(x.pool.Running()) / float64(x.pool.Cap()))
+
 	submitSpan := x.submitLat.Start()
 	waitSpan := x.waitLat.Start()
 
@@ -65,9 +68,10 @@ func (x *WorkerPoolNoQueue) Submit(task func()) {
 			workSpan.Stop()
 
 			if k := x.completed.Add(1); k%100 == 0 && k > 0 {
-				liblog.Infof("%s total: %v, submit: %v, wait: %v, work: %v",
+				liblog.Infof("%s total: %v, utilization: %.2f%%±%.2f%%, submit: %v, wait: %v, work: %v",
 					x.label,
 					libtime.FmtDur(x.submitLat.Average()+x.waitLat.Average()+x.workLat.Average()),
+					x.utilization.Average()*100, x.utilization.Stddev()*100,
 					x.submitLat, x.waitLat, x.workLat)
 			}
 		},

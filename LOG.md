@@ -1,6 +1,6 @@
 LOOK AT:
-- worker pool latencies
 - transmission reception latency
+- worker pool latencies
 - drop rate
 - cpu utilization
 - block profile
@@ -12,27 +12,41 @@ LOOK AT:
 [ ] no worker queue
 
 
-300kb blobs (1000 txs)
-20 TCP connections between node pairs
-60kb/rpc <— ???
-7 multicast trees (5 payload + 2 parity)
-28%-40% cpu utilization on all 128 cores
-3 nodes
-1GB/sec - 3GB/sec (650Mb/sec-1.5GB/sec receive, 400MB/sec-1.5GB/sec send)
-100% reception within 1 sec (max latency)
-20% cpu cache misses (perf stat)
+EXP
 
+- small payloads
 
+    // -- PARAMS --
+    //
+    pay-size: 300kb blobs (1000 txs)
+    iterations: 100'000
+    nodes: 3
+    worker pools with queues
+    //
+    Endpoint_max_pending:       200,
+    Endpoint_num_clients:       10,
+    Endpoint_idle_ttl_msec:     60e3, // 1 minute
+    Endpoint_redial_delay_msec: 100,  // 100 msec
+    //
+    Stream_receiver_worker_count: 64,
+    Stream_sender_worker_count:   64,
+    //
+    Transmission_receiver_decode_worker_count: 32,
+    Transmission_sender_worker_count:          16,
+    //
+    Num_payload_sheaves:   5,
+    Num_parity_sheaves:    2,
+    Max_chunk_bytes:       60e3, // 60K
+    Partial_max_ttl_msec:  10e3, // 10 sec
+    Partial_idle_ttl_msec: 1e3,  // 1 sec
+    //
+    // -- RESULTS --
+    cpu-utilization: 40%-50%
+    cpu-cache-misses: 24% (perf stat)
+    throughput: ~2GB/sec (1.2GB/sec receive, 0.7GB/sec send)
+    reception: 100%
+    latency: 8ms
 
-30MB blobs (1 nomination 1M tx hashes)
-20 TCP connections between node pairs
-60kb/rpc <— ???
-7 multicast trees (5 payload + 2 parity)
-45% cpu utilization on all 128 cores
-3 nodes
-4GB/sec (3.2GB/sec receive, 1.2GB/sec send)
-98% reception within 3 sec (max latency)
-17% cpu cache misses (perf stat)
 
 
 

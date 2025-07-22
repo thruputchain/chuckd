@@ -18,9 +18,10 @@ type WorkerPoolWithQueue struct {
 	queue chan submission
 	pool  *ants.Pool
 	//
-	submitLat *libstat.LatencyMeter // time to submit
-	waitLat   *libstat.LatencyMeter // time in queue
-	workLat   *libstat.LatencyMeter // time working
+	utilization libstat.Counter
+	submitLat   *libstat.LatencyMeter // time to submit
+	waitLat     *libstat.LatencyMeter // time in queue
+	workLat     *libstat.LatencyMeter // time working
 }
 
 type submission struct {
@@ -64,6 +65,8 @@ func (x *WorkerPoolWithQueue) Stop() {
 
 func (x *WorkerPoolWithQueue) Submit(task func()) {
 
+	x.utilization.Add(float64(x.pool.Running()) / float64(x.pool.Cap()))
+
 	submitSpan := x.submitLat.Start()
 
 	select {
@@ -84,9 +87,10 @@ func (x *WorkerPoolWithQueue) do() {
 	i := 0
 	for {
 		if i%100 == 0 {
-			liblog.Infof("%s total: %v, submit: %v, wait: %v, work: %v",
+			liblog.Infof("%s total: %v, utilization: %.2f%%±%.2f%%, submit: %v, wait: %v, work: %v",
 				x.label,
 				libtime.FmtDur(x.submitLat.Average()+x.waitLat.Average()+x.workLat.Average()),
+				x.utilization.Average()*100, x.utilization.Stddev()*100,
 				x.submitLat, x.waitLat, x.workLat)
 		}
 
