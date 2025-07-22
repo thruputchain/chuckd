@@ -146,8 +146,8 @@ echo "benchmark working directory $(pwd)"
 	--fan-out {{ .Def.FanOut }} \
 	--bytes-per-pay {{ .Def.BytesPerPay }} \
 	--num-iterations {{ .Def.NumIterations }} \
-	{{ .Suffix }} 
-` //&> {{ .LogName }}
+	{{ .Suffix }} 1> {{ .ReportName }} 2> {{ .LogName }}
+`
 	return textutil.Apply(ctx, format, textutil.M{
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
@@ -165,5 +165,6 @@ echo "benchmark working directory $(pwd)"
 		"BlockProfileName": "bench-dogwood-block-" + host + ".prof",
 		"TraceProfileName": "bench-dogwood-trace-" + host + ".prof",
 		"LogName":          "bench-dogwood-" + host + ".log",
+		"ReportName":       "bench-dogwood-" + host + ".report",
 	})
 }

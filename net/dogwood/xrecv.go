@@ -128,7 +128,7 @@ func (x *TransmissionReceiver) expirePartial(_ context.Context) {
 
 		for _, par := range scrub {
 			if !par.IsComplete() {
-				liblog.Infof("dogwood dropping partial incomplete transmission")
+				liblog.Errorf("dogwood dropping partial incomplete transmission")
 			}
 			par.Close()
 		}
