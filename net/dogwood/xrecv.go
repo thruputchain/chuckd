@@ -249,10 +249,7 @@ func (x *partialTransmission) place(sheafIndex int, chunkIndex int, chunk []byte
 	}
 
 	latency := x.latest.Sub(x.arrived)
-	count := x.parent.latency.Add(latency)
-	if count%100 == 0 {
-		liblog.Infof("transmission reception latency: %v", x.parent.latency)
-	}
+	x.parent.latency.Add(latency)
 
 	// indicate completion, but leave the partial transmission registered with the parent
 	x.parent.decPool.Recycle(x.decoder)

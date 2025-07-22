@@ -8,16 +8,16 @@ import (
 func FmtDur(d time.Duration) string {
 	switch {
 	case d >= time.Hour:
-		return fmt.Sprintf("%.1f h", d.Hours())
+		return fmt.Sprintf("%.1fh", d.Hours())
 	case d >= time.Minute:
-		return fmt.Sprintf("%d min", int64(d.Minutes()))
+		return fmt.Sprintf("%dmin", int64(d.Minutes()))
 	case d >= time.Second:
-		return fmt.Sprintf("%d sec", int64(d.Seconds()))
+		return fmt.Sprintf("%dsec", int64(d.Seconds()))
 	case d >= time.Millisecond:
-		return fmt.Sprintf("%d msec", int64(d.Milliseconds()))
+		return fmt.Sprintf("%dmsec", int64(d.Milliseconds()))
 	case d >= time.Microsecond:
-		return fmt.Sprintf("%d µsec", int64(d.Microseconds()))
+		return fmt.Sprintf("%dµsec", int64(d.Microseconds()))
 	default:
-		return fmt.Sprintf("%d nsec", int64(d.Nanoseconds()))
+		return fmt.Sprintf("%dnsec", int64(d.Nanoseconds()))
 	}
 }

@@ -146,8 +146,8 @@ echo "benchmark working directory $(pwd)"
 	--fan-out {{ .Def.FanOut }} \
 	--bytes-per-pay {{ .Def.BytesPerPay }} \
 	--num-iterations {{ .Def.NumIterations }} \
-	{{ .Suffix }} &> {{ .LogName }}
-`
+	{{ .Suffix }} 
+` //&> {{ .LogName }}
 	return textutil.Apply(ctx, format, textutil.M{
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
