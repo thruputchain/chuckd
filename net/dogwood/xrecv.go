@@ -279,3 +279,17 @@ func (x *partialTransmission) Close() {
 	}
 	x.lk.Unlock()
 }
+
+// stats
+
+type TransmissionReceiverStats struct {
+	libflow.WorkerPoolStats
+	Latency libstat.LatencyStats
+}
+
+func (x *TransmissionReceiver) Stats() TransmissionReceiverStats {
+	return TransmissionReceiverStats{
+		WorkerPoolStats: x.decWorkers.Stats(),
+		Latency:         x.latency.Stats(),
+	}
+}

@@ -26,8 +26,8 @@ type StreamReceiver struct {
 	m              xdrutil.XdrMarshaler
 	receiveWorkers libflow.WorkerPool
 	// state
-	lk     sync.Mutex
-	stream map[proto.DogwoodStream]*ReceiveStream
+	lk      sync.Mutex
+	streams map[proto.DogwoodStream]*ReceiveStream
 }
 
 type ReceiveStream struct {
@@ -50,7 +50,7 @@ func NewStreamReceiver(
 		caller:         caller,
 		m:              xdrutil.NewXdrMarshaler(),
 		receiveWorkers: libflow.NewWorkerPool(ctx, "stream-receive-workers", numWorkers),
-		stream:         map[proto.DogwoodStream]*ReceiveStream{},
+		streams:        map[proto.DogwoodStream]*ReceiveStream{},
 	}
 }
 
@@ -61,7 +61,7 @@ func (r *StreamReceiver) SetProcessor(proc StreamProcessor) {
 func (r *StreamReceiver) NumStreams() int {
 	r.lk.Lock()
 	defer r.lk.Unlock()
-	return len(r.stream)
+	return len(r.streams)
 }
 
 func (r *StreamReceiver) Start(ctx context.Context) {}
@@ -98,10 +98,10 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	}
 
 	r.lk.Lock()
-	s, ok := r.stream[env.Delivery.Stream]
+	s, ok := r.streams[env.Delivery.Stream]
 	if !ok {
 		s = r.newReceivingStream(ctx, env.Delivery.Stream, route)
-		r.stream[env.Delivery.Stream] = s
+		r.streams[env.Delivery.Stream] = s
 	}
 	r.lk.Unlock()
 
@@ -126,7 +126,7 @@ func (s *ReceiveStream) Close() {
 
 	s.parent.lk.Lock()
 	defer s.parent.lk.Unlock()
-	delete(s.parent.stream, s.stream)
+	delete(s.parent.streams, s.stream)
 }
 
 func (s *ReceiveStream) process(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
@@ -135,5 +135,22 @@ func (s *ReceiveStream) process(ctx context.Context, env proto.DogwoodDeliveryEn
 
 	for _, d := range s.nav.Downstream {
 		s.parent.caller.DogwoodDeliver(ctx, d, env)
+	}
+}
+
+// stats
+
+type StreamReceiverStats struct {
+	NumOpenStreams int
+	libflow.WorkerPoolStats
+}
+
+func (s *StreamReceiver) Stats() StreamReceiverStats {
+	s.lk.Lock()
+	n := len(s.streams)
+	s.lk.Unlock()
+	return StreamReceiverStats{
+		NumOpenStreams:  n,
+		WorkerPoolStats: s.receiveWorkers.Stats(),
 	}
 }

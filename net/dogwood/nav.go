@@ -39,6 +39,7 @@ type Navigator struct {
 	marshaler xdrutil.XdrMarshaler
 	// meters
 	routeNotFound libstat.Counter
+	routeFound    libstat.Counter
 }
 
 type RouteDisseminator interface {
@@ -104,20 +105,20 @@ func (nav *Navigator) LookupRoute(ctx context.Context, h proto.DogwoodTreeHash) 
 
 	x, ok := nav.theirs[h]
 	if ok {
+		nav.routeFound.Add(1)
 		d, _ := x.Tree.FindChildren(nav.self)
 		return NavRoute{Hash: h, Downstream: d}, nil
 	}
 
 	x, ok = nav.ours[h]
 	if ok {
+		nav.routeFound.Add(1)
 		d, found := x.Tree.FindChildren(nav.self)
 		must.Assert(ctx, found)
 		return NavRoute{Hash: h, Downstream: d}, nil
 	}
 
-	if k := nav.routeNotFound.Add(1); k%100 == 0 && k > 0 {
-		liblog.Errorf("route not found: %d", k)
-	}
+	nav.routeNotFound.Add(1)
 
 	return NavRoute{}, fmt.Errorf("route not found")
 }
@@ -199,5 +200,19 @@ func (nav *Navigator) expire(_ context.Context) {
 			}
 		}
 		nav.lk.Unlock()
+	}
+}
+
+// stats
+
+type NavigatorStats struct {
+	RouteFound    libstat.CounterStats
+	RouteNotFound libstat.CounterStats
+}
+
+func (nav *Navigator) Stats() NavigatorStats {
+	return NavigatorStats{
+		RouteFound:    nav.routeFound.Stats(),
+		RouteNotFound: nav.routeNotFound.Stats(),
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 )
 
@@ -22,17 +21,6 @@ func NewLatency(time_ libtime.Time) *LatencyMeter {
 	return &LatencyMeter{
 		time: time_,
 	}
-}
-
-func NewLatencyWithReport(time_ libtime.Time, label string, freq time.Duration) *LatencyMeter {
-	d := NewLatency(time_)
-	go func() {
-		for {
-			time_.Sleep(freq)
-			liblog.Infof("%s %s", label, d.String())
-		}
-	}()
-	return d
 }
 
 func (x *LatencyMeter) Start() LatencyMeterSpan {

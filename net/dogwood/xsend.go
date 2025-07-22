@@ -12,16 +12,19 @@ import (
 )
 
 type TransmissionSender struct {
-	cfg         proto.TransmissionConfig
-	nav         *Navigator
-	sender      *StreamSender
+	cfg    proto.TransmissionConfig
+	nav    *Navigator
+	sender *StreamSender
+	//
 	sendWorkers libflow.WorkerPool
 	encPool     *MagnoliaEncoderPool
-	rlk         sync.Mutex
-	rand        *rand.Rand
-	lk          sync.Mutex
-	nsending    int
-	nwaiting    int
+	//
+	rlk  sync.Mutex
+	rand *rand.Rand
+	//
+	lk       sync.Mutex
+	nsending int
+	nwaiting int
 }
 
 func NewTransmissionSender(
@@ -169,5 +172,23 @@ func (x *TransmissionSender) send(
 			}
 			stream[s].Send(ctx, &pkg)
 		}
+	}
+}
+
+// stats
+
+type TransmissionSenderStats struct {
+	NumTransmissionsSending int
+	NumTransmissionsWaiting int
+	libflow.WorkerPoolStats
+}
+
+func (x *TransmissionSender) Stats() TransmissionSenderStats {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return TransmissionSenderStats{
+		NumTransmissionsSending: x.nsending,
+		NumTransmissionsWaiting: x.nwaiting,
+		WorkerPoolStats:         x.sendWorkers.Stats(),
 	}
 }

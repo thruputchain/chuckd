@@ -15,6 +15,7 @@ import (
 type Caller interface {
 	Start(ctx context.Context)
 	DogwoodDeliver(context.Context, proto.ValidatorID, proto.DogwoodDeliveryEnvelope) error
+	Stats() CallerStats
 }
 
 type caller struct {

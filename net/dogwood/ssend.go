@@ -23,8 +23,8 @@ type StreamSender struct {
 	m           xdrutil.XdrMarshaler
 	sendWorkers libflow.WorkerPool
 	// state
-	lk     sync.Mutex
-	stream map[proto.DogwoodStream]*SendStream
+	lk      sync.Mutex
+	streams map[proto.DogwoodStream]*SendStream
 }
 
 type SendStream struct {
@@ -52,14 +52,14 @@ func NewStreamSender(
 		caller:      caller,
 		m:           xdrutil.NewXdrMarshaler(),
 		sendWorkers: libflow.NewWorkerPool(ctx, "stream-send-workers", numWorkers),
-		stream:      map[proto.DogwoodStream]*SendStream{},
+		streams:     map[proto.DogwoodStream]*SendStream{},
 	}
 }
 
 func (x *StreamSender) NumStreams() int {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	return len(x.stream)
+	return len(x.streams)
 }
 
 func (x *StreamSender) Start(context.Context) {}
@@ -96,7 +96,7 @@ func (x *StreamSender) DialRoute(ctx context.Context, t *dogwoodutil.LinkedTreeN
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	x.stream[stream] = ss
+	x.streams[stream] = ss
 
 	return ss, nil
 
@@ -124,7 +124,7 @@ func (x *StreamSender) Dial(ctx context.Context) (*SendStream, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	x.stream[stream] = ss
+	x.streams[stream] = ss
 
 	return ss, nil
 }
@@ -180,5 +180,22 @@ func (x *SendStream) Close() {
 	x.parent.lk.Lock()
 	defer x.parent.lk.Unlock()
 
-	delete(x.parent.stream, x.stream)
+	delete(x.parent.streams, x.stream)
+}
+
+// stats
+
+type StreamSenderStats struct {
+	NumOpenStreams int
+	libflow.WorkerPoolStats
+}
+
+func (s *StreamSender) Stats() StreamSenderStats {
+	s.lk.Lock()
+	n := len(s.streams)
+	s.lk.Unlock()
+	return StreamSenderStats{
+		NumOpenStreams:  n,
+		WorkerPoolStats: s.sendWorkers.Stats(),
+	}
 }
