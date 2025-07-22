@@ -1,8 +1,13 @@
 package dogwood
 
-import "github.com/groundhogchain/chuckd/lib/form"
+import (
+	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/runtime"
+)
 
 type Stats struct {
+	ResourceUsage string
+	//
 	CallerStats
 	StreamReceiverStats
 	StreamSenderStats
@@ -24,6 +29,8 @@ func (x Stats) String() string {
 
 func (x *DogwoodService) Stats() Stats {
 	return Stats{
+		ResourceUsage: runtime.ResourceUsage(),
+		//
 		CallerStats:               x.caller.Stats(),
 		StreamReceiverStats:       x.streamReceiver.Stats(),
 		StreamSenderStats:         x.streamSender.Stats(),

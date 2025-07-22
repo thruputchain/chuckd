@@ -210,6 +210,10 @@ type NavigatorStats struct {
 	RouteNotFound libstat.CounterStats
 }
 
+func (x NavigatorStats) Summarize() string {
+	return fmt.Sprintf("routes-found: %d, routes-not-found: %d", x.RouteFound.Count, x.RouteNotFound.Count)
+}
+
 func (nav *Navigator) Stats() NavigatorStats {
 	return NavigatorStats{
 		RouteFound:    nav.routeFound.Stats(),

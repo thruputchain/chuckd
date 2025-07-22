@@ -1,7 +1,9 @@
 package dogwood
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -135,9 +137,21 @@ type CallerStats struct {
 	Endpoints []EndpointStats
 }
 
+func (x CallerStats) Summarize() string {
+	var w bytes.Buffer
+	for _, e := range x.Endpoints {
+		fmt.Fprintf(&w, "%s ", e.Summarize())
+	}
+	return w.String()
+}
+
 type EndpointStats struct {
-	libflow.WorkerPoolStats
+	CallWorkers libflow.WorkerPoolStats
 	ClientPoolStats
+}
+
+func (x EndpointStats) Summarize() string {
+	return fmt.Sprintf("(util=%.2f%%, lat=%s)", x.CallWorkers.Utilization.Average*100, x.DeliverLat.Summarize())
 }
 
 func (x *caller) Stats() CallerStats {
@@ -154,7 +168,7 @@ func (x *caller) Stats() CallerStats {
 
 func (x *endpoint) Stats() EndpointStats {
 	return EndpointStats{
-		WorkerPoolStats: x.callWorkers.Stats(),
+		CallWorkers:     x.callWorkers.Stats(),
 		ClientPoolStats: x.client.Stats(),
 	}
 }

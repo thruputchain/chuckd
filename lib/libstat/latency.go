@@ -62,22 +62,26 @@ func (x *LatencyMeter) Stddev() time.Duration {
 }
 
 func (x *LatencyMeter) String() string {
-	return fmt.Sprintf("%s ± %s [%s, %s]",
+	return fmt.Sprintf("%s±%s [%s:%s]",
 		libtime.FmtDur(x.Average()), libtime.FmtDur(x.Stddev()), libtime.FmtDur(x.Min()), libtime.FmtDur(x.Max()))
 }
 
 type LatencyStats struct {
 	Summary string
+	NSec    CounterStats
+}
+
+func (x LatencyStats) Summarize() string {
+	return fmt.Sprintf("%s±%s [%s:%s]",
+		libtime.FmtDur(time.Duration(x.NSec.Average)),
+		libtime.FmtDur(time.Duration(x.NSec.Stddev)),
+		libtime.FmtDur(time.Duration(x.NSec.Min)),
+		libtime.FmtDur(time.Duration(x.NSec.Max)),
+	)
 }
 
 func (x *LatencyMeter) Stats() LatencyStats {
-	c := x.ctr.Stats()
-	return LatencyStats{
-		Summary: fmt.Sprintf("%s ± %s [%s : %s]",
-			libtime.FmtDur(time.Duration(c.Average)),
-			libtime.FmtDur(time.Duration(c.Stddev)),
-			libtime.FmtDur(time.Duration(c.Min)),
-			libtime.FmtDur(time.Duration(c.Max)),
-		),
-	}
+	s := LatencyStats{NSec: x.ctr.Stats()}
+	s.Summary = s.Summarize()
+	return s
 }

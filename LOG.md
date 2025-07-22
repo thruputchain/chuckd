@@ -1,7 +1,7 @@
 LOOK AT:
 - transmission reception latency
-- worker pool latencies
 - drop rate
+- worker pool latencies
 - cpu utilization
 - block profile
 
@@ -46,13 +46,3 @@ EXP
     throughput: ~2GB/sec (1.2GB/sec receive, 0.7GB/sec send)
     reception: 100%
     latency: 8ms
-
-
-
-
-ISSUES:
-- 30Mb one node receives nothing
-  - transmissions dropped at sender (no routes)
-  - transmissions dropped at received (timeout)
-- no available routes
-- QUIC is too slow

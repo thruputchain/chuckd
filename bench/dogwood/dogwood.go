@@ -3,11 +3,13 @@ package dogwood
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libstat"
@@ -15,7 +17,6 @@ import (
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -23,9 +24,52 @@ import (
 type DogwoodBenchmark struct {
 	numPayBytes   int
 	numIterations int
+	cfg           proto.Config
 	discovery     discovery.Discovery
 	dogwood       *dogwood.DogwoodService
 	wg            sync.WaitGroup
+}
+
+type DogwoodBenchmarkReport struct {
+	NumPayBytes   int
+	NumIterations int
+	NumNodes      int
+	Config        proto.DogwoodConfig
+	//
+	Stats dogwood.Stats
+	//
+	SendThroughput    libstat.CounterStats
+	ReceiveThroughput libstat.CounterStats
+	ReceptionRate     float64
+}
+
+func (x DogwoodBenchmarkReport) Summarize() DogwoodBenchmarkSummary {
+	return DogwoodBenchmarkSummary{
+		ResourceUsage:        x.Stats.ResourceUsage,
+		ReceptionLatency:     x.Stats.TransmissionReceiverStats.Latency.Summarize(),
+		ReceptionRate:        fmt.Sprintf("%.2f%%", x.ReceptionRate*100),
+		ReceiveThroughput:    humanize.Bytes(uint64(x.ReceiveThroughput.SpeedPerSec)),
+		Caller:               x.Stats.CallerStats.Summarize(),
+		StreamReceiver:       x.Stats.StreamReceiverStats.Summarize(),
+		StreamSender:         x.Stats.StreamSenderStats.Summarize(),
+		TransmissionReceiver: x.Stats.TransmissionReceiverStats.Summarize(),
+		TransmissionSender:   x.Stats.TransmissionSenderStats.Summarize(),
+		Navigator:            x.Stats.NavigatorStats.Summarize(),
+	}
+}
+
+type DogwoodBenchmarkSummary struct {
+	ResourceUsage     string
+	ReceptionLatency  string
+	ReceptionRate     string
+	ReceiveThroughput string
+	//
+	Caller               string
+	StreamReceiver       string
+	StreamSender         string
+	TransmissionReceiver string
+	TransmissionSender   string
+	Navigator            string
 }
 
 func NewDogwoodBenchmark(
@@ -62,6 +106,7 @@ func NewDogwoodBenchmark(
 	return &DogwoodBenchmark{
 		numPayBytes:   numPayBytes,
 		numIterations: numIterations,
+		cfg:           cfg,
 		discovery:     discovery,
 		dogwood:       dw,
 	}
@@ -79,13 +124,12 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 	zeroPayload := make([]byte, bench.numPayBytes)
 
 	// start benchmark sender
+
+	var bytesSent libstat.Counter
+
 	bench.wg.Add(1)
 	go func() {
 		defer bench.wg.Done()
-
-		defer liblog.Infof("%v sender done", bench.selfString())
-		var bytesSent libstat.Counter
-
 		defer func() {
 			liblog.Infof("%v sent %s, at %s/sec",
 				bench.selfString(),
@@ -97,9 +141,9 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 		liblog.Infof("%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
-			if j%300 == 0 {
-				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
-			}
+			// if j%300 == 0 {
+			// 	liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+			// }
 
 			select {
 			case <-ctx.Done():
@@ -119,14 +163,14 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 	}()
 
 	// start benchmark receiver
+
+	var bytesReceived libstat.Counter
+	var transmissionsReceived int
+	var stats dogwood.Stats
+
 	bench.wg.Add(1)
 	go func() {
 		defer bench.wg.Done()
-
-		defer liblog.Infof("%v receiver done", bench.selfString())
-		var bytesReceived libstat.Counter
-		var transmissionsReceived int
-
 		defer func() {
 			liblog.Infof("%v received %.2f%% transmissions: %s at %s/sec",
 				bench.selfString(),
@@ -137,9 +181,12 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 
 		j := 0
 		for {
-			if j%300 == 0 {
-				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+			if j == (2*bench.numIterations)/3 {
+				stats = bench.dogwood.Stats()
 			}
+			// if j%300 == 0 {
+			// 	liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+			// }
 
 			select {
 			case <-ctx.Done(): // benchmark timeout
@@ -165,6 +212,24 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 			j += 1
 		}
 	}()
+
+	// report
+
+	report := DogwoodBenchmarkReport{
+		NumPayBytes:   bench.numPayBytes,
+		NumIterations: bench.numIterations,
+		NumNodes:      len(bench.cfg.Validator_config.Known_validators),
+		Config:        *bench.cfg.Dogwood_config,
+		//
+		Stats:             stats,
+		SendThroughput:    bytesSent.Stats(),
+		ReceiveThroughput: bytesReceived.Stats(),
+		ReceptionRate:     float64(transmissionsReceived) / float64(bench.numIterations),
+	}
+
+	fmt.Println(form.Display(report.Summarize()))
+	fmt.Println()
+	fmt.Println(form.Display(report))
 }
 
 func (bench *DogwoodBenchmark) Wait() {
