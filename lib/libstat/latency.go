@@ -77,3 +77,19 @@ func (x *LatencyMeter) String() string {
 	return fmt.Sprintf("%s ± %s [%s, %s]",
 		libtime.FmtDur(x.Average()), libtime.FmtDur(x.Stddev()), libtime.FmtDur(x.Min()), libtime.FmtDur(x.Max()))
 }
+
+type LatencyStats struct {
+	Summary string
+}
+
+func (x *LatencyMeter) Stats() LatencyStats {
+	c := x.ctr.Stats()
+	return LatencyStats{
+		Summary: fmt.Sprintf("%s ± %s [%s : %s]",
+			libtime.FmtDur(time.Duration(c.Average)),
+			libtime.FmtDur(time.Duration(c.Stddev)),
+			libtime.FmtDur(time.Duration(c.Min)),
+			libtime.FmtDur(time.Duration(c.Max)),
+		),
+	}
+}

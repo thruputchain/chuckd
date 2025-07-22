@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -17,17 +18,18 @@ import (
 // XXX: log pending call distribution
 
 type ClientPool struct {
-	address      proto.ValidatorID
-	time         libtime.Time
-	dialer       DogwoodDialer
-	maxClients   int
-	redialDelay  time.Duration
+	address     proto.ValidatorID
+	time        libtime.Time
+	dialer      DogwoodDialer
+	maxClients  int
+	redialDelay time.Duration
+	//
 	lk           sync.Mutex
 	lastDialFail *time.Time
-	client       map[DogwoodClientCloser]struct{}
+	clients      map[DogwoodClientCloser]int // client -> number of pending calls
 	//
-	getClientLat *libstat.LatencyMeter
-	deliverLat   *libstat.LatencyMeter
+	leaseLat   *libstat.LatencyMeter
+	deliverLat *libstat.LatencyMeter
 }
 
 func NewClientPool(
@@ -44,34 +46,35 @@ func NewClientPool(
 		dialer:      dialer,
 		maxClients:  maxClients,
 		redialDelay: redialDelay,
-		client:      map[DogwoodClientCloser]struct{}{},
+		clients:     map[DogwoodClientCloser]int{},
 		//
-		getClientLat: libstat.NewLatencyWithReport(time_, "caller.getClient latency", 3*time.Second),
-		deliverLat:   libstat.NewLatencyWithReport(time_, "caller.Dogwood_deliver latency", 3*time.Second),
+		leaseLat:   libstat.NewLatency(time_),
+		deliverLat: libstat.NewLatency(time_),
 	}
 }
 
 func (x *ClientPool) NumClients() int {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	if x.client == nil {
+	if x.clients == nil {
 		return 0
 	}
-	return len(x.client)
+	return len(x.clients)
 }
 
-func (x *ClientPool) getClient(ctx context.Context) (client DogwoodClientCloser, err error) {
+func (x *ClientPool) leaseClient(ctx context.Context) (client DogwoodClientCloser, err error) {
 
-	span := x.getClientLat.Start()
+	span := x.leaseLat.Start()
 	defer span.Stop()
 
 	// get a client from the pool, if it is not closed and full
 	x.lk.Lock()
-	closed := x.client == nil
-	full := len(x.client) >= x.maxClients
+	closed := x.clients == nil
+	full := len(x.clients) >= x.maxClients
 	if !closed && full {
-		for c := range x.client {
+		for c := range x.clients {
 			client = c
+			x.clients[c] += 1
 			break
 		}
 	}
@@ -89,14 +92,14 @@ func (x *ClientPool) getClient(ctx context.Context) (client DogwoodClientCloser,
 	// pool was not closed and not full, so dialing a new client
 	client, err = x.dial(ctx)
 	if err != nil {
-		return client, err
+		return nil, err
 	}
 
 	// place the new client in the pool, if it is not closed
 	x.lk.Lock()
-	closed = x.client == nil
+	closed = x.clients == nil
 	if !closed {
-		x.client[client] = struct{}{}
+		x.clients[client] = 1
 	}
 	x.lk.Unlock()
 
@@ -106,6 +109,21 @@ func (x *ClientPool) getClient(ctx context.Context) (client DogwoodClientCloser,
 	}
 
 	return client, nil
+}
+
+func (x *ClientPool) releaseClient(ctx context.Context, client DogwoodClientCloser) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+
+	if x.clients == nil {
+		return
+	}
+
+	npending, ok := x.clients[client]
+	if ok {
+		must.Assert(ctx, npending > 0)
+		x.clients[client] -= 1
+	}
 }
 
 func (x *ClientPool) getLastDialFail() *time.Time {
@@ -144,8 +162,8 @@ func (x *ClientPool) dial(ctx context.Context) (DogwoodClientCloser, error) {
 
 func (x *ClientPool) Close() {
 	x.lk.Lock()
-	client := x.client
-	x.client = nil
+	client := x.clients
+	x.clients = nil
 	x.lk.Unlock()
 
 	for client := range client {
@@ -158,28 +176,18 @@ func (x *ClientPool) evict(client DogwoodClientCloser) {
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	if x.client != nil {
-		delete(x.client, client)
+	if x.clients != nil {
+		delete(x.clients, client)
 	}
-}
-
-func (x *ClientPool) Dogwood_null(ctx context.Context) error {
-	c, err := x.getClient(ctx)
-	if err != nil {
-		return err
-	}
-	err = c.Dogwood_null(ctx)
-	if err != nil {
-		x.evict(c)
-	}
-	return err
 }
 
 func (x *ClientPool) Dogwood_deliver(ctx context.Context, env proto.DogwoodDeliveryEnvelope) error {
-	c, err := x.getClient(ctx)
+	c, err := x.leaseClient(ctx)
 	if err != nil {
 		return err
 	}
+	defer x.releaseClient(ctx, c)
+
 	span := x.deliverLat.Start()
 	err = c.Dogwood_deliver(ctx, env)
 	span.Stop()
@@ -187,4 +195,34 @@ func (x *ClientPool) Dogwood_deliver(ctx context.Context, env proto.DogwoodDeliv
 		x.evict(c)
 	}
 	return err
+}
+
+// stats
+
+type ClientPoolStats struct {
+	Address    string
+	LeaseLat   libstat.LatencyStats
+	DeliverLat libstat.LatencyStats
+	Clients    []ClientStats
+}
+
+type ClientStats struct {
+	NumPending int
+}
+
+func (x *ClientPool) Stats() ClientPoolStats {
+
+	x.lk.Lock()
+	cs := make([]ClientStats, 0, len(x.clients))
+	for _, npending := range x.clients {
+		cs = append(cs, ClientStats{NumPending: npending})
+	}
+	x.lk.Unlock()
+
+	return ClientPoolStats{
+		Address:    protoutil.VIDString(x.address),
+		LeaseLat:   x.leaseLat.Stats(),
+		DeliverLat: x.deliverLat.Stats(),
+		Clients:    cs,
+	}
 }

@@ -36,7 +36,7 @@ type endpoint struct {
 	addr        proto.ValidatorID
 	time        libtime.Time
 	callWorkers libflow.WorkerPool
-	client      DogwoodClientCloser
+	client      *ClientPool
 }
 
 // caller
