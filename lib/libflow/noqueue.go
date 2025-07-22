@@ -3,7 +3,6 @@ package libflow
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -21,7 +20,6 @@ type WorkerPoolNoQueue struct {
 	submitLat   *libstat.LatencyMeter // time to submit
 	waitLat     *libstat.LatencyMeter // time in queue
 	workLat     *libstat.LatencyMeter // time working
-	completed   libstat.Counter
 }
 
 func NewWorkerPoolNoQueue(
@@ -66,17 +64,18 @@ func (x *WorkerPoolNoQueue) Submit(task func()) {
 			workSpan := x.workLat.Start()
 			task()
 			workSpan.Stop()
-
-			if k := x.completed.Add(1); k%100 == 0 && k > 0 {
-				liblog.Infof("%s total: %v, utilization: %.2f%%±%.2f%%, submit: %v, wait: %v, work: %v",
-					x.label,
-					libtime.FmtDur(x.submitLat.Average()+x.waitLat.Average()+x.workLat.Average()),
-					x.utilization.Average()*100, x.utilization.Stddev()*100,
-					x.submitLat, x.waitLat, x.workLat)
-			}
 		},
 	)
 	must.NoError(x.ctx, err)
 
 	submitSpan.Stop()
+}
+
+func (x *WorkerPoolNoQueue) Stats() WorkerPoolStats {
+	return WorkerPoolStats{
+		Utilization: x.utilization.Stats(),
+		SubmitLat:   x.submitLat.Stats(),
+		WaitLat:     x.waitLat.Stats(),
+		WorkLat:     x.workLat.Stats(),
+	}
 }

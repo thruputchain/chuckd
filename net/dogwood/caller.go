@@ -27,8 +27,8 @@ type caller struct {
 	endpointIdleTTL     time.Duration // discard idle endpoints after ttl
 	endpointRedialDelay time.Duration
 	// state
-	lk       sync.Mutex
-	endpoint map[proto.ValidatorID]*endpoint
+	lk        sync.Mutex
+	endpoints map[proto.ValidatorID]*endpoint
 }
 
 type endpoint struct {
@@ -58,7 +58,7 @@ func NewCaller(
 		endpointNumClients:  endpointNumClients,
 		endpointIdleTTL:     endpointIdleTTL,
 		endpointRedialDelay: endpointRedialDelay,
-		endpoint:            map[proto.ValidatorID]*endpoint{},
+		endpoints:           map[proto.ValidatorID]*endpoint{},
 	}
 }
 
@@ -71,9 +71,9 @@ func (x *caller) expire(_ context.Context) {
 		x.time.Sleep(x.endpointIdleTTL)
 		now := x.time.Now()
 		x.lk.Lock()
-		for key, e := range x.endpoint {
+		for key, e := range x.endpoints {
 			if now.Sub(e.lastUse) > x.endpointIdleTTL {
-				delete(x.endpoint, key)
+				delete(x.endpoints, key)
 				e.Stop()
 			}
 		}
@@ -85,10 +85,10 @@ func (x *caller) getEndpoint(ctx context.Context, addr proto.ValidatorID) *endpo
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	e, ok := x.endpoint[addr]
+	e, ok := x.endpoints[addr]
 	if !ok {
 		e = x.newEndpoint(ctx, addr)
-		x.endpoint[addr] = e
+		x.endpoints[addr] = e
 	}
 	e.lastUse = x.time.Now() // update time to ensure no expiry for next call duration
 
@@ -126,4 +126,34 @@ func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDelivery
 		},
 	)
 	return nil
+}
+
+// stats
+
+type CallerStats struct {
+	Endpoints []EndpointStats
+}
+
+type EndpointStats struct {
+	libflow.WorkerPoolStats
+	ClientPoolStats
+}
+
+func (x *caller) Stats() CallerStats {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	es := make([]EndpointStats, 0, len(x.endpoints))
+	for _, e := range x.endpoints {
+		es = append(es, e.Stats())
+	}
+	return CallerStats{
+		Endpoints: es,
+	}
+}
+
+func (x *endpoint) Stats() EndpointStats {
+	return EndpointStats{
+		WorkerPoolStats: x.callWorkers.Stats(),
+		ClientPoolStats: x.client.Stats(),
+	}
 }

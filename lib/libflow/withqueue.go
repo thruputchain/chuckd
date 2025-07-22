@@ -3,7 +3,6 @@ package libflow
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -84,16 +83,7 @@ func (x *WorkerPoolWithQueue) do() {
 		}
 	}()
 
-	i := 0
 	for {
-		if i%100 == 0 {
-			liblog.Infof("%s total: %v, utilization: %.2f%%±%.2f%%, submit: %v, wait: %v, work: %v",
-				x.label,
-				libtime.FmtDur(x.submitLat.Average()+x.waitLat.Average()+x.workLat.Average()),
-				x.utilization.Average()*100, x.utilization.Stddev()*100,
-				x.submitLat, x.waitLat, x.workLat)
-		}
-
 		select {
 		case <-x.ctx.Done():
 			return
@@ -110,6 +100,14 @@ func (x *WorkerPoolWithQueue) do() {
 
 			must.NoError(x.ctx, err)
 		}
-		i += 1
+	}
+}
+
+func (x *WorkerPoolWithQueue) Stats() WorkerPoolStats {
+	return WorkerPoolStats{
+		Utilization: x.utilization.Stats(),
+		SubmitLat:   x.submitLat.Stats(),
+		WaitLat:     x.waitLat.Stats(),
+		WorkLat:     x.workLat.Stats(),
 	}
 }
