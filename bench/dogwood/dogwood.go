@@ -48,6 +48,7 @@ func (x DogwoodBenchmarkReport) Summarize() DogwoodBenchmarkSummary {
 		ResourceUsage:        x.Stats.ResourceUsage,
 		ReceptionLatency:     x.Stats.TransmissionReceiverStats.Latency.Summarize(),
 		ReceptionRate:        fmt.Sprintf("%.2f%%", x.ReceptionRate*100),
+		SendThroughput:       humanize.Bytes(uint64(x.SendThroughput.SpeedPerSec)),
 		ReceiveThroughput:    humanize.Bytes(uint64(x.ReceiveThroughput.SpeedPerSec)),
 		Caller:               x.Stats.CallerStats.Summarize(),
 		StreamReceiver:       x.Stats.StreamReceiverStats.Summarize(),
@@ -62,6 +63,7 @@ type DogwoodBenchmarkSummary struct {
 	ResourceUsage     string
 	ReceptionLatency  string
 	ReceptionRate     string
+	SendThroughput    string
 	ReceiveThroughput string
 	//
 	Caller               string
