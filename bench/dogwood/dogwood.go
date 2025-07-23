@@ -125,6 +125,8 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 
 	var wg sync.WaitGroup
 
+	numNodes := len(bench.cfg.Validator_config.Known_validators)
+
 	// start benchmark sender
 
 	var bytesSent libstat.Counter
@@ -176,7 +178,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		defer func() {
 			liblog.Infof("%v received %.2f%% transmissions: %s at %s/sec",
 				bench.selfString(),
-				100*float64(transmissionsReceived)/float64(bench.numIterations),
+				100*float64(transmissionsReceived)/float64(bench.numIterations*(numNodes-1)),
 				humanize.Bytes(uint64(bytesReceived.Sum())),
 				humanize.Bytes(uint64(bytesReceived.SpeedPerSec())))
 		}()
@@ -222,13 +224,13 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 	report := DogwoodBenchmarkReport{
 		NumPayBytes:   bench.numPayBytes,
 		NumIterations: bench.numIterations,
-		NumNodes:      len(bench.cfg.Validator_config.Known_validators),
+		NumNodes:      numNodes,
 		Config:        *bench.cfg.Dogwood_config,
 		//
 		Stats:             stats,
 		SendThroughput:    bytesSent.Stats(),
 		ReceiveThroughput: bytesReceived.Stats(),
-		ReceptionRate:     float64(transmissionsReceived) / float64(bench.numIterations),
+		ReceptionRate:     float64(transmissionsReceived) / float64(bench.numIterations*(numNodes-1)),
 	}
 
 	fmt.Println(form.Display(report.Summarize()))
