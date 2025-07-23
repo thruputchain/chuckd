@@ -17,6 +17,16 @@ func NewSubmitWorkerPool(ctx context.Context, numWorkers int) SubmitWorkerPool {
 	return NewSubmitWorkerPoolWithQueue(ctx, numWorkers)
 }
 
+type InvokeWorkerPool[T any] interface {
+	Invoke(T)
+	Stop()
+	Stats() WorkerPoolStats
+}
+
+func NewInvokeWorkerPool[T any](ctx context.Context, f func(T), numWorkers int) InvokeWorkerPool[T] {
+	return NewInvokeWorkerPoolWithQueue[T](ctx, f, numWorkers)
+}
+
 // stats
 
 type WorkerPoolStats struct {
