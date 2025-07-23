@@ -64,8 +64,8 @@ func NewEchoBench(
 func (x *EchoBenchmark) Report() string {
 	var w bytes.Buffer
 	fmt.Fprintf(&w, "sent %.1f req/sec, received %.1f req/sec\n", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
-	fmt.Fprintf(&w, "roundtrip %s", x.roundtrip.String())
-	fmt.Fprintln(&w, x.workers.Stats().Summarize())
+	fmt.Fprintf(&w, "roundtrip %s\n", x.roundtrip.String())
+	fmt.Fprintf(&w, "workers %s\n", x.workers.Stats().Summarize())
 	return w.String()
 }
 
