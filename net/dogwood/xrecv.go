@@ -25,7 +25,7 @@ type TransmissionReceiver struct {
 	nav            *Navigator
 	receiver       *StreamReceiver
 	//
-	decWorkers libflow.WorkerPool
+	decWorkers libflow.SubmitWorkerPool
 	decPool    *MagnoliaDecoderPool
 	//
 	receiveQ chan receivedTransmission
@@ -74,7 +74,7 @@ func NewTransmissionReceiver(
 		time:           time_,
 		nav:            nav,
 		receiver:       receiver,
-		decWorkers:     libflow.NewWorkerPool(ctx, "transmission-receive-decode-workers", numDecWorkers),
+		decWorkers:     libflow.NewSubmitWorkerPool(ctx, numDecWorkers),
 		decPool: NewMagnoliaDecoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),

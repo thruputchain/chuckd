@@ -28,7 +28,7 @@ type StreamReceiver struct {
 	caller    Caller
 	// performance
 	m              xdrutil.XdrMarshaler
-	receiveWorkers libflow.WorkerPool
+	receiveWorkers libflow.SubmitWorkerPool
 	// state
 }
 
@@ -47,7 +47,7 @@ func NewStreamReceiver(
 		nav:            nav,
 		caller:         caller,
 		m:              xdrutil.NewXdrMarshaler(),
-		receiveWorkers: libflow.NewWorkerPool(ctx, "stream-receive-workers", numWorkers),
+		receiveWorkers: libflow.NewSubmitWorkerPool(ctx, numWorkers),
 	}
 }
 

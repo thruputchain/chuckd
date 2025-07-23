@@ -10,7 +10,6 @@ import (
 )
 
 type WorkerPoolNoQueue struct {
-	label  string
 	ctx    context.Context
 	cancel context.CancelFunc
 	//
@@ -24,9 +23,8 @@ type WorkerPoolNoQueue struct {
 
 func NewWorkerPoolNoQueue(
 	ctx context.Context,
-	label string,
 	numWorkers int,
-) WorkerPool {
+) SubmitWorkerPool {
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -37,7 +35,6 @@ func NewWorkerPoolNoQueue(
 	must.NoError(ctx, err)
 
 	return &WorkerPoolNoQueue{
-		label:     label,
 		ctx:       ctx,
 		cancel:    cancel,
 		pool:      p,

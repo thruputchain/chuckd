@@ -9,8 +9,7 @@ import (
 	"github.com/panjf2000/ants/v2"
 )
 
-type WorkerPoolWithQueue struct {
-	label  string
+type SubmitWorkerPoolWithQueue struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	//
@@ -28,11 +27,10 @@ type submission struct {
 	waitSpan libstat.LatencyMeterSpan
 }
 
-func NewWorkerPool(
+func NewSubmitWorkerPoolWithQueue(
 	ctx context.Context,
-	label string,
 	numWorkers int,
-) WorkerPool {
+) SubmitWorkerPool {
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -42,8 +40,7 @@ func NewWorkerPool(
 	)
 	must.NoError(ctx, err)
 
-	x := &WorkerPoolWithQueue{
-		label:     label,
+	x := &SubmitWorkerPoolWithQueue{
 		ctx:       ctx,
 		cancel:    cancel,
 		queue:     make(chan submission, numWorkers),
@@ -58,11 +55,11 @@ func NewWorkerPool(
 	return x
 }
 
-func (x *WorkerPoolWithQueue) Stop() {
+func (x *SubmitWorkerPoolWithQueue) Stop() {
 	x.cancel()
 }
 
-func (x *WorkerPoolWithQueue) Submit(task func()) {
+func (x *SubmitWorkerPoolWithQueue) Submit(task func()) {
 
 	x.utilization.Add(float64(x.pool.Running()) / float64(x.pool.Cap()))
 
@@ -76,7 +73,7 @@ func (x *WorkerPoolWithQueue) Submit(task func()) {
 	submitSpan.Stop()
 }
 
-func (x *WorkerPoolWithQueue) do() {
+func (x *SubmitWorkerPoolWithQueue) do() {
 
 	defer func() {
 		for range x.queue {
@@ -103,7 +100,7 @@ func (x *WorkerPoolWithQueue) do() {
 	}
 }
 
-func (x *WorkerPoolWithQueue) Stats() WorkerPoolStats {
+func (x *SubmitWorkerPoolWithQueue) Stats() WorkerPoolStats {
 	return WorkerPoolStats{
 		Utilization: x.utilization.Stats(),
 		SubmitLat:   x.submitLat.Stats(),

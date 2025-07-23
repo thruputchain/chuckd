@@ -180,7 +180,7 @@ func (x *LoadGen) generateTxsWithPool(
 		gen[i] = testutil.NewTestGen(ctx, libtime.RealTime{}, runtime.NewRandFromRand(rand), user.Secret_key)
 	}
 
-	pool := libflow.NewWorkerPool(ctx, "gen-txs-pool", k)
+	pool := libflow.NewSubmitWorkerPool(ctx, k)
 	for {
 		blockTxs := make([]*proto.SignedTransaction, tpb)
 

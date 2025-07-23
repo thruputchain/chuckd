@@ -38,7 +38,7 @@ type endpoint struct {
 	lastUse     time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
 	addr        proto.ValidatorID
 	time        libtime.Time
-	callWorkers libflow.WorkerPool
+	callWorkers libflow.SubmitWorkerPool
 	client      *ClientPool
 }
 
@@ -110,7 +110,7 @@ func (x *caller) newEndpoint(ctx context.Context, addr proto.ValidatorID) *endpo
 		// last: set by getEndpoint; accessed under caller.lk
 		addr:        addr,
 		time:        x.time,
-		callWorkers: libflow.NewWorkerPool(ctx, protoutil.VIDString(addr)+"-call-workers", x.endpointMaxPending),
+		callWorkers: libflow.NewSubmitWorkerPool(ctx, x.endpointMaxPending),
 		client:      NewClientPool(ctx, x.time, x.dialer, addr, x.endpointNumClients, x.endpointRedialDelay),
 	}
 }

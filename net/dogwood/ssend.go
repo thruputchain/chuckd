@@ -21,7 +21,7 @@ type StreamSender struct {
 	caller    Caller
 	// performance
 	m           xdrutil.XdrMarshaler
-	sendWorkers libflow.WorkerPool
+	sendWorkers libflow.SubmitWorkerPool
 	// state
 	lk      sync.Mutex
 	streams map[proto.DogwoodStream]*SendStream
@@ -51,7 +51,7 @@ func NewStreamSender(
 		nav:         nav,
 		caller:      caller,
 		m:           xdrutil.NewXdrMarshaler(),
-		sendWorkers: libflow.NewWorkerPool(ctx, "stream-send-workers", numWorkers),
+		sendWorkers: libflow.NewSubmitWorkerPool(ctx, numWorkers),
 		streams:     map[proto.DogwoodStream]*SendStream{},
 	}
 }

@@ -18,7 +18,7 @@ type EchoBenchmark struct {
 	numIterations      int
 	numBytesPerPayload int
 	clients            []*echoClient
-	workers            libflow.WorkerPool
+	workers            libflow.SubmitWorkerPool
 }
 
 type echoClient struct {
@@ -41,7 +41,7 @@ func NewEchoBench(
 		numWorkers:         numWorkers,
 		numIterations:      numIterations,
 		numBytesPerPayload: numBytesPerPayload,
-		workers:            libflow.NewWorkerPool(ctx, "call-workers", numWorkers),
+		workers:            libflow.NewSubmitWorkerPool(ctx, numWorkers),
 	}
 }
 

@@ -49,21 +49,21 @@ func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg
 	txs []Tx,
 	conn []batonapi.ExecCoordConn,
 	submit Submit,
-	callsPerExec int,
+	callsPerConn int,
 ) ([]DoneTx[Tx, Result], error) {
 
 	// create a context to use for cancelling workers in case any of them fail
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
-	numGo := len(conn) * callsPerExec
+	numGo := len(conn) * callsPerConn
 	executedCh := make(chan executed[Tx, Result], numGo)
 
 	// shards := util.ShardSlice(txs, numGo)
 	pkgCh := submit.Buffer(txs)
 
 	for _, conn := range conn {
-		for i := 0; i < callsPerExec; i++ {
+		for i := 0; i < callsPerConn; i++ {
 			go feedConn[Tx, Result, Pkg, Submit](
 				feedCtx, feedCtxCancel,
 				conn, blockID,

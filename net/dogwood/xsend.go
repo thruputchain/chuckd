@@ -16,7 +16,7 @@ type TransmissionSender struct {
 	nav    *Navigator
 	sender *StreamSender
 	//
-	sendWorkers libflow.WorkerPool
+	sendWorkers libflow.SubmitWorkerPool
 	encPool     *MagnoliaEncoderPool
 	//
 	rlk  sync.Mutex
@@ -41,7 +41,7 @@ func NewTransmissionSender(
 		nav:         nav,
 		sender:      sender,
 		rand:        rand,
-		sendWorkers: libflow.NewWorkerPool(ctx, "transmission-send-workers", numWorkers),
+		sendWorkers: libflow.NewSubmitWorkerPool(ctx, numWorkers),
 		encPool: NewMagnoliaEncoderPool(
 			ctx,
 			int(cfg.Num_payload_sheaves),
