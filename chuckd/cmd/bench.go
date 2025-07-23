@@ -209,6 +209,7 @@ var (
 					benchMaxPendingCalls,
 					benchNumIterations,
 					benchBytesPerPay,
+					benchNoEcho,
 				)
 				srv.Run(ctx, benchOurAddress, benchTheirAddress)
 			})
@@ -246,6 +247,7 @@ var (
 	benchTheirAddress    string
 	benchNumConns        int
 	benchMaxPendingCalls int
+	benchNoEcho          bool
 )
 
 func init() {
@@ -304,6 +306,7 @@ func init() {
 	benchEchoCmd.Flags().StringVar(&benchTheirAddress, "their-addr", ":8181", "their address")
 	benchEchoCmd.Flags().IntVar(&benchNumConns, "num-conns", 10, "number of connections")
 	benchEchoCmd.Flags().IntVar(&benchMaxPendingCalls, "max-pending-calls", 200, "max pending calls")
-	benchEchoCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 2e6, "number of iterations")
+	benchEchoCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 500e3, "number of iterations")
 	benchEchoCmd.Flags().IntVar(&benchBytesPerPay, "bytes-per-pay", 60e3, "bytes per payload")
+	benchEchoCmd.Flags().BoolVar(&benchNoEcho, "no-echo", true, "don't echo the request payload")
 }

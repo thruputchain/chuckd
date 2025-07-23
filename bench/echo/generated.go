@@ -24,6 +24,7 @@ type Reply struct {
 type Echo1 interface {
 	Null(context.Context, ) error
 	Echo(context.Context, Request) (Reply, error)
+	No_echo(context.Context, Request) error
 }
 
 //
@@ -147,6 +148,51 @@ func (p *xdrSrvProc_Echo) Do() {
 }
 var _ XdrSrvProc = &xdrSrvProc_Echo{} // XXX
 
+type xdrProc_No_echo struct {
+	Arg *Request
+	Res *XdrVoid
+}
+func (xdrProc_No_echo) Prog() uint32 { return 269479937 }
+func (xdrProc_No_echo) Vers() uint32 { return 1 }
+func (xdrProc_No_echo) Proc() uint32 { return 20 }
+func (xdrProc_No_echo) ProgName() string { return "Echo" }
+func (xdrProc_No_echo) VersName() string { return "Echo1" }
+func (xdrProc_No_echo) ProcName() string { return "no_echo" }
+func (p *xdrProc_No_echo) GetArg() XdrType {
+	if p.Arg == nil {
+		p.Arg = new(Request)
+	}
+	return XDR_Request(p.Arg)
+}
+func (p *xdrProc_No_echo) GetRes() XdrType {
+	if p.Res == nil {
+		p.Res = new(XdrVoid)
+	}
+	return XDR_XdrVoid(p.Res)
+}
+var _ XdrProc = &xdrProc_No_echo{} // XXX
+
+type xdrSrvProc_No_echo struct {
+	xdrProc_No_echo
+	Srv Echo1
+	Ctx context.Context
+}
+func (p *xdrSrvProc_No_echo) SetContext(ctx context.Context) {
+	if wc, ok := p.Srv.(interface {
+		WithContext(context.Context) Echo1
+	}); ok {
+		p.Srv = wc.WithContext(ctx)
+	}
+	p.Ctx = ctx
+}
+func (p *xdrSrvProc_No_echo) Do() {
+	err := p.Srv.No_echo(p.Ctx, *p.Arg)
+	if err != nil {
+		panic(err)
+	}
+}
+var _ XdrSrvProc = &xdrSrvProc_No_echo{} // XXX
+
 func init() {
 	XdrCatalog[269479937<<32|1] = func(p uint32) XdrProc {
 		switch(p) {
@@ -154,6 +200,8 @@ func init() {
 			return &xdrProc_Null{}
 		case 10:
 			return &xdrProc_Echo{}
+		case 20:
+			return &xdrProc_No_echo{}
 		}
 		return nil
 	}
@@ -172,6 +220,8 @@ func (s Echo1_Server) GetProc(p uint32) XdrSrvProc {
 		return &xdrSrvProc_Null{ Srv: s.Srv }
 	case 10:  // echo
 		return &xdrSrvProc_Echo{ Srv: s.Srv }
+	case 20:  // no_echo
+		return &xdrSrvProc_No_echo{ Srv: s.Srv }
 	default:
 		return nil
 	}
@@ -201,4 +251,12 @@ func (c Echo1_Client) Echo(ctx context.Context, a1 Request) (r Reply, _ error) {
 		return r, err
 	}
 	return *proc.Res, nil
+}
+func (c Echo1_Client) No_echo(ctx context.Context, a1 Request) error {
+	var proc xdrProc_No_echo
+	proc.Arg = &a1
+	if err := c.Send.SendCall(ctx, &proc); err != nil {
+		return err
+	}
+	return nil
 }

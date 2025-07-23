@@ -14,6 +14,8 @@ program Echo
 		void null(void) = 0;
 
 		Reply echo(Request) = 10;
+
+		void no_echo(Request) = 20;
 	}
 	= 1;
 }

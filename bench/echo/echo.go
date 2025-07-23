@@ -22,6 +22,7 @@ type EchoBenchmark struct {
 	numWorkers         int
 	numIterations      int
 	numBytesPerPayload int
+	noEcho             bool
 	//
 	clients []*echoClient
 	workers libflow.InvokeWorkerPool[callEchoArg]
@@ -43,6 +44,7 @@ func NewEchoBench(
 	maxPendingCalls int,
 	numIterations int,
 	numBytesPerPayload int,
+	noEcho bool,
 ) *EchoBenchmark {
 	x := &EchoBenchmark{
 		net:                net,
@@ -50,6 +52,7 @@ func NewEchoBench(
 		numWorkers:         maxPendingCalls,
 		numIterations:      numIterations,
 		numBytesPerPayload: numBytesPerPayload,
+		noEcho:             noEcho,
 	}
 	x.workers = libflow.NewInvokeWorkerPool(ctx, x.callEcho, maxPendingCalls)
 	return x
@@ -82,6 +85,11 @@ func (x *EchoBenchmark) Null(context.Context) error {
 func (x *EchoBenchmark) Echo(_ context.Context, req Request) (Reply, error) {
 	x.numReceived.Add(1)
 	return Reply{Payload: req.Payload}, nil
+}
+
+func (x *EchoBenchmark) No_echo(_ context.Context, req Request) error {
+	x.numReceived.Add(1)
+	return nil
 }
 
 // sender
@@ -121,8 +129,14 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 	c := x.pickClient()
 	req := Request{Payload: arg.payload}
 
+	var err error
+
 	c.addNumPending(1)
-	_, err := c.Echo(arg.ctx, req)
+	if x.noEcho {
+		err = c.No_echo(arg.ctx, req)
+	} else {
+		_, err = c.Echo(arg.ctx, req)
+	}
 	must.NoError(arg.ctx, err)
 	c.addNumPending(-1)
 
