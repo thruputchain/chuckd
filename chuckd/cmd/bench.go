@@ -3,6 +3,7 @@ package cmd
 import (
 	benchbroadcast "github.com/groundhogchain/chuckd/bench/broadcast"
 	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
+	benchecho "github.com/groundhogchain/chuckd/bench/echo"
 	"github.com/groundhogchain/chuckd/bench/loadgen"
 	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
@@ -20,14 +21,14 @@ import (
 var (
 	benchCmd = &cobra.Command{
 		Use:   "bench",
-		Short: "run server in benchmark mode",
+		Short: "run a benchmark",
 		Long:  ``,
 		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
 	benchLoadGenCmd = &cobra.Command{
 		Use:   "loadgen",
-		Short: "start load generator benchmark server",
+		Short: "start load generator benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
@@ -87,7 +88,7 @@ var (
 
 	benchTestClusterCmd = &cobra.Command{
 		Use:   "testcluster",
-		Short: "start testcluster benchmark server",
+		Short: "start testcluster benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
@@ -126,7 +127,7 @@ var (
 
 	benchBroadcastCmd = &cobra.Command{
 		Use:   "broadcast",
-		Short: "start broadcast benchmark server",
+		Short: "start broadcast benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
@@ -162,7 +163,7 @@ var (
 
 	benchDogwoodCmd = &cobra.Command{
 		Use:   "dogwood",
-		Short: "start dogwood benchmark server",
+		Short: "start dogwood benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
@@ -193,6 +194,26 @@ var (
 			})
 		},
 	}
+
+	benchEchoCmd = &cobra.Command{
+		Use:   "echo",
+		Short: "start echo benchmark",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+
+				srv := benchecho.NewEchoBench(
+					ctx,
+					libnet.TCPNet{},
+					benchNumConns,
+					benchMaxPendingCalls,
+					benchNumIterations,
+					benchBytesPerPay,
+				)
+				srv.Run(ctx, benchOurAddress, benchTheirAddress)
+			})
+		},
+	}
 )
 
 var (
@@ -220,6 +241,11 @@ var (
 	benchDbBasePort   int
 	benchExecBasePort int
 	benchTCP          bool // use TCP instead of testnet
+	//
+	benchOurAddress      string
+	benchTheirAddress    string
+	benchNumConns        int
+	benchMaxPendingCalls int
 )
 
 func init() {
@@ -272,4 +298,12 @@ func init() {
 	benchLoadGenTestCmd.Flags().IntVar(&benchExecBasePort, "exec-port", 40000, "execs base port")
 	benchLoadGenTestCmd.Flags().BoolVar(&benchTCP, "tcp", false, "use tcp")
 	benchLoadGenTestCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use quic")
+
+	benchCmd.AddCommand(benchEchoCmd)
+	benchEchoCmd.Flags().StringVar(&benchOurAddress, "our-addr", ":8181", "our address")
+	benchEchoCmd.Flags().StringVar(&benchTheirAddress, "their-addr", ":8181", "their address")
+	benchEchoCmd.Flags().IntVar(&benchNumConns, "num-conns", 10, "number of connections")
+	benchEchoCmd.Flags().IntVar(&benchMaxPendingCalls, "max-pending-calls", 200, "max pending calls")
+	benchEchoCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 2e6, "number of iterations")
+	benchEchoCmd.Flags().IntVar(&benchBytesPerPay, "bytes-per-pay", 60e3, "bytes per payload")
 }
