@@ -36,7 +36,8 @@ type DogwoodBenchmarkReport struct {
 	NumNodes      int
 	Config        proto.DogwoodConfig
 	//
-	Stats dogwood.Stats
+	StatsMidway dogwood.Stats
+	StatsEnd    dogwood.Stats
 	//
 	SendThroughput    libstat.CounterStats
 	ReceiveThroughput libstat.CounterStats
@@ -45,17 +46,17 @@ type DogwoodBenchmarkReport struct {
 
 func (x DogwoodBenchmarkReport) Summarize() DogwoodBenchmarkSummary {
 	return DogwoodBenchmarkSummary{
-		ResourceUsage:        x.Stats.ResourceUsage,
-		ReceptionLatency:     x.Stats.TransmissionReceiverStats.Latency.Summarize(),
+		ResourceUsage:        x.StatsMidway.ResourceUsage,
+		ReceptionLatency:     x.StatsMidway.TransmissionReceiverStats.Latency.Summarize(),
 		ReceptionRate:        fmt.Sprintf("%.2f%%", x.ReceptionRate*100),
 		SendThroughput:       humanize.Bytes(uint64(x.SendThroughput.SpeedPerSec)),
 		ReceiveThroughput:    humanize.Bytes(uint64(x.ReceiveThroughput.SpeedPerSec)),
-		Caller:               x.Stats.CallerStats.Summarize(),
-		StreamReceiver:       x.Stats.StreamReceiverStats.Summarize(),
-		StreamSender:         x.Stats.StreamSenderStats.Summarize(),
-		TransmissionReceiver: x.Stats.TransmissionReceiverStats.Summarize(),
-		TransmissionSender:   x.Stats.TransmissionSenderStats.Summarize(),
-		Navigator:            x.Stats.NavigatorStats.Summarize(),
+		Caller:               x.StatsMidway.CallerStats.Summarize(),
+		StreamReceiver:       x.StatsMidway.StreamReceiverStats.Summarize(),
+		StreamSender:         x.StatsMidway.StreamSenderStats.Summarize(),
+		TransmissionReceiver: x.StatsMidway.TransmissionReceiverStats.Summarize(),
+		TransmissionSender:   x.StatsMidway.TransmissionSenderStats.Summarize(),
+		Navigator:            x.StatsMidway.NavigatorStats.Summarize(),
 	}
 }
 
@@ -172,7 +173,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 
 	var bytesReceived libstat.Counter
 	var transmissionsReceived int
-	var stats dogwood.Stats
+	var statsMidway dogwood.Stats
 
 	wg.Add(1)
 	go func() {
@@ -188,7 +189,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		j := 0
 		for {
 			if j == (2*bench.numIterations)/3 {
-				stats = bench.dogwood.Stats()
+				statsMidway = bench.dogwood.Stats()
 			}
 			// if j%300 == 0 {
 			// 	liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
@@ -229,7 +230,8 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		NumNodes:      numNodes,
 		Config:        *bench.cfg.Dogwood_config,
 		//
-		Stats:             stats,
+		StatsMidway:       statsMidway,
+		StatsEnd:          bench.dogwood.Stats(),
 		SendThroughput:    bytesSent.Stats(),
 		ReceiveThroughput: bytesReceived.Stats(),
 		ReceptionRate:     float64(transmissionsReceived) / float64(bench.numIterations*(numNodes-1)),
