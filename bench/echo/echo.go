@@ -1,6 +1,7 @@
 package echo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -55,7 +56,10 @@ func NewEchoBench(
 }
 
 func (x *EchoBenchmark) Report() string {
-	return fmt.Sprintf("sent %.1f req/sec, received %.1f req/sec", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
+	var w bytes.Buffer
+	fmt.Fprintf(&w, "sent %.1f req/sec, received %.1f req/sec\n", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
+	fmt.Fprintln(&w, x.workers.Stats().Summarize())
+	return w.String()
 }
 
 func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress string) {
