@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libstat"
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/xdrpp/goxdr/rpc"
@@ -29,6 +30,7 @@ type EchoBenchmark struct {
 	//
 	numSent     libstat.Counter
 	numReceived libstat.Counter
+	roundtrip   *libstat.LatencyMeter
 }
 
 type echoClient struct {
@@ -53,6 +55,7 @@ func NewEchoBench(
 		numIterations:      numIterations,
 		numBytesPerPayload: numBytesPerPayload,
 		noEcho:             noEcho,
+		roundtrip:          libstat.NewLatency(libtime.RealTime{}),
 	}
 	x.workers = libflow.NewInvokeWorkerPool(ctx, x.callEcho, maxPendingCalls)
 	return x
@@ -61,6 +64,7 @@ func NewEchoBench(
 func (x *EchoBenchmark) Report() string {
 	var w bytes.Buffer
 	fmt.Fprintf(&w, "sent %.1f req/sec, received %.1f req/sec\n", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
+	fmt.Fprintf(&w, "roundtrip %s", x.roundtrip.String())
 	fmt.Fprintln(&w, x.workers.Stats().Summarize())
 	return w.String()
 }
@@ -132,11 +136,13 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 	var err error
 
 	c.addNumPending(1)
+	span := x.roundtrip.Start()
 	if x.noEcho {
 		err = c.No_echo(arg.ctx, req)
 	} else {
 		_, err = c.Echo(arg.ctx, req)
 	}
+	span.Stop()
 	must.NoError(arg.ctx, err)
 	c.addNumPending(-1)
 
