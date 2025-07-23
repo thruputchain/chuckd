@@ -131,7 +131,7 @@ EOF
 
 echo "benchmark working directory $(pwd)"
 
-{{ .Prefix }} {{ .ChuckdPath }} -l info --config {{ .ConfigName }} \
+{{ .Prefix }} {{ .ChuckdPath }} -l {{ .LogLevel }} --config {{ .ConfigName }} \
 	{{ if .Def.Stack }}--stack {{ end }} \
 	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \
 	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \
@@ -149,6 +149,7 @@ echo "benchmark working directory $(pwd)"
 	{{ .Suffix }} 1> {{ .ReportName }} 2> {{ .LogName }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
+		"LogLevel":         "debug",
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
 		"ConfigName":       "bench-dogwood-config-" + host + ".json",

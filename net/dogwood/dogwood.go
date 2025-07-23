@@ -66,7 +66,7 @@ func NewDogwoodService(
 	)
 
 	x.streamReceiver = NewStreamReceiver(
-		ctx, discovery, x.nav, x.caller,
+		ctx, time_, discovery, x.nav, x.caller,
 		int(cfg.Stream_receiver_worker_count),
 	)
 
