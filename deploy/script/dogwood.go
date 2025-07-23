@@ -81,10 +81,10 @@ func (def BenchDogwoodExecDef) ExecScripts(
 			Endpoint_idle_ttl_msec:     60e3, // 1 minute
 			Endpoint_redial_delay_msec: 100,  // 100 msec
 			//
-			Stream_receiver_worker_count: 64,
+			Stream_receiver_worker_count: 128,
 			Stream_sender_worker_count:   16,
 			//
-			Transmission_receiver_decode_worker_count: 64,
+			Transmission_receiver_decode_worker_count: 128,
 			Transmission_sender_worker_count:          16,
 			//
 			Transmission_config: &proto.TransmissionConfig{

@@ -2,6 +2,7 @@ package dogwood
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -15,7 +16,6 @@ import (
 )
 
 // XXX: pick client with smallest number of outstanding connections
-// XXX: log pending call distribution
 
 type ClientPool struct {
 	address     proto.ValidatorID
@@ -62,32 +62,54 @@ func (x *ClientPool) NumClients() int {
 	return len(x.clients)
 }
 
-func (x *ClientPool) leaseClient(ctx context.Context) (client DogwoodClientCloser, err error) {
+var (
+	ErrClientPoolClosed  = fmt.Errorf("dogwood client pool: closed")
+	ErrClientPoolNotFull = fmt.Errorf("dogwood client pool: not full")
+)
 
-	span := x.leaseLat.Start()
-	defer span.Stop()
+func (x *ClientPool) leaseFromPool(ctx context.Context) (client DogwoodClientCloser, err error) {
 
-	// get a client from the pool, if it is not closed and full
 	x.lk.Lock()
-	closed := x.clients == nil
-	full := len(x.clients) >= x.maxClients
-	if !closed && full {
-		for c := range x.clients {
-			client = c
-			x.clients[c] += 1
-			break
+	defer x.lk.Unlock()
+
+	if x.clients == nil {
+		return nil, ErrClientPoolClosed
+	}
+
+	if len(x.clients) < x.maxClients {
+		return nil, ErrClientPoolNotFull
+	}
+
+	var minClient DogwoodClientCloser
+	var minPending int
+
+	for c, npending := range x.clients {
+		if minClient == nil || minPending > npending {
+			minClient, minPending = c, npending
 		}
 	}
-	x.lk.Unlock()
 
-	if closed {
-		return nil, fmt.Errorf("dogwood client pool: closed")
-	}
+	x.clients[minClient] += 1
+	return minClient, nil
+}
 
-	// pool was not closed and full, returning client from pool
-	if client != nil {
+func (x *ClientPool) leaseClient(ctx context.Context) (client DogwoodClientCloser, err error) {
+
+	client, err = x.leaseFromPool(ctx)
+
+	if err == nil {
 		return client, nil
 	}
+
+	if errors.Is(err, ErrClientPoolClosed) {
+		return nil, err
+	}
+
+	if !errors.Is(err, ErrClientPoolNotFull) {
+		return nil, err
+	}
+
+	span := x.leaseLat.Start()
 
 	// pool was not closed and not full, so dialing a new client
 	client, err = x.dial(ctx)
@@ -97,7 +119,7 @@ func (x *ClientPool) leaseClient(ctx context.Context) (client DogwoodClientClose
 
 	// place the new client in the pool, if it is not closed
 	x.lk.Lock()
-	closed = x.clients == nil
+	closed := x.clients == nil
 	if !closed {
 		x.clients[client] = 1
 	}
@@ -105,8 +127,10 @@ func (x *ClientPool) leaseClient(ctx context.Context) (client DogwoodClientClose
 
 	if closed {
 		client.Close()
-		return nil, fmt.Errorf("dogwood client pool: closed")
+		return nil, ErrClientPoolClosed
 	}
+
+	span.Stop()
 
 	return client, nil
 }
