@@ -65,7 +65,7 @@ func (x *Multiplex) selfString() string {
 }
 
 func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedTreeNode) {
-	liblog.Infof("dogwood multiplex at %v: disseminating %d routes", x.selfString(), len(ts))
+	liblog.Debugf("dogwood multiplex at %v: disseminating %d routes", x.selfString(), len(ts))
 	rs := make([]proto.DogwoodTreeNodes, len(ts))
 	for i := range rs {
 		rs[i] = ts[i].TreeNodes(x.mTree)
