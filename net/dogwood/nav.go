@@ -35,8 +35,10 @@ type Navigator struct {
 	lk     sync.Mutex
 	ours   map[proto.DogwoodTreeHash]*stampedRoute
 	theirs map[proto.DogwoodTreeHash]*stampedRoute
-	// other
+	// perf
 	marshaler xdrutil.XdrMarshaler
+	// signaling
+	ready chan struct{}
 	// meters
 	routeNotFound libstat.Counter
 	routeFound    libstat.Counter
@@ -71,6 +73,7 @@ func NewNavigator(
 		ours:      map[proto.DogwoodTreeHash]*stampedRoute{},
 		theirs:    map[proto.DogwoodTreeHash]*stampedRoute{},
 		marshaler: xdrutil.NewXdrMarshaler(),
+		ready:     make(chan struct{}),
 	}
 }
 
@@ -78,6 +81,15 @@ func (nav *Navigator) Start(ctx context.Context, disseminator RouteDisseminator)
 	nav.disseminator = disseminator
 	go nav.refill(ctx)
 	go nav.expire(ctx)
+}
+
+func (nav *Navigator) WaitReady(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-nav.ready:
+		return nil
+	}
 }
 
 type NavRoute struct {
@@ -144,6 +156,7 @@ func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 }
 
 func (nav *Navigator) refill(ctx context.Context) {
+	var green sync.Once
 	tick := nav.ttLive / 3
 	for {
 		now := nav.time.Now()
@@ -167,6 +180,8 @@ func (nav *Navigator) refill(ctx context.Context) {
 			rs[i] = nav.router.BuildDogwoodTree(nav.self)
 		}
 		nav.disseminator.DisseminateRoutes(ctx, rs)
+
+		green.Do(func() { close(nav.ready) })
 
 		if len(rs) > 0 {
 			nav.lk.Lock()

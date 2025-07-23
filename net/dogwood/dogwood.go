@@ -15,6 +15,7 @@ import (
 )
 
 type DogwoodService struct {
+	time           libtime.Time
 	net            libnet.Network
 	router         router.DogwoodRouter
 	dialer         DogwoodDialer
@@ -25,6 +26,8 @@ type DogwoodService struct {
 	xReceiver      *TransmissionReceiver
 	xSender        *TransmissionSender
 	mplex          *Multiplex
+	//
+	ready chan struct{}
 }
 
 func NewDogwoodService(
@@ -37,7 +40,10 @@ func NewDogwoodService(
 	router router.DogwoodRouter,
 ) *DogwoodService {
 
-	x := &DogwoodService{}
+	x := &DogwoodService{
+		ready: make(chan struct{}),
+	}
+	x.time = time_
 	x.net = net
 	x.router = router
 	x.dialer = NewDogwoodClientDialer(net, router)
@@ -84,16 +90,35 @@ func NewDogwoodService(
 	return x
 }
 
-func (x *DogwoodService) Start(ctx context.Context, address string) {
-	// only start systems constructed by dogwood service
-	x.dialer.Start(ctx)         // no dependency
-	x.caller.Start(ctx)         // depends on dialer
-	x.streamReceiver.Start(ctx) // depends on discovery, navigator, and caller
-	x.streamSender.Start(ctx)   // depends on discovery, navigator, and caller
-	x.xReceiver.Start(ctx)      // depends on navigator, and stream receiver
-	x.xSender.Start(ctx)        // depends on navigator, and stream sender
-	x.mplex.Start(ctx)          // depends on navigator, transmission receiver, and transmission sender
-	x.nav.Start(ctx, x.mplex)   // depends on router and multiplex
+func (x *DogwoodService) Start(ctx context.Context, address string, grace time.Duration) {
+	go func() {
+		defer close(x.ready)
 
-	rpcutil.Start(ctx, x.net, address, proto.Dogwood1_Server{Srv: x})
+		x.dialer.Start(ctx)         // nop
+		x.caller.Start(ctx)         // expires idle connections
+		x.streamReceiver.Start(ctx) // nop
+		x.streamSender.Start(ctx)   // nop
+		x.xReceiver.Start(ctx)      // expires partial receptions
+		x.xSender.Start(ctx)        // nop
+		x.mplex.Start(ctx)          // nop
+
+		// enable peers to connect and call us
+		// navigation and delivery will not function until navigator is started later
+		rpcutil.Start(ctx, x.net, address, proto.Dogwood1_Server{Srv: x})
+
+		// allow a grace period for peers to start serving
+		x.time.Sleep(grace)
+
+		x.nav.Start(ctx, x.mplex) // expire, refill, disseminate routes periodically
+		x.nav.WaitReady(ctx)      // wait until the first set of routes are disseminated
+	}()
+}
+
+func (x *DogwoodService) WaitReady(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-x.ready:
+		return nil
+	}
 }

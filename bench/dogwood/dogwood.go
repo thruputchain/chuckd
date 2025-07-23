@@ -122,7 +122,8 @@ func (bench *DogwoodBenchmark) selfString() string {
 func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 
 	// start broadcast service
-	bench.dogwood.Start(ctx, address)
+	bench.dogwood.Start(ctx, address, 3*time.Second)
+	bench.dogwood.WaitReady(ctx)
 
 	zeroPayload := make([]byte, bench.numPayBytes)
 
@@ -144,7 +145,6 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 				humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
 		}()
 
-		time.Sleep(3 * time.Second) // XXX: wait for all nodes to warmup (flag???)
 		liblog.Infof("%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
