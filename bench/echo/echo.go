@@ -70,7 +70,7 @@ func (x *EchoBenchmark) Report() string {
 }
 
 func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress string) {
-	rpcutil.Start(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
+	rpcutil.StartParallel(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
 
 	// all the other server grace time to start
 	time.Sleep(3 * time.Second)

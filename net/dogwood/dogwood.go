@@ -104,7 +104,7 @@ func (x *DogwoodService) Start(ctx context.Context, address string, grace time.D
 
 		// enable peers to connect and call us
 		// navigation and delivery will not function until navigator is started later
-		rpcutil.Start(ctx, x.net, address, proto.Dogwood1_Server{Srv: x})
+		rpcutil.StartSerial(ctx, x.net, address, proto.Dogwood1_Server{Srv: x})
 
 		// allow a grace period for peers to start serving
 		x.time.Sleep(grace)

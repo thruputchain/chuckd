@@ -29,7 +29,7 @@ func DialDogwoodClient(ctx context.Context, dialer libnet.AddressDialer, mp *rpc
 }
 
 func NewDogwoodClient(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *DogwoodClient {
-	driver := rpcutil.NewDriver(ctx, mp, sock)
+	driver := rpcutil.NewDriverSerial(ctx, mp, sock)
 	go driver.Go()
 
 	return &DogwoodClient{

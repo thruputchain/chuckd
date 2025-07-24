@@ -53,7 +53,7 @@ func NewSoloLeaderService(
 }
 
 func (svc *SoloLeaderService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.SoloLeader1_Server{Srv: svc})
+	rpcutil.StartSerial(ctx, svc.net, address, proto.SoloLeader1_Server{Srv: svc})
 }
 
 func (svc *SoloLeaderService) Sololeader_null(context.Context) error {

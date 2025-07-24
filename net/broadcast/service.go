@@ -79,7 +79,7 @@ func NewBroadcastService(
 }
 
 func (svc *BroadcastService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.Broadcast1_Server{Srv: svc})
+	rpcutil.StartSerial(ctx, svc.net, address, proto.Broadcast1_Server{Srv: svc})
 }
 
 type broadcastAPI struct {

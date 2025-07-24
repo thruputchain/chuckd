@@ -109,10 +109,10 @@ func (x *TestCluster) ExecCard(shard int) proto.ExecCard {
 func (x *TestCluster) Start(ctx context.Context, coordAddr string) {
 	liblog.Infof("testcluster starting")
 	for i, exec := range x.execs {
-		rpcutil.Start(ctx, x.net, x.ExecAddress(i), proto.ExecutorCoord1_Server{Srv: exec})
+		rpcutil.StartSerial(ctx, x.net, x.ExecAddress(i), proto.ExecutorCoord1_Server{Srv: exec})
 	}
 	for i, shard := range x.shards {
-		rpcutil.Start(ctx, x.net, x.ShardAddress(i), proto.Shard1_Server{Srv: shard}, proto.DbCoord1_Server{Srv: shard})
+		rpcutil.StartSerial(ctx, x.net, x.ShardAddress(i), proto.Shard1_Server{Srv: shard}, proto.DbCoord1_Server{Srv: shard})
 	}
 	go x.register(ctx, coordAddr)
 	go x.pumpTxs(ctx)

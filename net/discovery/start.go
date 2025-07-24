@@ -8,5 +8,5 @@ import (
 )
 
 func (svc *DiscoveryService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
+	rpcutil.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
 }

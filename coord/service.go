@@ -47,7 +47,7 @@ func NewCoordinatorService(ctx context.Context, n libnet.Network, rr *rand.Rand)
 }
 
 func (svc *CoordinatorService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.Coordinator1_Server{Srv: svc})
+	rpcutil.StartSerial(ctx, svc.net, address, proto.Coordinator1_Server{Srv: svc})
 }
 
 func (svc *CoordinatorService) Card() proto.CoordinatorCard {

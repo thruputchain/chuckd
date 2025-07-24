@@ -31,7 +31,7 @@ type CatchupService struct {
 	highest proto.BlockHeight
 	block   map[proto.BlockHeight]stampedCatchupBlock
 	//
-	reqM  xdrutil.XdrMarshaler
+	reqM    xdrutil.XdrMarshaler
 	resultM xdrutil.XdrMarshaler
 }
 
@@ -56,22 +56,22 @@ func NewCatchupService(
 
 	// pebble.Open(cacheDir, &pebble.Options{})
 	svc := &CatchupService{
-		signer: signer,
-		time:   time,
-		net:    net,
-		dialDb: dialDb,
-		ttl:    ttl,
-		age:    age,
-		block:  map[proto.BlockHeight]stampedCatchupBlock{},
-		reqM:   xdrutil.NewXdrMarshaler(),
-		resultM:  xdrutil.NewXdrMarshaler(),
+		signer:  signer,
+		time:    time,
+		net:     net,
+		dialDb:  dialDb,
+		ttl:     ttl,
+		age:     age,
+		block:   map[proto.BlockHeight]stampedCatchupBlock{},
+		reqM:    xdrutil.NewXdrMarshaler(),
+		resultM: xdrutil.NewXdrMarshaler(),
 	}
 	go svc.expire(ctx)
 	return svc
 }
 
 func (svc *CatchupService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.Catchup1_Server{Srv: svc})
+	rpcutil.StartSerial(ctx, svc.net, address, proto.Catchup1_Server{Srv: svc})
 }
 
 func (svc *CatchupService) Add(ctx context.Context, cb *proto.CatchupBlock) {

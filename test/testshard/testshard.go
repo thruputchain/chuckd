@@ -19,7 +19,7 @@ func NewTestShard(ctx context.Context, db testdb.TestDb) *TestShard {
 }
 
 func (s *TestShard) Start(ctx context.Context, net libnet.Network, address string) net.Listener {
-	return rpcutil.Start(ctx, net, address, proto.Shard1_Server{Srv: s}, proto.DbCoord1_Server{Srv: s})
+	return rpcutil.StartSerial(ctx, net, address, proto.Shard1_Server{Srv: s}, proto.DbCoord1_Server{Srv: s})
 }
 
 func (s *TestShard) Shard_null(ctx context.Context) error {

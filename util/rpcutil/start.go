@@ -13,17 +13,24 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func NewDriver(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
+func NewDriverSerial(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
 	driver := rpc.NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
-	// don't process in parallel, as the per-call goroutine is expensive
-	// driver.Lock = nil // process all calls in parallel
 	_ = liblog.Writer
 	// driver.Log = log.Writer()
 	driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
 	return driver
 }
 
-func Start(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv) net.Listener {
+func NewDriverParallel(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
+	driver := rpc.NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
+	driver.Lock = nil // process all calls in parallel
+	_ = liblog.Writer
+	// driver.Log = log.Writer()
+	driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
+	return driver
+}
+
+func StartSerial(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv) net.Listener {
 	l, err := n.ListenAddress(ctx, addr)
 	must.NoError(ctx, err)
 	go func() {
@@ -31,7 +38,25 @@ func Start(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv
 		for {
 			sock, err := l.Accept()
 			must.NoError(ctx, err)
-			driver := NewDriver(ctx, rpc.NewMsgPool(), sock)
+			driver := NewDriverSerial(ctx, rpc.NewMsgPool(), sock)
+			for _, srv := range srv {
+				driver.Register(srv)
+			}
+			go driver.Go()
+		}
+	}()
+	return l
+}
+
+func StartParallel(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv) net.Listener {
+	l, err := n.ListenAddress(ctx, addr)
+	must.NoError(ctx, err)
+	go func() {
+		defer l.Close()
+		for {
+			sock, err := l.Accept()
+			must.NoError(ctx, err)
+			driver := NewDriverParallel(ctx, rpc.NewMsgPool(), sock)
 			for _, srv := range srv {
 				driver.Register(srv)
 			}

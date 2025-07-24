@@ -24,7 +24,7 @@ func DialSoloLeaderClient(ctx context.Context, dialer libnet.AddressDialer, addr
 }
 
 func NewSoloLeaderClient(ctx context.Context, sock net.Conn) *SoloLeaderClient {
-	driver := rpcutil.NewDriver(ctx, rpc.NewMsgPool(), sock)
+	driver := rpcutil.NewDriverSerial(ctx, rpc.NewMsgPool(), sock)
 	go driver.Go()
 
 	return &SoloLeaderClient{

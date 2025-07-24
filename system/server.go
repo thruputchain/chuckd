@@ -21,7 +21,7 @@ func NewServer(ctx context.Context, srv ...xdr.XdrSrv) *Server {
 
 func (s *Server) Start(ctx context.Context, net libnet.Network, address string) {
 	liblog.Infof("starting server on network %s at address %s", net, address)
-	s.l = rpcutil.Start(ctx, net, address, s.srv...)
+	s.l = rpcutil.StartSerial(ctx, net, address, s.srv...)
 }
 
 func (s *Server) Close() {

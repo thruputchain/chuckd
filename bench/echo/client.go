@@ -28,7 +28,7 @@ func DialEchoClient(ctx context.Context, dialer libnet.AddressDialer, mp *rpc.Ms
 }
 
 func NewEchoClient(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *EchoClient {
-	driver := rpcutil.NewDriver(ctx, mp, sock)
+	driver := rpcutil.NewDriverSerial(ctx, mp, sock)
 	go driver.Go()
 
 	return &EchoClient{

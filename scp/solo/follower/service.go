@@ -38,7 +38,7 @@ func NewSoloFollowerService(
 }
 
 func (svc *SoloFollowerService) Start(ctx context.Context, address string) {
-	rpcutil.Start(ctx, svc.net, address, proto.SoloFollower1_Server{Srv: svc})
+	rpcutil.StartSerial(ctx, svc.net, address, proto.SoloFollower1_Server{Srv: svc})
 }
 
 func (svc *SoloFollowerService) Solofollower_null(context.Context) error {
