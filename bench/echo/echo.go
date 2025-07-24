@@ -28,6 +28,8 @@ type EchoBenchmark struct {
 	//
 	clients []*echoClient
 	workers libflow.InvokeWorkerPool[callEchoArg]
+	once    sync.Once
+	abort   chan struct{}
 	//
 	numSent     libstat.Counter
 	numReceived libstat.Counter
@@ -57,6 +59,7 @@ func NewEchoBench(
 		numBytesPerPayload: numBytesPerPayload,
 		noEcho:             noEcho,
 		roundtrip:          libstat.NewLatency(libtime.RealTime{}),
+		abort:              make(chan struct{}),
 	}
 	x.workers = libflow.NewInvokeWorkerPool(ctx, x.callEcho, maxPendingCalls)
 	return x
@@ -64,7 +67,8 @@ func NewEchoBench(
 
 func (x *EchoBenchmark) Report() string {
 	var w bytes.Buffer
-	fmt.Fprintf(&w, "sent %.1f req/sec, received %.1f req/sec\n", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
+	fmt.Fprintf(&w, "sent %d reqs, received %d reqs\n", x.numSent.Count(), x.numReceived.Count())
+	fmt.Fprintf(&w, "sent at %.1f req/sec, received at %.1f req/sec\n", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
 	fmt.Fprintf(&w, "roundtrip %s\n", x.roundtrip.String())
 	fmt.Fprintf(&w, "workers %s\n", x.workers.Stats().Summarize())
 	return w.String()
@@ -131,6 +135,12 @@ type callEchoArg struct {
 func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 	defer arg.wg.Done()
 
+	select {
+	case <-x.abort:
+		return
+	default:
+	}
+
 	c := x.pickClient()
 	req := Request{Payload: arg.payload}
 
@@ -144,14 +154,15 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 		_, err = c.Echo(arg.ctx, req)
 	}
 	span.Stop()
-	if err != nil {
-		liblog.Errorf("call: %v", err)
-	}
 	c.addNumPending(-1)
 
-	if err == nil {
-		x.numSent.Add(1)
+	if err != nil {
+		liblog.Errorf("call: %v", err)
+		x.once.Do(func() { close(x.abort) })
+		return
 	}
+
+	x.numSent.Add(1)
 }
 
 func (x *EchoBenchmark) pickClient() *echoClient {
