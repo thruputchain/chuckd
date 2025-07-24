@@ -276,8 +276,16 @@ func (c Echo1_Client) Echo(ctx context.Context, a1 Request) (r Reply, _ error) {
 	return *proc.Res, nil
 }
 
-var procPool = xdr.NewArena[xdrProc_No_echo](2e6)
-var argPool = xdr.NewArena[Request](2e6)
+var procPool = xdr.NewArena[xdrProc_No_echo](
+	2e6,
+	func(x *xdrProc_No_echo) {},
+	func(x *xdrProc_No_echo) { *x = xdrProc_No_echo{} },
+)
+var argPool = xdr.NewArena[Request](
+	2e6,
+	func(x *Request) {},
+	func(x *Request) { *x = Request{} },
+)
 
 func (c Echo1_Client) No_echo(ctx context.Context, a1 Request) error {
 	proc := procPool.Get()
