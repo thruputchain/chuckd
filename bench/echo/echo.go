@@ -21,6 +21,9 @@ import (
 type EchoBenchmark struct {
 	net libnet.Network
 	//
+	sendStartDelay time.Duration
+	receiveTimeout time.Duration
+	//
 	doSend             bool
 	numConns           int
 	numMaxPendingCalls int
@@ -61,6 +64,8 @@ func NewEchoBench(
 ) *EchoBenchmark {
 	x := &EchoBenchmark{
 		net:                net,
+		sendStartDelay:     3 * time.Second,
+		receiveTimeout:     5 * time.Second, // must be larger than sendStartDelay
 		doSend:             doSend,
 		numConns:           numConns,
 		numMaxPendingCalls: maxPendingCalls,
@@ -89,24 +94,33 @@ func (x *EchoBenchmark) Report() string {
 }
 
 func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress string) {
-	x.updateReceptionTime()
 
-	rpcutil.StartParallel(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
+	if x.doSend {
 
-	// all the other server grace time to start
-	time.Sleep(3 * time.Second)
+		// all the other server grace time to start
+		time.Sleep(x.sendStartDelay)
 
-	// watch for no activity on the reception side
-	go func() {
-		for {
-			time.Sleep(3 * time.Second)
-			if x.noReceptionActivity() {
-				x.abortReceive.Do(func() { close(x.receiveAborted) })
+		x.do(ctx, theirAddress)
+
+	} else {
+
+		x.updateReceptionTime()
+		rpcutil.StartParallel(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
+
+		// watch for no activity
+		go func() {
+			for {
+				time.Sleep(x.receiveTimeout)
+				if x.noReceptionActivity() {
+					x.abortReceive.Do(func() { close(x.receiveAborted) })
+					return
+				}
 			}
-		}
-	}()
+		}()
 
-	x.runSender(ctx, theirAddress)
+		<-x.receiveAborted
+
+	}
 
 	fmt.Println(x.Report())
 }
@@ -122,11 +136,12 @@ func (x *EchoBenchmark) updateReceptionTime() {
 func (x *EchoBenchmark) noReceptionActivity() bool {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	return time.Since(x.lastReceived) > 3*time.Second
+	return time.Since(x.lastReceived) >= x.receiveTimeout
 }
 
 func (x *EchoBenchmark) Null(context.Context) error {
 	x.updateReceptionTime()
+	x.numReceived.Add(1)
 	return nil
 }
 
@@ -144,7 +159,7 @@ func (x *EchoBenchmark) No_echo(_ context.Context, req Request) error {
 
 // sender
 
-func (x *EchoBenchmark) runSender(ctx context.Context, address string) {
+func (x *EchoBenchmark) do(ctx context.Context, address string) {
 
 	// create connections
 	x.clients = make([]*echoClient, x.numConns)
@@ -157,28 +172,19 @@ func (x *EchoBenchmark) runSender(ctx context.Context, address string) {
 
 	payload := make([]byte, x.numBytesPerPayload)
 
-	// workload
-	if x.doSend {
-
-		var wg sync.WaitGroup
-	workload:
-		for i := 0; i < x.numIterations; i++ {
-			select {
-			case <-x.sendAborted:
-				break workload
-			default:
-			}
-
-			wg.Add(1)
-			x.workers.Invoke(callEchoArg{wg: &wg, ctx: ctx, payload: payload})
+	var wg sync.WaitGroup
+workload:
+	for i := 0; i < x.numIterations; i++ {
+		select {
+		case <-x.sendAborted:
+			break workload
+		default:
 		}
-		wg.Wait()
 
-	} else {
-
-		<-x.receiveAborted
-
+		wg.Add(1)
+		x.workers.Invoke(callEchoArg{wg: &wg, ctx: ctx, payload: payload})
 	}
+	wg.Wait()
 
 }
 
