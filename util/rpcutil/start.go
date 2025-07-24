@@ -33,12 +33,13 @@ func NewDriverParallel(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc
 func StartSerial(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv) net.Listener {
 	l, err := n.ListenAddress(ctx, addr)
 	must.NoError(ctx, err)
+	msgPool := rpc.NewMsgPool()
 	go func() {
 		defer l.Close()
 		for {
 			sock, err := l.Accept()
 			must.NoError(ctx, err)
-			driver := NewDriverSerial(ctx, rpc.NewMsgPool(), sock)
+			driver := NewDriverSerial(ctx, msgPool, sock)
 			for _, srv := range srv {
 				driver.Register(srv)
 			}
@@ -51,12 +52,13 @@ func StartSerial(ctx context.Context, n libnet.Network, addr string, srv ...xdr.
 func StartParallel(ctx context.Context, n libnet.Network, addr string, srv ...xdr.XdrSrv) net.Listener {
 	l, err := n.ListenAddress(ctx, addr)
 	must.NoError(ctx, err)
+	msgPool := rpc.NewMsgPool()
 	go func() {
 		defer l.Close()
 		for {
 			sock, err := l.Accept()
 			must.NoError(ctx, err)
-			driver := NewDriverParallel(ctx, rpc.NewMsgPool(), sock)
+			driver := NewDriverParallel(ctx, msgPool, sock)
 			for _, srv := range srv {
 				driver.Register(srv)
 			}
