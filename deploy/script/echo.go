@@ -67,19 +67,19 @@ echo "benchmark working directory $(pwd)"
 	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \
 	{{ if .Def.BlockProfile }}--block {{ .BlockProfileName }} {{ end }} \
 	{{ if .Def.TraceProfile }}--trace {{ .TraceProfileName }} {{ end }} \
-	--instance node-{{ .NodeIndex }} \
-	--seed {{ .Seed }} \
-	--metrics :{{ .MetricsPort }} \
+	--instance=node-{{ .NodeIndex }} \
+	--seed={{ .Seed }} \
+	--metrics=:{{ .MetricsPort }} \
 	bench echo \
-	--do-send {{ .DoSend }} \
-	--our-addr :{{ .BenchPort }} \
-	--their-addr {{ .TheirHost }}:{{ .BenchPort }} \
-	--num-conns {{ .Def.NumConns }} \
-	--max-pending-calls {{ .Def.MaxPendingCalls }} \
-	--num-iterations {{ .Def.NumIterations }} \
-	--bytes-per-pay {{ .Def.BytesPerPay }} \
-	--no-echo {{ .Def.NoEcho }} \
-	{{ .Suffix }} 1> {{ .ReportName }} 2> {{ .LogName }}
+	--do-send={{ .DoSend }} \
+	--our-addr=:{{ .BenchPort }} \
+	--their-addr={{ .TheirHost }}:{{ .BenchPort }} \
+	--num-conns={{ .Def.NumConns }} \
+	--max-pending-calls={{ .Def.MaxPendingCalls }} \
+	--num-iterations={{ .Def.NumIterations }} \
+	--bytes-per-pay={{ .Def.BytesPerPay }} \
+	--no-echo={{ .Def.NoEcho }} \
+	{{ .Suffix }} 2> {{ .LogName }} | tee {{ .ReportName }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
 		"LogLevel":         "debug",

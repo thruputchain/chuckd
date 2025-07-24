@@ -146,7 +146,7 @@ echo "benchmark working directory $(pwd)"
 	--fan-out {{ .Def.FanOut }} \
 	--bytes-per-pay {{ .Def.BytesPerPay }} \
 	--num-iterations {{ .Def.NumIterations }} \
-	{{ .Suffix }} 1> {{ .ReportName }} 2> {{ .LogName }}
+	{{ .Suffix }} 2> {{ .LogName }} | tee {{ .ReportName }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
 		"LogLevel":         "debug",
