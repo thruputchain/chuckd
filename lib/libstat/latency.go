@@ -8,8 +8,7 @@ import (
 )
 
 type LatencyMeter struct {
-	time libtime.Time
-	ctr  Counter
+	ctr Counter
 }
 
 type LatencyMeterSpan struct {
@@ -17,16 +16,10 @@ type LatencyMeterSpan struct {
 	start time.Time
 }
 
-func NewLatency(time_ libtime.Time) *LatencyMeter {
-	return &LatencyMeter{
-		time: time_,
-	}
-}
-
 func (x *LatencyMeter) Start() LatencyMeterSpan {
 	return LatencyMeterSpan{
 		meter: x,
-		start: x.time.Now(),
+		start: time.Now(),
 	}
 }
 
@@ -38,7 +31,7 @@ func (x *LatencyMeter) StartAt(s time.Time) LatencyMeterSpan {
 }
 
 func (x LatencyMeterSpan) Stop() {
-	x.meter.Add(x.meter.time.Now().Sub(x.start))
+	x.meter.Add(time.Since(x.start))
 }
 
 func (x *LatencyMeter) Add(d time.Duration) int {

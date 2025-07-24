@@ -33,7 +33,7 @@ type TransmissionReceiver struct {
 	plk     sync.Mutex
 	partial map[transmissionKey]*partialTransmission
 	//
-	latency *libstat.LatencyMeter
+	latency libstat.LatencyMeter
 }
 
 type receivedTransmission struct {
@@ -83,7 +83,6 @@ func NewTransmissionReceiver(
 		),
 		receiveQ: make(chan receivedTransmission),
 		partial:  map[transmissionKey]*partialTransmission{},
-		latency:  libstat.NewLatency(time_),
 	}
 	x.receiver.SetProcessor(x)
 	return x

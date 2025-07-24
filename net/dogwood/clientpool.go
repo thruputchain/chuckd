@@ -28,8 +28,8 @@ type ClientPool struct {
 	lastDialFail *time.Time
 	clients      map[DogwoodClientCloser]int // client -> number of pending calls
 	//
-	leaseLat   *libstat.LatencyMeter
-	deliverLat *libstat.LatencyMeter
+	leaseLat   libstat.LatencyMeter
+	deliverLat libstat.LatencyMeter
 }
 
 func NewClientPool(
@@ -47,9 +47,6 @@ func NewClientPool(
 		maxClients:  maxClients,
 		redialDelay: redialDelay,
 		clients:     map[DogwoodClientCloser]int{},
-		//
-		leaseLat:   libstat.NewLatency(time_),
-		deliverLat: libstat.NewLatency(time_),
 	}
 }
 

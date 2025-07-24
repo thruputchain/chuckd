@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/libstat"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/panjf2000/ants/v2"
 )
@@ -17,9 +16,9 @@ type SubmitWorkerPoolWithQueue struct {
 	pool  *ants.Pool
 	//
 	utilization libstat.Counter
-	submitLat   *libstat.LatencyMeter // time to submit
-	waitLat     *libstat.LatencyMeter // time in queue
-	workLat     *libstat.LatencyMeter // time working
+	submitLat   libstat.LatencyMeter // time to submit
+	waitLat     libstat.LatencyMeter // time in queue
+	workLat     libstat.LatencyMeter // time working
 }
 
 type submission struct {
@@ -41,13 +40,10 @@ func NewSubmitWorkerPoolWithQueue(
 	must.NoError(ctx, err)
 
 	x := &SubmitWorkerPoolWithQueue{
-		ctx:       ctx,
-		cancel:    cancel,
-		queue:     make(chan submission, numWorkers),
-		pool:      p,
-		submitLat: libstat.NewLatency(libtime.RealTime{}),
-		waitLat:   libstat.NewLatency(libtime.RealTime{}),
-		workLat:   libstat.NewLatency(libtime.RealTime{}),
+		ctx:    ctx,
+		cancel: cancel,
+		queue:  make(chan submission, numWorkers),
+		pool:   p,
 	}
 
 	go x.do()

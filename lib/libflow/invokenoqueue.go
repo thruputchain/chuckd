@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/libstat"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/panjf2000/ants/v2"
 )
@@ -16,9 +15,9 @@ type InvokeWorkerPoolNoQueue[T any] struct {
 	pool *ants.PoolWithFuncGeneric[argWithSpan[T]]
 	//
 	utilization libstat.Counter
-	submitLat   *libstat.LatencyMeter // time to submit
-	waitLat     *libstat.LatencyMeter // time in queue
-	workLat     *libstat.LatencyMeter // time working
+	submitLat   libstat.LatencyMeter // time to submit
+	waitLat     libstat.LatencyMeter // time in queue
+	workLat     libstat.LatencyMeter // time working
 }
 
 func NewInvokeWorkerPoolNoQueue[T any](
@@ -30,11 +29,8 @@ func NewInvokeWorkerPoolNoQueue[T any](
 	ctx, cancel := context.WithCancel(ctx)
 
 	x := &InvokeWorkerPoolNoQueue[T]{
-		ctx:       ctx,
-		cancel:    cancel,
-		submitLat: libstat.NewLatency(libtime.RealTime{}),
-		waitLat:   libstat.NewLatency(libtime.RealTime{}),
-		workLat:   libstat.NewLatency(libtime.RealTime{}),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	p, err := ants.NewPoolWithFuncGeneric[argWithSpan[T]](

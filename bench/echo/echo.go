@@ -12,7 +12,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libstat"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/xdrpp/goxdr/rpc"
@@ -43,7 +42,7 @@ type EchoBenchmark struct {
 	//
 	numSent     libstat.Counter
 	numReceived libstat.Counter
-	roundtrip   *libstat.LatencyMeter
+	roundtrip   libstat.LatencyMeter
 }
 
 type echoClient struct {
@@ -72,7 +71,6 @@ func NewEchoBench(
 		numIterations:      numIterations,
 		numBytesPerPayload: numBytesPerPayload,
 		noEcho:             noEcho,
-		roundtrip:          libstat.NewLatency(libtime.RealTime{}),
 		sendAborted:        make(chan struct{}),
 		receiveAborted:     make(chan struct{}),
 	}
