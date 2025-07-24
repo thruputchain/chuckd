@@ -98,7 +98,7 @@ func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress
 		// all the other server grace time to start
 		time.Sleep(x.sendStartDelay)
 
-		x.do(ctx, theirAddress)
+		x.do2(ctx, theirAddress)
 
 	} else {
 
@@ -156,6 +156,76 @@ func (x *EchoBenchmark) No_echo(_ context.Context, req Request) error {
 }
 
 // sender
+
+func (x *EchoBenchmark) do2(ctx context.Context, address string) {
+
+	// create connections
+	x.clients = make([]*echoClient, x.numConns)
+	for i := range x.clients {
+		c, err := DialEchoClient(ctx, x.net, rpc.NewMsgPool(), address)
+		must.NoError(ctx, err)
+		x.clients[i] = &echoClient{EchoClient: c}
+		defer c.Close()
+	}
+
+	payload := make([]byte, x.numBytesPerPayload)
+
+	tick := make(chan struct{}, x.numIterations)
+	for i := 0; i < x.numIterations; i++ {
+		tick <- struct{}{}
+	}
+
+	var wg sync.WaitGroup
+	for i := range x.clients {
+		for j := 0; j < x.numMaxPendingCalls; j++ {
+			c := x.clients[i]
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for range tick {
+					x.callEcho2(ctx, c, payload)
+				}
+			}()
+		}
+	}
+	wg.Wait()
+}
+
+func (x *EchoBenchmark) callEcho2(ctx context.Context, c *echoClient, payload []byte) {
+
+	select {
+	case <-x.sendAborted:
+		return
+	default:
+	}
+
+	req := Request{Payload: payload}
+
+	var err error
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+
+	c.addNumPending(1)
+	span := x.roundtrip.Start()
+	if x.noEcho {
+		err = c.No_echo(ctx, req)
+	} else {
+		_, err = c.Echo(ctx, req)
+	}
+	cancel()
+	span.Stop()
+	c.addNumPending(-1)
+
+	if err != nil {
+		liblog.Errorf("call: %v", err)
+		x.abortSend.Do(func() { close(x.sendAborted) })
+		return
+	}
+
+	x.numSent.Add(1)
+}
+
+//
 
 func (x *EchoBenchmark) do(ctx context.Context, address string) {
 
