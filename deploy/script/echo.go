@@ -9,8 +9,6 @@ import (
 )
 
 type BenchEchoExecDef struct {
-	DoSend bool
-	//
 	NumConns        int
 	MaxPendingCalls int
 	NumIterations   int
@@ -39,7 +37,7 @@ func (def BenchEchoExecDef) ExecScripts(
 
 	scripts := make([]string, len(hosts))
 	for i := range hosts {
-		scripts[i] = benchEchoHostScript(ctx, rand, def, i, hosts[i], hosts[(i+1)%2], chuckdPath, cmdSuffix)
+		scripts[i] = benchEchoHostScript(ctx, rand, def, i, hosts[i], hosts[(i+1)%2], chuckdPath, cmdSuffix, i == 0)
 	}
 
 	return scripts
@@ -54,6 +52,7 @@ func benchEchoHostScript(
 	theirHost string,
 	chuckdPath string,
 	cmdSuffix string,
+	doSend bool,
 ) string {
 
 	const format = `
@@ -72,7 +71,7 @@ echo "benchmark working directory $(pwd)"
 	--seed {{ .Seed }} \
 	--metrics :{{ .MetricsPort }} \
 	bench echo \
-	--do-send {{ .Def.DoSend }} \
+	--do-send {{ .DoSend }} \
 	--our-addr :{{ .BenchPort }} \
 	--their-addr {{ .TheirHost }}:{{ .BenchPort }} \
 	--num-conns {{ .Def.NumConns }} \
@@ -93,6 +92,7 @@ echo "benchmark working directory $(pwd)"
 		"BenchPort":        def.BenchPort,
 		"Suffix":           cmdSuffix,
 		"TheirHost":        theirHost,
+		"DoSend":           doSend,
 		"CPUProfileName":   "bench-echo-cpu-" + ourHost + ".prof",
 		"MemProfileName":   "bench-echo-mem-" + ourHost + ".prof",
 		"BlockProfileName": "bench-echo-block-" + ourHost + ".prof",
