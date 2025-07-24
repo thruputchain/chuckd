@@ -28,10 +28,15 @@ type EchoBenchmark struct {
 	numBytesPerPayload int
 	noEcho             bool
 	//
-	clients []*echoClient
-	workers libflow.InvokeWorkerPool[callEchoArg]
-	once    sync.Once
-	abort   chan struct{}
+	clients        []*echoClient
+	workers        libflow.InvokeWorkerPool[callEchoArg]
+	abortSend      sync.Once
+	sendAborted    chan struct{}
+	abortReceive   sync.Once
+	receiveAborted chan struct{}
+	//
+	lk           sync.Mutex
+	lastReceived time.Time
 	//
 	numSent     libstat.Counter
 	numReceived libstat.Counter
@@ -63,7 +68,8 @@ func NewEchoBench(
 		numBytesPerPayload: numBytesPerPayload,
 		noEcho:             noEcho,
 		roundtrip:          libstat.NewLatency(libtime.RealTime{}),
-		abort:              make(chan struct{}),
+		sendAborted:        make(chan struct{}),
+		receiveAborted:     make(chan struct{}),
 	}
 	x.workers = libflow.NewInvokeWorkerPool(ctx, x.callEcho, maxPendingCalls*numConns)
 	return x
@@ -83,10 +89,22 @@ func (x *EchoBenchmark) Report() string {
 }
 
 func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress string) {
+	x.updateReceptionTime()
+
 	rpcutil.StartParallel(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
 
 	// all the other server grace time to start
 	time.Sleep(3 * time.Second)
+
+	// watch for no activity on the reception side
+	go func() {
+		for {
+			time.Sleep(3 * time.Second)
+			if x.noReceptionActivity() {
+				x.abortReceive.Do(func() { close(x.receiveAborted) })
+			}
+		}
+	}()
 
 	x.runSender(ctx, theirAddress)
 
@@ -95,16 +113,31 @@ func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress
 
 // receiver
 
+func (x *EchoBenchmark) updateReceptionTime() {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	x.lastReceived = time.Now()
+}
+
+func (x *EchoBenchmark) noReceptionActivity() bool {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return time.Since(x.lastReceived) > 3*time.Second
+}
+
 func (x *EchoBenchmark) Null(context.Context) error {
+	x.updateReceptionTime()
 	return nil
 }
 
 func (x *EchoBenchmark) Echo(_ context.Context, req Request) (Reply, error) {
+	x.updateReceptionTime()
 	x.numReceived.Add(1)
 	return Reply{Payload: req.Payload}, nil
 }
 
 func (x *EchoBenchmark) No_echo(_ context.Context, req Request) error {
+	x.updateReceptionTime()
 	x.numReceived.Add(1)
 	return nil
 }
@@ -131,7 +164,7 @@ func (x *EchoBenchmark) runSender(ctx context.Context, address string) {
 	workload:
 		for i := 0; i < x.numIterations; i++ {
 			select {
-			case <-x.abort:
+			case <-x.sendAborted:
 				break workload
 			default:
 			}
@@ -143,7 +176,7 @@ func (x *EchoBenchmark) runSender(ctx context.Context, address string) {
 
 	} else {
 
-		<-x.abort
+		<-x.receiveAborted
 
 	}
 
@@ -159,7 +192,7 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 	defer arg.wg.Done()
 
 	select {
-	case <-x.abort:
+	case <-x.sendAborted:
 		return
 	default:
 	}
@@ -184,7 +217,7 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 
 	if err != nil {
 		liblog.Errorf("call: %v", err)
-		x.once.Do(func() { close(x.abort) })
+		x.abortSend.Do(func() { close(x.sendAborted) })
 		return
 	}
 
