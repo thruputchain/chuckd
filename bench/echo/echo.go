@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -177,7 +178,9 @@ func (x *EchoBenchmark) pickClient() *echoClient {
 	var minClient *echoClient
 	var minPending int
 
-	for _, c := range x.clients {
+	perm := rand.Perm(len(x.clients))
+	for i := range x.clients {
+		c := x.clients[perm[i]]
 		npending := c.getNumPending()
 		if minClient == nil || minPending > npending {
 			minClient, minPending = c, npending
