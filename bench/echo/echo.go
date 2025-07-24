@@ -3,6 +3,7 @@ package echo
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -147,10 +148,14 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 	if err != nil {
 		liblog.Errorf("call: %v", err)
 	}
-	must.NoError(arg.ctx, err)
+	if !errors.Is(err, context.Canceled) {
+		must.NoError(arg.ctx, err)
+	}
 	c.addNumPending(-1)
 
-	x.numSent.Add(1)
+	if err != nil {
+		x.numSent.Add(1)
+	}
 }
 
 func (x *EchoBenchmark) pickClient() *echoClient {
