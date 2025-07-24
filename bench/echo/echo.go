@@ -118,7 +118,14 @@ func (x *EchoBenchmark) runSender(ctx context.Context, address string) {
 
 	// workload
 	var wg sync.WaitGroup
+workload:
 	for i := 0; i < x.numIterations; i++ {
+		select {
+		case <-x.abort:
+			break workload
+		default:
+		}
+
 		wg.Add(1)
 		x.workers.Invoke(callEchoArg{wg: &wg, ctx: ctx, payload: payload})
 	}
