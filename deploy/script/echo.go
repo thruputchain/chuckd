@@ -9,6 +9,8 @@ import (
 )
 
 type BenchEchoExecDef struct {
+	DoSend bool
+	//
 	NumConns        int
 	MaxPendingCalls int
 	NumIterations   int
@@ -70,6 +72,7 @@ echo "benchmark working directory $(pwd)"
 	--seed {{ .Seed }} \
 	--metrics :{{ .MetricsPort }} \
 	bench echo \
+	--do-send {{ .Def.DoSend }} \
 	--our-addr :{{ .BenchPort }} \
 	--their-addr {{ .TheirHost }}:{{ .BenchPort }} \
 	--num-conns {{ .Def.NumConns }} \

@@ -21,8 +21,9 @@ import (
 type EchoBenchmark struct {
 	net libnet.Network
 	//
+	doSend             bool
 	numConns           int
-	numWorkers         int
+	numMaxPendingCalls int
 	numIterations      int
 	numBytesPerPayload int
 	noEcho             bool
@@ -46,6 +47,7 @@ type echoClient struct {
 func NewEchoBench(
 	ctx context.Context,
 	net libnet.Network,
+	doSend bool,
 	numConns int,
 	maxPendingCalls int,
 	numIterations int,
@@ -54,20 +56,25 @@ func NewEchoBench(
 ) *EchoBenchmark {
 	x := &EchoBenchmark{
 		net:                net,
+		doSend:             doSend,
 		numConns:           numConns,
-		numWorkers:         maxPendingCalls,
+		numMaxPendingCalls: maxPendingCalls,
 		numIterations:      numIterations,
 		numBytesPerPayload: numBytesPerPayload,
 		noEcho:             noEcho,
 		roundtrip:          libstat.NewLatency(libtime.RealTime{}),
 		abort:              make(chan struct{}),
 	}
-	x.workers = libflow.NewInvokeWorkerPool(ctx, x.callEcho, maxPendingCalls)
+	x.workers = libflow.NewInvokeWorkerPool(ctx, x.callEcho, maxPendingCalls*numConns)
 	return x
 }
 
 func (x *EchoBenchmark) Report() string {
 	var w bytes.Buffer
+	fmt.Fprintf(&w, "do-send=%v\n", x.doSend)
+	fmt.Fprintf(&w, "num-conns=%d, max-pending-per-conn=%d, num-iterations=%d, bytes-per-pay=%d, no-echo=%v\n",
+		x.numConns, x.numMaxPendingCalls, x.numIterations, x.numBytesPerPayload, x.noEcho)
+	fmt.Fprintln(&w, "---")
 	fmt.Fprintf(&w, "sent %d reqs, received %d reqs\n", x.numSent.Count(), x.numReceived.Count())
 	fmt.Fprintf(&w, "sent at %.1f req/sec, received at %.1f req/sec\n", x.numSent.SpeedPerSec(), x.numReceived.SpeedPerSec())
 	fmt.Fprintf(&w, "roundtrip %s\n", x.roundtrip.String())
@@ -118,19 +125,27 @@ func (x *EchoBenchmark) runSender(ctx context.Context, address string) {
 	payload := make([]byte, x.numBytesPerPayload)
 
 	// workload
-	var wg sync.WaitGroup
-workload:
-	for i := 0; i < x.numIterations; i++ {
-		select {
-		case <-x.abort:
-			break workload
-		default:
-		}
+	if x.doSend {
 
-		wg.Add(1)
-		x.workers.Invoke(callEchoArg{wg: &wg, ctx: ctx, payload: payload})
+		var wg sync.WaitGroup
+	workload:
+		for i := 0; i < x.numIterations; i++ {
+			select {
+			case <-x.abort:
+				break workload
+			default:
+			}
+
+			wg.Add(1)
+			x.workers.Invoke(callEchoArg{wg: &wg, ctx: ctx, payload: payload})
+		}
+		wg.Wait()
+
+	} else {
+
+		<-x.abort
+
 	}
-	wg.Wait()
 
 }
 
@@ -154,13 +169,16 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 
 	var err error
 
+	ctx, cancel := context.WithTimeout(arg.ctx, time.Second)
+
 	c.addNumPending(1)
 	span := x.roundtrip.Start()
 	if x.noEcho {
-		err = c.No_echo(arg.ctx, req)
+		err = c.No_echo(ctx, req)
 	} else {
-		_, err = c.Echo(arg.ctx, req)
+		_, err = c.Echo(ctx, req)
 	}
+	cancel()
 	span.Stop()
 	c.addNumPending(-1)
 

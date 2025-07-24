@@ -205,6 +205,7 @@ var (
 				srv := benchecho.NewEchoBench(
 					ctx,
 					libnet.TCPNet{},
+					benchDoSend,
 					benchNumConns,
 					benchMaxPendingCalls,
 					benchNumIterations,
@@ -243,6 +244,7 @@ var (
 	benchExecBasePort int
 	benchTCP          bool // use TCP instead of testnet
 	//
+	benchDoSend          bool
 	benchOurAddress      string
 	benchTheirAddress    string
 	benchNumConns        int
@@ -302,6 +304,7 @@ func init() {
 	benchLoadGenTestCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use quic")
 
 	benchCmd.AddCommand(benchEchoCmd)
+	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")
 	benchEchoCmd.Flags().StringVar(&benchOurAddress, "our-addr", ":8181", "our address")
 	benchEchoCmd.Flags().StringVar(&benchTheirAddress, "their-addr", ":8181", "their address")
 	benchEchoCmd.Flags().IntVar(&benchNumConns, "num-conns", 10, "number of connections")
