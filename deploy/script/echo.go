@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
 
@@ -28,9 +29,11 @@ func (def BenchEchoExecDef) ExecScripts(
 	ctx context.Context,
 	rand *rand.Rand,
 	chuckdPath string,
-	hosts [2]string,
+	hosts []string,
 	cmdSuffix string,
 ) (perHost []string) {
+
+	must.Assert(ctx, len(hosts) == 2)
 
 	scripts := make([]string, len(hosts))
 	for i := range hosts {
