@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -143,6 +144,9 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 		_, err = c.Echo(arg.ctx, req)
 	}
 	span.Stop()
+	if err != nil {
+		liblog.Errorf("call: %v", err)
+	}
 	must.NoError(arg.ctx, err)
 	c.addNumPending(-1)
 
