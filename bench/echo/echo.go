@@ -105,7 +105,7 @@ func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress
 	} else {
 
 		x.updateReceptionTime()
-		rpcutil.StartParallel(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
+		rpcutil.StartSerial(ctx, x.net, ourAddress, Echo1_Server{Srv: x})
 
 		// watch for no activity
 		go func() {
