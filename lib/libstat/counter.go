@@ -8,7 +8,8 @@ import (
 
 type Counter struct {
 	lk    sync.Mutex
-	start time.Time
+	first time.Time
+	last  time.Time
 	sum   float64
 	sum2  float64
 	min   float64
@@ -20,8 +21,8 @@ func (x *Counter) Add(v float64) int {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	if x.start.IsZero() {
-		x.start = time.Now()
+	if x.first.IsZero() {
+		x.first = time.Now()
 		x.min = v
 		x.max = v
 		// discard first v for purposes of sum, average, stddev
@@ -31,6 +32,7 @@ func (x *Counter) Add(v float64) int {
 		x.sum += v
 		x.sum2 += v * v
 		x.count += 1
+		x.last = time.Now()
 	}
 	return x.count
 }
@@ -88,7 +90,7 @@ func (x *Counter) SpeedPerSec() float64 {
 }
 
 func (x *Counter) speedPerSec() float64 {
-	return x.sum / time.Since(x.start).Seconds()
+	return x.sum / x.last.Sub(x.first).Seconds()
 }
 
 type CounterStats struct {
