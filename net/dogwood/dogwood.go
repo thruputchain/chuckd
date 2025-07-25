@@ -86,7 +86,7 @@ func NewDogwoodService(
 	return x
 }
 
-func (x *DogwoodService) Start(ctx context.Context, address string, grace time.Duration) {
+func (x *DogwoodService) Start(ctx context.Context, extAddr string, inAddr string, grace time.Duration) {
 	go func() {
 		defer close(x.ready)
 
@@ -100,13 +100,17 @@ func (x *DogwoodService) Start(ctx context.Context, address string, grace time.D
 
 		// enable peers to connect and call us
 		// navigation and delivery will not function until navigator is started later
-		rpcutil.StartSerial(ctx, x.net, address, proto.Dogwood1_Server{Srv: x})
+		rpcutil.StartSerial(ctx, x.net, extAddr, proto.Dogwood1_Server{Srv: x})
 
 		// allow a grace period for peers to start serving
 		x.time.Sleep(grace)
 
 		x.nav.Start(ctx, x.mplex) // expire, refill, disseminate routes periodically
 		x.nav.WaitReady(ctx)      // wait until the first set of routes are disseminated
+
+		if inAddr != "" {
+			rpcutil.StartSerial(ctx, x.net, inAddr, proto.DogwoodAPI1_Server{Srv: x})
+		}
 	}()
 }
 

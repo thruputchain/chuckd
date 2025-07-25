@@ -122,7 +122,7 @@ func (bench *DogwoodBenchmark) selfString() string {
 func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 
 	// start broadcast service
-	bench.dogwood.Start(ctx, address, 3*time.Second)
+	bench.dogwood.Start(ctx, address, "", 3*time.Second)
 	bench.dogwood.WaitReady(ctx)
 
 	zeroPayload := make([]byte, bench.numPayBytes)
