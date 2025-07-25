@@ -144,7 +144,7 @@ echo "benchmark working directory $(pwd)"
 	{{ .Suffix }} 2> {{ .LogName }} | tee {{ .ReportName }}
 `
 	return textutil.Apply(ctx, format, textutil.M{
-		"LogLevel":         "debug",
+		"LogLevel":         "info",
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
 		"ConfigName":       "bench-dogwood-config-" + host + ".json",
