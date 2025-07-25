@@ -17,7 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/system"
+	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -33,7 +33,7 @@ type LoadGen struct {
 	inside       libnet.Network
 	coord        *coord.CoordinatorService
 	handler      *LiveHandler
-	insideSrv    *system.Server
+	insideSrv    *coordinator.Server
 	//
 	nominateMsec *StatFloat64
 	validateMsec *StatFloat64
@@ -59,7 +59,7 @@ func NewLoadGenBench(
 		validateMsec: NewStatFloat64(),
 	}
 	x.coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rand))
-	x.insideSrv = system.NewServer(ctx, proto.Coordinator1_Server{Srv: x.coord})
+	x.insideSrv = coordinator.NewServer(ctx, proto.Coordinator1_Server{Srv: x.coord})
 	x.handler = NewLiveHandler(x.coord, runtime.NewRandFromRand(rand))
 	return x
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/system"
+	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ var (
 					inside = libnet.TCPNet{}
 					outside = quic.NewQUICNet(ctx)
 				}
-				srv := system.NewSystem(
+				srv := coordinator.NewSystem(
 					ctx,
 					runtime.NewRandFromRoot(),
 					*cfg,
