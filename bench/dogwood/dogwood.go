@@ -237,9 +237,9 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		ReceptionRate:     float64(transmissionsReceived) / float64(bench.numIterations*(numNodes-1)),
 	}
 
-	fmt.Println(form.Display(report.Summarize()))
-	fmt.Println()
 	fmt.Println(form.Display(report))
+	fmt.Println()
+	fmt.Println(form.Display(report.Summarize()))
 }
 
 func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
