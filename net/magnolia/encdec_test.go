@@ -56,4 +56,5 @@ var testEncDec = []struct {
 	{NBytes: 11, NPaySheaves: 2, NParitySheaves: 1, MaxBytesPerChunk: 4},
 	{NBytes: 100000, NPaySheaves: 2, NParitySheaves: 1, MaxBytesPerChunk: 4},
 	{NBytes: 300e6, NPaySheaves: 5, NParitySheaves: 2, MaxBytesPerChunk: 60e3},
+	{NBytes: 300e6, NPaySheaves: 1, NParitySheaves: 2, MaxBytesPerChunk: 50e3},
 }

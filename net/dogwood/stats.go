@@ -38,8 +38,6 @@ func (x *DogwoodService) Stats() Stats {
 		NavigatorStats:            x.nav.Stats(),
 		//
 		NumSendStreams:                 x.streamSender.NumStreams(),
-		NumSendTransmissionsSending:    x.xSender.NumSending(),
-		NumSendTransmissionsWaiting:    x.xSender.NumWaiting(),
 		NumReceiveTransmissionsPartial: x.xReceiver.NumPartial(),
 	}
 }

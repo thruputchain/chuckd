@@ -21,10 +21,6 @@ type TransmissionSender struct {
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
-	//
-	lk       sync.Mutex
-	nsending int
-	nwaiting int
 }
 
 func NewTransmissionSender(
@@ -51,18 +47,6 @@ func NewTransmissionSender(
 	}
 }
 
-func (x *TransmissionSender) NumSending() int {
-	x.lk.Lock()
-	defer x.lk.Unlock()
-	return x.nsending
-}
-
-func (x *TransmissionSender) NumWaiting() int {
-	x.lk.Lock()
-	defer x.lk.Unlock()
-	return x.nwaiting
-}
-
 func (x *TransmissionSender) Start(context.Context) {}
 
 func (x *TransmissionSender) Send(
@@ -71,27 +55,11 @@ func (x *TransmissionSender) Send(
 	pay []byte,
 	genRoute bool,
 ) {
-	x.lk.Lock()
-	x.nwaiting += 1
-	x.lk.Unlock()
-
 	x.sendWorkers.Submit(
 		func() {
-			x.lk.Lock()
-			x.nsending += 1
-			x.lk.Unlock()
-
 			x.send(ctx, typ, pay, genRoute)
-
-			x.lk.Lock()
-			x.nsending -= 1
-			x.lk.Unlock()
 		},
 	)
-
-	x.lk.Lock()
-	x.nwaiting -= 1
-	x.lk.Unlock()
 }
 
 func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
@@ -178,17 +146,11 @@ func (x *TransmissionSender) send(
 // stats
 
 type TransmissionSenderStats struct {
-	NumTransmissionsSending int
-	NumTransmissionsWaiting int
 	libflow.WorkerPoolStats
 }
 
 func (x *TransmissionSender) Stats() TransmissionSenderStats {
-	x.lk.Lock()
-	defer x.lk.Unlock()
 	return TransmissionSenderStats{
-		NumTransmissionsSending: x.nsending,
-		NumTransmissionsWaiting: x.nwaiting,
-		WorkerPoolStats:         x.sendWorkers.Stats(),
+		WorkerPoolStats: x.sendWorkers.Stats(),
 	}
 }
