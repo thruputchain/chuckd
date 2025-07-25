@@ -12,7 +12,7 @@ import (
 
 func TestBenchEncDec(t *testing.T) {
 	ctx := context.Background()
-	ed := newBenchEncDec(ctx, 600e3, 5, 2, 64e3)
+	ed := newBenchEncDec(ctx, 600e3, MkRegime(5, 2, 64e3))
 	ctr := libstat.Counter{}
 	for i := 0; i < 100; i++ {
 		ed.Run(&ctr)
@@ -21,19 +21,16 @@ func TestBenchEncDec(t *testing.T) {
 }
 
 type benchEncDec struct {
-	nPaySheaves    int
-	nParitySheaves int
-	pay            []byte
-	enc            *Encoder
-	dec            *Decoder
+	regime Regime
+	pay    []byte
+	enc    *Encoder
+	dec    *Decoder
 }
 
 func newBenchEncDec(
 	ctx context.Context,
-	nPayBytes,
-	nPaySheaves,
-	nParitySheaves,
-	maxBytesPerChunk int,
+	nPayBytes int,
+	regime Regime,
 ) *benchEncDec {
 
 	pay := make([]byte, nPayBytes)
@@ -43,11 +40,10 @@ func newBenchEncDec(
 	}
 
 	return &benchEncDec{
-		nPaySheaves:    nPaySheaves,
-		nParitySheaves: nParitySheaves,
-		pay:            pay,
-		enc:            NewEncoder(ctx, nPaySheaves, nParitySheaves, maxBytesPerChunk),
-		dec:            NewDecoder(ctx, nPaySheaves, nParitySheaves, maxBytesPerChunk),
+		regime: regime,
+		pay:    pay,
+		enc:    NewEncoder(ctx, regime),
+		dec:    NewDecoder(ctx, regime),
 	}
 }
 
@@ -57,7 +53,7 @@ func (x *benchEncDec) Run(ctr *libstat.Counter) {
 	ding := x.dec.StartDecoding(len(x.pay))
 
 	// erase some sheaves
-	for s := x.nParitySheaves; s < x.nPaySheaves+x.nParitySheaves; s++ {
+	for s := x.regime.NumParitySheaves; s < x.regime.NumPaySheaves+x.regime.NumParitySheaves; s++ {
 		for c := range cs {
 			ding.Place(s, c, cs[c][s])
 		}

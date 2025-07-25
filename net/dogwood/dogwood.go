@@ -75,14 +75,10 @@ func NewDogwoodService(
 		int(cfg.Stream_sender_worker_count),
 	)
 
-	x.xReceiver = NewTransmissionReceiver(
-		ctx, *cfg.Transmission_config, time_, x.nav, x.streamReceiver,
-		int(cfg.Transmission_receiver_decode_worker_count),
-	)
+	x.xReceiver = NewTransmissionReceiver(ctx, cfg, time_, x.nav, x.streamReceiver)
 
 	x.xSender = NewTransmissionSender(
-		ctx, *cfg.Transmission_config, x.nav, x.streamSender, librand.NewFromRand(rand),
-		int(cfg.Transmission_sender_worker_count),
+		ctx, cfg, x.nav, x.streamSender, librand.NewFromRand(rand),
 	)
 
 	x.mplex = NewMultiplex(ctx, x.router, x.xSender, x.xReceiver, x.nav)

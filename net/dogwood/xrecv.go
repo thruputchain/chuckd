@@ -61,28 +61,22 @@ type partialTransmission struct {
 
 func NewTransmissionReceiver(
 	ctx context.Context,
-	cfg proto.TransmissionConfig,
+	cfg proto.DogwoodConfig,
 	time_ libtime.Time,
 	nav *Navigator,
 	receiver *StreamReceiver,
-	numDecWorkers int,
 ) *TransmissionReceiver {
 
 	x := &TransmissionReceiver{
-		partialMaxTTL:  time.Duration(cfg.Partial_max_ttl_msec) * time.Millisecond,
-		partialIdleTTL: time.Duration(cfg.Partial_idle_ttl_msec) * time.Millisecond,
+		partialMaxTTL:  time.Duration(cfg.Transmission_partial_max_ttl_msec) * time.Millisecond,
+		partialIdleTTL: time.Duration(cfg.Transmission_partial_idle_ttl_msec) * time.Millisecond,
 		time:           time_,
 		nav:            nav,
 		receiver:       receiver,
-		decWorkers:     libflow.NewSubmitWorkerPool(ctx, numDecWorkers),
-		decPool: NewMagnoliaDecoderPool(
-			ctx,
-			int(cfg.Num_payload_sheaves),
-			int(cfg.Num_parity_sheaves),
-			int(cfg.Max_chunk_bytes),
-		),
-		receiveQ: make(chan receivedTransmission),
-		partial:  map[transmissionKey]*partialTransmission{},
+		decWorkers:     libflow.NewSubmitWorkerPool(ctx, int(cfg.Transmission_receiver_decode_worker_count)),
+		decPool:        NewMagnoliaDecoderPool(ctx),
+		receiveQ:       make(chan receivedTransmission),
+		partial:        map[transmissionKey]*partialTransmission{},
 	}
 	x.receiver.SetProcessor(x)
 	return x
@@ -170,7 +164,12 @@ func (x *TransmissionReceiver) getPartial(
 
 	p, ok := x.partial[key]
 	if !ok {
-		dec := x.decPool.Get()
+		regime := magnolia.MkRegime(
+			int(transmission.Num_payload_sheaves),
+			int(transmission.Num_parity_sheaves),
+			int(transmission.Max_bytes_per_chunk),
+		)
+		dec := x.decPool.Get(regime)
 		now := x.time.Now()
 		p = &partialTransmission{
 			parent:   x,

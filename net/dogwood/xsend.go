@@ -12,7 +12,6 @@ import (
 )
 
 type TransmissionSender struct {
-	cfg    proto.TransmissionConfig
 	nav    *Navigator
 	sender *StreamSender
 	//
@@ -25,25 +24,18 @@ type TransmissionSender struct {
 
 func NewTransmissionSender(
 	ctx context.Context,
-	cfg proto.TransmissionConfig,
+	cfg proto.DogwoodConfig,
 	nav *Navigator,
 	sender *StreamSender,
 	rand *rand.Rand,
-	numWorkers int,
 ) *TransmissionSender {
 
 	return &TransmissionSender{
-		cfg:         cfg,
 		nav:         nav,
 		sender:      sender,
 		rand:        rand,
-		sendWorkers: libflow.NewSubmitWorkerPool(ctx, numWorkers),
-		encPool: NewMagnoliaEncoderPool(
-			ctx,
-			int(cfg.Num_payload_sheaves),
-			int(cfg.Num_parity_sheaves),
-			int(cfg.Max_chunk_bytes),
-		),
+		sendWorkers: libflow.NewSubmitWorkerPool(ctx, int(cfg.Transmission_sender_worker_count)),
+		encPool:     NewMagnoliaEncoderPool(ctx),
 	}
 }
 
@@ -77,7 +69,9 @@ func (x *TransmissionSender) send(
 
 	must.Assert(ctx, len(pay) > 0)
 
-	enc := x.encPool.Get()
+	regime := CalcRegime(len(pay))
+
+	enc := x.encPool.Get(regime)
 	defer x.encPool.Recycle(enc)
 
 	// encode
@@ -88,9 +82,9 @@ func (x *TransmissionSender) send(
 		Transmission_id:     x.genID(),
 		Type:                typ,
 		Num_payload_bytes:   proto.DogwoodInt64(len(pay)),
-		Num_payload_sheaves: proto.DogwoodInt32(enc.NumPaySheaves()),
-		Num_parity_sheaves:  proto.DogwoodInt32(enc.NumParitySheaves()),
-		Max_bytes_per_chunk: proto.DogwoodInt32(enc.MaxBytesPerChunk()),
+		Num_payload_sheaves: proto.DogwoodInt32(regime.NumPaySheaves),
+		Num_parity_sheaves:  proto.DogwoodInt32(regime.NumParitySheaves),
+		Max_bytes_per_chunk: proto.DogwoodInt32(regime.MaxBytesPerChunk),
 		Shuffle_seed:        0, // XXX: DogwoodInt32, shuffle not implemented
 	}
 

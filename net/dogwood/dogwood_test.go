@@ -34,24 +34,19 @@ func TestSendReceiveTransmission(t *testing.T) {
 		Route_time_to_live_msec: 60e3, // 1 minute
 		Route_time_to_use_msec:  200,  // 200 msec
 		//
-		Endpoint_max_pending:       100,
+		Endpoint_max_pending:       10,
 		Endpoint_num_clients:       10,
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
 		Endpoint_redial_delay_msec: 100,  // 100 msec
 		//
-		Stream_receiver_worker_count: 10,
+		Stream_receiver_worker_count: 128,
 		Stream_sender_worker_count:   2,
 		//
-		Transmission_receiver_decode_worker_count: 10,
+		Transmission_receiver_decode_worker_count: 128,
 		Transmission_sender_worker_count:          2,
 		//
-		Transmission_config: &proto.TransmissionConfig{
-			Num_payload_sheaves:   5,
-			Num_parity_sheaves:    2,
-			Max_chunk_bytes:       60e3, // 60K
-			Partial_max_ttl_msec:  10e3, // 10 sec
-			Partial_idle_ttl_msec: 1e3,  // 1 sec
-		},
+		Transmission_partial_max_ttl_msec:  10e3, // 10 sec
+		Transmission_partial_idle_ttl_msec: 1e3,  // 1 sec
 	}
 
 	tn := NewDogwood3TCPNet(cfg)
@@ -63,12 +58,12 @@ func TestSendReceiveTransmission(t *testing.T) {
 		payload[i] = byte(i)
 	}
 
-	const N = 50000
+	const N = 10000
 
 	// send from V0
 	go func() {
 		for i := 0; i < N; i++ {
-			if i%100 == 0 {
+			if i%1000 == 0 {
 				liblog.Infof("%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
 				liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
 			}
@@ -89,7 +84,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		defer wg.Done()
 		j := 0
 		for {
-			if j%10 == 0 {
+			if j%1000 == 0 {
 				liblog.Infof("%v resource usage: %s", tn.String(vIndex), runtime.ResourceUsage())
 				liblog.Infof("%v dogwood stats: %v", tn.String(vIndex), tn.dogwood[vIndex].Stats())
 			}

@@ -9,38 +9,33 @@ import (
 )
 
 type Decoder struct {
-	numPaySheaves    int
-	numParitySheaves int
-	maxBytesPerChunk int
-	dec              reedsolomon.Encoder
+	regime Regime
+	dec    reedsolomon.Encoder
 }
 
 func NewDecoder(
 	ctx context.Context,
-	numPaySheaves int,
-	numParitySheaves int,
-	maxBytesPerChunk int,
+	regime Regime,
 ) *Decoder {
-	dec, err := reedsolomon.New(
-		int(numPaySheaves),
-		int(numParitySheaves),
-	)
+	dec, err := reedsolomon.New(regime.NumPaySheaves, regime.NumParitySheaves)
 	must.NoError(ctx, err)
 	return &Decoder{
-		numPaySheaves:    numPaySheaves,
-		numParitySheaves: numParitySheaves,
-		maxBytesPerChunk: maxBytesPerChunk,
-		dec:              dec,
+		regime: regime,
+		dec:    dec,
 	}
+}
+
+func (x *Decoder) Regime() Regime {
+	return x.regime
 }
 
 func (x *Decoder) StartDecoding(numPayBytes int) *Decoding {
 
-	place := MkBytesToSheafChunks(numPayBytes, x.numPaySheaves, x.maxBytesPerChunk)
+	place := MkBytesToSheafChunks(numPayBytes, x.regime.NumPaySheaves, x.regime.MaxBytesPerChunk)
 
 	cs := make(ChunkSheaf, place.ChunksPerSheaf)
 	for c := range cs {
-		cs[c] = make(Sheaf, x.numPaySheaves+x.numParitySheaves)
+		cs[c] = make(Sheaf, x.regime.NumPaySheaves+x.regime.NumParitySheaves)
 	}
 
 	return &Decoding{dec: x, place: place, cs: cs}

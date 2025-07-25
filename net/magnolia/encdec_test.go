@@ -21,15 +21,15 @@ func TestEncDec(t *testing.T) {
 		}
 
 		// encode
-		enc := NewEncoder(ctx, v.NPaySheaves, v.NParitySheaves, v.MaxBytesPerChunk)
+		enc := NewEncoder(ctx, v.Regime)
 		cs := enc.Encode(pay)
 
 		// decode
-		dec := NewDecoder(ctx, v.NPaySheaves, v.NParitySheaves, v.MaxBytesPerChunk)
+		dec := NewDecoder(ctx, v.Regime)
 		ding := dec.StartDecoding(v.NBytes)
 
 		// erase some sheaves
-		for s := v.NParitySheaves; s < v.NPaySheaves+v.NParitySheaves; s++ {
+		for s := v.NumParitySheaves; s < v.NumPaySheaves+v.NumParitySheaves; s++ {
 			for c := range cs {
 				ding.Place(s, c, cs[c][s])
 			}
@@ -48,13 +48,11 @@ func TestEncDec(t *testing.T) {
 }
 
 var testEncDec = []struct {
-	NBytes           int
-	NPaySheaves      int
-	NParitySheaves   int
-	MaxBytesPerChunk int
+	NBytes int
+	Regime
 }{
-	{NBytes: 11, NPaySheaves: 2, NParitySheaves: 1, MaxBytesPerChunk: 4},
-	{NBytes: 100000, NPaySheaves: 2, NParitySheaves: 1, MaxBytesPerChunk: 4},
-	{NBytes: 300e6, NPaySheaves: 5, NParitySheaves: 2, MaxBytesPerChunk: 60e3},
-	{NBytes: 300e6, NPaySheaves: 1, NParitySheaves: 2, MaxBytesPerChunk: 50e3},
+	{NBytes: 11, Regime: MkRegime(2, 1, 4)},
+	{NBytes: 100000, Regime: MkRegime(2, 1, 4)},
+	{NBytes: 300e6, Regime: MkRegime(5, 2, 60e3)},
+	{NBytes: 300e6, Regime: MkRegime(1, 2, 50e3)},
 }

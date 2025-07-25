@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/net/quic"
+	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	liblog.LogLevel(zerolog.DebugLevel)
+	liblog.LogLevel(zerolog.InfoLevel)
 	runtime.SetRootSeed(0)
 	runtime.CaptureInterrupts(true)
 	exitCode := m.Run()
@@ -62,13 +62,8 @@ func TestDogwood(t *testing.T) {
 		Transmission_receiver_decode_worker_count: 10,
 		Transmission_sender_worker_count:          2,
 		//
-		Transmission_config: &proto.TransmissionConfig{
-			Num_payload_sheaves:   5,
-			Num_parity_sheaves:    2,
-			Max_chunk_bytes:       60e3, // 60K
-			Partial_max_ttl_msec:  10e3, // 10 sec
-			Partial_idle_ttl_msec: 1e3,  // 1 sec
-		},
+		Transmission_partial_max_ttl_msec:  10e3, // 10 sec
+		Transmission_partial_idle_ttl_msec: 1e3,  // 1 sec
 	}
 	cfg0 := proto.Config{
 		Validator_config: &proto.ValidatorConfig{Private_info: *priv0, Known_validators: known},
@@ -83,8 +78,8 @@ func TestDogwood(t *testing.T) {
 		Dogwood_config:   dcfg,
 	}
 
-	// n := libnet.TCPNet{}
-	n := quic.NewQUICNet(ctx)
+	n := libnet.TCPNet{}
+	// n := quic.NewQUICNet(ctx)
 	bb0 := NewDogwoodBenchmark(ctx, r0, n, cfg0, testFanOut, testBytesPerPay, testNumIterations)
 	bb1 := NewDogwoodBenchmark(ctx, r1, n, cfg1, testFanOut, testBytesPerPay, testNumIterations)
 	bb2 := NewDogwoodBenchmark(ctx, r2, n, cfg2, testFanOut, testBytesPerPay, testNumIterations)
