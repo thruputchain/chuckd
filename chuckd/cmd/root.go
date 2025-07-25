@@ -100,7 +100,7 @@ func effectiveConfigPath(ctx context.Context) string {
 	return cfgPath
 }
 
-func LoadConfig(ctx context.Context) *proto.Config {
+func LoadCoordinatorConfig(ctx context.Context) proto.Config {
 
 	cfgPath := effectiveConfigPath(ctx)
 	liblog.Infof("loading config %v", cfgPath)
@@ -112,7 +112,22 @@ func LoadConfig(ctx context.Context) *proto.Config {
 	err = xdrutil.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 
-	return &config
+	return config
+}
+
+func LoadDogwoodConfig(ctx context.Context) proto.DogwoodStandaloneConfig {
+
+	cfgPath := effectiveConfigPath(ctx)
+	liblog.Infof("loading config %v", cfgPath)
+
+	data, err := os.ReadFile(cfgPath)
+	must.Assertf(ctx, err == nil, "reading config file (%w)", err)
+
+	var config proto.DogwoodStandaloneConfig
+	err = xdrutil.JsonToXdr(&config, data)
+	must.NoError(ctx, err)
+
+	return config
 }
 
 func Execute() error {

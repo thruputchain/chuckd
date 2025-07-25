@@ -24,7 +24,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				cfg := LoadConfig(ctx)
+				cfg := LoadCoordinatorConfig(ctx)
 				srv := leader.NewSoloLeaderService(
 					ctx,
 					libnet.TCPNet{},

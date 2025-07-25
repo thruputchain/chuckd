@@ -15,29 +15,29 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type basicRouter struct {
+type dynamicUniformRouter struct {
 	m          xdrutil.XdrMarshaler
 	discovery  *discovery.DiscoveryService
 	treeFanOut int
 }
 
-func NewBasicRouter(
+func NewDynamicUniformRouter(
 	ctx context.Context,
 	discovery *discovery.DiscoveryService,
 	treeFanOut int,
 ) Router {
-	return &basicRouter{
+	return &dynamicUniformRouter{
 		discovery:  discovery,
 		m:          xdrutil.NewXdrMarshaler(),
 		treeFanOut: treeFanOut,
 	}
 }
 
-func (x *basicRouter) Self() proto.ValidatorPublicInfo {
+func (x *dynamicUniformRouter) Self() proto.ValidatorPublicInfo {
 	return x.discovery.Self()
 }
 
-func (x *basicRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
+func (x *dynamicUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
 	v, found := x.discovery.LookupValidator(vid)
 	if !found {
 		return "", fmt.Errorf("validator not found")
@@ -45,7 +45,7 @@ func (x *basicRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
 	return v.Address, nil
 }
 
-func (x *basicRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+func (x *dynamicUniformRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
 	_, vs = dedupFilterOutValidators(vs, protoutil.VIDOfPublic(x.Self())) // filter out self
 	must.Assertf(ctx, len(vs) > 0, "empty quorum")
@@ -54,7 +54,7 @@ func (x *basicRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []
 	return vs[:1]
 }
 
-func (x *basicRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.LinkedTreeNode {
+func (x *dynamicUniformRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.LinkedTreeNode {
 	vs := protoutil.SnapshotValidatorIDs(x.discovery.CachedSnapshots())
 	return buildDogwoodTree(x.treeFanOut, rootID, vs)
 }
@@ -82,7 +82,7 @@ func buildDogwoodTree(fanOut int, rootID ValidatorID, vs map[proto.ValidatorID]b
 	return root
 }
 
-func (x *basicRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
+func (x *dynamicUniformRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
 	treeNodes MulticastTreeNodes,
 	children []ValidatorPublicInfo,
 	treeHash MulticastTreeHash,

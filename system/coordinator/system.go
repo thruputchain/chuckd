@@ -80,7 +80,7 @@ func NewSystem(
 		*cfg.Validator_config,
 	)
 
-	sys.Router = router.NewBasicRouter(ctx, sys.Discovery, int(cfg.Router_config.Tree_fan_out))
+	sys.Router = router.NewDynamicUniformRouter(ctx, sys.Discovery, int(cfg.Router_config.Tree_fan_out))
 
 	sys.Broadcast = broadcast.NewBroadcastService(
 		ctx,

@@ -96,7 +96,7 @@ var (
 					attribute.String("cmd", "bench testcluster"),
 					attribute.Int64("txs_per_sec", benchTPS),
 				)
-				cfg := LoadConfig(ctx)
+				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				outside := libnet.Network(libnet.TCPNet{})
 				if benchQUIC {
@@ -114,7 +114,7 @@ var (
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
 					outside,
-					*cfg,
+					cfg,
 					testCfg,
 					benchCallsPerExec,
 					benchBatchSize,
@@ -131,7 +131,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				cfg := LoadConfig(ctx)
+				cfg := LoadCoordinatorConfig(ctx)
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench broadcast"),
 					attribute.Int("tree_fan_out", benchTreeFanOut),
@@ -149,7 +149,7 @@ var (
 					ctx,
 					runtime.NewRandFromRoot(),
 					outside,
-					*cfg,
+					cfg,
 					benchTreeFanOut,
 					benchChunkPerChannel,
 					benchBytesPerSec,
@@ -167,7 +167,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				cfg := LoadConfig(ctx)
+				cfg := LoadCoordinatorConfig(ctx)
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench dogwood"),
 					attribute.Int("tree_fan_out", benchTreeFanOut),
@@ -184,7 +184,7 @@ var (
 					ctx,
 					runtime.NewRandFromRoot(),
 					outside,
-					*cfg,
+					cfg,
 					benchTreeFanOut,
 					benchBytesPerPay,
 					benchNumIterations,

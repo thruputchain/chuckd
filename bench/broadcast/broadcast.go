@@ -38,7 +38,7 @@ func NewBroadcastBenchmark(
 	numIterations int,
 ) *BroadcastBenchmark {
 
-	router := router.NewFixedRouter(
+	router := router.NewStaticUniformRouter(
 		ctx,
 		cfg.Validator_config.Private_info.Public_info,
 		cfg.Validator_config.Known_validators,

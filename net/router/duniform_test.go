@@ -12,7 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 )
 
-func TestBasic(t *testing.T) {
+func TestDynamicUniform(t *testing.T) {
 
 	ctx := context.Background()
 	runtime.SetRootSeed(0)
