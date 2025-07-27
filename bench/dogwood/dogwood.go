@@ -80,7 +80,6 @@ func NewDogwoodBenchmark(
 	rand *rand.Rand,
 	net libnet.Network,
 	cfg proto.Config, // uses ValidatorConfig and BroadcastConfig
-	fanOut int,
 	numPayBytes int,
 	numIterations int,
 ) *DogwoodBenchmark {
@@ -94,7 +93,7 @@ func NewDogwoodBenchmark(
 		ctx,
 		cfg.Validator_config.Private_info.Public_info,
 		cfg.Validator_config.Known_validators,
-		fanOut, //XXX: from config?
+		int(cfg.Router_config.Tree_fan_out),
 	)
 
 	dw := dogwood.NewDogwoodService(

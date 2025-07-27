@@ -170,7 +170,6 @@ var (
 				cfg := LoadCoordinatorConfig(ctx)
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench dogwood"),
-					attribute.Int("tree_fan_out", benchTreeFanOut),
 					attribute.Int("bytes_per_pay", benchBytesPerPay),
 					attribute.Int("num_iterations", benchNumIterations),
 				)
@@ -185,7 +184,6 @@ var (
 					runtime.NewRandFromRoot(),
 					outside,
 					cfg,
-					benchTreeFanOut,
 					benchBytesPerPay,
 					benchNumIterations,
 				)
@@ -266,7 +264,6 @@ func init() {
 	benchCmd.AddCommand(benchDogwoodCmd)
 	benchDogwoodCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchDogwoodCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
-	benchDogwoodCmd.Flags().IntVar(&benchTreeFanOut, "fan-out", 5, "fan-out of multicast trees")
 	benchDogwoodCmd.Flags().IntVar(&benchBytesPerPay, "bytes-per-pay", 300000, "bytes per payload")
 	benchDogwoodCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 10000, "number of iterations")
 

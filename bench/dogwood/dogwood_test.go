@@ -27,7 +27,6 @@ func TestDogwood(t *testing.T) {
 	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	// defer cancel()
 
-	testFanOut := 5
 	testBytesPerPay := 300000
 	testNumIterations := 50000
 
@@ -65,24 +64,30 @@ func TestDogwood(t *testing.T) {
 		Transmission_partial_max_ttl_msec:  10e3, // 10 sec
 		Transmission_partial_idle_ttl_msec: 1e3,  // 1 sec
 	}
+	rcfg := &proto.RouterConfig{
+		Tree_fan_out: 5,
+	}
 	cfg0 := proto.Config{
 		Validator_config: &proto.ValidatorConfig{Private_info: *priv0, Known_validators: known},
 		Dogwood_config:   dcfg,
+		Router_config:    rcfg,
 	}
 	cfg1 := proto.Config{
 		Validator_config: &proto.ValidatorConfig{Private_info: *priv1, Known_validators: known},
 		Dogwood_config:   dcfg,
+		Router_config:    rcfg,
 	}
 	cfg2 := proto.Config{
 		Validator_config: &proto.ValidatorConfig{Private_info: *priv2, Known_validators: known},
 		Dogwood_config:   dcfg,
+		Router_config:    rcfg,
 	}
 
 	n := libnet.TCPNet{}
 	// n := quic.NewQUICNet(ctx)
-	bb0 := NewDogwoodBenchmark(ctx, r0, n, cfg0, testFanOut, testBytesPerPay, testNumIterations)
-	bb1 := NewDogwoodBenchmark(ctx, r1, n, cfg1, testFanOut, testBytesPerPay, testNumIterations)
-	bb2 := NewDogwoodBenchmark(ctx, r2, n, cfg2, testFanOut, testBytesPerPay, testNumIterations)
+	bb0 := NewDogwoodBenchmark(ctx, r0, n, cfg0, testBytesPerPay, testNumIterations)
+	bb1 := NewDogwoodBenchmark(ctx, r1, n, cfg1, testBytesPerPay, testNumIterations)
+	bb2 := NewDogwoodBenchmark(ctx, r2, n, cfg2, testBytesPerPay, testNumIterations)
 
 	bb0.Start(ctx, a0)
 	bb1.Start(ctx, a1)
