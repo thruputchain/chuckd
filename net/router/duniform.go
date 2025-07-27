@@ -47,7 +47,7 @@ func (x *dynamicUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, er
 
 func (x *dynamicUniformRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
-	_, vs = dedupFilterOutValidators(vs, protoutil.VIDOfPublic(x.Self())) // filter out self
+	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self
 	must.Assertf(ctx, len(vs) > 0, "empty quorum")
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
@@ -155,7 +155,7 @@ func divideRoundUp(x, y int) int {
 func dedupFilterOutValidators(vs []ValidatorPublicInfo, vid ValidatorID) (ValidatorPublicInfo, []ValidatorPublicInfo) {
 	m := map[ValidatorID]ValidatorPublicInfo{}
 	for _, v := range vs {
-		m[protoutil.VIDOfPublic(v)] = v
+		m[protoutil.PublicVID(v)] = v
 	}
 	found, ok := m[vid]
 	if !ok {

@@ -63,7 +63,7 @@ func (svc *SoloLeaderService) Sololeader_null(context.Context) error {
 func (svc *SoloLeaderService) Sololeader_nominate(ctx context.Context, nomination proto.SoloSignedNomination) error {
 
 	liblog.Infof("solo leader received nomination for slot %d from %v",
-		nomination.Nomination.Slot_index, protoutil.VIDString(protoutil.VIDOfPublic(nomination.Signer)))
+		nomination.Nomination.Slot_index, protoutil.VIDString(protoutil.PublicVID(nomination.Signer)))
 
 	// check signatures
 	if !protoutil.VerifyXdr(svc.m, nomination.Signer.Public_key, &nomination.Nomination, nomination.Signature) {

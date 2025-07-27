@@ -79,7 +79,7 @@ func (s *slot) nominate(_ context.Context, nomination proto.SoloNomination) {
 				s.lk.Lock()
 				defer s.lk.Unlock()
 
-				vid := protoutil.VIDOfPublic(v)
+				vid := protoutil.PublicVID(v)
 				hv, ok := s.validated[h]
 				if !ok {
 					hv = map[proto.ValidatorID]bool{}

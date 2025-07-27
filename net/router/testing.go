@@ -76,7 +76,7 @@ func (x *TestRouter) BuildDogwoodTree(vid ValidatorID) *dogwoodutil.LinkedTreeNo
 
 func TestTreeLinked(tt *TestTreeNode) *dogwoodutil.LinkedTreeNode {
 	l := &dogwoodutil.LinkedTreeNode{
-		Node:     protoutil.VIDOfPublic(tt.V),
+		Node:     protoutil.PublicVID(tt.V),
 		Children: make([]*dogwoodutil.LinkedTreeNode, len(tt.Children)),
 	}
 	for i, tc := range tt.Children {

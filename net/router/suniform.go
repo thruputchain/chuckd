@@ -38,11 +38,11 @@ func (x *staticUniformRouter) Self() proto.ValidatorPublicInfo {
 }
 
 func (x *staticUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
-	if vid == protoutil.VIDOfPublic(x.self) {
+	if vid == protoutil.PublicVID(x.self) {
 		return x.self.Address, nil
 	}
 	for _, k := range x.validators {
-		if vid == protoutil.VIDOfPublic(k) {
+		if vid == protoutil.PublicVID(k) {
 			return k.Address, nil
 		}
 	}
@@ -51,7 +51,7 @@ func (x *staticUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, err
 
 func (x *staticUniformRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
-	_, vs = dedupFilterOutValidators(vs, protoutil.VIDOfPublic(x.Self())) // filter out self
+	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self
 	must.Assertf(ctx, len(vs) > 0, "empty quorum")
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })

@@ -1,7 +1,6 @@
 package protoutil
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -11,12 +10,12 @@ import (
 
 const ShortHashLen = 5
 
-func VIDOfPublic(v proto.ValidatorPublicInfo) proto.ValidatorID {
-	return ValidatorPublicKeyToID(v.Public_key)
+func PublicVID(v proto.ValidatorPublicInfo) proto.ValidatorID {
+	return VPublicKeyToID(v.Public_key)
 }
 
-func ValidatorPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
-	return sha256.Sum256(pubKey[:])
+func VPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
+	return proto.ValidatorID(pubKey)
 }
 
 func VIDString(vid proto.ValidatorID) string {
@@ -24,7 +23,7 @@ func VIDString(vid proto.ValidatorID) string {
 }
 
 func VPublicShortString(pubInfo proto.ValidatorPublicInfo) string {
-	id := ValidatorPublicKeyToID(pubInfo.Public_key)
+	id := VPublicKeyToID(pubInfo.Public_key)
 	return fmt.Sprintf("(%s address:%s)", VIDString(id), pubInfo.Address)
 }
 
@@ -35,7 +34,7 @@ func ValidatorIDEqual(vid1 proto.ValidatorID, vid2 proto.ValidatorID) bool {
 func ValidatorPublicToIDs(vs []proto.ValidatorPublicInfo) map[proto.ValidatorID]bool {
 	ids := map[proto.ValidatorID]bool{}
 	for _, v := range vs {
-		ids[VIDOfPublic(v)] = true
+		ids[PublicVID(v)] = true
 	}
 	return ids
 }
@@ -49,7 +48,7 @@ func (vs ValidatorPublicInfos) Len() int {
 }
 
 func (vs ValidatorPublicInfos) Less(i, j int) bool {
-	return VIDString(VIDOfPublic(vs[i])) < VIDString(VIDOfPublic(vs[j]))
+	return VIDString(PublicVID(vs[i])) < VIDString(PublicVID(vs[j]))
 }
 
 func (vs ValidatorPublicInfos) Swap(i, j int) {

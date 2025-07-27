@@ -20,7 +20,7 @@ func NewTestDiscovery(ctx context.Context, vs []*proto.ValidatorPrivateInfo, sel
 }
 
 func (x *TestDiscovery) SelfID() proto.ValidatorID {
-	return protoutil.VIDOfPublic(x.vs[x.selfIndex].Public_info)
+	return protoutil.PublicVID(x.vs[x.selfIndex].Public_info)
 }
 
 func (x *TestDiscovery) SecretKey() proto.ValidatorSecretKey {
@@ -29,7 +29,7 @@ func (x *TestDiscovery) SecretKey() proto.ValidatorSecretKey {
 
 func (x *TestDiscovery) LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
 	for _, v := range x.vs {
-		if vid == protoutil.VIDOfPublic(v.Public_info) {
+		if vid == protoutil.PublicVID(v.Public_info) {
 			return v.Public_info, true
 		}
 	}

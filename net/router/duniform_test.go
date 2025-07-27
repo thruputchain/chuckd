@@ -55,7 +55,7 @@ func TestBasicDogwood(t *testing.T) {
 	maxFanOut := 3
 	tree := buildDogwoodTree(
 		maxFanOut,
-		protoutil.VIDOfPublic(vs[0]),
+		protoutil.PublicVID(vs[0]),
 		protoutil.ValidatorPublicToIDs(vs[1:]),
 	)
 

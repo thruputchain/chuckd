@@ -49,7 +49,7 @@ func NewBroadcast3Harness(cfg proto.BroadcastConfig, n libnet.Network, a0, a1, a
 	}
 	trees := map[router.TestTreeKey]*router.TestTreeNode{
 		// 0 -> 1, 0 -> 2
-		{VID: protoutil.VIDOfPublic(t.V[0].Public_info)}: {
+		{VID: protoutil.PublicVID(t.V[0].Public_info)}: {
 			V: t.V[0].Public_info,
 			Children: []*router.TestTreeNode{
 				{V: t.V[1].Public_info},
@@ -57,7 +57,7 @@ func NewBroadcast3Harness(cfg proto.BroadcastConfig, n libnet.Network, a0, a1, a
 			},
 		},
 		// 1 -> 2 -> 0
-		{VID: protoutil.VIDOfPublic(t.V[1].Public_info)}: {
+		{VID: protoutil.PublicVID(t.V[1].Public_info)}: {
 			V: t.V[1].Public_info,
 			Children: []*router.TestTreeNode{
 				{
@@ -69,7 +69,7 @@ func NewBroadcast3Harness(cfg proto.BroadcastConfig, n libnet.Network, a0, a1, a
 			},
 		},
 		// 2 -> 0 -> 1
-		{VID: protoutil.VIDOfPublic(t.V[2].Public_info)}: {
+		{VID: protoutil.PublicVID(t.V[2].Public_info)}: {
 			V: t.V[2].Public_info,
 			Children: []*router.TestTreeNode{
 				{

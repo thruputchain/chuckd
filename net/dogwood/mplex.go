@@ -61,7 +61,7 @@ loop:
 }
 
 func (x *Multiplex) selfString() string {
-	return protoutil.VIDString(protoutil.VIDOfPublic(x.router.Self()))
+	return protoutil.VIDString(protoutil.PublicVID(x.router.Self()))
 }
 
 func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedTreeNode) {

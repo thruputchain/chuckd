@@ -103,5 +103,5 @@ func (svc *BroadcastService) SecretKey() proto.ValidatorSecretKey {
 }
 
 func (svc *BroadcastService) ValidatorID() proto.ValidatorID {
-	return protoutil.VIDOfPublic(svc.ValidatorPublicInfo())
+	return protoutil.PublicVID(svc.ValidatorPublicInfo())
 }

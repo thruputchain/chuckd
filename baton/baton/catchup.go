@@ -85,7 +85,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 	// mark pending request
 	b.catchupRequests[id] = catchupRequest{
-		validator: protoutil.VIDOfPublic(src[0]),
+		validator: protoutil.PublicVID(src[0]),
 		spans:     spans,
 	}
 
@@ -138,7 +138,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
 			result = append(result, CatchupBlock{
-				Source: protoutil.VIDOfPublic(src),
+				Source: protoutil.PublicVID(src),
 				Stamp:  now,
 				Block:  &block,
 				Txs:    protoutil.UnpackProposedTransactions(block.Proposed_transactions),

@@ -63,7 +63,7 @@ func NewDiscoveryService(
 	s.ourVIDs = map[proto.ValidatorID]proto.ValidatorPublicInfo{}
 	s.ourVIDs[s.SelfID()] = s.Self()
 	for _, v := range s.ourValidators {
-		s.ourVIDs[protoutil.VIDOfPublic(v)] = v
+		s.ourVIDs[protoutil.PublicVID(v)] = v
 	}
 
 	go s.advertise(ctx)
@@ -79,7 +79,7 @@ func (s *DiscoveryService) Self() proto.ValidatorPublicInfo {
 }
 
 func (s *DiscoveryService) SelfID() proto.ValidatorID {
-	return protoutil.VIDOfPublic(s.Self())
+	return protoutil.PublicVID(s.Self())
 }
 
 func (s *DiscoveryService) LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool) {
@@ -134,7 +134,7 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 	}
 
 	// add qsets only if more recent than currently known
-	key := protoutil.ValidatorPublicKeyToID(qset.Signer.Public_key)
+	key := protoutil.VPublicKeyToID(qset.Signer.Public_key)
 	if current, ok := s.knownQSets[key]; ok {
 		if current.Quorum_set_snapshot.Timestamp < qset.Quorum_set_snapshot.Timestamp {
 			s.knownQSets[key] = qset
@@ -153,7 +153,7 @@ func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
 	}
 
 	// add validator info only if more recent than currently known
-	key := protoutil.ValidatorPublicKeyToID(v.Validator_snapshot.Validator.Public_key)
+	key := protoutil.VPublicKeyToID(v.Validator_snapshot.Validator.Public_key)
 	if current, ok := s.knownVs[key]; ok {
 		if current.Validator_snapshot.Timestamp < v.Validator_snapshot.Timestamp {
 			s.knownVs[key] = v
@@ -189,10 +189,10 @@ func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
 	// validators
 	vv := map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{}
 	for _, v := range s.ourValidators {
-		vv[protoutil.VIDOfPublic(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.m, s.privInfo, v)
+		vv[protoutil.PublicVID(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.m, s.privInfo, v)
 	}
 	for _, v := range s.knownVs {
-		key := protoutil.VIDOfPublic(v.Signer)
+		key := protoutil.PublicVID(v.Signer)
 		_, ok := vv[key]
 		if !ok { // prioritize our info
 			vv[key] = v

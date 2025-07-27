@@ -13,13 +13,13 @@ type StaticDiscovery struct {
 func NewStaticDiscovery(self proto.ValidatorPrivateInfo, known []proto.ValidatorPublicInfo) Discovery {
 	k := map[proto.ValidatorID]proto.ValidatorPublicInfo{}
 	for _, v := range known {
-		k[protoutil.VIDOfPublic(v)] = v
+		k[protoutil.PublicVID(v)] = v
 	}
 	return &StaticDiscovery{self: self, known: k}
 }
 
 func (x *StaticDiscovery) SelfID() proto.ValidatorID {
-	return protoutil.VIDOfPublic(x.self.Public_info)
+	return protoutil.PublicVID(x.self.Public_info)
 }
 
 func (x *StaticDiscovery) SecretKey() proto.ValidatorSecretKey {

@@ -71,7 +71,7 @@ func NewDogwood3Harness(
 	}
 	trees := map[router.TestTreeKey]*router.TestTreeNode{
 		// 0 -> 1, 0 -> 2
-		{VID: protoutil.VIDOfPublic(t.vs[0].Public_info)}: {
+		{VID: protoutil.PublicVID(t.vs[0].Public_info)}: {
 			V: t.vs[0].Public_info,
 			Children: []*router.TestTreeNode{
 				{V: t.vs[1].Public_info},
@@ -79,7 +79,7 @@ func NewDogwood3Harness(
 			},
 		},
 		// 1 -> 2 -> 0
-		{VID: protoutil.VIDOfPublic(t.vs[1].Public_info)}: {
+		{VID: protoutil.PublicVID(t.vs[1].Public_info)}: {
 			V: t.vs[1].Public_info,
 			Children: []*router.TestTreeNode{
 				{
@@ -91,7 +91,7 @@ func NewDogwood3Harness(
 			},
 		},
 		// 2 -> 0 -> 1
-		{VID: protoutil.VIDOfPublic(t.vs[2].Public_info)}: {
+		{VID: protoutil.PublicVID(t.vs[2].Public_info)}: {
 			V: t.vs[2].Public_info,
 			Children: []*router.TestTreeNode{
 				{
@@ -117,7 +117,7 @@ func NewDogwood3Harness(
 }
 
 func (x *Dogwood3Harness) VID(i int) proto.ValidatorID {
-	return protoutil.VIDOfPublic(x.vs[i].Public_info)
+	return protoutil.PublicVID(x.vs[i].Public_info)
 }
 
 func (x *Dogwood3Harness) String(i int) string {

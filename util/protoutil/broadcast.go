@@ -24,7 +24,7 @@ func VerifyDelivery(m xdrutil.XdrMarshaler, delivery proto.Delivery) bool {
 	}
 
 	if !ValidatorIDEqual(
-		VIDOfPublic(delivery.Msg.Header.Source),
+		PublicVID(delivery.Msg.Header.Source),
 		delivery.Msg.Header.Channel.Source_id,
 	) {
 		return false

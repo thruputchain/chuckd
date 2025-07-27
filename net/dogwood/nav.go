@@ -66,7 +66,7 @@ func NewNavigator(
 		time:      time,
 		rand:      rand,
 		router:    router,
-		self:      protoutil.VIDOfPublic(router.Self()),
+		self:      protoutil.PublicVID(router.Self()),
 		ttLive:    ttLive,
 		ttUse:     ttUse,
 		nRoutes:   nRoutes,
