@@ -94,7 +94,7 @@ func NewDogwoodBenchmark(
 		ctx,
 		cfg.Validator_config.Private_info.Public_info,
 		cfg.Validator_config.Known_validators,
-		fanOut,
+		fanOut, //XXX: from config?
 	)
 
 	dw := dogwood.NewDogwoodService(

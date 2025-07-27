@@ -57,10 +57,10 @@ func TestDogwood(t *testing.T) {
 		Endpoint_redial_delay_msec: 50,   // 50 msec
 		//
 		Stream_receiver_worker_count: 10,
-		Stream_sender_worker_count:   2,
+		Stream_sender_worker_count:   15,
 		//
 		Transmission_receiver_decode_worker_count: 10,
-		Transmission_sender_worker_count:          2,
+		Transmission_sender_worker_count:          15,
 		//
 		Transmission_partial_max_ttl_msec:  10e3, // 10 sec
 		Transmission_partial_idle_ttl_msec: 1e3,  // 1 sec

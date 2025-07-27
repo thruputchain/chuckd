@@ -6,21 +6,27 @@ import "github.com/groundhogchain/chuckd/net/magnolia"
 
 func CalcRegime(numPayloadBytes int) magnolia.Regime {
 	switch {
-	case numPayloadBytes < 500e3:
+	case numPayloadBytes < 100e3:
 		return magnolia.Regime{ // max 10 chunks per sheaf
 			NumPaySheaves:    1,
+			NumParitySheaves: 2,
+			MaxBytesPerChunk: 34e3,
+		}
+	case numPayloadBytes < 500e3:
+		return magnolia.Regime{ // max 10 chunks per sheaf
+			NumPaySheaves:    5,
 			NumParitySheaves: 2,
 			MaxBytesPerChunk: 50e3,
 		}
 	case numPayloadBytes < 1e6:
 		return magnolia.Regime{ // max 10 chunks per sheaf
-			NumPaySheaves:    1,
+			NumPaySheaves:    5,
 			NumParitySheaves: 2,
 			MaxBytesPerChunk: 100e3,
 		}
 	case numPayloadBytes < 10e6:
 		return magnolia.Regime{ // max 10 chunks per sheaf
-			NumPaySheaves:    4,
+			NumPaySheaves:    5,
 			NumParitySheaves: 2,
 			MaxBytesPerChunk: 250e3,
 		}
