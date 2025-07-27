@@ -76,7 +76,7 @@ func (def BenchDogwoodExecDef) ExecScripts(
 		Dogwood_config: &proto.DogwoodConfig{
 			Route_count:             7,
 			Route_time_to_live_msec: 60e3, // 1 minute
-			Route_time_to_use_msec:  1e3,  // 1 sec
+			Route_max_latency_msec:  1e3,  // 1 sec
 			//
 			Endpoint_max_pending:       4000,
 			Endpoint_num_clients:       10,

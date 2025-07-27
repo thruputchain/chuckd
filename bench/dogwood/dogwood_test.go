@@ -48,7 +48,7 @@ func TestDogwood(t *testing.T) {
 	dcfg := &proto.DogwoodConfig{
 		Route_count:             7,
 		Route_time_to_live_msec: 60e3, // 1 minute
-		Route_time_to_use_msec:  200,  // 200 msec
+		Route_max_latency_msec:  200,  // 200 msec
 		//
 		Endpoint_max_pending:       100,
 		Endpoint_num_clients:       10,

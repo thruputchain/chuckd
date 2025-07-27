@@ -27,10 +27,10 @@ type Navigator struct {
 	disseminator RouteDisseminator
 	router       router.DogwoodRouter
 	// params
-	self    proto.ValidatorID
-	ttLive  time.Duration // ttl for a reusable route
-	ttUse   time.Duration // max duration of route in use, i.e. max duration of dissemination
-	nRoutes int           // number of reusable routes at any time
+	self            proto.ValidatorID
+	routeTTL        time.Duration
+	routeMaxLatency time.Duration // maximum broadcast latency
+	nRoutes         int           // number of reusable routes at any time
 	// state
 	lk     sync.Mutex
 	ours   map[proto.DogwoodTreeHash]*stampedRoute
@@ -38,6 +38,7 @@ type Navigator struct {
 	// perf
 	marshaler xdrutil.XdrMarshaler
 	// signaling
+	green sync.Once
 	ready chan struct{}
 	// meters
 	routeNotFound libstat.Counter
@@ -58,28 +59,29 @@ func NewNavigator(
 	time libtime.Time,
 	rand *rand.Rand,
 	router router.DogwoodRouter,
-	ttLive time.Duration, // route ttl
-	ttUse time.Duration, // max duration of route in use, i.e. max duration of dissemination
+	routeTTL time.Duration, // route ttl
+	routeMaxLatency time.Duration, // max duration of propagation along a route
 	nRoutes int, // number of available routes at any time
 ) *Navigator {
 	return &Navigator{
-		time:      time,
-		rand:      rand,
-		router:    router,
-		self:      protoutil.PublicVID(router.Self()),
-		ttLive:    ttLive,
-		ttUse:     ttUse,
-		nRoutes:   nRoutes,
-		ours:      map[proto.DogwoodTreeHash]*stampedRoute{},
-		theirs:    map[proto.DogwoodTreeHash]*stampedRoute{},
-		marshaler: xdrutil.NewXdrMarshaler(),
-		ready:     make(chan struct{}),
+		time:            time,
+		rand:            rand,
+		router:          router,
+		self:            protoutil.PublicVID(router.Self()),
+		routeTTL:        routeTTL,
+		routeMaxLatency: routeMaxLatency,
+		nRoutes:         nRoutes,
+		ours:            map[proto.DogwoodTreeHash]*stampedRoute{},
+		theirs:          map[proto.DogwoodTreeHash]*stampedRoute{},
+		marshaler:       xdrutil.NewXdrMarshaler(),
+		ready:           make(chan struct{}),
 	}
 }
 
 func (nav *Navigator) Start(ctx context.Context, disseminator RouteDisseminator) {
 	nav.disseminator = disseminator
 	go nav.refill(ctx)
+	go nav.advertise(ctx)
 	go nav.expire(ctx)
 }
 
@@ -107,7 +109,12 @@ func (nav *Navigator) CacheRoute(ctx context.Context, t *dogwoodutil.LinkedTreeN
 	nav.lk.Lock()
 	defer nav.lk.Unlock()
 
-	nav.theirs[dogwoodutil.TreeHash(nav.marshaler, t)] = &stampedRoute{Stamp: nav.time.Now(), Tree: t}
+	h := dogwoodutil.TreeHash(nav.marshaler, t)
+	if _, ok := nav.theirs[h]; ok {
+		return
+	}
+
+	nav.theirs[h] = &stampedRoute{Stamp: nav.time.Now(), Tree: t}
 }
 
 func (nav *Navigator) LookupRoute(ctx context.Context, h proto.DogwoodTreeHash) (NavRoute, error) {
@@ -144,7 +151,7 @@ func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 	now := nav.time.Now()
 	for h, sr := range nav.ours { // ranging over a map randomizes the route choice
 		// skip routes that are too old (use routes no older than stamp+ttLive)
-		if now.Sub(sr.Stamp) > nav.ttLive {
+		if now.Sub(sr.Stamp) > nav.routeTTL {
 			continue
 		}
 		downstream, ok := sr.Tree.FindChildren(nav.self)
@@ -155,54 +162,67 @@ func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 	return NavRoute{}, fmt.Errorf("no available routes")
 }
 
-func (nav *Navigator) refill(ctx context.Context) {
-	var green sync.Once
-	tick := nav.ttLive / 3
-	for {
-		now := nav.time.Now()
-		next := now.Add(2 * tick)
+func (nav *Navigator) replenish(ctx context.Context, m int) {
 
-		// count number of routes which will still be live on the next iteration
+	if m == 0 {
+		return
+	}
+
+	rs := make([]*dogwoodutil.LinkedTreeNode, m)
+	for i := 0; i < m; i++ {
+		rs[i] = nav.router.BuildDogwoodTree(nav.self)
+	}
+
+	nav.disseminator.DisseminateRoutes(ctx, rs)
+	nav.time.Sleep(nav.routeMaxLatency) // wait for routes to propagate
+
+	now := nav.time.Now()
+
+	nav.lk.Lock()
+	for _, t := range rs {
+		h := dogwoodutil.TreeHash(nav.marshaler, t)
+		nav.ours[h] = &stampedRoute{Stamp: now, Tree: t}
+	}
+	nav.lk.Unlock()
+
+	nav.green.Do(func() { close(nav.ready) })
+}
+
+func (nav *Navigator) refill(ctx context.Context) {
+	for {
+		nav.replenish(ctx, nav.nRoutes)
+		nav.time.Sleep(nav.routeTTL / 2)
+	}
+}
+
+func (nav *Navigator) advertise(ctx context.Context) {
+	for {
+		nav.time.Sleep(nav.routeMaxLatency * 7)
+		now := nav.time.Now()
+
+		// pick routes eligible to readvertise
 		nav.lk.Lock()
-		nWillBeLive := 0
-		for _, sr := range nav.ours {
-			eol := sr.Stamp.Add(nav.ttLive) // end of life for route; it won't be used after
-			if next.Compare(eol) < 0 {
-				nWillBeLive += 1
+		rs := make([]*dogwoodutil.LinkedTreeNode, 0)
+		for _, v := range nav.ours {
+			if now.Sub(v.Stamp) < nav.routeTTL-2*nav.routeMaxLatency {
+				rs = append(rs, v.Tree)
 			}
 		}
 		nav.lk.Unlock()
 
-		// replenish routes
-		m := max(0, nav.nRoutes-nWillBeLive)
-		rs := make([]*dogwoodutil.LinkedTreeNode, m)
-		for i := 0; i < m; i++ {
-			rs[i] = nav.router.BuildDogwoodTree(nav.self)
-		}
 		nav.disseminator.DisseminateRoutes(ctx, rs)
-
-		green.Do(func() { close(nav.ready) })
-
-		if len(rs) > 0 {
-			nav.lk.Lock()
-			for _, t := range rs {
-				h := dogwoodutil.TreeHash(nav.marshaler, t)
-				nav.ours[h] = &stampedRoute{Stamp: now, Tree: t}
-			}
-			nav.lk.Unlock()
-		}
-
-		nav.time.Sleep(tick)
+		nav.time.Sleep(nav.routeMaxLatency) // wait for routes to propagate
 	}
 }
 
 func (nav *Navigator) expire(_ context.Context) {
 	for {
-		nav.time.Sleep(nav.ttLive)
+		nav.time.Sleep(min(nav.routeTTL, 2*nav.routeMaxLatency))
 		now := nav.time.Now()
+
 		nav.lk.Lock()
 		for key, sr := range nav.ours {
-			if now.Sub(sr.Stamp) > nav.ttLive+nav.ttUse {
+			if now.Sub(sr.Stamp) > nav.routeTTL-2*nav.routeMaxLatency {
 				delete(nav.ours, key)
 			}
 		}
@@ -210,7 +230,7 @@ func (nav *Navigator) expire(_ context.Context) {
 			liblog.Errorf("no navigator routes left")
 		}
 		for key, sr := range nav.theirs {
-			if now.Sub(sr.Stamp) > nav.ttLive+nav.ttUse {
+			if now.Sub(sr.Stamp) > nav.routeTTL+nav.routeMaxLatency {
 				delete(nav.theirs, key)
 			}
 		}

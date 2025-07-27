@@ -49,7 +49,7 @@ func NewDogwoodService(
 	x.dialer = NewDogwoodClientDialer(net, router)
 
 	routeTTLive := time.Millisecond * time.Duration(cfg.Route_time_to_live_msec)
-	routeTTUse := time.Millisecond * time.Duration(cfg.Route_time_to_use_msec)
+	routeTTUse := time.Millisecond * time.Duration(cfg.Route_max_latency_msec)
 
 	x.nav = NewNavigator(
 		ctx, time_, librand.NewFromRand(rand), x.router,
