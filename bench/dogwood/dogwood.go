@@ -79,7 +79,7 @@ func NewDogwoodBenchmark(
 	ctx context.Context,
 	rand *rand.Rand,
 	net libnet.Network,
-	cfg proto.Config, // uses ValidatorConfig and BroadcastConfig
+	cfg proto.Config, // uses ValidatorConfig, RouteConfig, and DogwoodConfig
 	numPayBytes int,
 	numIterations int,
 ) *DogwoodBenchmark {

@@ -14,7 +14,6 @@ func TestDogwoodLocalScript(t *testing.T) {
 
 	def := BenchDogwoodExecDef{
 		QUIC:          true,
-		FanOut:        5,
 		BytesPerPay:   300e3,
 		NumIterations: 50000,
 		MetricsPort:   2222,
