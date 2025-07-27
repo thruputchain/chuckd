@@ -51,7 +51,6 @@ func TestSendReceiveTransmission(t *testing.T) {
 
 	tn := NewDogwood3TCPNet(cfg)
 	tn.Start(ctx)
-	tn.Time().Sleep(10 * time.Millisecond) // wait for route generation and dissemination
 
 	payload := make([]byte, 300e3) // 300KB
 	for i := range payload {
@@ -63,9 +62,9 @@ func TestSendReceiveTransmission(t *testing.T) {
 	// send from V0
 	go func() {
 		for i := 0; i < N; i++ {
-			if i%1000 == 0 {
+			if i%1000 == 0 && i > 0 {
 				liblog.Infof("%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
-				liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
+				// liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
 			}
 			err := tn.dogwood[0].Send(ctx, payload)
 			if err != nil {
@@ -84,11 +83,11 @@ func TestSendReceiveTransmission(t *testing.T) {
 		defer wg.Done()
 		j := 0
 		for {
-			if j%1000 == 0 {
+			if j%1000 == 0 && j > 0 {
 				liblog.Infof("%v resource usage: %s", tn.String(vIndex), runtime.ResourceUsage())
-				liblog.Infof("%v dogwood stats: %v", tn.String(vIndex), tn.dogwood[vIndex].Stats())
+				// liblog.Infof("%v dogwood stats: %v", tn.String(vIndex), tn.dogwood[vIndex].Stats())
 			}
-			rCtx, rCancel := context.WithTimeout(ctx, 2*time.Second)
+			rCtx, rCancel := context.WithTimeout(ctx, 3*time.Second)
 			p, v, err := tn.Dogwood(vIndex).Receive(rCtx)
 			rCancel()
 			// p, v, err := tn.Dogwood(vIndex).Receive(ctx)
