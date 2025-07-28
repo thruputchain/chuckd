@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"time"
 )
 
 type Network interface {
@@ -37,5 +38,10 @@ func (TCPNet) ListenAddress(ctx context.Context, address string) (net.Listener, 
 }
 
 func (TCPNet) DialAddress(ctx context.Context, address string) (net.Conn, error) {
-	return net.Dial("tcp", address)
+	deadline, ok := ctx.Deadline()
+	if ok {
+		return net.DialTimeout("tcp", address, time.Until(deadline))
+	} else {
+		return net.Dial("tcp", address)
+	}
 }

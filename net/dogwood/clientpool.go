@@ -22,6 +22,7 @@ type ClientPool struct {
 	time        libtime.Time
 	dialer      DogwoodDialer
 	maxClients  int
+	dialTimeout time.Duration
 	redialDelay time.Duration
 	//
 	lk           sync.Mutex
@@ -38,6 +39,7 @@ func NewClientPool(
 	dialer DogwoodDialer,
 	address proto.ValidatorID,
 	maxClients int,
+	dialTimeout time.Duration,
 	redialDelay time.Duration,
 ) *ClientPool {
 	return &ClientPool{
@@ -45,6 +47,7 @@ func NewClientPool(
 		time:        time_,
 		dialer:      dialer,
 		maxClients:  maxClients,
+		dialTimeout: dialTimeout,
 		redialDelay: redialDelay,
 		clients:     map[DogwoodClientCloser]int{},
 	}
@@ -64,7 +67,7 @@ var (
 	ErrClientPoolNotFull = fmt.Errorf("dogwood client pool: not full")
 )
 
-func (x *ClientPool) leaseFromPool(ctx context.Context) (client DogwoodClientCloser, err error) {
+func (x *ClientPool) leaseFromPool(_ context.Context) (client DogwoodClientCloser, err error) {
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
@@ -169,6 +172,8 @@ func (x *ClientPool) dial(ctx context.Context) (DogwoodClientCloser, error) {
 		return nil, fmt.Errorf("recently unreachable")
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, x.dialTimeout)
+	defer cancel()
 	c, err := x.dialer.Dial(ctx, x.address)
 	if err != nil {
 		now := x.time.Now()

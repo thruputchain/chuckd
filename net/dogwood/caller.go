@@ -28,13 +28,16 @@ type caller struct {
 	endpointMaxPending  int           // maximum number of pending (inflight) calls to an endpoint
 	endpointNumClients  int           // number of client connections to endpoint
 	endpointIdleTTL     time.Duration // discard idle endpoints after ttl
+	endpointDialTimeout time.Duration
 	endpointRedialDelay time.Duration
+	endpointCallTimeout time.Duration
 	// state
 	lk        sync.Mutex
 	endpoints map[proto.ValidatorID]*endpoint
 }
 
 type endpoint struct {
+	parent      *caller
 	lastUse     time.Time // accessed by caller under caller's lock (in getEndpoint and expire)
 	addr        proto.ValidatorID
 	time        libtime.Time
@@ -51,7 +54,9 @@ func NewCaller(
 	endpointMaxPending int,
 	endpointNumClients int,
 	endpointIdleTTL time.Duration,
+	endpointDialTimeout time.Duration,
 	endpointRedialDelay time.Duration,
+	endpointCallTimeout time.Duration,
 ) Caller {
 	return &caller{
 		ctx:                 ctx,
@@ -60,7 +65,9 @@ func NewCaller(
 		endpointMaxPending:  endpointMaxPending,
 		endpointNumClients:  endpointNumClients,
 		endpointIdleTTL:     endpointIdleTTL,
+		endpointDialTimeout: endpointDialTimeout,
 		endpointRedialDelay: endpointRedialDelay,
+		endpointCallTimeout: endpointCallTimeout,
 		endpoints:           map[proto.ValidatorID]*endpoint{},
 	}
 }
@@ -107,11 +114,12 @@ func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, arg
 func (x *caller) newEndpoint(ctx context.Context, addr proto.ValidatorID) *endpoint {
 
 	return &endpoint{
+		parent: x,
 		// last: set by getEndpoint; accessed under caller.lk
 		addr:        addr,
 		time:        x.time,
 		callWorkers: libflow.NewSubmitWorkerPool(ctx, x.endpointMaxPending),
-		client:      NewClientPool(ctx, x.time, x.dialer, addr, x.endpointNumClients, x.endpointRedialDelay),
+		client:      NewClientPool(ctx, x.time, x.dialer, addr, x.endpointNumClients, x.endpointDialTimeout, x.endpointRedialDelay),
 	}
 }
 
@@ -122,6 +130,8 @@ func (x *endpoint) Stop() {
 func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
 	x.callWorkers.Submit(
 		func() {
+			ctx, cancel := context.WithTimeout(ctx, x.parent.endpointCallTimeout)
+			defer cancel()
 			err := x.client.Dogwood_deliver(ctx, arg)
 			if err != nil {
 				liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)

@@ -34,10 +34,13 @@ func TestSendReceiveTransmission(t *testing.T) {
 		Route_time_to_live_msec: 60e3, // 1 minute
 		Route_max_latency_msec:  200,  // 200 msec
 		//
-		Endpoint_max_pending:       10,
-		Endpoint_num_clients:       10,
+		Endpoint_max_pending: 10,
+		Endpoint_num_clients: 10,
+		//
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
+		Endpoint_dial_timeout_msec: 10e3, // 2 sec
 		Endpoint_redial_delay_msec: 100,  // 100 msec
+		Endpoint_call_timeout_msec: 2e3,  // 2 sec
 		//
 		Stream_receiver_worker_count: 128,
 		Stream_sender_worker_count:   2,

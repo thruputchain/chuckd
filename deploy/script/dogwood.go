@@ -78,10 +78,13 @@ func (def BenchDogwoodExecDef) ExecScripts(
 			Route_time_to_live_msec: 60e3, // 1 minute
 			Route_max_latency_msec:  1e3,  // 1 sec
 			//
-			Endpoint_max_pending:       4000,
-			Endpoint_num_clients:       10,
+			Endpoint_max_pending: 4000,
+			Endpoint_num_clients: 10,
+			//
 			Endpoint_idle_ttl_msec:     60e3, // 1 minute
+			Endpoint_dial_timeout_msec: 2e3,  // 2 sec
 			Endpoint_redial_delay_msec: 100,  // 100 msec
+			Endpoint_call_timeout_msec: 2e3,  // 2 sec
 			//
 			Stream_receiver_worker_count: 512,
 			Stream_sender_worker_count:   32,

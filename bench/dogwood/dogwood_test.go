@@ -24,8 +24,6 @@ func TestMain(m *testing.M) {
 func TestDogwood(t *testing.T) {
 
 	ctx := context.Background()
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	// defer cancel()
 
 	testBytesPerPay := 300000
 	testNumIterations := 50000
@@ -53,7 +51,9 @@ func TestDogwood(t *testing.T) {
 		Endpoint_max_pending:       100,
 		Endpoint_num_clients:       10,
 		Endpoint_idle_ttl_msec:     60e3, // 1 minute
+		Endpoint_dial_timeout_msec: 2e3,  // 2 sec
 		Endpoint_redial_delay_msec: 50,   // 50 msec
+		Endpoint_call_timeout_msec: 2e3,  // 2 sec
 		//
 		Stream_receiver_worker_count: 10,
 		Stream_sender_worker_count:   15,

@@ -25,7 +25,7 @@ func DialDogwoodClient(ctx context.Context, dialer libnet.AddressDialer, mp *rpc
 	if err != nil {
 		return nil, err
 	}
-	return NewDogwoodClient(ctx, mp, sock), nil
+	return NewDogwoodClient(context.WithoutCancel(ctx), mp, sock), nil
 }
 
 func NewDogwoodClient(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *DogwoodClient {

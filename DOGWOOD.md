@@ -58,7 +58,9 @@ go install github.com/groundhogchain/chuckd@latest
         "endpoint_max_pending": 4000, # maximum pending requests per endpoint
         "endpoint_num_clients": 10, # number of TCP connections per endpoint
         "endpoint_idle_ttl_msec": "60000", # disconnect from an endpoint if idle for 1 minute
+        "endpoint_dial_timeout_msec": "2000", # wait at most 1 sec to establish a connection
         "endpoint_redial_delay_msec": "100", # redial unresponsive endpoints after 100 msec
+        "endpoint_call_timeout_msec": "2000", # wait at most 2 sec for replies to rpc calls
         "stream_receiver_worker_count": 512,
         "stream_sender_worker_count": 32,
         "transmission_receiver_decode_worker_count": 512,

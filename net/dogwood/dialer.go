@@ -15,7 +15,6 @@ type DogwoodDialer interface {
 }
 
 type dogwoodClientDialer struct {
-	mp     *rpc.MsgPool
 	net    libnet.Network
 	router router.DogwoodRouter
 }
@@ -28,7 +27,7 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	if err != nil {
 		return nil, err
 	}
-	c, err := DialDogwoodClient(ctx, x.net, x.mp, addr)
+	c, err := DialDogwoodClient(ctx, x.net, rpc.NewMsgPool(), addr)
 	if err != nil {
 		return nil, err
 	}
@@ -36,5 +35,5 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 }
 
 func NewDogwoodClientDialer(net libnet.Network, router router.DogwoodRouter) DogwoodDialer {
-	return dogwoodClientDialer{mp: rpc.NewMsgPool(), net: net, router: router}
+	return dogwoodClientDialer{net: net, router: router}
 }

@@ -57,12 +57,14 @@ func NewDogwoodService(
 	)
 
 	endpointIdleTTL := time.Millisecond * time.Duration(cfg.Endpoint_idle_ttl_msec)
+	endpointDialTimeout := time.Millisecond * time.Duration(cfg.Endpoint_dial_timeout_msec)
 	endpointRedialDelay := time.Millisecond * time.Duration(cfg.Endpoint_redial_delay_msec)
+	endpointCallTimeout := time.Millisecond * time.Duration(cfg.Endpoint_call_timeout_msec)
 
 	x.caller = NewCaller(
 		ctx, time_, x.dialer,
 		int(cfg.Endpoint_max_pending), int(cfg.Endpoint_num_clients),
-		endpointIdleTTL, endpointRedialDelay,
+		endpointIdleTTL, endpointDialTimeout, endpointRedialDelay, endpointCallTimeout,
 	)
 
 	x.streamReceiver = NewStreamReceiver(
