@@ -30,3 +30,14 @@ func TestSign(t *testing.T) {
 	}
 	fmt.Printf("signing %v/sec\n", humanize.Bytes(uint64(thru.SpeedPerSec())))
 }
+
+func TestSignVerify(t *testing.T) {
+	ctx := context.Background()
+	priv := MustGenerateIdentity(ctx, librand.New(), "")
+	msg := make([]byte, 300e3)
+	signature := SignBytes(priv.Secret_key, msg)
+	ok := VerifyBytes(priv.Public_info.Public_key, msg, (*signature.Ed25519())[:])
+	if !ok {
+		t.Errorf("not verifiable")
+	}
+}
