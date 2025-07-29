@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
@@ -81,9 +82,9 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 		route, _ = r.nav.LookupRoute(ctx, *env.Delivery.Route.Route_hash)
 	}
 
-	// verify signature, if coming from a trusted validator
-	// XXX: what should we do with signatures from non-direct contact validators?
-	if v, ok := r.discovery.LookupTrustedValidator(env.Delivery.Stream.Source_id); ok {
+	// verify signature, if coming from a known validator
+	// XXX: should we verify regardless who its from?
+	if v, ok := r.discovery.LookupValidator(env.Delivery.Stream.Source_id); ok {
 		if !protoutil.VerifyXdr(r.m, v.Public_key, &env.Delivery, env.Signature) {
 			return
 		}
@@ -92,7 +93,10 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	r.proc.OnReceive(env.Delivery.Stream.Source_id, &env.Delivery.Pkg)
 
 	for _, d := range route.Downstream {
-		r.caller.DogwoodDeliver(ctx, d, env)
+		err := r.caller.DogwoodDeliver(ctx, d, env)
+		if err != nil {
+			liblog.Infof("forwarding delivery: %v", err)
+		}
 	}
 }
 

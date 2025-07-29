@@ -75,7 +75,7 @@ go install github.com/groundhogchain/chuckd@latest
 
 ```sh
 chuckd \
-    -l error \ # log levels: "debug", "info", "error" (use "error" for production)
+    -l info \ # log levels: "debug", "info", "error" (use "error" for production)
     --config config.json \
 	--stack \ # --stack will cause the server to print a stack trace when killed or interrupted
 	--seed 12345678 \ # --seed seeds the randomness used by the server

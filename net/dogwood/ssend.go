@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -168,7 +169,10 @@ func (x *SendStream) Send(ctx context.Context, pkg *proto.DogwoodPackage) {
 			}
 
 			for _, d := range x.nav.Downstream {
-				x.parent.caller.DogwoodDeliver(ctx, d, env)
+				err := x.parent.caller.DogwoodDeliver(ctx, d, env)
+				if err != nil {
+					liblog.Infof("sending delivery: %v", err)
+				}
 			}
 		},
 	)
