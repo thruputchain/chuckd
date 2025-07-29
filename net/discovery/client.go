@@ -24,7 +24,7 @@ func DialDiscoveryClient(ctx context.Context, dialer libnet.AddressDialer, addre
 }
 
 func NewDiscoveryClient(ctx context.Context, sock net.Conn) *DiscoveryClient {
-	driver := rpcutil.NewDriverSerial(ctx, rpc.NewMsgPool(), sock)
+	driver := rpcutil.NewDriverSerial(ctx, rpc.NewMsgArena(), sock)
 	go driver.Go()
 
 	return &DiscoveryClient{
