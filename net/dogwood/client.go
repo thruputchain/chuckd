@@ -20,7 +20,7 @@ type DogwoodClient struct {
 	driver *rpc.Driver
 }
 
-func DialDogwoodClient(ctx context.Context, dialer libnet.AddressDialer, mp *rpc.MsgPool, addr string) (*DogwoodClient, error) {
+func DialDogwoodClient(ctx context.Context, dialer libnet.AddressDialer, mp rpc.MessagePool, addr string) (*DogwoodClient, error) {
 	sock, err := dialer.DialAddress(ctx, addr)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func DialDogwoodClient(ctx context.Context, dialer libnet.AddressDialer, mp *rpc
 	return NewDogwoodClient(context.WithoutCancel(ctx), mp, sock), nil
 }
 
-func NewDogwoodClient(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *DogwoodClient {
+func NewDogwoodClient(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *DogwoodClient {
 	driver := rpcutil.NewDriverSerial(ctx, mp, sock)
 	go driver.Go()
 

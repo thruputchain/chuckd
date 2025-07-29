@@ -11,7 +11,7 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func NewDriverSerial(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
+func NewDriverSerial(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *rpc.Driver {
 	driver := rpc.NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
 	_ = liblog.Writer
 	// driver.Log = log.Writer()
@@ -19,7 +19,7 @@ func NewDriverSerial(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.D
 	return driver
 }
 
-func NewDriverParallel(ctx context.Context, mp *rpc.MsgPool, sock net.Conn) *rpc.Driver {
+func NewDriverParallel(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *rpc.Driver {
 	driver := rpc.NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
 	driver.Lock = nil // process all calls in parallel
 	_ = liblog.Writer
