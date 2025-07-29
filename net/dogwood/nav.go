@@ -151,7 +151,7 @@ func (nav *Navigator) GetRoute(ctx context.Context) (NavRoute, error) {
 	now := nav.time.Now()
 	for h, sr := range nav.ours { // ranging over a map randomizes the route choice
 		// skip routes that are too old (use routes no older than stamp+ttLive)
-		if now.Sub(sr.Stamp) > nav.routeTTL {
+		if now.Sub(sr.Stamp) > nav.routeTTL-nav.routeMaxLatency {
 			continue
 		}
 		downstream, ok := sr.Tree.FindChildren(nav.self)
