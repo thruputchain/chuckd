@@ -162,7 +162,7 @@ func (x *EchoBenchmark) do(ctx context.Context, address string) {
 	// create connections
 	x.clients = make([]*echoClient, x.numConns)
 	for i := range x.clients {
-		c, err := DialEchoClient(ctx, x.net, rpc.NewMsgArena(), address)
+		c, err := DialEchoClient(ctx, x.net, rpc.NewMessagePool(), address)
 		must.NoError(ctx, err)
 		x.clients[i] = &echoClient{EchoClient: c}
 		defer c.Close()

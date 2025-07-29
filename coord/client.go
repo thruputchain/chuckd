@@ -32,7 +32,7 @@ func DialCoordinatorClient(ctx context.Context, dialer libnet.AddressDialer, add
 }
 
 func NewCoordinatorClient(ctx context.Context, sock net.Conn) *CoordinatorClient {
-	driver := rpcutil.NewDriverSerial(ctx, rpc.NewMsgArena(), sock)
+	driver := rpcutil.NewDriverSerial(ctx, rpc.NewMessagePool(), sock)
 	go driver.Go()
 
 	return &CoordinatorClient{

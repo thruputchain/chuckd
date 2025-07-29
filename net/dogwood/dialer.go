@@ -27,7 +27,7 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	if err != nil {
 		return nil, err
 	}
-	c, err := DialDogwoodClient(ctx, x.net, rpc.NewMsgArena(), addr)
+	c, err := DialDogwoodClient(ctx, x.net, rpc.NewMessagePool(), addr)
 	if err != nil {
 		return nil, err
 	}
