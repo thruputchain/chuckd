@@ -13,7 +13,7 @@ To deploy a Dogwood node:
 2. Install the Dogwood software:
 
 ```sh
-go install github.com/groundhogchain/chuckd@latest
+go install github.com/groundhogchain/chuckd@dogwood-v1.0.0
 ```
 
 3. Prepare a JSON config file `config.json` following the [XDR configuration protocol](https://github.com/groundhogchain/protocol/blob/main/dogwood_api.x#L5), e.g.
