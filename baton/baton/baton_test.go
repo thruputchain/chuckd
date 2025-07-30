@@ -76,8 +76,8 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 2: commit already validated [1]
 	rig.StageExecs(1)
-	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                            // txs for stage 3
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.Nomination)) // trigger commit, trigger stage 3
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                    // txs for stage 3
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.Nomination).Bytes()) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -109,7 +109,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
-	vlevel := rig.ValidateValue(ctx, block.Nomination.Block_height, testMarshaler.MarshalXdr(&block.Nomination), true)
+	vlevel := rig.ValidateValue(ctx, block.Nomination.Block_height, testMarshaler.MarshalXdr(&block.Nomination).Bytes(), true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 	if <-vlevel != scpapi.FullyValidValue {
@@ -118,7 +118,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.Nomination))
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.Nomination).Bytes())
 	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -152,7 +152,7 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
-	rig.ExternalizedValue(ctx, 2, testMarshaler.MarshalXdr(&block2.Nomination))
+	rig.ExternalizedValue(ctx, 2, testMarshaler.MarshalXdr(&block2.Nomination).Bytes())
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
@@ -171,7 +171,7 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	baton.Start(ctx, tick/5)
 	rig.StageExecs(1) // for validation and commit
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.Nomination))
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.Nomination).Bytes())
 	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
@@ -205,16 +205,16 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		// kick off validation
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.ValidateValue(ctx, height, testMarshaler.MarshalXdr(&theirBlock.Nomination), true)
+		rig.ValidateValue(ctx, height, testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(), true)
 		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.ExternalizedValue(ctx, height, testMarshaler.MarshalXdr(nominated.Nomination))
+			rig.ExternalizedValue(ctx, height, testMarshaler.MarshalXdr(nominated.Nomination).Bytes())
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
-			rig.ExternalizedValue(ctx, height, testMarshaler.MarshalXdr(&theirBlock.Nomination))
+			rig.ExternalizedValue(ctx, height, testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes())
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 		lastCommitted = testutil.VBHandle(committed.ValidatableBlock)

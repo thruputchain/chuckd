@@ -8,7 +8,9 @@ import (
 )
 
 func MulticastTreeNodeHash(m xdrutil.XdrMarshaler, treeNode proto.MulticastTreeNode) proto.MulticastTreeHash {
-	return sha256.Sum256(m.MarshalXdr(&treeNode))
+	bb := m.MarshalXdr(&treeNode)
+	defer bb.Recycle()
+	return sha256.Sum256(bb.Bytes())
 }
 
 type LinkedTreeNode struct {

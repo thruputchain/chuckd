@@ -73,7 +73,7 @@ func TestSolo(t *testing.T) {
 	x := proto.SoloStatement{Statement_type: proto.SoloStatementAlpha}
 	y := proto.SoloStatement{Statement_type: proto.SoloStatementBeta}
 
-	followerSvc[0].Nominate(ctx, slot, m.MarshalXdr(&x), m.MarshalXdr(&y))
+	followerSvc[0].Nominate(ctx, slot, m.MarshalXdr(&x).Bytes(), m.MarshalXdr(&y).Bytes())
 
 	// validate
 	var wgValidate sync.WaitGroup

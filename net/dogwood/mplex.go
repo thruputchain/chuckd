@@ -75,7 +75,7 @@ func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.Lin
 
 func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRouting) {
 	p := x.mMsg.MarshalXdr(&routing)
-	x.sender.Send(ctx, proto.DogwoodTransmissionRoute, p, true)
+	x.sender.Send(ctx, proto.DogwoodTransmissionRoute, p.Bytes(), true)
 }
 
 func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {

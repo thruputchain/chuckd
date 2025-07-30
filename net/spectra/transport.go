@@ -120,7 +120,7 @@ func (x *SpectraTransport) expire() {
 	}
 }
 
-var headerSize int = len(xdrutil.NewXdrMarshaler().MarshalXdr(&proto.SpectraHeader{}))
+var headerSize int = len(xdrutil.NewXdrMarshaler().MarshalXdr(&proto.SpectraHeader{}).Bytes())
 
 func (x *SpectraTransport) BulkSend(ctx context.Context, bulk []byte) (proto.SpectraTransmissionID, error) {
 
@@ -149,7 +149,9 @@ func (x *SpectraTransport) BulkSend(ctx context.Context, bulk []byte) (proto.Spe
 	for i := 0; i < p; i++ {
 		shardsWithHeader[i] = make([]byte, headerSize+s)
 		h.Shard_index = uint32(i)
-		copy(shardsWithHeader[i][:headerSize], x.m.MarshalXdr(&h))                // prepend header
+		hb := x.m.MarshalXdr(&h)
+		copy(shardsWithHeader[i][:headerSize], hb.Bytes()) // prepend header
+		hb.Recycle()
 		copy(shardsWithHeader[i][headerSize:], bulk[min(i*s, n):min((i+1)*s, n)]) // append shard payload
 	}
 
@@ -157,7 +159,9 @@ func (x *SpectraTransport) BulkSend(ctx context.Context, bulk []byte) (proto.Spe
 	for i := 0; i < q; i++ {
 		shardsWithHeader[p+i] = make([]byte, headerSize+s)
 		h.Shard_index = uint32(p + i)
-		copy(shardsWithHeader[p+i][:headerSize], x.m.MarshalXdr(&h)) // prepend header
+		hb := x.m.MarshalXdr(&h)
+		copy(shardsWithHeader[p+i][:headerSize], hb.Bytes()) // prepend header
+		hb.Recycle()
 	}
 
 	shardsWithoutHeader := make([][]byte, p+q)

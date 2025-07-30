@@ -57,7 +57,7 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
-	_, err := x.transport.BulkSend(ctx, x.m.MarshalXdr(&xmsg))
+	_, err := x.transport.BulkSend(ctx, x.m.MarshalXdr(&xmsg).Bytes())
 	if err != nil {
 		liblog.Errorf("multiplex bulk send: %v", err)
 	}

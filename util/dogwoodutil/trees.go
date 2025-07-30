@@ -53,7 +53,9 @@ func TreeHash(m xdrutil.XdrMarshaler, t *LinkedTreeNode) proto.DogwoodTreeHash {
 }
 
 func TreeNodeHash(m xdrutil.XdrMarshaler, treeNode proto.DogwoodTreeNode) proto.DogwoodTreeHash {
-	return sha256.Sum256(m.MarshalXdr(&treeNode))
+	bb := m.MarshalXdr(&treeNode)
+	defer bb.Recycle()
+	return sha256.Sum256(bb.Bytes())
 }
 
 func ReconstructLinkedTree(

@@ -14,18 +14,27 @@ func NewXdrMarshaler() XdrMarshaler {
 	return XdrMarshaler{bpool: NewBufferPool()}
 }
 
-func (x XdrMarshaler) MarshalXdr(value xdr.XdrType) []byte {
+type BorrowedBytes struct {
+	buffer *bytes.Buffer
+	pool   *BufferPool
+}
+
+func (x BorrowedBytes) Bytes() []byte {
+	return x.buffer.Bytes()
+}
+
+func (x BorrowedBytes) Recycle() {
+	x.pool.Recycle(x.buffer)
+}
+
+func (x XdrMarshaler) MarshalXdr(value xdr.XdrType) BorrowedBytes {
 
 	w := x.bpool.Get()
-	defer x.bpool.Recycle(w)
 
 	out := xdr.XdrOut{Out: w}
 	out.Marshal("", value)
 
-	d := make([]byte, w.Len())
-	copy(d, w.Bytes())
-
-	return d
+	return BorrowedBytes{buffer: w, pool: x.bpool}
 }
 
 func UnmarshalXdr(val xdr.XdrType, in []byte) (e error) {

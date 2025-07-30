@@ -52,7 +52,9 @@ func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 }
 
 func SignXdr(m xdrutil.XdrMarshaler, secretKey proto.ValidatorSecretKey, value xdr.XdrType) proto.Signature {
-	return SignBytes(secretKey, m.MarshalXdr(value))
+	bb := m.MarshalXdr(value)
+	defer bb.Recycle()
+	return SignBytes(secretKey, bb.Bytes())
 }
 
 func VerifyBytes(pubKey proto.ValidatorPublicKey, msg []byte, signature []byte) bool {
@@ -67,5 +69,7 @@ func VerifyXdr(m xdrutil.XdrMarshaler, pubKey proto.ValidatorPublicKey, value xd
 		return false
 	}
 	sigBytes := *sig.Ed25519()
-	return VerifyBytes(pubKey, m.MarshalXdr(value), sigBytes[:])
+	bb := m.MarshalXdr(value)
+	defer bb.Recycle()
+	return VerifyBytes(pubKey, bb.Bytes(), sigBytes[:])
 }

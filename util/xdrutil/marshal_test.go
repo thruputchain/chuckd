@@ -12,7 +12,7 @@ func TestMarshal(t *testing.T) {
 
 	x := proto.SoloNomination{Slot_index: 1}
 	var y proto.SoloNomination
-	err := UnmarshalXdr(&y, m.MarshalXdr(&x))
+	err := UnmarshalXdr(&y, m.MarshalXdr(&x).Bytes())
 	if err != nil {
 		t.Error(err)
 	}

@@ -77,7 +77,7 @@ func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.live
-	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value), x.m.MarshalXdr(prev))
+	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
 }
 
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {

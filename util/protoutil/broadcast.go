@@ -9,7 +9,9 @@ import (
 )
 
 func HashOfMessage(m xdrutil.XdrMarshaler, msg proto.BroadcastMessage) proto.BroadcastMessageHash {
-	return sha256.Sum256(m.MarshalXdr(&msg))
+	bb := m.MarshalXdr(&msg)
+	defer bb.Recycle()
+	return sha256.Sum256(bb.Bytes())
 }
 
 func VerifyDelivery(m xdrutil.XdrMarshaler, delivery proto.Delivery) bool {
