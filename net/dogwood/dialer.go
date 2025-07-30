@@ -5,7 +5,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -27,7 +26,7 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	if err != nil {
 		return nil, err
 	}
-	c, err := DialDogwoodClient(ctx, x.net, rpcutil.NewRpcMsgPool(), addr)
+	c, err := DialDogwoodClient(ctx, x.net, addr)
 	if err != nil {
 		return nil, err
 	}

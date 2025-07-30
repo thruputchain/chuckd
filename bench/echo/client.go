@@ -19,16 +19,16 @@ type EchoClient struct {
 	driver *rpc.Driver
 }
 
-func DialEchoClient(ctx context.Context, dialer libnet.AddressDialer, mp rpc.MessagePool, addr string) (*EchoClient, error) {
+func DialEchoClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*EchoClient, error) {
 	sock, err := dialer.DialAddress(ctx, addr)
 	if err != nil {
 		return nil, err
 	}
-	return NewEchoClient(ctx, mp, sock), nil
+	return NewEchoClient(ctx, sock), nil
 }
 
-func NewEchoClient(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *EchoClient {
-	driver := rpcutil.NewDriverSerial(ctx, mp, sock)
+func NewEchoClient(ctx context.Context, sock net.Conn) *EchoClient {
+	driver := rpcutil.NewDriverSerial(ctx, sock)
 	go driver.Go()
 
 	return &EchoClient{
