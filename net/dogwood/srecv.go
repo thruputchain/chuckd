@@ -104,7 +104,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 		}
 	}
 
-	wg.Wait()
+	// wg.Wait()
 }
 
 // stats
