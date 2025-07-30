@@ -16,7 +16,7 @@ func CalcRegime(numPayloadBytes int) magnolia.Regime {
 		return magnolia.Regime{ // max 10 chunks per sheaf
 			NumPaySheaves:    5,
 			NumParitySheaves: 2,
-			MaxBytesPerChunk: 50e3,
+			MaxBytesPerChunk: 100e3,
 		}
 	case numPayloadBytes < 1e6:
 		return magnolia.Regime{ // max 10 chunks per sheaf
