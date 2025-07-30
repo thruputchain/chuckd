@@ -2,10 +2,12 @@ package dogwood
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
@@ -92,12 +94,17 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 
 	r.proc.OnReceive(env.Delivery.Stream.Source_id, &env.Delivery.Pkg)
 
+	var wg sync.WaitGroup
+	wg.Add(len(route.Downstream))
+
 	for _, d := range route.Downstream {
-		err := r.caller.DogwoodDeliver(ctx, d, env)
+		err := r.caller.DogwoodDeliver(ctx, d, libmem.BorrowOnWaitGroup(&wg, env))
 		if err != nil {
 			liblog.Infof("forwarding delivery: %v", err)
 		}
 	}
+
+	wg.Wait()
 }
 
 // stats

@@ -5,6 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -75,7 +76,7 @@ func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.Lin
 
 func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRouting) {
 	p := x.mMsg.MarshalXdr(&routing)
-	x.sender.Send(ctx, proto.DogwoodTransmissionRoute, p.Bytes(), true)
+	x.sender.Send(ctx, proto.DogwoodTransmissionRoute, p, true)
 }
 
 func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
@@ -101,7 +102,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 	}
 }
 
-func (x *Multiplex) Send(ctx context.Context, pay []byte) error {
+func (x *Multiplex) Send(ctx context.Context, pay libmem.BorrowedBytes) error {
 	x.sender.Send(ctx, proto.DogwoodTransmissionPayload, pay, false)
 	return nil
 }

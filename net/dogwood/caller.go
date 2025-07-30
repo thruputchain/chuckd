@@ -9,6 +9,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -16,7 +17,7 @@ import (
 
 type Caller interface {
 	Start(ctx context.Context)
-	DogwoodDeliver(context.Context, proto.ValidatorID, proto.DogwoodDeliveryEnvelope) error
+	DogwoodDeliver(context.Context, proto.ValidatorID, libmem.BorrowedValue[proto.DogwoodDeliveryEnvelope]) error
 	Stats() CallerStats
 }
 
@@ -105,7 +106,11 @@ func (x *caller) getEndpoint(ctx context.Context, addr proto.ValidatorID) *endpo
 	return e
 }
 
-func (x *caller) DogwoodDeliver(ctx context.Context, addr proto.ValidatorID, arg proto.DogwoodDeliveryEnvelope) error {
+func (x *caller) DogwoodDeliver(
+	ctx context.Context,
+	addr proto.ValidatorID,
+	arg libmem.BorrowedValue[proto.DogwoodDeliveryEnvelope],
+) error {
 	return x.getEndpoint(ctx, addr).DogwoodDeliver(ctx, arg)
 }
 
@@ -127,12 +132,16 @@ func (x *endpoint) Stop() {
 	x.callWorkers.Stop()
 }
 
-func (x *endpoint) DogwoodDeliver(ctx context.Context, arg proto.DogwoodDeliveryEnvelope) error {
+func (x *endpoint) DogwoodDeliver(
+	ctx context.Context,
+	arg libmem.BorrowedValue[proto.DogwoodDeliveryEnvelope],
+) error {
 	x.callWorkers.Submit(
 		func() {
+			defer arg.Recycle()
 			ctx, cancel := context.WithTimeout(ctx, x.parent.endpointCallTimeout)
 			defer cancel()
-			err := x.client.Dogwood_deliver(ctx, arg)
+			err := x.client.Dogwood_deliver(ctx, arg.Value())
 			if err != nil {
 				liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
 			}

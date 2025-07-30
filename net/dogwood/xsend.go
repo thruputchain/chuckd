@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -44,7 +45,7 @@ func (x *TransmissionSender) Start(context.Context) {}
 func (x *TransmissionSender) Send(
 	ctx context.Context,
 	typ proto.DogwoodTransmissionType,
-	pay []byte,
+	pay libmem.BorrowedBytes,
 	genRoute bool,
 ) {
 	x.sendWorkers.Submit(
@@ -63,25 +64,25 @@ func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
 func (x *TransmissionSender) send(
 	ctx context.Context,
 	typ proto.DogwoodTransmissionType,
-	pay []byte,
+	pay libmem.BorrowedBytes,
 	genRoute bool,
 ) {
 
-	must.Assert(ctx, len(pay) > 0)
+	must.Assert(ctx, pay.Len() > 0)
 
-	regime := CalcRegime(len(pay))
+	regime := CalcRegime(pay.Len())
 
 	enc := x.encPool.Get(regime)
 	defer x.encPool.Recycle(enc)
 
 	// encode
-	cs := enc.Encode(pay)
+	cs := enc.Encode(pay.Bytes())
 
 	// header
 	transmission := proto.DogwoodTransmission{
 		Transmission_id:     x.genID(),
 		Type:                typ,
-		Num_payload_bytes:   proto.DogwoodInt64(len(pay)),
+		Num_payload_bytes:   proto.DogwoodInt64(pay.Len()),
 		Num_payload_sheaves: proto.DogwoodInt32(regime.NumPaySheaves),
 		Num_parity_sheaves:  proto.DogwoodInt32(regime.NumParitySheaves),
 		Max_bytes_per_chunk: proto.DogwoodInt32(regime.MaxBytesPerChunk),
@@ -122,6 +123,9 @@ func (x *TransmissionSender) send(
 	}
 
 	// send round robin
+	var wg sync.WaitGroup
+	wg.Add(len(cs) * len(stream))
+
 	for c := range cs {
 		for s := range stream {
 			pkg := proto.DogwoodPackage{
@@ -132,9 +136,12 @@ func (x *TransmissionSender) send(
 					Chunk:       cs[c][s],
 				},
 			}
-			stream[s].Send(ctx, &pkg)
+			stream[s].Send(ctx, libmem.BorrowOnWaitGroup(&wg, &pkg))
 		}
 	}
+
+	wg.Wait()
+	pay.Recycle()
 }
 
 // stats

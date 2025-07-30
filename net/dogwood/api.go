@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 func (x *DogwoodService) Send(ctx context.Context, pay []byte) error {
-	return x.mplex.Send(ctx, pay)
+	return x.mplex.Send(ctx, libmem.BorrowBytes(pay))
 }
 
 func (x *DogwoodService) Receive(ctx context.Context) ([]byte, proto.ValidatorID, error) {

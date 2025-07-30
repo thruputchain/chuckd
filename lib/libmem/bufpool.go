@@ -1,8 +1,10 @@
 package libmem
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 type BufferPool struct {
@@ -18,13 +20,13 @@ func NewBufferPool() *BufferPool {
 		x.lk.Lock()
 		x.numMiss += 1
 		x.lk.Unlock()
-		return &BorrowedBuffer{pool: x}
+		return &borrowedBuffer{pool: x}
 	}
 	return x
 }
 
-func (x *BufferPool) Get() *BorrowedBuffer {
-	bb := x.pool.Get().(*BorrowedBuffer)
+func (x *BufferPool) Get() BorrowedBuffer {
+	bb := x.pool.Get().(*borrowedBuffer)
 	if !bb.borrowed.CompareAndSwap(false, true) {
 		panic("borrowed buffer inside pool")
 	}
@@ -36,7 +38,7 @@ func (x *BufferPool) Get() *BorrowedBuffer {
 	return bb
 }
 
-func (x *BufferPool) recycle(bb *BorrowedBuffer) {
+func (x *BufferPool) recycle(bb *borrowedBuffer) {
 	x.pool.Put(bb)
 }
 
@@ -45,4 +47,19 @@ func (x *BufferPool) StatString() string {
 	defer x.lk.Unlock()
 	return fmt.Sprintf("num_get=%d num_miss=%d miss_ratio=%.3f%%",
 		x.numGet, x.numMiss, 100*float64(x.numMiss)/float64(x.numGet))
+}
+
+//
+
+type borrowedBuffer struct {
+	borrowed atomic.Bool
+	bytes.Buffer
+	pool *BufferPool
+}
+
+func (x *borrowedBuffer) Recycle() {
+	if !x.borrowed.CompareAndSwap(true, false) {
+		panic("buffer not borrowed")
+	}
+	x.pool.recycle(x)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -153,7 +154,7 @@ func (s *SendStream) Stream() proto.DogwoodStream {
 	return s.stream
 }
 
-func (x *SendStream) Send(ctx context.Context, pkg *proto.DogwoodPackage) {
+func (x *SendStream) Send(ctx context.Context, pkg libmem.BorrowedValue[*proto.DogwoodPackage]) {
 
 	x.parent.sendWorkers.Submit(
 		func() {
@@ -161,19 +162,25 @@ func (x *SendStream) Send(ctx context.Context, pkg *proto.DogwoodPackage) {
 			delivery := proto.DogwoodDelivery{
 				Stream: x.stream,
 				Route:  x.route,
-				Pkg:    *pkg,
+				Pkg:    *pkg.Value(),
 			}
 			env := proto.DogwoodDeliveryEnvelope{
 				Signature: protoutil.SignXdr(x.parent.m, x.parent.discovery.SecretKey(), &delivery),
 				Delivery:  delivery,
 			}
 
+			var wg sync.WaitGroup
+			wg.Add(len(x.nav.Downstream))
+
 			for _, d := range x.nav.Downstream {
-				err := x.parent.caller.DogwoodDeliver(ctx, d, env)
+				err := x.parent.caller.DogwoodDeliver(ctx, d, libmem.BorrowOnWaitGroup(&wg, env))
 				if err != nil {
 					liblog.Infof("sending delivery: %v", err)
 				}
 			}
+
+			wg.Wait()
+			pkg.Recycle()
 		},
 	)
 }
