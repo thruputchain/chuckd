@@ -12,7 +12,7 @@ import (
 )
 
 func NewDriverSerial(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *rpc.Driver {
-	driver := NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
+	driver := NewDriver(ctx, mp, rpc.NewStreamTransportWithPool(sock, mp))
 	_ = liblog.Writer
 	// driver.Log = log.Writer()
 	driver.PanicHandler = rpc.PanicHandlerFunc(must.LogPanic)
@@ -20,7 +20,7 @@ func NewDriverSerial(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *rp
 }
 
 func NewDriverParallel(ctx context.Context, mp rpc.MessagePool, sock net.Conn) *rpc.Driver {
-	driver := NewDriver(ctx, mp, rpc.NewStreamTransport(sock, mp))
+	driver := NewDriver(ctx, mp, rpc.NewStreamTransportWithPool(sock, mp))
 	driver.Lock = nil // process all calls in parallel
 	_ = liblog.Writer
 	// driver.Log = log.Writer()
