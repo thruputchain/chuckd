@@ -1,14 +1,12 @@
-package xdrutil
+package libmem
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 )
 
 type BufferPool struct {
-	pool sync.Pool
-	// stats
+	pool    sync.Pool
 	lk      sync.Mutex
 	numGet  int
 	numMiss int
@@ -20,23 +18,26 @@ func NewBufferPool() *BufferPool {
 		x.lk.Lock()
 		x.numMiss += 1
 		x.lk.Unlock()
-		return &bytes.Buffer{}
+		return &BorrowedBuffer{pool: x}
 	}
 	return x
 }
 
-func (x *BufferPool) Get() *bytes.Buffer {
-	buf := x.pool.Get().(*bytes.Buffer)
-	buf.Reset()
+func (x *BufferPool) Get() *BorrowedBuffer {
+	bb := x.pool.Get().(*BorrowedBuffer)
+	if !bb.borrowed.CompareAndSwap(false, true) {
+		panic("borrowed buffer inside pool")
+	}
+	bb.Reset()
 
 	x.lk.Lock()
 	x.numGet += 1
 	x.lk.Unlock()
-	return buf
+	return bb
 }
 
-func (x *BufferPool) Recycle(b *bytes.Buffer) {
-	x.pool.Put(b)
+func (x *BufferPool) recycle(bb *BorrowedBuffer) {
+	x.pool.Put(bb)
 }
 
 func (x *BufferPool) StatString() string {

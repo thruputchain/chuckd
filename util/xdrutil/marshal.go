@@ -3,38 +3,26 @@ package xdrutil
 import (
 	"bytes"
 
+	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/xdrpp/goxdr/xdr"
 )
 
 type XdrMarshaler struct {
-	bpool *BufferPool
+	bpool *libmem.BufferPool
 }
 
 func NewXdrMarshaler() XdrMarshaler {
-	return XdrMarshaler{bpool: NewBufferPool()}
+	return XdrMarshaler{bpool: libmem.NewBufferPool()}
 }
 
-type BorrowedBytes struct {
-	buffer *bytes.Buffer
-	pool   *BufferPool
-}
+func (x XdrMarshaler) MarshalXdr(value xdr.XdrType) *libmem.BorrowedBuffer {
 
-func (x BorrowedBytes) Bytes() []byte {
-	return x.buffer.Bytes()
-}
+	bb := x.bpool.Get()
 
-func (x BorrowedBytes) Recycle() {
-	x.pool.Recycle(x.buffer)
-}
-
-func (x XdrMarshaler) MarshalXdr(value xdr.XdrType) BorrowedBytes {
-
-	w := x.bpool.Get()
-
-	out := xdr.XdrOut{Out: w}
+	out := xdr.XdrOut{Out: bb}
 	out.Marshal("", value)
 
-	return BorrowedBytes{buffer: w, pool: x.bpool}
+	return bb
 }
 
 func UnmarshalXdr(val xdr.XdrType, in []byte) (e error) {
