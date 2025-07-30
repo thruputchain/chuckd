@@ -179,8 +179,10 @@ func (x *SendStream) Send(ctx context.Context, pkg libmem.BorrowedValue[*proto.D
 				}
 			}
 
-			wg.Wait()
-			pkg.Recycle()
+			go func() {
+				wg.Wait()
+				pkg.Recycle()
+			}()
 		},
 	)
 }

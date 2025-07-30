@@ -140,8 +140,10 @@ func (x *TransmissionSender) send(
 		}
 	}
 
-	wg.Wait()
-	pay.Recycle()
+	go func() {
+		wg.Wait()
+		pay.Recycle()
+	}()
 }
 
 // stats
