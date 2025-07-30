@@ -17,6 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -147,9 +148,9 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		liblog.Infof("%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
-			// if j%300 == 0 {
-			// 	liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
-			// }
+			if j%10000 == 0 && j > 0 {
+				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+			}
 
 			select {
 			case <-ctx.Done():
@@ -190,9 +191,9 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 			if j == (2*bench.numIterations)/3 {
 				statsMidway = bench.dogwood.Stats()
 			}
-			// if j%300 == 0 {
-			// 	liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
-			// }
+			if j%10000 == 0 && j > 0 {
+				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+			}
 
 			select {
 			case <-ctx.Done(): // benchmark timeout
