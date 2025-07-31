@@ -66,7 +66,8 @@ func MakeBaseConfig(
 			Catchup_block_age:     5,
 		},
 		Baton_config: &proto.BatonConfig{
-			Heartbeat_msec: round.Milliseconds() / 10,
+			Heartbeat_msec:      round.Milliseconds() / 10,
+			Nomination_ttl_msec: round.Milliseconds(),
 		},
 	}
 }

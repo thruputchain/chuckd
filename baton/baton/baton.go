@@ -14,10 +14,18 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func NewBaton(ctx context.Context, h batonapi.Handler, callsPerExec int, batchSize int) *Baton {
+func NewBaton(
+	ctx context.Context,
+	cfg proto.BatonConfig,
+	h batonapi.Handler,
+	callsPerExec int,
+	batchSize int,
+) *Baton {
 	b := &Baton{
 		ctx:             ctx,
 		handler:         h,
+		heartbeat:       time.Millisecond * time.Duration(cfg.Heartbeat_msec),
+		nominationTTL:   time.Millisecond * time.Duration(cfg.Nomination_ttl_msec),
 		callsPerExec:    callsPerExec,
 		batchSize:       batchSize,
 		scp:             make(chan struct{}),
@@ -33,13 +41,15 @@ func NewBaton(ctx context.Context, h batonapi.Handler, callsPerExec int, batchSi
 }
 
 type Baton struct {
-	ctx          context.Context // ctx for drive
-	handler      batonapi.Handler
-	callsPerExec int
-	batchSize    int
-	scp          chan struct{}
-	cond         *sync.Cond
-	lk           sync.Mutex
+	ctx           context.Context // ctx for drive
+	handler       batonapi.Handler
+	heartbeat     time.Duration
+	nominationTTL time.Duration
+	callsPerExec  int
+	batchSize     int
+	scp           chan struct{}
+	cond          *sync.Cond
+	lk            sync.Mutex
 	// state
 	committing      bool
 	nominating      *nominating
@@ -75,11 +85,11 @@ func (b *Baton) Kick() {
 	defer b.unlock()
 }
 
-func (b *Baton) Start(ctx context.Context, heartbeat time.Duration) {
-	go b.start(ctx, heartbeat)
+func (b *Baton) Start(ctx context.Context) {
+	go b.start(ctx)
 }
 
-func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
+func (b *Baton) start(ctx context.Context) {
 
 	liblog.Infof("baton starting")
 
@@ -98,18 +108,18 @@ func (b *Baton) start(ctx context.Context, heartbeat time.Duration) {
 	// rationale: waking up the baton every time a tx is added to the mempool would be too expensive.
 	for {
 		b.Kick()
-		b.handler.Sleep(heartbeat)
+		b.handler.Sleep(b.heartbeat)
 	}
 }
 
 func (b *Baton) drive(ctx context.Context) {
 	defer b.cond.Broadcast()
 
-	liblog.Debugf("baton stats: num_txs=%d num_committed_tx=%d",
-		b.handler.TxCount(), b.handler.CommittedTxCount())
-	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
-
 	v := b.buildCleanView(ctx)
+
+	liblog.Debugf("baton stats: %s num_txs=%d num_committed_tx=%d",
+		v.ShortString(), b.handler.TxCount(), b.handler.CommittedTxCount())
+	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
@@ -145,7 +155,7 @@ func (b *Baton) drive(ctx context.Context) {
 	}
 
 	// start nomination, if the db there are no externalizations above the db tip
-	if nominate := v.ReadyToNominate(); canNominate(nominate, b.nominating, b.nominated) {
+	if nominate := v.ReadyToNominate(); b.canNominate(nominate, b.nominating, b.nominated) {
 		liblog.Debugf("baton nominating onto %v", nominate)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
@@ -174,7 +184,10 @@ func (b *Baton) drive(ctx context.Context) {
 			}
 
 			if !replaced {
-				b.nominated = &nominated{Nomination: nomination}
+				b.nominated = &nominated{
+					Time:       b.handler.Now(),
+					Nomination: nomination,
+				}
 				b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
 			}
 		}()

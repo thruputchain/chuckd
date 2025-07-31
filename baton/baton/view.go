@@ -1,6 +1,7 @@
 package baton
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -320,6 +321,15 @@ func (v *View) NeededUnrequestedSpans() Spans {
 	return spans
 }
 
+func (v *View) ShortString() string {
+	var w bytes.Buffer
+	fmt.Fprintf(&w, "|")
+	for _, b := range v.Blocks {
+		fmt.Fprintf(&w, "%s|", b.Icon())
+	}
+	return w.String()
+}
+
 type ViewBlock interface {
 	BlockHash() proto.BlockHash
 	BlockHeight() proto.BlockHeight
@@ -330,6 +340,7 @@ type ViewBlock interface {
 	IsCatchup() bool
 	IsDb() bool
 	ValidatableBlock() *batonapi.ValidatableBlock
+	Icon() string
 }
 
 type ViewDbBlock struct {
@@ -345,6 +356,7 @@ func (x ViewDbBlock) IsSCP() bool                                  { return fals
 func (x ViewDbBlock) IsCatchup() bool                              { return false }
 func (x ViewDbBlock) IsDb() bool                                   { return true }
 func (x ViewDbBlock) ValidatableBlock() *batonapi.ValidatableBlock { panic("should not be called") }
+func (x ViewDbBlock) Icon() string                                 { return "D" }
 
 type ViewCatchupBlock struct {
 	Linked    bool // all catchup blocks between db and first scp chain hashes correctly
@@ -366,6 +378,13 @@ func (x ViewCatchupBlock) ValidatableBlock() *batonapi.ValidatableBlock {
 		BlockHash:            x.BlockHash(),
 		PrevBlockHash:        x.PrevBlockHash(),
 		ProposedTransactions: x.Candidate.Txs,
+	}
+}
+func (x ViewCatchupBlock) Icon() string {
+	if x.Linked {
+		return "L"
+	} else {
+		return "C"
 	}
 }
 
@@ -415,6 +434,9 @@ func (x ViewExternalizedBlock) ValidatableBlock() *batonapi.ValidatableBlock {
 		ProposedTransactions: txs,
 	}
 }
+func (x ViewExternalizedBlock) Icon() string {
+	return "X"
+}
 
 type ViewMissing struct {
 	Height proto.BlockHeight
@@ -429,3 +451,4 @@ func (x ViewMissing) IsSCP() bool                                  { return fals
 func (x ViewMissing) IsCatchup() bool                              { return false }
 func (x ViewMissing) IsDb() bool                                   { return false }
 func (x ViewMissing) ValidatableBlock() *batonapi.ValidatableBlock { panic("must not call") }
+func (x ViewMissing) Icon() string                                 { return "?" }

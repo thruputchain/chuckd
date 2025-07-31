@@ -29,20 +29,24 @@ func TestMain(m *testing.M) {
 }
 
 func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
-	tick := time.Second
+	roundTTL := time.Second
 	ctx := context.Background()
 	rig := NewTestRig(
 		ctx,
 		runtime.NewRandFromRoot(),
 		time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
-		3*tick, // txTTL
-		5*tick, // committedTTL
+		3*roundTTL, // txTTL
+		5*roundTTL, // committedTTL
 	)
+	cfg := proto.BatonConfig{
+		Heartbeat_msec:      proto.Milliseconds(roundTTL) / 5,
+		Nomination_ttl_msec: proto.Milliseconds(roundTTL),
+	}
 	callsPerExec := 2
 	batchSize := 10
-	baton := NewBaton(ctx, rig, callsPerExec, batchSize)
+	baton := NewBaton(ctx, cfg, rig, callsPerExec, batchSize)
 	rig.Bind(baton)
-	return ctx, rig, baton, tick
+	return ctx, rig, baton, roundTTL
 }
 
 func TestSubmittedExpiry(t *testing.T) {
@@ -67,7 +71,7 @@ func TestNominateCommit(t *testing.T) {
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	rig.StageExecs(1)
-	baton.Start(ctx, tick/5)
+	baton.Start(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
@@ -99,7 +103,7 @@ func TestValidateCommit(t *testing.T) {
 
 	// stage 1: validate [1]
 	rig.StageExecs(1)
-	baton.Start(ctx, tick/5)
+	baton.Start(ctx)
 	block := rig.GenNomination(ctx, 2)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
 
@@ -136,14 +140,14 @@ func TestValidateCommit(t *testing.T) {
 // TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
-	ctx, rig, baton, tick := testSetup()
+	ctx, rig, baton, _ := testSetup()
 
 	block1 := rig.GenNomination(ctx, 1)
 	block2 := rig.GenNominationOntoBlock(ctx, 1, block1)
 	rig.AddTxs(ctx, protoutil.Unpack(block2.Txs)...) // prevent catchup request for [2]
 	rig.StageCatchup(block1.Catchup)
 
-	baton.Start(ctx, tick/5)
+	baton.Start(ctx)
 	rig.StageExecs(1) // for validation and commit
 
 	// consume nomination
@@ -164,12 +168,12 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 // TestCatchupMissingTxsCommit tests catchup for externalizations with missing txs.
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
-	ctx, rig, baton, tick := testSetup()
+	ctx, rig, baton, _ := testSetup()
 
 	block1 := rig.GenNomination(ctx, 1)
 	rig.StageCatchup(block1.Catchup)
 
-	baton.Start(ctx, tick/5)
+	baton.Start(ctx)
 	rig.StageExecs(1) // for validation and commit
 	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.Nomination).Bytes())
 	// catchup provisions the block
@@ -187,7 +191,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 	ctx, rig, baton, tick := testSetup()
 	maxHeight := proto.BlockHeight(15)
 
-	baton.Start(ctx, tick/5)
+	baton.Start(ctx)
 
 	lastCommitted := testutil.TipHandle(rig.GetTip())
 	for height := proto.BlockHeight(1); height < maxHeight; height++ {

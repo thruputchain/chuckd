@@ -112,7 +112,8 @@ func NewSystem(
 		runtime.NewRandFromRand(rand),
 	)
 
-	sys.Baton = baton.NewBaton(ctx, sys.Live, callsPerExec, batchSize)
+	sys.Baton = baton.NewBaton(ctx, *cfg.Baton_config, sys.Live, callsPerExec, batchSize)
+
 	sys.Follower = follower.NewSoloFollowerService(
 		ctx,
 		outside,
@@ -172,7 +173,7 @@ func (s *System) Start(ctx context.Context, inAddr string, outAddr string, walle
 	s.insideSrv.Start(ctx, s.inside, inAddr)
 	s.outsideSrv.Start(ctx, s.outside, outAddr)
 	s.Wallet.StartHTTP(ctx, walletAddr)
-	s.Baton.Start(ctx, time.Duration(s.cfg.Baton_config.Heartbeat_msec)*time.Millisecond)
+	s.Baton.Start(ctx)
 }
 
 func (s *System) Close() {

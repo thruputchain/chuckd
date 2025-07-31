@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/nominate"
@@ -15,10 +16,11 @@ type nominating struct {
 }
 
 type nominated struct {
+	time.Time
 	*proto.Nomination
 }
 
-func canNominate(nominate *batonapi.Tip, nominating *nominating, nominated *nominated) bool {
+func (b *Baton) canNominate(nominate *batonapi.Tip, nominating *nominating, nominated *nominated) bool {
 	if nominate == nil {
 		return false
 	}
@@ -26,11 +28,13 @@ func canNominate(nominate *batonapi.Tip, nominating *nominating, nominated *nomi
 	case nominating == nil && nominated == nil:
 		return true
 	case nominating == nil && nominated != nil:
-		return nominate.Height > nominated.Block_height
+		return nominate.Height > nominated.Block_height ||
+			b.handler.Now().Sub(nominated.Time) > b.nominationTTL
 	case nominating != nil && nominated == nil:
 		return nominate.Height > nominating.Height
 	case nominating != nil && nominated != nil:
-		return nominate.Height > nominating.Height && nominate.Height > nominated.Block_height
+		return nominate.Height > nominating.Height && (nominate.Height > nominated.Block_height ||
+			b.handler.Now().Sub(nominated.Time) > b.nominationTTL)
 	}
 	panic("unreachable")
 }
