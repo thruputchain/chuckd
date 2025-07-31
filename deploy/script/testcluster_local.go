@@ -79,7 +79,7 @@ func BenchTestClusterShellLocal(
 	metricsBasePort := 2223
 	for i := range quorumCfgs {
 		quorumCmd := fmt.Sprintf(
-			"chuckd --config config-quorum-%d.json --instance quorum-%d --seed %d --metrics :%d "+
+			"chuckd -l debug --stack --config config-quorum-%d.json --instance quorum-%d --seed %d --metrics :%d "+
 				"bench testcluster --tps %d --out-addr %s --w-addr %s",
 			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 		)
