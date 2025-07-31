@@ -9,21 +9,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func MakeBaseConfigTPS(
-	tps int, // transactions per second
-	txSize int, // transaction size
-	numVs int64, // number of validators
-) proto.Config {
-	return MakeBaseConfig(
-		time.Second,
-		numVs,
-		uint32(min(5, numVs)), // fan out
-		1e6,                   // chunk size
-		5,                     // number payload channels (aka trees)
-		2,                     // number of parity channels
-	)
-}
-
 func AddSoloLeaderConfig(base proto.Config, leader proto.ValidatorPublicInfo) proto.Config {
 	if base.Solo_config == nil {
 		base.Solo_config = &proto.SoloConfig{}
@@ -36,9 +21,6 @@ func MakeBaseConfig(
 	round time.Duration, // round is the target round duration (nominate + commit).
 	numVs int64, // numVs is an idealized number of equally important validators.
 	fanOut uint32,
-	chunkSize uint64,
-	numPayloadChannels uint32,
-	numParityChannels uint32,
 ) proto.Config {
 	return proto.Config{
 		Validator_config: nil,
@@ -52,19 +34,30 @@ func MakeBaseConfig(
 		Router_config: &proto.RouterConfig{
 			Tree_fan_out: 5,
 		},
-		Broadcast_config: &proto.BroadcastConfig{
-			Multicast_tree_ttl_msec: round.Milliseconds(), // how long to cache multicast tree topology
-			Chunk_size:              chunkSize,            // size of individual broadcast chunks
-		},
-		// XXX: Dogwood
-		// XXX: Transmission
-		Spectra_config: &proto.SpectraConfig{
-			Num_payload_channels: numPayloadChannels,
-			Num_parity_channels:  numParityChannels,
-			Partial_ttl_msec:     round.Milliseconds(), // ttl for partial data from incomplete transmissions
+		Dogwood_config: &proto.DogwoodConfig{
+			Route_count:             50,
+			Route_time_to_live_msec: 60e3, // 1 minute
+			Route_max_latency_msec:  1e3,  // 1 sec
+			//
+			Endpoint_max_pending: 16 * 50,
+			Endpoint_num_clients: 16,
+			//
+			Endpoint_idle_ttl_msec:     60e3, // 1 minute
+			Endpoint_dial_timeout_msec: 2e3,  // 2 sec
+			Endpoint_redial_delay_msec: 100,  // 100 msec
+			Endpoint_call_timeout_msec: 2e3,  // 2 sec
+			//
+			Stream_receiver_worker_count: 512,
+			Stream_sender_worker_count:   32,
+			//
+			Transmission_receiver_decode_worker_count: 512,
+			Transmission_sender_worker_count:          32,
+			//
+			Transmission_partial_max_ttl_msec:  10e3, // 10 sec
+			Transmission_partial_idle_ttl_msec: 1e3,  // 1 sec
 		},
 		Mempool_config: &proto.MempoolConfig{
-			Transaction_ttl_msec:     numVs * round.Milliseconds(),
+			Transaction_ttl_msec:     2 * round.Milliseconds(),
 			Submission_lot_size:      1000,
 			Submission_lot_wait_msec: 50,
 		},

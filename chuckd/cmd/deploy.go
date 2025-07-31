@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/deploy/k8s"
@@ -18,13 +19,13 @@ var (
 		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
-	deployK8sBenchBroadcastCmd = &cobra.Command{
-		Use:   "k8s-bench-broadcast",
-		Short: "generate a broadcast benchmark k8s config",
+	deployK8sBenchDogwoodCmd = &cobra.Command{
+		Use:   "k8s-bench-dogwood",
+		Short: "generate a dogwood benchmark k8s config",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				fmt.Println(k8s.BenchBroadcastBlueprint(ctx, runtime.NewRandFromRoot(), deployNumVs))
+				fmt.Println(k8s.BenchDogwoodBlueprint(ctx, runtime.NewRandFromRoot(), deployNumVs, deployFanOut))
 			})
 		},
 	}
@@ -35,7 +36,8 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				fmt.Println(k8s.BenchTestClusterBlueprint(ctx, runtime.NewRandFromRoot(), deployNumVs, deployTPS))
+				fmt.Println(k8s.BenchTestClusterBlueprint(ctx, runtime.NewRandFromRoot(),
+					time.Second, deployNumVs, deployFanOut, deployTPS))
 			})
 		},
 	}
@@ -46,28 +48,33 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				fmt.Println(script.BenchTestClusterShellLocal(ctx, runtime.NewRandFromRoot(), deployNumVs, deployTPS))
+				fmt.Println(script.BenchTestClusterShellLocal(ctx, runtime.NewRandFromRoot(),
+					time.Second, deployNumVs, deployFanOut, deployTPS))
 			})
 		},
 	}
 )
 
 var (
-	deployNumVs int
-	deployTPS   int
+	deployFanOut int
+	deployNumVs  int
+	deployTPS    int
 )
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
-	deployCmd.AddCommand(deployK8sBenchBroadcastCmd)
-	deployK8sBenchBroadcastCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
+	deployCmd.AddCommand(deployK8sBenchDogwoodCmd)
+	deployK8sBenchDogwoodCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
+	deployK8sBenchDogwoodCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 
 	deployCmd.AddCommand(deployK8sBenchTestClusterCmd)
+	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tps", 1e3, "transactions per second")
 
 	deployCmd.AddCommand(deployLocalBenchTestClusterCmd)
+	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tps", 1e3, "transactions per second")
 }

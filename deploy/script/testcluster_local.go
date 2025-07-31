@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/groundhogchain/chuckd/deploy/common"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -14,7 +15,9 @@ import (
 func BenchTestClusterShellLocal(
 	ctx context.Context,
 	rand *rand.Rand,
+	round time.Duration,
 	numVs int,
+	fanOut int,
 	tps int,
 ) string {
 
@@ -38,7 +41,7 @@ func BenchTestClusterShellLocal(
 	leaderPriv := common.GenIdentity(ctx, rand, leaderAddr)
 
 	// gen quorum configs
-	baseCfg := common.MakeBaseConfigTPS(tps, 250, int64(numVs))
+	baseCfg := common.MakeBaseConfig(round, int64(numVs), uint32(fanOut))
 	baseCfg = common.AddSoloLeaderConfig(baseCfg, leaderPriv.Public_info)
 	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
 	quorumCfgs, qs := common.GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)

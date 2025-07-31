@@ -10,8 +10,8 @@ import (
 func TestXdrToText(t *testing.T) {
 	// x := proto.BroadcastChannel{Batch_count: 111}
 	x := proto.Config{
-		Spectra_config: &proto.SpectraConfig{
-			Partial_ttl_msec: 333,
+		Router_config: &proto.RouterConfig{
+			Tree_fan_out: 33,
 		},
 	}
 	s, err := XdrToText(&x)
