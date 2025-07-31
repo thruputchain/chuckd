@@ -12,6 +12,18 @@ type Value = proto.SoloValue
 
 type ValidationLevel = proto.SoloValidationLevel
 
+func ValidationLevelString(vl ValidationLevel) string {
+	switch vl {
+	case proto.SoloFullyValidValue:
+		return "FullyValid"
+	case proto.SoloMaybeValidValue:
+		return "MaybeValid"
+	case proto.SoloInvalidValue:
+		return "Invalid"
+	}
+	panic("bug")
+}
+
 const (
 	InvalidValue    = proto.SoloInvalidValue
 	MaybeValidValue = proto.SoloMaybeValidValue

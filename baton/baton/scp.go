@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/validate"
@@ -41,11 +42,11 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, val
 	}
 }
 
-func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) scpapi.ValidationLevel {
+func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) (level scpapi.ValidationLevel) {
 	<-x.baton.scp
 
 	liblog.Infof("baton validate value for slot %d received", slot)
-	defer liblog.Infof("baton validate value completed")
+	defer liblog.Infof("baton validate value for slot %d completed with %v", slot, scpapi.ValidationLevelString(level))
 
 	var prop proto.Nomination
 	err := xdrutil.UnmarshalXdr(&prop, value)
@@ -58,7 +59,8 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value s
 
 	reply := make(chan scpapi.ValidationLevel, 1)
 	x.baton.validateValue(ctx, &prop, reply)
-	return <-reply
+	level = <-reply
+	return
 }
 
 func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination, reply chan<- scpapi.ValidationLevel) {
@@ -92,13 +94,15 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 	// this context will be cancelled upon new externalizations or commits
 	vCtx, vCtxCancel := context.WithCancel(ctx)
-	defer vCtxCancel()
 	go func() {
 		b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
 		vCtxCancel()
 	}()
 
-	txs, ok := b.handler.WaitTxs(ctx, nomination.Transaction_hashes)
+	// Wait for missing transactions to arrive within some timeout.
+	wCtx, wCtxCancel := context.WithTimeout(vCtx, time.Second) //XXX: hard coded second
+	txs, ok := b.handler.WaitTxs(wCtx, nomination.Transaction_hashes)
+	wCtxCancel()
 	if !ok {
 		liblog.Infof("cannot validate, missing txs")
 		reply <- scpapi.MaybeValidValue
@@ -122,7 +126,9 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	}
 
 	go func() {
-		blockID, err := validate.ValidateClose(ctx, b.handler, vb, b.callsPerExec, b.batchSize)
+		defer vCtxCancel()
+
+		blockID, err := validate.ValidateClose(vCtx, b.handler, vb, b.callsPerExec, b.batchSize)
 		if err == batonapi.ErrNotValid {
 			liblog.Infof("cannot validate, inconsistent")
 			reply <- scpapi.InvalidValue
