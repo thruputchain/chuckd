@@ -10,8 +10,8 @@ import (
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/discovery"
+	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/scp/solo/dial"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
@@ -59,8 +59,8 @@ func init() {
 
 func PingService(ctx context.Context, svc string, fn string, address string) error {
 	switch svc {
-	case "broadcast":
-		return PingBroadcast(ctx, address)
+	case "dogwood":
+		return PingDogwood(ctx, address)
 	case "catchup":
 		return PingCatchup(ctx, address)
 	case "coord":
@@ -81,11 +81,11 @@ func PingService(ctx context.Context, svc string, fn string, address string) err
 	}
 }
 
-func PingBroadcast(ctx context.Context, address string) error {
-	c, err := broadcast.DialBroadcastClient(ctx, libnet.TCPNet{}, address)
+func PingDogwood(ctx context.Context, address string) error {
+	c, err := dogwood.DialDogwoodClient(ctx, libnet.TCPNet{}, address)
 	must.NoError(ctx, err)
 	defer c.Close()
-	return c.Broadcast_null(ctx)
+	return c.Dogwood_null(ctx)
 }
 
 func PingCatchup(ctx context.Context, address string) error {

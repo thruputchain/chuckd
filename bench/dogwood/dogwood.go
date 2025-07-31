@@ -103,6 +103,7 @@ func NewDogwoodBenchmark(
 		libtime.RealTime{},
 		rand,
 		net,
+		net,
 		discovery,
 		router,
 	)

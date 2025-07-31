@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	benchbroadcast "github.com/groundhogchain/chuckd/bench/broadcast"
 	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
 	benchecho "github.com/groundhogchain/chuckd/bench/echo"
 	"github.com/groundhogchain/chuckd/bench/loadgen"
@@ -125,42 +124,6 @@ var (
 		},
 	}
 
-	benchBroadcastCmd = &cobra.Command{
-		Use:   "broadcast",
-		Short: "start broadcast benchmark",
-		Long:  ``,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
-				cfg := LoadCoordinatorConfig(ctx)
-				ctx = libmetrics.WithMetricAttributes(ctx,
-					attribute.String("cmd", "bench broadcast"),
-					attribute.Int("tree_fan_out", benchTreeFanOut),
-					attribute.Int("chunk_size", int(cfg.Broadcast_config.Chunk_size)),
-					attribute.Int("chunk_per_channel", benchChunkPerChannel),
-					attribute.Int("num_iterations", benchNumIterations),
-				)
-				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				must.Assertf(ctx, cfg.Broadcast_config != nil, "missing broadcast config section")
-				outside := libnet.Network(libnet.TCPNet{})
-				if benchQUIC {
-					outside = quic.NewQUICNet(ctx)
-				}
-				srv := benchbroadcast.NewBroadcastBenchmark(
-					ctx,
-					runtime.NewRandFromRoot(),
-					outside,
-					cfg,
-					benchTreeFanOut,
-					benchChunkPerChannel,
-					benchBytesPerSec,
-					benchNumIterations,
-				)
-				srv.Start(ctx, benchServerAddress)
-				select {} // hang
-			})
-		},
-	}
-
 	benchDogwoodCmd = &cobra.Command{
 		Use:   "dogwood",
 		Short: "start dogwood benchmark",
@@ -252,14 +215,6 @@ var (
 
 func init() {
 	rootCmd.AddCommand(benchCmd)
-
-	benchCmd.AddCommand(benchBroadcastCmd)
-	benchBroadcastCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
-	benchBroadcastCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
-	benchBroadcastCmd.Flags().IntVar(&benchTreeFanOut, "fan-out", 5, "fan-out of multicast trees")
-	benchBroadcastCmd.Flags().IntVar(&benchChunkPerChannel, "chunk-per-chan", 100, "chunks per channel")
-	benchBroadcastCmd.Flags().IntVar(&benchBytesPerSec, "bytes-per-sec", 10000, "bytes per second")
-	benchBroadcastCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 1, "number of iterations")
 
 	benchCmd.AddCommand(benchDogwoodCmd)
 	benchDogwoodCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")

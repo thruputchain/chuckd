@@ -8,6 +8,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// XXX: let Send take BorrowedBytes
 func (x *DogwoodService) Send(ctx context.Context, pay []byte) error {
 	return x.mplex.Send(ctx, libmem.BorrowBytes(pay))
 }

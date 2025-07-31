@@ -16,7 +16,8 @@ import (
 
 type DogwoodService struct {
 	time           libtime.Time
-	net            libnet.Network
+	netOutside     libnet.Network
+	netInside      libnet.Network
 	router         router.DogwoodRouter
 	dialer         DogwoodDialer
 	nav            *Navigator
@@ -35,7 +36,8 @@ func NewDogwoodService(
 	cfg proto.DogwoodConfig,
 	time_ libtime.Time,
 	rand *rand.Rand,
-	net libnet.Network,
+	netOutside libnet.Network,
+	netInside libnet.Network,
 	discovery discovery.Discovery,
 	router router.DogwoodRouter,
 ) *DogwoodService {
@@ -44,9 +46,10 @@ func NewDogwoodService(
 		ready: make(chan struct{}),
 	}
 	x.time = time_
-	x.net = net
+	x.netOutside = netOutside
+	x.netInside = netInside
 	x.router = router
-	x.dialer = NewDogwoodClientDialer(net, router)
+	x.dialer = NewDogwoodClientDialer(netOutside, router)
 
 	routeTTLive := time.Millisecond * time.Duration(cfg.Route_time_to_live_msec)
 	routeTTUse := time.Millisecond * time.Duration(cfg.Route_max_latency_msec)
@@ -102,7 +105,7 @@ func (x *DogwoodService) Start(ctx context.Context, extAddr string, inAddr strin
 
 		// enable peers to connect and call us
 		// navigation and delivery will not function until navigator is started later
-		rpcutil.StartSerial(ctx, x.net, extAddr, proto.Dogwood1_Server{Srv: x})
+		rpcutil.StartSerial(ctx, x.netOutside, extAddr, proto.Dogwood1_Server{Srv: x})
 
 		// allow a grace period for peers to start serving
 		x.time.Sleep(grace)
@@ -111,7 +114,7 @@ func (x *DogwoodService) Start(ctx context.Context, extAddr string, inAddr strin
 		x.nav.WaitReady(ctx)      // wait until the first set of routes are disseminated
 
 		if inAddr != "" {
-			rpcutil.StartSerial(ctx, x.net, inAddr, proto.DogwoodAPI1_Server{Srv: x})
+			rpcutil.StartSerial(ctx, x.netInside, inAddr, proto.DogwoodAPI1_Server{Srv: x})
 		}
 	}()
 }

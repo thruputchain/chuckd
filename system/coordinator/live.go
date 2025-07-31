@@ -13,7 +13,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
-	"github.com/groundhogchain/chuckd/net/multiplex"
+	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -32,9 +32,9 @@ type LiveHandler struct {
 	router  router.Router
 	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
-	multiplex *multiplex.Multiplex
-	scp       scpapi.SCPController
-	m         xdrutil.XdrMarshaler
+	dogwood *dogwood.DogwoodService
+	scp     scpapi.SCPController
+	m       xdrutil.XdrMarshaler
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -51,7 +51,7 @@ func NewLiveHandler(
 	router router.Router,
 	submitted *mempool.SubmittedMempool,
 	committed *mempool.CommittedMempool,
-	multiplex *multiplex.Multiplex,
+	dogwood *dogwood.DogwoodService,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
@@ -63,7 +63,7 @@ func NewLiveHandler(
 		router:           router,
 		SubmittedMempool: submitted,
 		CommittedMempool: committed,
-		multiplex:        multiplex,
+		dogwood:          dogwood,
 		m:                xdrutil.NewXdrMarshaler(),
 		rand:             rand,
 		live:             make(chan struct{}),

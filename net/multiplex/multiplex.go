@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/net/spectra"
+	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -12,7 +12,7 @@ import (
 // scp msgs, proposed txsets,
 type Multiplex struct {
 	m         xdrutil.XdrMarshaler
-	transport *spectra.SpectraTransport
+	dogwood   *dogwood.DogwoodService
 	submitted chan submittedTxsFrom
 }
 
@@ -21,10 +21,10 @@ type submittedTxsFrom struct {
 	*proto.SubmittedTransactions
 }
 
-func NewMultiplex(ctx context.Context, s *spectra.SpectraTransport) *Multiplex {
+func NewMultiplex(ctx context.Context, dogwood *dogwood.DogwoodService) *Multiplex {
 	x := &Multiplex{
 		m:         xdrutil.NewXdrMarshaler(),
-		transport: s,
+		dogwood:   dogwood,
 		submitted: make(chan submittedTxsFrom),
 	}
 	go x.multiplex(ctx)
@@ -33,7 +33,7 @@ func NewMultiplex(ctx context.Context, s *spectra.SpectraTransport) *Multiplex {
 
 func (x *Multiplex) multiplex(ctx context.Context) {
 	for {
-		fromID, _, payload, err := x.transport.BulkReceive(ctx)
+		payload, fromID, err := x.dogwood.Receive(ctx)
 		if err != nil {
 			liblog.Errorf("multiplex bulk receive: %v", err)
 			continue
@@ -57,9 +57,9 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
-	_, err := x.transport.BulkSend(ctx, x.m.MarshalXdr(&xmsg).Bytes())
+	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg).Bytes())
 	if err != nil {
-		liblog.Errorf("multiplex bulk send: %v", err)
+		liblog.Errorf("multiplex send: %v", err)
 	}
 }
 

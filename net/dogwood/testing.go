@@ -109,9 +109,9 @@ func NewDogwood3Harness(
 		router.NewTestRouter(t.vs[2].Public_info, trees),
 	}
 	t.dogwood = []*DogwoodService{
-		NewDogwoodService(t.ctx, cfg, t.time, t.rand[0], t.net, t.discovery[0], t.router[0]),
-		NewDogwoodService(t.ctx, cfg, t.time, t.rand[1], t.net, t.discovery[1], t.router[1]),
-		NewDogwoodService(t.ctx, cfg, t.time, t.rand[2], t.net, t.discovery[2], t.router[2]),
+		NewDogwoodService(t.ctx, cfg, t.time, t.rand[0], t.net, t.net, t.discovery[0], t.router[0]),
+		NewDogwoodService(t.ctx, cfg, t.time, t.rand[1], t.net, t.net, t.discovery[1], t.router[1]),
+		NewDogwoodService(t.ctx, cfg, t.time, t.rand[2], t.net, t.net, t.discovery[2], t.router[2]),
 	}
 	return t
 }

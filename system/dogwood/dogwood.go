@@ -44,6 +44,7 @@ func NewSystem(
 		libtime.RealTime{},
 		rand,
 		net,
+		net,
 		discovery,
 		router,
 	)

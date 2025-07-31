@@ -11,11 +11,10 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
-	"github.com/groundhogchain/chuckd/net/broadcast"
 	"github.com/groundhogchain/chuckd/net/discovery"
+	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/net/spectra"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/solo/follower"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -34,8 +33,7 @@ type System struct {
 	Coord     *coord.CoordinatorService
 	Discovery *discovery.DiscoveryService
 	Router    router.Router
-	Broadcast *broadcast.BroadcastService
-	Spectra   *spectra.SpectraTransport
+	Dogwood   *dogwood.DogwoodService
 	Multiplex *multiplex.Multiplex
 	//
 	Live     *LiveHandler
@@ -82,24 +80,18 @@ func NewSystem(
 
 	sys.Router = router.NewDynamicUniformRouter(ctx, sys.Discovery, int(cfg.Router_config.Tree_fan_out))
 
-	sys.Broadcast = broadcast.NewBroadcastService(
+	sys.Dogwood = dogwood.NewDogwoodService(
 		ctx,
-		*cfg.Broadcast_config,
+		*cfg.Dogwood_config,
+		libtime.RealTime{},
+		runtime.NewRandFromRand(rand),
 		outside,
-		runtime.NewRandFromRand(rand),
-		cfg.Validator_config.Private_info,
+		inside,
+		sys.Discovery,
 		sys.Router,
-		broadcast.AcceptEverything{},
 	)
 
-	sys.Spectra = spectra.NewSpectraTransport(
-		ctx,
-		*cfg.Spectra_config,
-		runtime.NewRandFromRand(rand),
-		sys.Broadcast.BulkAPI(),
-	)
-
-	sys.Multiplex = multiplex.NewMultiplex(ctx, sys.Spectra)
+	sys.Multiplex = multiplex.NewMultiplex(ctx, sys.Dogwood)
 
 	txTTL := time.Duration(cfg.Mempool_config.Transaction_ttl_msec) * time.Millisecond
 
@@ -115,7 +107,7 @@ func NewSystem(
 		sys.Router,
 		sys.Submitted,
 		sys.Committed,
-		sys.Multiplex,
+		sys.Dogwood,
 		runtime.NewRandFromRand(rand),
 	)
 
@@ -165,7 +157,7 @@ func NewSystem(
 
 	sys.outsideSrv = NewServer(ctx,
 		proto.Discovery1_Server{Srv: sys.Discovery},
-		proto.Broadcast1_Server{Srv: sys.Broadcast},
+		proto.Dogwood1_Server{Srv: sys.Dogwood},
 		proto.Catchup1_Server{Srv: sys.Catchup},
 		proto.SoloFollower1_Server{Srv: sys.Follower},
 	)
