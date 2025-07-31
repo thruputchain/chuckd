@@ -140,8 +140,8 @@ func (x *TestCluster) register(ctx context.Context, coordAddr string) {
 func (x *TestCluster) pumpTxs(ctx context.Context) {
 	liblog.Infof("testcluster pumping txs")
 	for {
-		time.Sleep(time.Millisecond * 100) // 1/10 of second resolution
-		for i := 0; i < int(x.cfg.TPS)/10; i++ {
+		time.Sleep(time.Millisecond * 500) // 1/2 of second resolution
+		for i := 0; i < int(x.cfg.TPS)/2; i++ {
 			x.submitter.SubmitTxs(ctx, x.gen.GenSignedTx(ctx))
 		}
 	}

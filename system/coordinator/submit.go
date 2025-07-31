@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -62,7 +63,11 @@ func (x *Submitter) loop(ctx context.Context) {
 			}
 		}
 
-		x.pool.AddTxs(ctx, protoutil.Unpack(pending)...)
-		x.disseminator.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: pending})
+		if len(pending) > 0 {
+			x.pool.AddTxs(ctx, protoutil.Unpack(pending)...)
+			liblog.Debugf("disseminating %d txs", len(pending))
+			x.disseminator.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: pending})
+			pending = pending[:0]
+		}
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/baton"
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/mempool"
@@ -144,6 +145,7 @@ func NewSystem(
 	go func() {
 		for {
 			_, submittedTxs := sys.Multiplex.ReceiveSubmittedTxs(ctx)
+			liblog.Debugf("received %d txs", len(submittedTxs.Transactions))
 			sys.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
 		}
 	}()
@@ -166,6 +168,7 @@ func NewSystem(
 }
 
 func (s *System) Start(ctx context.Context, inAddr string, outAddr string, walletAddr string) {
+	s.Dogwood.Start(ctx)
 	s.insideSrv.Start(ctx, s.inside, inAddr)
 	s.outsideSrv.Start(ctx, s.outside, outAddr)
 	s.Wallet.StartHTTP(ctx, walletAddr)

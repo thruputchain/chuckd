@@ -100,10 +100,7 @@ func (x *TransmissionSender) send(
 		} else {
 			dialed, err = x.sender.Dial(ctx)
 		}
-		if err != nil {
-			liblog.Errorf("transmission %d, sheaf %d, stream not created: %v",
-				transmission.Transmission_id, s, err)
-		} else {
+		if err == nil {
 			stream = append(stream, dialed)
 		}
 	}

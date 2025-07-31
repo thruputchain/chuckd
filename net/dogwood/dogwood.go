@@ -91,7 +91,7 @@ func NewDogwoodService(
 	return x
 }
 
-func (x *DogwoodService) Start(ctx context.Context, extAddr string, inAddr string, grace time.Duration) {
+func (x *DogwoodService) StartStandalone(ctx context.Context, extAddr string, inAddr string, grace time.Duration) {
 	go func() {
 		defer close(x.ready)
 
@@ -116,6 +116,23 @@ func (x *DogwoodService) Start(ctx context.Context, extAddr string, inAddr strin
 		if inAddr != "" {
 			rpcutil.StartSerial(ctx, x.netInside, inAddr, proto.DogwoodAPI1_Server{Srv: x})
 		}
+	}()
+}
+
+func (x *DogwoodService) Start(ctx context.Context) {
+	go func() {
+		defer close(x.ready)
+
+		x.dialer.Start(ctx)         // nop
+		x.caller.Start(ctx)         // expires idle connections
+		x.streamReceiver.Start(ctx) // nop
+		x.streamSender.Start(ctx)   // nop
+		x.xReceiver.Start(ctx)      // expires partial receptions
+		x.xSender.Start(ctx)        // nop
+		x.mplex.Start(ctx)          // nop
+
+		x.nav.Start(ctx, x.mplex) // expire, refill, disseminate routes periodically
+		x.nav.WaitReady(ctx)      // wait until the first set of routes are disseminated
 	}()
 }
 

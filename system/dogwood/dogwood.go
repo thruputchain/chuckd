@@ -56,6 +56,6 @@ func NewSystem(
 }
 
 func (sys *System) Start(ctx context.Context, extAddr string, optInAddr string) {
-	sys.dogwood.Start(ctx, extAddr, optInAddr, 3*time.Second)
+	sys.dogwood.StartStandalone(ctx, extAddr, optInAddr, 3*time.Second)
 	sys.dogwood.WaitReady(ctx)
 }

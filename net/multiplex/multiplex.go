@@ -35,7 +35,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 	for {
 		payload, fromID, err := x.dogwood.Receive(ctx)
 		if err != nil {
-			liblog.Errorf("multiplex bulk receive: %v", err)
+			liblog.Errorf("multiplex receive: %v", err)
 			continue
 		}
 		var xmsg proto.MultiplexMessage
