@@ -2,8 +2,6 @@ package router
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
 	"math/rand"
 
@@ -80,69 +78,6 @@ func buildDogwoodTree(fanOut int, rootID ValidatorID, vs map[proto.ValidatorID]b
 		}
 	}
 	return root
-}
-
-func (x *dynamicUniformRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
-	treeNodes MulticastTreeNodes,
-	children []ValidatorPublicInfo,
-	treeHash MulticastTreeHash,
-) {
-	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
-	return buildTree(x.m, x.treeFanOut, vs, rootID, cid)
-}
-
-// Info about rootID must be available inside vs.
-func buildTree(m xdrutil.XdrMarshaler, maxFanOut int, vs []proto.ValidatorPublicInfo, rootID ValidatorID, cid ChannelID) (
-	treeNodes MulticastTreeNodes,
-	children []ValidatorPublicInfo,
-	treeHash MulticastTreeHash,
-) {
-
-	// prepare randomness
-	mix := sha256.Sum256(cid[:])
-	seed := int64(binary.LittleEndian.Uint64(mix[:8]))
-	r := rand.New(rand.NewSource(seed))
-
-	// shuffle validators
-	root, vs := dedupFilterOutValidators(vs, rootID)
-	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
-
-	return buildRootedTree(m, maxFanOut, root, vs)
-}
-
-func buildRootedTree(
-	xm xdrutil.XdrMarshaler,
-	maxFanOut int,
-	root ValidatorPublicInfo,
-	unused []ValidatorPublicInfo,
-) (
-	treeNodes MulticastTreeNodes,
-	children []ValidatorPublicInfo,
-	treeHash MulticastTreeHash,
-) {
-
-	// determine children
-	k := min(len(unused), maxFanOut)
-	children = unused[:k]
-	unused = unused[k:]
-
-	// build children's subtrees
-	treeNodes = make(MulticastTreeNodes, 1)
-	treeNodes[0].Node = root
-
-	if len(children) > 0 {
-		m := divideRoundUp(len(unused), len(children))
-		for _, child := range children {
-			chop := min(m, len(unused))
-			childTreeNodes, _, childTreeHash := buildRootedTree(xm, maxFanOut, child, unused[:chop])
-			unused = unused[chop:]
-			treeNodes = append(treeNodes, childTreeNodes...)
-			treeNodes[0].Children = append(treeNodes[0].Children, childTreeHash)
-		}
-	}
-	treeHash = protoutil.MulticastTreeNodeHash(xm, treeNodes[0])
-
-	return treeNodes, children, treeHash
 }
 
 func divideRoundUp(x, y int) int {

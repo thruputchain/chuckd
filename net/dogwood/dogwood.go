@@ -18,7 +18,7 @@ type DogwoodService struct {
 	time           libtime.Time
 	netOutside     libnet.Network
 	netInside      libnet.Network
-	router         router.DogwoodRouter
+	router         router.Router
 	dialer         DogwoodDialer
 	nav            *Navigator
 	caller         Caller
@@ -39,7 +39,7 @@ func NewDogwoodService(
 	netOutside libnet.Network,
 	netInside libnet.Network,
 	discovery discovery.Discovery,
-	router router.DogwoodRouter,
+	router router.Router,
 ) *DogwoodService {
 
 	x := &DogwoodService{

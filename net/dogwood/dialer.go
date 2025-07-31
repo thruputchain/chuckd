@@ -15,7 +15,7 @@ type DogwoodDialer interface {
 
 type dogwoodClientDialer struct {
 	net    libnet.Network
-	router router.DogwoodRouter
+	router router.Router
 }
 
 func (x dogwoodClientDialer) Start(context.Context) {}
@@ -33,6 +33,6 @@ func (x dogwoodClientDialer) Dial(ctx context.Context, vid proto.ValidatorID) (D
 	return c, nil
 }
 
-func NewDogwoodClientDialer(net libnet.Network, router router.DogwoodRouter) DogwoodDialer {
+func NewDogwoodClientDialer(net libnet.Network, router router.Router) DogwoodDialer {
 	return dogwoodClientDialer{net: net, router: router}
 }

@@ -62,12 +62,3 @@ func (x *staticUniformRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.
 	vs := protoutil.ValidatorPublicToIDs(x.validators)
 	return buildDogwoodTree(x.maxFanOut, rootID, vs)
 }
-
-func (x *staticUniformRouter) BuildTree(rootID ValidatorID, cid ChannelID) (
-	treeNodes MulticastTreeNodes,
-	children []ValidatorPublicInfo,
-	treeHash MulticastTreeHash,
-) {
-	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
-	return buildTree(x.m, x.maxFanOut, vs, rootID, cid)
-}

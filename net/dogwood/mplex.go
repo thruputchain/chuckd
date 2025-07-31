@@ -14,7 +14,7 @@ import (
 )
 
 type Multiplex struct {
-	router   router.DogwoodRouter
+	router   router.Router
 	sender   *TransmissionSender
 	receiver *TransmissionReceiver
 	nav      *Navigator
@@ -24,7 +24,7 @@ type Multiplex struct {
 
 func NewMultiplex(
 	ctx context.Context,
-	router router.DogwoodRouter,
+	router router.Router,
 	s *TransmissionSender,
 	r *TransmissionReceiver,
 	n *Navigator,

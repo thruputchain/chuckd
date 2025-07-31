@@ -25,7 +25,7 @@ type Navigator struct {
 	time         libtime.Time
 	rand         *rand.Rand
 	disseminator RouteDisseminator
-	router       router.DogwoodRouter
+	router       router.Router
 	// params
 	self            proto.ValidatorID
 	routeTTL        time.Duration
@@ -58,7 +58,7 @@ func NewNavigator(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
-	router router.DogwoodRouter,
+	router router.Router,
 	routeTTL time.Duration, // route ttl
 	routeMaxLatency time.Duration, // max duration of propagation along a route
 	nRoutes int, // number of available routes at any time

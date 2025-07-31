@@ -9,20 +9,12 @@ import (
 )
 
 func TestRoundtrip(t *testing.T) {
-	// x := proto.ValidatorPublicInfo{Address: "1.2.3.4"}
-	x := proto.BroadcastChannel{Batch_count: 111}
-	// x := proto.Config{
-	// 	Spectra_config: &proto.SpectraConfig{
-	// 		Partial_ttl_msec: 333,
-	// 	},
-	// }
+	x := proto.ValidatorPublicInfo{Address: "1.2.3.4"}
 	s, err := XdrToJson(&x)
 	if err != nil {
 		t.Error(err)
 	}
-	// y := proto.ValidatorPublicInfo{}
-	y := proto.BroadcastChannel{}
-	// y := proto.Config{}
+	y := proto.ValidatorPublicInfo{}
 	err = JsonToXdr(&y, s)
 	if err != nil {
 		t.Error(err)
