@@ -112,7 +112,7 @@ func (x *TestCluster) Start(ctx context.Context, coordAddr string) {
 		rpcutil.StartSerial(ctx, x.net, x.ExecAddress(i), proto.ExecutorCoord1_Server{Srv: exec})
 	}
 	for i, shard := range x.shards {
-		rpcutil.StartSerial(ctx, x.net, x.ShardAddress(i), proto.Shard1_Server{Srv: shard}, proto.DbCoord1_Server{Srv: shard})
+		rpcutil.StartSerial(ctx, x.net, x.ShardAddress(i), proto.DbCoord1_Server{Srv: shard})
 	}
 	go x.register(ctx, coordAddr)
 	go x.pumpTxs(ctx)

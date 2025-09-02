@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/shard"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -50,10 +49,10 @@ func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards, height proto
 			go func(s proto.ShardCard) {
 				defer wg.Done()
 
-				c, err := shard.DialShardClient(ctx, svc.net, s.Address)
+				c, err := DialDbCoordClient(ctx, svc.net, s.Address)
 				must.NoError(ctx, err)
 				defer c.Close()
-				_, err = c.Shard_restore(ctx, height)
+				_, err = c.Dbcoord_shard_restore(ctx, height)
 				must.NoError(ctx, err)
 			}(sh)
 		}

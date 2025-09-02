@@ -69,5 +69,21 @@ func (db *testDbNoop) Dbcoord_catchup(context.Context, proto.BlockHeight) (proto
 	panic("not used here")
 }
 
+func (db *testDbNoop) Dbcoord_get_hog_ages(context.Context, proto.ContractAddressBatch) (proto.HogAgeResult, error) {
+	panic("not used")
+}
+
+func (db *testDbNoop) Dbcoord_write_hog_ages(context.Context, proto.HogAgeBatch) (proto.DbResult, error) {
+	panic("not used")
+}
+
+func (db *testDbNoop) Dbcoord_load_genesis_block(context.Context, proto.GenesisBlock) (proto.DbResult, error) {
+	panic("not used")
+}
+
+func (db *testDbNoop) Dbcoord_shard_restore(ctx context.Context, a1 proto.BlockHeight) (r proto.DbShardResult, _ error) {
+	return proto.ShardOK, nil
+}
+
 func (db *testDbNoop) Close() {
 }

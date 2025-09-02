@@ -19,13 +19,5 @@ func NewTestShard(ctx context.Context, db testdb.TestDb) *TestShard {
 }
 
 func (s *TestShard) Start(ctx context.Context, net libnet.Network, address string) net.Listener {
-	return rpcutil.StartSerial(ctx, net, address, proto.Shard1_Server{Srv: s}, proto.DbCoord1_Server{Srv: s})
-}
-
-func (s *TestShard) Shard_null(ctx context.Context) error {
-	return nil
-}
-
-func (s *TestShard) Shard_restore(ctx context.Context, blockHeight proto.BlockHeight) (proto.ShardResult, error) {
-	return proto.ShardOK, nil
+	return rpcutil.StartSerial(ctx, net, address, proto.DbCoord1_Server{Srv: s})
 }

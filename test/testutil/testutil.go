@@ -37,8 +37,8 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 	h.rand.Read(id[:])
 
 	tx := proto.Transaction{
-		Id:      id,
-		Created: h.time.Now().UnixNano(),
+		Origin_id: id,
+		Created:   h.time.Now().UnixNano(),
 	}
 	return &proto.SignedTransaction{
 		Signature: protoutil.SignXdr(h.m, h.user, &tx),

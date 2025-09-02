@@ -21,5 +21,9 @@ type TestDb interface {
 	Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error)
 	Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error)
 	Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbCatchupResult, error)
+	Dbcoord_get_hog_ages(context.Context, proto.ContractAddressBatch) (proto.HogAgeResult, error)
+	Dbcoord_write_hog_ages(context.Context, proto.HogAgeBatch) (proto.DbResult, error)
+	Dbcoord_load_genesis_block(context.Context, proto.GenesisBlock) (proto.DbResult, error)
+	Dbcoord_shard_restore(ctx context.Context, a1 proto.BlockHeight) (r proto.DbShardResult, _ error)
 	Close()
 }
