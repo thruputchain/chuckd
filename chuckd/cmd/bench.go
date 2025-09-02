@@ -44,7 +44,7 @@ var (
 					benchCallsPerExec,
 					benchBatchSize,
 				)
-				srv.Start(ctx, benchInAddress)
+				srv.Start(ctx, benchInAddress, benchLoadgenAddress)
 				select {}
 			})
 		},
@@ -188,11 +188,12 @@ var (
 	benchNumIterations   int
 	benchBytesPerPay     int
 	//
-	benchInAddress     string
-	benchOutAddress    string
-	benchWalletAddress string
-	benchTPS           int64
-	benchTPB           int
+	benchLoadgenAddress string
+	benchInAddress      string
+	benchOutAddress     string
+	benchWalletAddress  string
+	benchTPS            int64
+	benchTPB            int
 	//
 	benchNumDb        int
 	benchNumExec      int
@@ -237,6 +238,7 @@ func init() {
 
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
+	benchLoadGenCmd.Flags().StringVar(&benchLoadgenAddress, "loadgen-addr", "localhost:11222", "address of loadgen server")
 	benchLoadGenCmd.Flags().IntVar(&benchTPB, "tpb", 1e6, "transactions per block")
 	benchLoadGenCmd.Flags().IntVar(&benchGenPar, "gen-par", 20, "generation parallelism")
 	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")

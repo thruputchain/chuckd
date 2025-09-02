@@ -64,16 +64,18 @@ func NewLoadGenBench(
 	return x
 }
 
-func (x *LoadGen) Start(ctx context.Context, inAddr string) {
+func (x *LoadGen) Start(ctx context.Context, inAddr string, loadgenAddr string) {
 	x.insideSrv.Start(ctx, x.inside, inAddr)
-	go x.drive(ctx)
+	lg, err := DialLoadgenClient(ctx, x.inside, loadgenAddr)
+	must.NoError(ctx, err)
+	go x.drive(ctx, lg)
 }
 
 func (x *LoadGen) Close() {
 	x.insideSrv.Close()
 }
 
-func (x *LoadGen) drive(ctx context.Context) {
+func (x *LoadGen) drive(ctx context.Context, lg *LoadgenClient) {
 
 	x.coord.WaitDbReady() // returns after db restored
 
@@ -94,7 +96,7 @@ func (x *LoadGen) drive(ctx context.Context) {
 
 		x0 := time.Now()
 		// txs := <-blockTxsCh
-		genDurMsec := float64(time.Now().Sub(x0).Milliseconds())
+		genDurMsec := float64(time.Since(x0).Milliseconds())
 
 		t0 := time.Now()
 
