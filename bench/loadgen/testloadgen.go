@@ -15,7 +15,8 @@ func TestLoadGen(
 	net libnet.Network,
 	cfg testcluster.TestClusterConfig,
 	inPort int,
-	tpb int,
+	numAccts int,
+	txsPerBlock int,
 	genPar int,
 	callPerExec int,
 	batchSize int,
@@ -33,7 +34,7 @@ func TestLoadGen(
 		true,
 	)
 
-	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), net, tpb, genPar, callPerExec, batchSize)
+	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), net, numAccts, txsPerBlock, genPar, callPerExec, batchSize)
 
 	inAddr := fmt.Sprintf("localhost:%d", inPort)
 	loadGen.Start(ctx, inAddr, "XXX")
