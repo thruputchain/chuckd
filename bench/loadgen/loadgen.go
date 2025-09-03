@@ -89,7 +89,7 @@ func (x *LoadGen) obtainTxs(
 ) {
 
 	cfg := proto.ExperimentConfig{}
-	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{Num_txs: uint64(numTxs), Num_accounts: uint64(numAccts)}
+	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{Num_accounts: uint64(numAccts)}
 	r, err := lg.Generate_experiment(ctx, cfg)
 	must.NoError(ctx, err)
 
@@ -105,8 +105,8 @@ func (x *LoadGen) obtainTxs(
 	}
 
 	liblog.Infof("delivering work blocks")
-	for i := 0; ; i++ {
-		r, err := lg.Extend_experiment(ctx, ctxID, uint64(i))
+	for {
+		r, err := lg.Extend_experiment(ctx, ctxID, uint64(numTxs))
 		must.NoError(ctx, err)
 
 		ext := r.Success()
