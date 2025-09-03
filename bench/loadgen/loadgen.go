@@ -42,14 +42,12 @@ func NewLoadGenBench(
 	inside libnet.Network,
 	numAccts int,
 	numTxs int, // txs per block
-	genPar int,
 	callsPerExec int,
 	batchSize int,
 ) *LoadGen {
 	x := &LoadGen{
 		numAccts:     numAccts,
 		numTxs:       numTxs,
-		genPar:       genPar,
 		callsPerExec: callsPerExec,
 		batchSize:    batchSize,
 		rand:         rand,
