@@ -24,7 +24,7 @@ require (
 	github.com/groundhogchain/protocol-go v0.0.0-20250903055210-e3faf9178451
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/prometheus/client_golang v1.22.0
-	github.com/xdrpp/goxdr v0.0.0-20250827210751-ece7f2d6f15e
+	github.com/xdrpp/goxdr v0.0.0-20250904051420-1656be582ed0
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
 	go.opentelemetry.io/otel/metric v1.35.0
 	go.opentelemetry.io/otel/sdk v1.35.0

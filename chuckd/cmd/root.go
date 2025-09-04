@@ -15,6 +15,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
+	"github.com/xdrpp/goxdr/rpc"
 
 	"github.com/spf13/cobra"
 )
@@ -43,6 +44,7 @@ var (
 	rootMetricsAddr      string
 	rootStackTrace       bool
 	rootLogLevel         string
+	rootMaxMsgSize       int
 )
 
 func init() {
@@ -63,6 +65,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
 	rootCmd.PersistentFlags().BoolVarP(&rootStackTrace, "stack", "s", false, "stack trace on error")
 	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
+	rootCmd.PersistentFlags().IntVar(&rootMaxMsgSize, "max-msg-size", 100e6, "maximum message size")
 }
 
 func initAfterFlags() {
@@ -83,6 +86,7 @@ func initAfterFlags() {
 	api.SetBlockProfilePath(rootBlockProfilePath)
 	api.SetInstanceID(rootInstanceID)
 	api.SetMetricsAddr(rootMetricsAddr)
+	rpc.DefaultMaxMsgSize = rootMaxMsgSize
 	chuckdruntime.SetRootSeed(rootSeed)
 }
 
