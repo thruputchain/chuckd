@@ -38,11 +38,12 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 
 	tx := proto.Transaction{
 		Origin_id: id,
-		Created:   h.time.Now().UnixNano(),
 	}
 	return &proto.SignedTransaction{
-		Signature: protoutil.SignXdr(h.m, h.user, &tx),
-		Tx:        tx,
+		Signatures: []proto.DecoratedSignature{
+			{Public_key_id: 0, Signature: protoutil.SignXdr(h.m, h.user, &tx)},
+		},
+		Tx: tx,
 	}
 }
 
