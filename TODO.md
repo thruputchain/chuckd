@@ -1,6 +1,8 @@
 
 ROADMAP
 
+- [ ] intro BlockHeader { height, merkle_hash, later on also txset hash }
+
 - [ ] pebble db in catchup cache
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
