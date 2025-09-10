@@ -50,7 +50,7 @@ func PrepareNomination(
 	// connect to db
 	db, err := handler.DialDb(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dialing db (%v)", err)
 	}
 	defer db.Close()
 
@@ -59,7 +59,7 @@ func PrepareNomination(
 	// db create snapshot
 	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.ID, blockID, proto.KBlockExecutionModeProposal)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db create snapshot (%v)", err)
 	}
 	if dbResult != proto.DbResultOK {
 		return nil, fmt.Errorf("db create snapshot rpc error")
@@ -73,13 +73,13 @@ func PrepareNomination(
 	}
 	if err != nil {
 		db.Dbcoord_abandon_snapshot(ctx, blockID)
-		return nil, fmt.Errorf("proposal error: %v", err)
+		return nil, fmt.Errorf("proposal error (%v)", err)
 	}
 
 	// db close snapshot
 	dbBlockResult, err := db.Dbcoord_close_snapshot(ctx, blockID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db close snapshot (%v)", err)
 	}
 	if dbBlockResult.Result != proto.DbResultOK {
 		return nil, fmt.Errorf("db close snapshot rpc error")

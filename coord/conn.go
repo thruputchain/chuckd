@@ -6,12 +6,14 @@ import (
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 func (x *CoordinatorService) DialDb(ctx context.Context) (batonapi.DbCoordConn, error) {
 	shard := x.pickShard()
+	liblog.Infof("dialing shard %v", form.Display(shard.Address))
 	return DialDbCoordClient(ctx, x.net, shard.Address)
 }
 

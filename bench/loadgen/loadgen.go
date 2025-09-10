@@ -140,7 +140,7 @@ func (x *LoadGen) execTxs(
 		tip, err := getDbTip(ctx, db)
 		must.NoError(ctx, err)
 
-		liblog.Infof("proposing block at height %d", tip.Height+1)
+		liblog.Infof("fetching block at height %d", tip.Height+1)
 
 		x0 := time.Now()
 		txs := <-blockTxsCh
