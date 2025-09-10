@@ -172,8 +172,8 @@ github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65E
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
-github.com/xdrpp/goxdr v0.0.0-20250904051420-1656be582ed0 h1:1PljJ6wsZlAss6u4zMXtsLpG7oEZzbmjsobeGPiSckQ=
-github.com/xdrpp/goxdr v0.0.0-20250904051420-1656be582ed0/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
+github.com/xdrpp/goxdr v0.0.0-20250910041041-dbf5349a6830 h1:daqalqZa/zgoxj1FTPGUnsEpsGN6yk5ocw6jSdRBHx0=
+github.com/xdrpp/goxdr v0.0.0-20250910041041-dbf5349a6830/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
