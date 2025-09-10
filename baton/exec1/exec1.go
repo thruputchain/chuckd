@@ -31,7 +31,7 @@ func Exec[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	// connect to available executors
 	execs, err := handler.DialExecs(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dialing exec (%v)", err)
 	}
 	if len(execs) == 0 {
 		return nil, batonapi.ErrNoExecs
