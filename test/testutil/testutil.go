@@ -36,9 +36,7 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 	var id proto.OriginID
 	h.rand.Read(id[:])
 
-	tx := proto.Transaction{
-		Origin_id: id,
-	}
+	tx := proto.Transaction{}
 	return &proto.SignedTransaction{
 		Signatures: []proto.DecoratedSignature{
 			{Public_key_id: 0, Signature: protoutil.SignXdr(h.m, h.user, &tx)},
