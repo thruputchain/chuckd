@@ -13,8 +13,8 @@ import (
 
 func (x *CoordinatorService) DialDb(ctx context.Context) (batonapi.DbCoordConn, error) {
 	shard := x.pickShard()
-	liblog.Infof("dialing shard %v", form.Display(shard.Address))
-	return DialDbCoordClient(ctx, x.net, shard.Address)
+	liblog.Infof("dialing shard %v", form.Display(shard.Address_for_coord))
+	return DialDbCoordClient(ctx, x.net, shard.Address_for_coord)
 }
 
 func (x *CoordinatorService) pickShard() proto.ShardCard {

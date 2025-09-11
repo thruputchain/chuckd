@@ -91,10 +91,10 @@ func (x *TestCluster) ExecAddress(shard int) string {
 
 func (x *TestCluster) ShardCard(shard int) proto.ShardCard {
 	return proto.ShardCard{
-		Upid:         xdrutil.Uint64UPID(5 * uint64(shard)),
-		Block_height: x.db.GetTip().Height,
-		Shard_count:  uint32(len(x.shards)),
-		Address:      x.ShardAddress(shard),
+		Upid:              xdrutil.Uint64UPID(5 * uint64(shard)),
+		Block_height:      x.db.GetTip().Height,
+		Shard_count:       uint32(len(x.shards)),
+		Address_for_coord: x.ShardAddress(shard),
 	}
 }
 

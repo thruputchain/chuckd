@@ -49,7 +49,7 @@ func (svc *CoordinatorService) prepareDb(shards xdrutil.ShardCards, height proto
 			go func(s proto.ShardCard) {
 				defer wg.Done()
 
-				c, err := DialDbCoordClient(ctx, svc.net, s.Address)
+				c, err := DialDbCoordClient(ctx, svc.net, s.Address_for_coord)
 				must.NoError(ctx, err)
 				defer c.Close()
 				_, err = c.Dbcoord_shard_restore(ctx, height)

@@ -80,8 +80,8 @@ github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db h1:097atOisP2aRj7vFgY
 github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/groundhogchain/protocol-go v0.0.0-20250910223347-03323512ecd0 h1:2WjzpN1/YZVXGhlYlkgYq7MJsEAidwPFoXnyOusqIaM=
-github.com/groundhogchain/protocol-go v0.0.0-20250910223347-03323512ecd0/go.mod h1:puKsd84Zi76JDeR1UPHMYDXYCDUYsHhPZaZy+dsikps=
+github.com/groundhogchain/protocol-go v0.0.0-20250911231103-7812c0975c3a h1:fdMRF21hfBzHRxBnIlwsXIBEbQ0BNUxElYP0Caie4EU=
+github.com/groundhogchain/protocol-go v0.0.0-20250911231103-7812c0975c3a/go.mod h1:puKsd84Zi76JDeR1UPHMYDXYCDUYsHhPZaZy+dsikps=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=

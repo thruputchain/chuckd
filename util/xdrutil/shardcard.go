@@ -16,7 +16,10 @@ func (x ShardCards) Less(i, j int) bool {
 	if LessUPID(x[i].Upid, x[j].Upid) {
 		return true
 	}
-	return x[i].Address < x[j].Address
+	if x[i].Address_for_coord < x[j].Address_for_coord {
+		return true
+	}
+	return x[i].Address_for_exec < x[j].Address_for_exec
 }
 
 func (x ShardCards) Swap(i, j int) {
