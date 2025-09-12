@@ -135,7 +135,7 @@ func (x *LoadGen) execTxs(
 	must.Assert(ctx, dbr == proto.DbResultOK)
 
 	// execute blocks
-	var nextBlockID proto.BlockID
+	var nextBlockID proto.BlockID = 1
 	validationMarshaler := xdrutil.NewXdrMarshaler()
 	for {
 		tip, err := getDbTip(ctx, db)
