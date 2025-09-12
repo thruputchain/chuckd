@@ -135,7 +135,7 @@ func (x *LoadGen) execTxs(
 	must.Assert(ctx, dbr == proto.DbResultOK)
 
 	// execute blocks
-	var blockID proto.BlockID
+	var nextBlockID proto.BlockID
 	validationMarshaler := xdrutil.NewXdrMarshaler()
 	for {
 		tip, err := getDbTip(ctx, db)
@@ -151,8 +151,9 @@ func (x *LoadGen) execTxs(
 
 		t0 := time.Now()
 
-		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize, blockID)
-		blockID += 1
+		nomBlockID := nextBlockID
+		nextBlockID += 1
+		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize, nomBlockID)
 		must.NoError(ctx, err)
 
 		t1 := time.Now()
@@ -184,11 +185,12 @@ func (x *LoadGen) execTxs(
 		liblog.Infof("committing block at height %d", tip.Height+1)
 
 		vb := &batonapi.ValidatableBlock{
-			BlockHeight:          nomination.BlockHeight,
-			BlockHash:            nomination.BlockHash,
-			PrevBlockHash:        nomination.PrevBlockHash,
-			ProposedTransactions: protoutil.UnpackProposedTransactions(nomination.ProposedTransactions()),
-			DbTip:                tip,
+			BlockHeight:             nomination.BlockHeight,
+			BlockHash:               nomination.BlockHash,
+			PrevBlockHash:           nomination.PrevBlockHash,
+			ProposedTransactions:    protoutil.UnpackProposedTransactions(nomination.ProposedTransactions()),
+			DbTip:                   tip,
+			AlreadyValidatedBlockID: &nomBlockID,
 		}
 
 		_, err = commit.CommitAlreadyValidated(ctx, validationMarshaler, x.handler, vb)
