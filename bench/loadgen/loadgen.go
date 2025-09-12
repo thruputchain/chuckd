@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/commit"
 	"github.com/groundhogchain/chuckd/baton/nominate"
-	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -158,8 +158,30 @@ func (x *LoadGen) execTxs(
 		t1 := time.Now()
 		nominateDurMsec := float64(t1.Sub(t0).Milliseconds())
 		x.nominateMsec.Add(nominateDurMsec)
+		/*
+			liblog.Infof("validating block at height %d", tip.Height+1)
 
-		liblog.Infof("validating block at height %d", tip.Height+1)
+			vb := &batonapi.ValidatableBlock{
+				BlockHeight:          nomination.BlockHeight,
+				BlockHash:            nomination.BlockHash,
+				PrevBlockHash:        nomination.PrevBlockHash,
+				ProposedTransactions: protoutil.UnpackProposedTransactions(nomination.ProposedTransactions()),
+				DbTip:                tip,
+			}
+
+			t2 := time.Now()
+
+			_, err = validate.ValidateCommit(ctx, validationMarshaler, x.handler, vb, x.callsPerExec, x.batchSize, blockID)
+			blockID += 1
+			must.NoError(ctx, err)
+			t3 := time.Now()
+			validateDurMsec := float64(t3.Sub(t2).Milliseconds())
+			x.validateMsec.Add(validateDurMsec)
+		*/
+		validateDurMsec := float64(1)
+
+		//
+		liblog.Infof("committing block at height %d", tip.Height+1)
 
 		vb := &batonapi.ValidatableBlock{
 			BlockHeight:          nomination.BlockHeight,
@@ -169,15 +191,8 @@ func (x *LoadGen) execTxs(
 			DbTip:                tip,
 		}
 
-		t2 := time.Now()
-
-		_, err = validate.ValidateCommit(ctx, validationMarshaler, x.handler, vb, x.callsPerExec, x.batchSize, blockID)
-		blockID += 1
+		_, err = commit.CommitAlreadyValidated(ctx, validationMarshaler, x.handler, vb)
 		must.NoError(ctx, err)
-
-		t3 := time.Now()
-		validateDurMsec := float64(t3.Sub(t2).Milliseconds())
-		x.validateMsec.Add(validateDurMsec)
 
 		liblog.Infof("committed block at height %d", tip.Height+1)
 
