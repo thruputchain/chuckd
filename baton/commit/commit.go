@@ -31,13 +31,13 @@ func CommitAlreadyValidated(
 	blockID := *vb.AlreadyValidatedBlockID
 
 	// db open snapshot
-	dbResult, err := db.Dbcoord_open_snapshot(ctx, blockID)
-	if err != nil {
-		return 0, err
-	}
-	if dbResult != proto.DbResultOK {
-		return 0, fmt.Errorf("db open snapshot error")
-	}
+	// dbResult, err := db.Dbcoord_open_snapshot(ctx, blockID)
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// if dbResult != proto.DbResultOK {
+	// 	return 0, fmt.Errorf("db open snapshot error")
+	// }
 
 	return FinalizeCommit(ctx, txM, handler, vb, blockID, db)
 }
