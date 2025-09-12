@@ -45,6 +45,7 @@ func PrepareNomination(
 	txs []*proto.SignedTransaction,
 	callsPerExec int,
 	batchSize int,
+	blockID proto.BlockID,
 ) (*Nomination, error) {
 
 	// connect to db
@@ -54,7 +55,7 @@ func PrepareNomination(
 	}
 	defer db.Close()
 
-	blockID := handler.GenerateBlockID(ctx)
+	// blockID := handler.GenerateBlockID(ctx)
 
 	// db create snapshot
 	dbResult, err := db.Dbcoord_create_snapshot(ctx, tip.ID, blockID, proto.KBlockExecutionModeProposal)

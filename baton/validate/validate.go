@@ -49,6 +49,7 @@ func ValidateCommit(
 	vb *batonapi.ValidatableBlock,
 	callsPerExec int,
 	batchSize int,
+	blockID proto.BlockID,
 ) (proto.BlockID, error) {
 	liblog.Debugf("validating and committing [%d; %s]", vb.BlockHeight, form.Display(vb.BlockHash))
 
@@ -58,7 +59,7 @@ func ValidateCommit(
 	}
 	defer db.Close()
 
-	blockID := handler.GenerateBlockID(ctx)
+	// blockID := handler.GenerateBlockID(ctx)
 
 	if err = Validate(ctx, handler, vb, db, blockID, callsPerExec, batchSize); err != nil {
 		return 0, err

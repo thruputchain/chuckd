@@ -47,10 +47,10 @@ func TestShardCompleteness(t *testing.T) {
 	ad3 := sh3.Start(ctx, libnet.TCPNet{}, ":0").Addr().String()
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{
-		Upid:         xdrutil.Uint64UPID(1),
-		Block_height: 1,
-		Shard_count:  2,
-		Address:      ad1,
+		Upid:              xdrutil.Uint64UPID(1),
+		Block_height:      1,
+		Shard_count:       2,
+		Address_for_coord: ad1,
 	})
 
 	if _, _, ready := s.findCompleteDbMatchShardHeight(); ready {
@@ -58,10 +58,10 @@ func TestShardCompleteness(t *testing.T) {
 	}
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{
-		Upid:         xdrutil.Uint64UPID(2),
-		Block_height: 2, // different height
-		Shard_count:  2,
-		Address:      ad2,
+		Upid:              xdrutil.Uint64UPID(2),
+		Block_height:      2, // different height
+		Shard_count:       2,
+		Address_for_coord: ad2,
 	})
 
 	if _, _, ready := s.findCompleteDbMatchShardHeight(); ready {
@@ -69,10 +69,10 @@ func TestShardCompleteness(t *testing.T) {
 	}
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{
-		Upid:         xdrutil.Uint64UPID(3),
-		Block_height: 1,
-		Shard_count:  2,
-		Address:      ad3,
+		Upid:              xdrutil.Uint64UPID(3),
+		Block_height:      1,
+		Shard_count:       2,
+		Address_for_coord: ad3,
 	})
 
 	if _, _, ready := s.findCompleteDbMatchShardHeight(); !ready {
@@ -104,10 +104,10 @@ func TestDbReadiness(t *testing.T) {
 	}()
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{
-		Upid:         xdrutil.Uint64UPID(1),
-		Block_height: 1,
-		Shard_count:  2,
-		Address:      ad1,
+		Upid:              xdrutil.Uint64UPID(1),
+		Block_height:      1,
+		Shard_count:       2,
+		Address_for_coord: ad1,
 	})
 
 	select {
@@ -117,10 +117,10 @@ func TestDbReadiness(t *testing.T) {
 	}
 
 	s.Coordinator_intro_shard(ctx, proto.ShardCard{
-		Upid:         xdrutil.Uint64UPID(3),
-		Block_height: 1,
-		Shard_count:  2,
-		Address:      ad2,
+		Upid:              xdrutil.Uint64UPID(3),
+		Block_height:      1,
+		Shard_count:       2,
+		Address_for_coord: ad2,
 	})
 
 	<-execUnblocked

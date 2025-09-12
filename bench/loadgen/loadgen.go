@@ -135,6 +135,7 @@ func (x *LoadGen) execTxs(
 	must.Assert(ctx, dbr == proto.DbResultOK)
 
 	// execute blocks
+	var blockID proto.BlockID
 	validationMarshaler := xdrutil.NewXdrMarshaler()
 	for {
 		tip, err := getDbTip(ctx, db)
@@ -150,7 +151,8 @@ func (x *LoadGen) execTxs(
 
 		t0 := time.Now()
 
-		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize)
+		nomination, err := nominate.PrepareNomination(ctx, x.handler, tip, txs, x.callsPerExec, x.batchSize, blockID)
+		blockID += 1
 		must.NoError(ctx, err)
 
 		t1 := time.Now()
@@ -169,7 +171,8 @@ func (x *LoadGen) execTxs(
 
 		t2 := time.Now()
 
-		_, err = validate.ValidateCommit(ctx, validationMarshaler, x.handler, vb, x.callsPerExec, x.batchSize)
+		_, err = validate.ValidateCommit(ctx, validationMarshaler, x.handler, vb, x.callsPerExec, x.batchSize, blockID)
+		blockID += 1
 		must.NoError(ctx, err)
 
 		t3 := time.Now()

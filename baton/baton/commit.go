@@ -14,7 +14,8 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) (prot
 		// skip validation when committing our own nomination
 		return commit.CommitAlreadyValidated(ctx, b.txM, b.handler, vb)
 	} else {
-		return validate.ValidateCommit(ctx, b.txM, b.handler, vb, b.callsPerExec, b.batchSize)
+		blockID := b.handler.GenerateBlockID(ctx)
+		return validate.ValidateCommit(ctx, b.txM, b.handler, vb, b.callsPerExec, b.batchSize, blockID)
 	}
 }
 
