@@ -110,7 +110,7 @@ func execValidateTx(
 	blockID proto.BlockID,
 	callsPerExec int,
 ) error {
-	doneTx, err := exec1.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateTx{}, callsPerExec)
+	doneTx, err := exec1.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateTx{}, callsPerExec, false)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func execValidateBatch(
 	callsPerExec int,
 	batchSize int,
 ) error {
-	doneTx, err := exec1.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec)
+	doneTx, err := exec1.Exec(ctx, handler, vb.ProposedTransactions, blockID, submitValidateBatch{BatchSize: batchSize}, callsPerExec, false)
 	if err != nil {
 		return err
 	}

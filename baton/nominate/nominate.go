@@ -108,6 +108,7 @@ func execProposeTx(
 		blockID,
 		submitProposeTx{},
 		callsPerExec,
+		true,
 	)
 }
 
@@ -126,5 +127,6 @@ func execProposeBatch(
 		blockID,
 		submitProposeBatch{BatchSize: batchSize},
 		callsPerExec,
+		true,
 	)
 }

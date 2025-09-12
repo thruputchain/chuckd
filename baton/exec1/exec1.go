@@ -26,6 +26,7 @@ func Exec[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	blockID proto.BlockID,
 	submit Submit,
 	callsPerExec int,
+	isProposal bool,
 ) ([]DoneTx[Tx, Result], error) {
 
 	// connect to available executors
@@ -40,7 +41,7 @@ func Exec[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 		defer exec.Close()
 	}
 
-	return execWithConns(ctx, blockID, txs, execs, submit, callsPerExec)
+	return execWithConns(ctx, blockID, txs, execs, submit, callsPerExec, isProposal)
 }
 
 func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
@@ -50,6 +51,7 @@ func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg
 	conn []batonapi.ExecCoordConn,
 	submit Submit,
 	callsPerConn int,
+	isProposal bool,
 ) ([]DoneTx[Tx, Result], error) {
 
 	// create a context to use for cancelling workers in case any of them fail
@@ -70,6 +72,7 @@ func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg
 				pkgCh,
 				// submit.Buffer(shards[j*callsPerExec+i]),
 				executedCh,
+				isProposal,
 			)
 		}
 	}
@@ -108,9 +111,16 @@ func feedConn[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 	blockID proto.BlockID,
 	payCh <-chan Pkg,
 	executedCh chan<- executed[Tx, Result],
+	isProposal bool,
 ) {
 
-	execResult, err := exec.Executorcoord_open_proposal_block(ctx, blockID)
+	var err error
+	var execResult proto.ExecResult
+	if isProposal {
+		execResult, err = exec.Executorcoord_open_proposal_block(ctx, blockID)
+	} else {
+		execResult, err = exec.Executorcoord_open_validation_block(ctx, blockID)
+	}
 	if err != nil {
 		executedCh <- executed[Tx, Result]{err: err}
 		return
