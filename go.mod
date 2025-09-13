@@ -21,7 +21,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/goccy/go-yaml v1.17.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/groundhogchain/protocol-go v0.0.0-20250911231103-7812c0975c3a
+	github.com/groundhogchain/protocol-go v0.0.0-20250913024814-94ff7aaae304
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.0.0-20250910041041-dbf5349a6830
