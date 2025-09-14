@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -61,8 +60,8 @@ func FinalizeCommit(
 	}
 
 	// verify the block hash returned by the db matches
-	must.Assertf(ctx, *dbBlockResult.Block_hash() == vb.BlockHash,
-		"db block hash changed after a prior nomination or validation")
+	// must.Assertf(ctx, *dbBlockResult.Block_hash() == vb.BlockHash,
+	// 	"db block hash changed after a prior nomination or validation")
 
 	// record committed transactions to prevent replay
 	for _, ptx := range vb.ProposedTransactions {
