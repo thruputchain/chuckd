@@ -42,7 +42,6 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, val
 	}
 }
 
-// XXX: large values shouldn't be validated both in nom and ballot?
 func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) (level scpapi.ValidationLevel) {
 	return x.ValidateValue(ctx, slot, value, false)
 }
@@ -54,8 +53,12 @@ func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpapi.Slo
 func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) (level scpapi.ValidationLevel) {
 	<-x.baton.scp
 
-	liblog.Infof("baton validate value for slot %d received", slot)
-	defer liblog.Infof("baton validate value for slot %d completed with %v", slot, scpapi.ValidationLevelString(level))
+	kind := "ballot"
+	if nomination {
+		kind = "nomination"
+	}
+	liblog.Infof("baton validate %s value for slot %d received", kind, slot)
+	defer liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpapi.ValidationLevelString(level))
 
 	var prop proto.Nomination
 	err := xdrutil.UnmarshalXdr(&prop, value)

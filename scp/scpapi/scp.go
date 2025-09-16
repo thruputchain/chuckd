@@ -7,7 +7,7 @@ import (
 )
 
 type Slot = proto.SCPSlotIndex
-type NodeID = proto.ValidatorID
+type NodeID = proto.SCPNodeID
 type Value = proto.SCPValue
 
 type ValidationLevel = proto.SCPValidationLevel
@@ -88,8 +88,10 @@ type SCPController interface {
 	// Nomination blocks until the round is over, and can be aborted using the context.
 	Nominate(ctx context.Context, slot Slot, value Value, prev Value) bool
 
+	StopNomination(ctx context.Context, slot Slot)
+
 	// Local QuorumSet interface (can be dynamically updated)
-	UpdateQuorumSet(proto.QuorumSet)
+	UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
 }
 
 type SCPReceivedEnvelope interface {
