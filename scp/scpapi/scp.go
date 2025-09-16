@@ -12,18 +12,6 @@ type Value = proto.SCPValue
 
 type ValidationLevel = proto.SCPValidationLevel
 
-func ToSoloValidationLevel(vl ValidationLevel) proto.SoloValidationLevel {
-	switch vl {
-	case proto.SCP_FULLY_VALID:
-		return proto.SoloFullyValidValue
-	case proto.SCP_MAYBE_VALID:
-		return proto.SoloMaybeValidValue
-	case proto.SCP_INVALID:
-		return proto.SoloInvalidValue
-	}
-	panic("bug")
-}
-
 func ValidationLevelString(vl ValidationLevel) string {
 	switch vl {
 	case proto.SCP_FULLY_VALID:

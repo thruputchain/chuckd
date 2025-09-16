@@ -47,7 +47,7 @@ func BenchTestClusterBlueprint(ctx context.Context, rand *rand.Rand, round time.
 
 	// gen quorum configs
 	baseCfg := common.MakeBaseConfig(round, int64(numVs), uint32(fanOut))
-	baseCfg = common.AddSoloLeaderConfig(baseCfg, leaderPriv.Public_info)
+	baseCfg = common.AddSCPConfig(baseCfg, leaderPriv.Public_info)
 	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
 	quorumCfgs, qs := common.GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)
 

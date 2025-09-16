@@ -9,7 +9,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func AddSoloLeaderConfig(base proto.Config, leader proto.ValidatorPublicInfo) proto.Config {
+func AddSCPConfig(base proto.Config, leader proto.ValidatorPublicInfo) proto.Config {
 	if base.Solo_config == nil {
 		base.Solo_config = &proto.SoloConfig{}
 	}
@@ -25,7 +25,7 @@ func MakeBaseConfig(
 	return proto.Config{
 		Validator_config: nil,
 		Wallet_config:    nil,
-		Solo_config:      nil,
+		Scp_config:       nil,
 		Discovery_config: &proto.DiscoveryConfig{
 			Advertise_interval_msec: (5 * round).Milliseconds(),
 			Advertise_par:           5,
@@ -94,7 +94,7 @@ func GenQuorumConfigs(
 			Private_info: vs[i],
 			Quorum_set: proto.SCPQuorumSet{
 				Threshold:  uint32(2 * len(addrs) / 3),
-				Validators: ids,
+				Validators: protoutil.ValidatorToNodeIDs(ids),
 				Inner_sets: nil,
 			},
 			Known_validators: ks,

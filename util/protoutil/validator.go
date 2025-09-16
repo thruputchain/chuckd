@@ -10,6 +10,20 @@ import (
 
 const ShortHashLen = 5
 
+func ValidatorToNodeIDs(vids []proto.ValidatorID) []proto.SCPNodeID {
+	ns := make([]proto.SCPNodeID, len(vids))
+	for i, vid := range vids {
+		ns[i] = ValidatorToNodeID(vid)
+	}
+	return ns
+}
+
+func ValidatorToNodeID(vid proto.ValidatorID) proto.SCPNodeID {
+	pk := proto.PublicKey{}
+	*pk.Ed25519() = proto.Ed25519PublicKey(vid)
+	return pk
+}
+
 func PublicVID(v proto.ValidatorPublicInfo) proto.ValidatorID {
 	return VPublicKeyToID(v.Public_key)
 }
