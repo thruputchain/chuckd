@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -18,6 +19,7 @@ type Discovery interface {
 	LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
 	LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
 	CachedSnapshots() proto.KnownQuorumSets
+	GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error)
 }
 
 type DiscoveryService struct {
@@ -30,7 +32,8 @@ type DiscoveryService struct {
 	ourVIDs       map[proto.ValidatorID]proto.ValidatorPublicInfo
 	//
 	lk         sync.Mutex
-	knownQSets map[proto.ValidatorID]proto.SignedQuorumSetSnapshot
+	knownQSets map[proto.ValidatorID]proto.SignedQuorumSetSnapshot // validator_id -> their own qset
+	hashQSet   map[proto.SCPHash]proto.SCPQuorumSet                // hash of qset -> qset
 	knownVs    map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot
 	//
 	cachedLk         sync.Mutex
@@ -56,6 +59,7 @@ func NewDiscoveryService(
 		ourQSet:       vcfg.Quorum_set,
 		ourValidators: vcfg.Known_validators,
 		knownQSets:    map[proto.ValidatorID]proto.SignedQuorumSetSnapshot{},
+		hashQSet:      map[proto.SCPHash]proto.SCPQuorumSet{},
 		knownVs:       map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{},
 		m:             xdrutil.NewXdrMarshaler(),
 	}
@@ -66,8 +70,23 @@ func NewDiscoveryService(
 		s.ourVIDs[protoutil.PublicVID(v)] = v
 	}
 
+	s.hashQSet[xdrutil.HashXdr(s.m, &s.ourQSet)] = s.ourQSet
+
 	go s.advertise(ctx)
 	return s
+}
+
+func (svc *DiscoveryService) Start(ctx context.Context, address string) {
+	rpcutil.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
+}
+
+func (s *DiscoveryService) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
+	qset, ok := s.hashQSet[hash]
+	if ok {
+		return &qset, nil
+	} else {
+		return nil, nil
+	}
 }
 
 func (s *DiscoveryService) SecretKey() proto.ValidatorSecretKey {
@@ -142,6 +161,9 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 	} else {
 		s.knownQSets[key] = qset
 	}
+
+	// index by qset hash
+	s.hashQSet[xdrutil.HashXdr(s.m, &qset.Quorum_set_snapshot.Quorum_set)] = qset.Quorum_set_snapshot.Quorum_set
 }
 
 func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {

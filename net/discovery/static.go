@@ -1,6 +1,8 @@
 package discovery
 
 import (
+	"context"
+
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -36,5 +38,9 @@ func (x *StaticDiscovery) LookupTrustedValidator(vid proto.ValidatorID) (proto.V
 }
 
 func (x *StaticDiscovery) CachedSnapshots() proto.KnownQuorumSets {
+	panic("not used")
+}
+
+func (x *StaticDiscovery) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
 	panic("not used")
 }

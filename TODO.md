@@ -1,9 +1,7 @@
 
 FINAL INTEGRATION
 
-- [ ] ValidatorID vs SCPNodeID = PublicKey
-  - [ ] ValidatorID must just equal the Ed25519 public key
-- [ ] rip out Solo SCP
+- [ ] deploy SCP sidecar (chicken and egg connection)
 
 ROADMAP
 

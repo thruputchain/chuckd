@@ -40,6 +40,10 @@ func (x *TestDiscovery) LookupTrustedValidator(vid proto.ValidatorID) (proto.Val
 	return x.LookupValidator(vid)
 }
 
+func (x *TestDiscovery) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
+	panic("not used")
+}
+
 func (x *TestDiscovery) CachedSnapshots() proto.KnownQuorumSets {
 	panic("not used")
 	// kqs := proto.KnownQuorumSets{
