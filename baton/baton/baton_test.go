@@ -113,7 +113,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
-	vlevel := rig.ValidateValue(ctx, block.Nomination.Block_height, testMarshaler.MarshalXdr(&block.Nomination).Bytes(), true)
+	vlevel := rig.ValidateValue(ctx, proto.SCPSlotIndex(block.Nomination.Block_height), testMarshaler.MarshalXdr(&block.Nomination).Bytes(), true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 	if <-vlevel != scpapi.FullyValidValue {
@@ -209,16 +209,16 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		// kick off validation
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.ValidateValue(ctx, height, testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(), true)
+		rig.ValidateValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(), true)
 		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.ExternalizedValue(ctx, height, testMarshaler.MarshalXdr(nominated.Nomination).Bytes())
+			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(nominated.Nomination).Bytes())
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
-			rig.ExternalizedValue(ctx, height, testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes())
+			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes())
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
 		lastCommitted = testutil.VBHandle(committed.ValidatableBlock)

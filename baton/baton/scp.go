@@ -42,6 +42,15 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, val
 	}
 }
 
+// XXX: large values shouldn't be validated both in nom and ballot?
+func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) (level scpapi.ValidationLevel) {
+	return x.ValidateValue(ctx, slot, value, false)
+}
+
+func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) (level scpapi.ValidationLevel) {
+	return x.ValidateValue(ctx, slot, value, true)
+}
+
 func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) (level scpapi.ValidationLevel) {
 	<-x.baton.scp
 
@@ -163,7 +172,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	}
 
 	// check that SCP slot equals nomination's block height
-	if slot != nomination.Block_height {
+	if slot != proto.SCPSlotIndex(nomination.Block_height) {
 		liblog.Errorf("scp slot index does not equal proposed block height")
 		return
 	}
