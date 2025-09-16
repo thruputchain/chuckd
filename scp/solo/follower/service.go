@@ -54,7 +54,8 @@ func (svc *SoloFollowerService) Solofollower_validate(ctx context.Context, signe
 		return proto.SoloInvalidValue, nil
 	}
 
-	return svc.handler.ValidateValue(ctx, signed.Validate.Slot_index, signed.Validate.Value, true), nil
+	return scpapi.ToSoloValidationLevel(
+		svc.handler.ValidateNominationValue(ctx, proto.SCPSlotIndex(signed.Validate.Slot_index), signed.Validate.Value)), nil
 }
 
 func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, signed proto.SoloSignedExternalized) error {
@@ -64,7 +65,7 @@ func (svc *SoloFollowerService) Solofollower_externalized(ctx context.Context, s
 		return nil
 	}
 
-	svc.handler.ExternalizedValue(ctx, signed.Externalized.Slot_index, signed.Externalized.Value)
+	svc.handler.ExternalizedValue(ctx, proto.SCPSlotIndex(signed.Externalized.Slot_index), signed.Externalized.Value)
 	return nil
 }
 
@@ -80,7 +81,7 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot scpapi.Slot, 
 	defer c.Close()
 
 	nomination := proto.SoloNomination{
-		Slot_index: slot,
+		Slot_index: proto.SoloSlotIndex(slot),
 		Value:      value,
 	}
 	signed := proto.SoloSignedNomination{

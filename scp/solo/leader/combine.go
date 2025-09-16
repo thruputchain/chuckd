@@ -24,8 +24,12 @@ func (x *RandomChoiceCombiner) CombineCandidates(ctx context.Context, slotIndex 
 	return values[x.rand.Intn(len(values))]
 }
 
-func (x *RandomChoiceCombiner) ValidateValue(ctx context.Context, slotIndex scpapi.Slot, value scpapi.Value, nomination bool) scpapi.ValidationLevel {
-	return proto.SoloMaybeValidValue
+func (x *RandomChoiceCombiner) ValidateNominationValue(ctx context.Context, slotIndex scpapi.Slot, value scpapi.Value) scpapi.ValidationLevel {
+	return proto.SCP_MAYBE_VALID
+}
+
+func (x *RandomChoiceCombiner) ValidateBallotValue(ctx context.Context, slotIndex scpapi.Slot, value scpapi.Value) scpapi.ValidationLevel {
+	return proto.SCP_MAYBE_VALID
 }
 
 func (x *RandomChoiceCombiner) ExtractValidValue(ctx context.Context, slotIndex scpapi.Slot, value scpapi.Value) *scpapi.Value {

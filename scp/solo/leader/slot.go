@@ -120,7 +120,7 @@ func (svc *SoloLeaderService) flush(ctx context.Context) {
 		}
 		svc.lk.Unlock()
 		for _, slot := range readySlots {
-			combined := svc.handler.CombineCandidates(ctx, slot.index, slot.candidates)
+			combined := svc.handler.CombineCandidates(ctx, proto.SCPSlotIndex(slot.index), slot.candidates)
 			svc.externalize(ctx, slot.index, combined)
 		}
 	}

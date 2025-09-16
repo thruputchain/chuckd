@@ -6,31 +6,49 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type Slot = proto.SoloSlotIndex
+type Slot = proto.SCPSlotIndex
 type NodeID = proto.ValidatorID
-type Value = proto.SoloValue
+type Value = proto.SCPValue
 
-type ValidationLevel = proto.SoloValidationLevel
+type ValidationLevel = proto.SCPValidationLevel
+
+func ToSoloValidationLevel(vl ValidationLevel) proto.SoloValidationLevel {
+	switch vl {
+	case proto.SCP_FULLY_VALID:
+		return proto.SoloFullyValidValue
+	case proto.SCP_MAYBE_VALID:
+		return proto.SoloMaybeValidValue
+	case proto.SCP_INVALID:
+		return proto.SoloInvalidValue
+	}
+	panic("bug")
+}
 
 func ValidationLevelString(vl ValidationLevel) string {
 	switch vl {
-	case proto.SoloFullyValidValue:
+	case proto.SCP_FULLY_VALID:
 		return "FullyValid"
-	case proto.SoloMaybeValidValue:
+	case proto.SCP_MAYBE_VALID:
 		return "MaybeValid"
-	case proto.SoloInvalidValue:
+	case proto.SCP_INVALID:
 		return "Invalid"
 	}
 	panic("bug")
 }
 
 const (
-	InvalidValue    = proto.SoloInvalidValue
-	MaybeValidValue = proto.SoloMaybeValidValue
-	FullyValidValue = proto.SoloFullyValidValue
+	InvalidValue    = proto.SCP_INVALID
+	MaybeValidValue = proto.SCP_MAYBE_VALID
+	FullyValidValue = proto.SCP_FULLY_VALID
 )
 
-// when to accept a nomination? validated by majority?
+type SCPEmitEnvelope interface {
+	EmitEnvelope(context.Context, proto.SCPEnvelope) error
+}
+
+type SCPGetQuorumSet interface {
+	GetQuorumSet(context.Context, proto.SCPHash) (*proto.SCPQuorumSet, error)
+}
 
 type SCPHandler interface {
 
@@ -48,7 +66,8 @@ type SCPHandler interface {
 	// will abstain from emitting its position.
 	// validation can be *more* restrictive during nomination as needed
 	// NB: validation levels are ordered
-	ValidateValue(ctx context.Context, slot Slot, value Value, nomination bool) ValidationLevel
+	ValidateNominationValue(ctx context.Context, slot Slot, value Value) ValidationLevel
+	ValidateBallotValue(ctx context.Context, slot Slot, value Value) ValidationLevel
 
 	// ExtractValidValue transforms the value, if possible to a different
 	// value that the local node would agree to (fully validated).
@@ -71,4 +90,8 @@ type SCPController interface {
 
 	// Local QuorumSet interface (can be dynamically updated)
 	UpdateQuorumSet(proto.QuorumSet)
+}
+
+type SCPReceivedEnvelope interface {
+	ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 }

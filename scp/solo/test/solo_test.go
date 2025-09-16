@@ -73,7 +73,7 @@ func TestSolo(t *testing.T) {
 	x := proto.SoloStatement{Statement_type: proto.SoloStatementAlpha}
 	y := proto.SoloStatement{Statement_type: proto.SoloStatementBeta}
 
-	followerSvc[0].Nominate(ctx, slot, m.MarshalXdr(&x).Bytes(), m.MarshalXdr(&y).Bytes())
+	followerSvc[0].Nominate(ctx, proto.SCPSlotIndex(slot), m.MarshalXdr(&x).Bytes(), m.MarshalXdr(&y).Bytes())
 
 	// validate
 	var wgValidate sync.WaitGroup
@@ -147,9 +147,15 @@ func (h *testHandler) CombineCandidates(context.Context, scpapi.Slot, []scpapi.V
 	panic("XXX")
 }
 
-func (h *testHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) scpapi.ValidationLevel {
+func (h *testHandler) ValidateNominationValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) scpapi.ValidationLevel {
 	result := make(chan scpapi.ValidationLevel)
-	h.validateValue <- validateValueCall{ctx: ctx, slot: slot, value: value, nomination: nomination, result: result}
+	h.validateValue <- validateValueCall{ctx: ctx, slot: slot, value: value, nomination: true, result: result}
+	return <-result
+}
+
+func (h *testHandler) ValidateBallotValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) scpapi.ValidationLevel {
+	result := make(chan scpapi.ValidationLevel)
+	h.validateValue <- validateValueCall{ctx: ctx, slot: slot, value: value, nomination: false, result: result}
 	return <-result
 }
 
