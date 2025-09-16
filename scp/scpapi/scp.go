@@ -92,8 +92,6 @@ type SCPController interface {
 
 	// Local QuorumSet interface (can be dynamically updated)
 	UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
-}
 
-type SCPReceivedEnvelope interface {
 	ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 }

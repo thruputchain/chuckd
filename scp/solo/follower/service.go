@@ -99,11 +99,11 @@ func (svc *SoloFollowerService) Nominate(ctx context.Context, slot scpapi.Slot, 
 	return true
 }
 
-func (svc *SoloFollowerService) UpdateQuorumSet(proto.QuorumSet) {
+func (svc *SoloFollowerService) UpdateQuorumSet(proto.SCPQuorumSet) {
 	panic("not used")
 }
 
-func (svc *SoloFollowerService) GetQuorumSet() proto.QuorumSet {
+func (svc *SoloFollowerService) GetQuorumSet() proto.SCPQuorumSet {
 	panic("not used")
 }
 

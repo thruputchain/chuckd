@@ -10,9 +10,9 @@ import (
 )
 
 type SCPHandler struct {
-	env  scpapi.SCPEmitEnvelope
-	qset scpapi.SCPGetQuorumSet
-	scp  scpapi.SCPHandler
+	env  scpapi.SCPEmitEnvelope // XXX
+	qset scpapi.SCPGetQuorumSet // XXX
+	scp  scpapi.SCPHandler      // implemented by baton
 }
 
 func NewSCPHandler(

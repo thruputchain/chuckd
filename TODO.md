@@ -1,7 +1,15 @@
 
+FINAL INTEGRATION
+
+- [ ] ValidatorID vs SCPNodeID = PublicKey
+  - [ ] ValidatorID must just equal the Ed25519 public key
+- [ ] rip out Solo SCP
+
 ROADMAP
 
 - [ ] intro BlockHeader { height, merkle_hash, later on also txset hash }
+
+
 
 - [ ] pebble db in catchup cache
 - [ ] connection discipline and timeouts
@@ -15,7 +23,7 @@ ROADMAP
 XDR
 - [ ] equality for xdr types
 - [ ] hash for xdr types
-- [ ] implement SprintXDR (use xdr textual)
+- [ ] implement SprintXDR (use xdr txrep)
 
 
 INFRA & BENCHMARK

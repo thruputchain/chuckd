@@ -25,7 +25,7 @@ type DiscoveryService struct {
 	net libnet.Network
 	//
 	privInfo      proto.ValidatorPrivateInfo
-	ourQSet       proto.QuorumSet
+	ourQSet       proto.SCPQuorumSet
 	ourValidators []proto.ValidatorPublicInfo
 	ourVIDs       map[proto.ValidatorID]proto.ValidatorPublicInfo
 	//

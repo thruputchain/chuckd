@@ -92,7 +92,7 @@ func GenQuorumConfigs(
 		cfgs[i] = base
 		cfgs[i].Validator_config = &proto.ValidatorConfig{
 			Private_info: vs[i],
-			Quorum_set: proto.QuorumSet{
+			Quorum_set: proto.SCPQuorumSet{
 				Threshold:  uint32(2 * len(addrs) / 3),
 				Validators: ids,
 				Inner_sets: nil,

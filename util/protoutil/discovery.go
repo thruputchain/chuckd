@@ -11,7 +11,7 @@ import (
 func MakeSignedQuorumSetSnapshot(
 	m xdrutil.XdrMarshaler,
 	privInfo proto.ValidatorPrivateInfo,
-	qset proto.QuorumSet,
+	qset proto.SCPQuorumSet,
 ) proto.SignedQuorumSetSnapshot {
 	qss := proto.QuorumSetSnapshot{
 		Timestamp:  time.Now().UnixNano(),
