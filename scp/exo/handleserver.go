@@ -10,18 +10,25 @@ import (
 )
 
 type SCPHandler struct {
-	env  scpapi.SCPEmitEnvelope // XXX
-	qset scpapi.SCPGetQuorumSet // XXX
-	scp  scpapi.SCPHandler      // implemented by baton
+	ready chan struct{}
+	env   scpapi.SCPEmitEnvelope // XXX; implemented by multiplex
+	qset  scpapi.SCPGetQuorumSet // implemented by discovery
+	scp   scpapi.SCPHandler      // implemented by baton
 }
 
-func NewSCPHandler(
-	ctx context.Context,
+func NewSCPHandler(ctx context.Context) *SCPHandler {
+	return &SCPHandler{ready: make(chan struct{})}
+}
+
+func (x *SCPHandler) SetHandlers(
 	env scpapi.SCPEmitEnvelope,
 	qset scpapi.SCPGetQuorumSet,
 	scp scpapi.SCPHandler,
-) *SCPHandler {
-	return &SCPHandler{env: env, qset: qset, scp: scp}
+) {
+	x.env = env
+	x.qset = qset
+	x.scp = scp
+	close(x.ready)
 }
 
 func (x *SCPHandler) Start(ctx context.Context, addr string) {
@@ -34,32 +41,39 @@ func (x *SCPHandler) Scp_handle_null(context.Context) error {
 }
 
 func (x *SCPHandler) Scp_handle_emit_envelope(ctx context.Context, env proto.SCPEnvelope) error {
+	<-x.ready
 	return x.env.EmitEnvelope(ctx, env)
 }
 
 func (x *SCPHandler) Scp_handle_validate_ballot_value(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) (proto.SCPValidationLevel, error) {
+	<-x.ready
 	return x.scp.ValidateBallotValue(ctx, slotIndex, value), nil
 }
 
 func (x *SCPHandler) Scp_handle_validate_nomination_value(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) (proto.SCPValidationLevel, error) {
+	<-x.ready
 	return x.scp.ValidateNominationValue(ctx, slotIndex, value), nil
 }
 
 func (x *SCPHandler) Scp_handle_extract_valid_value(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) (proto.SCPOptValue, error) {
+	<-x.ready
 	return x.scp.ExtractValidValue(ctx, slotIndex, value), nil
 }
 
 func (x *SCPHandler) Scp_handle_combine_candidates(ctx context.Context, slotIndex proto.SCPSlotIndex, values proto.SCPValues) (proto.SCPOptValue, error) {
+	<-x.ready
 	v := x.scp.CombineCandidates(ctx, slotIndex, values)
 	return &v, nil
 }
 
 func (x *SCPHandler) Scp_handle_value_externalized(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) error {
+	<-x.ready
 	x.scp.ExternalizedValue(ctx, slotIndex, value)
 	return nil
 }
 
 func (x *SCPHandler) Scp_handle_get_quorum_set(ctx context.Context, hash proto.SCPHash) (proto.SCPOptQuorumSet, error) {
+	<-x.ready
 	return x.qset.GetQuorumSet(ctx, hash)
 }
 
