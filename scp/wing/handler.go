@@ -1,4 +1,4 @@
-package exo
+package wing
 
 import (
 	"context"

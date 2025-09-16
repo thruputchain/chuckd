@@ -1,4 +1,4 @@
-package exo
+package wing
 
 import (
 	"context"
@@ -12,50 +12,50 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
-type SCPControlClient struct {
+type SCPController struct {
 	proto.SCP_Control1_Client
 	driver *rpc.Driver
 }
 
-func DialSCPControlClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*SCPControlClient, error) {
+func DialSCPController(ctx context.Context, dialer libnet.AddressDialer, address string) (*SCPController, error) {
 	sock, err := dialer.DialAddress(ctx, address)
 	if err != nil {
 		return nil, err
 	}
-	return NewSCPControlClient(ctx, sock), nil
+	return NewSCPController(ctx, sock), nil
 }
 
-func NewSCPControlClient(ctx context.Context, sock net.Conn) *SCPControlClient {
+func NewSCPController(ctx context.Context, sock net.Conn) *SCPController {
 	driver := rpcutil.NewDriverSerial(ctx, sock)
 	go driver.Go()
 
-	return &SCPControlClient{
+	return &SCPController{
 		SCP_Control1_Client: proto.SCP_Control1_Client{Send: driver, Ctx: ctx},
 		driver:              driver,
 	}
 }
 
-func (cc *SCPControlClient) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	err := cc.Scp_control_received_envelope(ctx, env)
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPControlClient) Nominate(ctx context.Context, slot scpapi.Slot, value scpapi.Value, prev scpapi.Value) bool {
+func (cc *SCPController) Nominate(ctx context.Context, slot scpapi.Slot, value scpapi.Value, prev scpapi.Value) bool {
 	r, err := cc.Scp_control_nominate(ctx, slot, value, prev)
 	must.NoError(ctx, err)
 	return r
 }
 
-func (cc *SCPControlClient) StopNomination(ctx context.Context, slot scpapi.Slot) {
+func (cc *SCPController) StopNomination(ctx context.Context, slot scpapi.Slot) {
 	err := cc.Scp_control_stop_nomination(ctx, slot)
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPControlClient) UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
+func (cc *SCPController) UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
 	err := cc.Scp_control_update_local_quorum_set(ctx, qset)
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPControlClient) Close() {
+func (cc *SCPController) Close() {
 	cc.driver.Close()
 }
