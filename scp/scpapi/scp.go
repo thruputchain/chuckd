@@ -71,16 +71,4 @@ type SCPController interface {
 
 	// Local QuorumSet interface (can be dynamically updated)
 	UpdateQuorumSet(proto.QuorumSet)
-	GetQuorumSet() proto.QuorumSet
-	NodeID() NodeID
-
-	// Purges all data relative to all the slots whose slot is smaller
-	// than the specified `maxSlotIndex` except for slotToKeep slot.
-	PurgeSlots(maxSlotIndex Slot, slotToKeep Slot)
-
-	// Returns whether the local node is a validator.
-	IsValidator() bool // not just listening
-
-	// Returns the validation state of the given slot
-	IsSlotFullyValidated() bool
 }
