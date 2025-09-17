@@ -38,39 +38,20 @@ func BenchTestClusterBlueprint(ctx context.Context, rand *rand.Rand, round time.
 	serviceNameQuorum := "chuckd-bench-testcluster-quorum"
 	quorumServices, quorumAddrs := MakeServices(serviceNameQuorum, numVs)
 
-	// make service for scp solo leader
-	serviceNameLeader := "chuckd-bench-testcluster-leader"
-	leaderServices, leaderAddrs := MakeServices(serviceNameLeader, 1)
-
-	// gen leader identity
-	leaderPriv := common.GenIdentity(ctx, rand, leaderAddrs[0])
-
 	// gen quorum configs
 	baseCfg := common.MakeBaseConfig(round, int64(numVs), uint32(fanOut))
-	baseCfg = common.AddSCPConfig(baseCfg, leaderPriv.Public_info)
 	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
-	quorumCfgs, qs := common.GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)
-
-	// make leader config
-	leaderCfg := common.MakeSoloLeaderCfg(ctx, rand, leaderPriv, qs)
+	quorumCfgs, _ := common.GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)
 
 	// make quorum statefulset
 	quorumResources := MakeStatefulSet(
 		serviceNameQuorum,
 		"groundhogchain:chuckd.latest",
+		//XXX: missing scpd flags
 		fmt.Sprintf("bench testcluster --tps %d --out-addr :9111 --w-addr :6666", tps),
 		quorumCfgs,
 		quorumServices,
 	)
 
-	// stateful set for solo leader
-	leaderResources := MakeStatefulSet(
-		serviceNameLeader,
-		"groundhogchain:chuckd.latest",
-		fmt.Sprintf("solo leader --addr :9111 --delay %d", 100), // slot delay 1/10 sec
-		[]proto.Config{leaderCfg},
-		leaderServices,
-	)
-
-	return SprintResources(ctx, append(leaderResources, quorumResources...))
+	return SprintResources(ctx, quorumResources)
 }
