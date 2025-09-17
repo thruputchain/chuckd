@@ -37,9 +37,6 @@ type System struct {
 	Dogwood   *dogwood.DogwoodService
 	Multiplex *multiplex.Multiplex
 	//
-	SCPController *wing.SCPController //XXX: hookup
-	SCPHandler    *wing.SCPHandler
-	//
 	Live    *LiveHandler
 	Baton   *baton.Baton
 	Catchup *catchup.CatchupService

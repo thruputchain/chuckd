@@ -43,9 +43,9 @@ func NewTestClusterSystem(
 	}
 }
 
-func (sys *TestClusterSystem) Start(ctx context.Context, inAddr string, outAddr string, walletAddr string) {
-	sys.System.Start(ctx, inAddr, outAddr, walletAddr)
-	sys.TestCluster.Start(ctx, inAddr)
+func (sys *TestClusterSystem) Start(ctx context.Context, opcfg coordinator.OperationalConfig) {
+	sys.System.Start(ctx, opcfg)
+	sys.TestCluster.Start(ctx, opcfg.InAddr)
 }
 
 func (sys *TestClusterSystem) Close() {

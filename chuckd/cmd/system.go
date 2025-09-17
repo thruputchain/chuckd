@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -44,7 +45,16 @@ var (
 					serverCallsPerExec,
 					serverBatchSize,
 				)
-				srv.Start(ctx, serverInAddress, serverOutAddress, serverWalletAddress)
+				opcfg := coordinator.OperationalConfig{
+					InAddr:         serverInAddress,
+					OutAddr:        serverOutAddress,
+					WalletAddr:     serverWalletAddress,
+					SCPDaemonPath:  serverSCPDaemonPath,
+					SCPHandleAddr:  serverSCPHandleAddr,
+					SCPControlAddr: serverSCPControlAddr,
+					IsValidator:    serverSCPIsValidator,
+				}
+				srv.Start(ctx, opcfg)
 				select {} // hang
 			})
 		},
@@ -76,12 +86,20 @@ var (
 	serverInAddress     string
 	serverOutAddress    string
 	serverWalletAddress string
-	serverCallsPerExec  int
-	serverBatchSize     int
+	//
+	serverSCPDaemonPath  string
+	serverSCPHandleAddr  string
+	serverSCPControlAddr string
+	serverSCPIsValidator bool
+	//
+	serverCallsPerExec int
+	serverBatchSize    int
 )
 
 func init() {
 	rootCmd.AddCommand(sysCmd)
+
+	scpdPath, _ := exec.LookPath("scpd")
 
 	sysCmd.AddCommand(sysCoordinatorCmd)
 	sysCoordinatorCmd.Flags().BoolVar(&serverQUIC, "quic", false, "use QUIC for external apis")
@@ -90,6 +108,10 @@ func init() {
 	sysCoordinatorCmd.Flags().StringVar(&serverWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")
 	sysCoordinatorCmd.Flags().IntVar(&serverCallsPerExec, "exec-par", 2, "concurrent calls per executor")
 	sysCoordinatorCmd.Flags().IntVar(&serverBatchSize, "exec-batch", 100, "batch size for executor")
+	sysCoordinatorCmd.Flags().StringVar(&serverSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
+	sysCoordinatorCmd.Flags().StringVar(&serverSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
+	sysCoordinatorCmd.Flags().StringVar(&serverSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
+	sysCoordinatorCmd.Flags().BoolVar(&serverSCPIsValidator, "scp-is-validator", true, "scp is validator")
 
 	sysCmd.AddCommand(sysDogwoodCmd)
 	sysDogwoodCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:10101", "address for api")

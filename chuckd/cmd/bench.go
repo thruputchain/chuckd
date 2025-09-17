@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os/exec"
+
 	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
 	benchecho "github.com/groundhogchain/chuckd/bench/echo"
 	"github.com/groundhogchain/chuckd/bench/loadgen"
@@ -12,6 +14,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
@@ -120,7 +123,16 @@ var (
 					benchCallsPerExec,
 					benchBatchSize,
 				)
-				srv.Start(ctx, benchInAddress, benchOutAddress, benchWalletAddress)
+				opcfg := coordinator.OperationalConfig{
+					InAddr:         benchInAddress,
+					OutAddr:        benchOutAddress,
+					WalletAddr:     benchWalletAddress,
+					SCPDaemonPath:  benchSCPDaemonPath,
+					SCPHandleAddr:  benchSCPHandleAddr,
+					SCPControlAddr: benchSCPControlAddr,
+					IsValidator:    benchSCPIsValidator,
+				}
+				srv.Start(ctx, opcfg)
 				select {}
 			})
 		},
@@ -199,6 +211,11 @@ var (
 	benchNumAccts       int
 	benchNumBlocks      int
 	//
+	benchSCPDaemonPath  string
+	benchSCPHandleAddr  string
+	benchSCPControlAddr string
+	benchSCPIsValidator bool
+	//
 	benchNumDb        int
 	benchNumExec      int
 	benchCallsPerExec int
@@ -226,6 +243,8 @@ func init() {
 	benchDogwoodCmd.Flags().IntVar(&benchBytesPerPay, "bytes-per-pay", 300000, "bytes per payload")
 	benchDogwoodCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 10000, "number of iterations")
 
+	scpdPath, _ := exec.LookPath("scpd")
+
 	benchCmd.AddCommand(benchTestClusterCmd)
 	benchTestClusterCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
@@ -238,6 +257,10 @@ func init() {
 	benchTestClusterCmd.Flags().IntVar(&benchNumExec, "num-exec", 20, "number of executors")
 	benchTestClusterCmd.Flags().IntVar(&benchDbBasePort, "db-port", 30000, "dbs base port")
 	benchTestClusterCmd.Flags().IntVar(&benchExecBasePort, "exec-port", 40000, "execs base port")
+	benchTestClusterCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
+	benchTestClusterCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
+	benchTestClusterCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
+	benchTestClusterCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
 
 	benchCmd.AddCommand(benchLoadGenCmd)
 	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
