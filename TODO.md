@@ -4,6 +4,7 @@ FINAL INTEGRATION
 - [ ] emit envelope hookup for scp
 - [ ] forward to scp/control/received_envelope
 - [ ] deploy SCP sidecar (chicken and egg connection)
+- [ ] call stop_nomination on externalizations, etc
 
 ROADMAP
 

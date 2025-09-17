@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
@@ -113,6 +114,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
 
+	println("NOMINATION: ", form.Display(block.Nomination))
 	vlevel := rig.ValidateValue(ctx, proto.SCPSlotIndex(block.Nomination.Block_height), testMarshaler.MarshalXdr(&block.Nomination).Bytes(), true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
@@ -127,6 +129,9 @@ func TestValidateCommit(t *testing.T) {
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
+
+	println("XXX4")
+
 	rig.PassTime(3 * tick)
 	goruntime.Gosched()
 	time.Sleep(time.Millisecond) //XXX: flaky -race

@@ -123,6 +123,12 @@ func (db *testDbConsistent) Dbcoord_create_snapshot(ctx context.Context, parentI
 }
 
 func (db *testDbConsistent) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
+	// NOTE: opening a block before commit is no longer the expected db behavior in the baton,
+	// so we simulate it here to conform to what the testdb expects
+	r, err := db.Dbcoord_open_snapshot(ctx, id)
+	must.NoError(ctx, err)
+	must.Assert(ctx, r == proto.DbResultOK)
+
 	// liblog.Debugf("db commit %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()

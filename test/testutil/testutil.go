@@ -33,10 +33,9 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 	h.lk.Lock()
 	defer h.lk.Unlock()
 
-	var id proto.OriginID
-	h.rand.Read(id[:])
-
-	tx := proto.Transaction{}
+	tx := proto.Transaction{
+		Uniquifier: proto.Uniquifier{Nonce: h.rand.Uint64()},
+	}
 	return &proto.SignedTransaction{
 		Signatures: []proto.DecoratedSignature{
 			{Public_key_id: 0, Signature: protoutil.SignXdr(h.m, h.user, &tx)},
