@@ -73,6 +73,7 @@ func (def BenchDogwoodExecDef) ExecScripts(
 		Router_config: &proto.RouterConfig{
 			Tree_fan_out: 5,
 		},
+		Scp_config: &proto.SCPConfig{},
 		Dogwood_config: &proto.DogwoodConfig{
 			Route_count:             7,
 			Route_time_to_live_msec: 60e3, // 1 minute
