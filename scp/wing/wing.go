@@ -17,6 +17,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// Must call SCPHandler.SetHandler after this call.
 func StartSCPDaemon(
 	ctx context.Context,
 	scpdPath string,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
@@ -84,7 +85,7 @@ type ExecCoordConn interface {
 }
 
 type Consensus interface {
-	Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool
+	Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool
 }
 
 type Disseminator interface {

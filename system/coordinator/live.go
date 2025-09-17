@@ -75,7 +75,7 @@ func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 	close(x.live)
 }
 
-func (x *LiveHandler) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
+func (x *LiveHandler) Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.live
 	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
 }

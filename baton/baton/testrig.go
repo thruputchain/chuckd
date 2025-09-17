@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/test/testcatchup"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testexec"
@@ -87,19 +88,19 @@ func (h *TestRig) Emit(ctx context.Context, event any) {
 }
 
 type nominateIn struct {
-	Slot  int64
+	Slot  scpapi.Slot
 	Value xdr.XdrType
 	Prev  xdr.XdrType
 }
 
 // Nominate is called by Baton
-func (h *TestRig) Nominate(ctx context.Context, slot int64, value xdr.XdrType, prev xdr.XdrType) bool {
+func (h *TestRig) Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	h.nominateRequest <- nominateIn{Slot: slot, Value: value, Prev: prev}
 	return <-h.nominateResponse
 }
 
 // WaitNomination waits until Baton calls Nominate
-func (h *TestRig) WaitNomination(ctx context.Context) (slot int64, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestRig) WaitNomination(ctx context.Context) (slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) {
 	x := <-h.nominateRequest
 	return x.Slot, x.Value, x.Prev
 }

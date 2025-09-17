@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/nominate"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -95,7 +96,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 		Block_hash: nom.PrevBlockHash,
 	}
 	// block until nomination is over
-	b.handler.Nominate(ctx, nom.BlockHeight, nomination, &prevSummary) // ignore result
+	b.handler.Nominate(ctx, scpapi.Slot(nom.BlockHeight), nomination, &prevSummary) // ignore result
 	b.handler.Emit(ctx, batonapi.EventNominated{Tip: tip, NumTx: len(proposedTxHashes), Nomination: nomination})
 
 	return nomination, nom.BlockID, nil

@@ -11,7 +11,7 @@ import (
 
 type SCPHandler struct {
 	ready chan struct{}
-	env   scpapi.SCPEmitEnvelope // XXX; implemented by multiplex
+	env   scpapi.SCPEmitEnvelope // implemented by multiplex
 	qset  scpapi.SCPGetQuorumSet // implemented by discovery
 	scp   scpapi.SCPHandler      // implemented by baton
 }

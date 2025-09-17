@@ -117,18 +117,6 @@ func NewSystem(
 
 	sys.Baton = baton.NewBaton(ctx, *cfg.Baton_config, sys.Live, callsPerExec, batchSize)
 
-	wing.StartSCPDaemon(
-		ctx,
-		scpdPathXXX,
-		controlAddrXXX,
-		handleAddrXXX,
-		isValidatorXXX,
-		*cfg.Scp_config,
-		protoutil.ToSecretKey(cfg.Validator_config.Private_info.Secret_key),
-	)
-
-	sys.Live.SetSCP(sys.Follower)
-
 	sys.Catchup = catchup.NewCatchupService(
 		ctx,
 		sys.Signer,
@@ -148,15 +136,6 @@ func NewSystem(
 		time.Duration(cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 	)
 
-	// drive disseminated txs into mempool
-	go func() {
-		for {
-			_, submittedTxs := sys.Multiplex.ReceiveSubmittedTxs(ctx)
-			liblog.Debugf("received %d txs", len(submittedTxs.Transactions))
-			sys.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
-		}
-	}()
-
 	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Submitter, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
 	sys.insideSrv = NewServer(ctx,
@@ -168,18 +147,88 @@ func NewSystem(
 		proto.Discovery1_Server{Srv: sys.Discovery},
 		proto.Dogwood1_Server{Srv: sys.Dogwood},
 		proto.Catchup1_Server{Srv: sys.Catchup},
-		proto.SoloFollower1_Server{Srv: sys.Follower},
 	)
 
 	return sys
 }
 
-func (s *System) Start(ctx context.Context, inAddr string, outAddr string, walletAddr string) {
-	s.Dogwood.Start(ctx)
-	s.insideSrv.Start(ctx, s.inside, inAddr)
-	s.outsideSrv.Start(ctx, s.outside, outAddr)
-	s.Wallet.StartHTTP(ctx, walletAddr)
+// System dependencies:
+//	[] means delayed set after init
+//
+//	 coord
+//
+//	 discovery
+//	 router --> discovery
+//	 dogwood --> discovery, router
+//
+//	 catchup --> db
+//
+//	 multiplex --> dogwood
+//	 submitter --> multiplex
+//
+//	 live --> [ scp_control ], coord (db)
+//	 baton --> live
+//	 [ scp_handler --> baton ]
+//
+//	 [ multiplex_receiver --> submitter, scp_control ]
+//
+//	 wallet --> submitter
+//
+// Delayed connections:
+//
+//	 live --> scp_control
+//	 multiplex_receiver --> scp_control
+//	 scp_handler --> multiplex, discovery, baton
+//
+//	 multiplex_receiver --> submitter, scp_control
+
+type OperationalConfig struct {
+	InAddr         string
+	OutAddr        string
+	WalletAddr     string
+	SCPDaemonPath  string
+	SCPHandleAddr  string
+	SCPControlAddr string
+	IsValidator    bool
+}
+
+func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
+
+	scpHandler, scpController := wing.StartSCPDaemon(
+		ctx,
+		opcfg.SCPDaemonPath,
+		opcfg.SCPControlAddr,
+		opcfg.SCPHandleAddr,
+		opcfg.IsValidator,
+		*s.cfg.Scp_config,
+		protoutil.ToSecretKey(s.cfg.Validator_config.Private_info.Secret_key),
+	)
+	s.Live.SetSCP(scpController)
+	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
+
+	s.Dogwood.Start(ctx)                              // dogwood
+	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr)    // coord, wallet
+	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup
+	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
 	s.Baton.Start(ctx)
+
+	// drive received envelopes into scp_control
+	go func() {
+		for {
+			_, env := s.Multiplex.ReceiveEnvelope(ctx)
+			liblog.Debugf("received envelope")
+			scpController.ReceivedEnvelope(ctx, *env)
+		}
+	}()
+
+	// drive disseminated txs into mempool
+	go func() {
+		for {
+			_, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
+			liblog.Debugf("received %d txs", len(submittedTxs.Transactions))
+			s.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
+		}
+	}()
 }
 
 func (s *System) Close() {
