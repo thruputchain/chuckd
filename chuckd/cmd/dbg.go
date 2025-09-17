@@ -12,8 +12,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
-	"github.com/groundhogchain/chuckd/scp/solo/dial"
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
 )
 
@@ -67,15 +65,6 @@ func PingService(ctx context.Context, svc string, fn string, address string) err
 		return PingCoordinator(ctx, address)
 	case "discovery":
 		return PingDiscovery(ctx, address)
-	case "solofollower":
-		switch fn {
-		case "validate":
-			return PingSoloFollowerValidate(ctx, address)
-		default:
-			return PingSoloFollower(ctx, address)
-		}
-	case "sololeader":
-		return PingSoloLeader(ctx, address)
 	default:
 		return fmt.Errorf("unknown service")
 	}
@@ -107,26 +96,4 @@ func PingDiscovery(ctx context.Context, address string) error {
 	must.NoError(ctx, err)
 	defer c.Close()
 	return c.Discovery_null(ctx)
-}
-
-func PingSoloFollower(ctx context.Context, address string) error {
-	c, err := dial.DialSoloFollowerClient(ctx, libnet.TCPNet{}, address)
-	must.NoError(ctx, err)
-	defer c.Close()
-	return c.Solofollower_null(ctx)
-}
-
-func PingSoloFollowerValidate(ctx context.Context, address string) error {
-	c, err := dial.DialSoloFollowerClient(ctx, libnet.TCPNet{}, address)
-	must.NoError(ctx, err)
-	defer c.Close()
-	_, err = c.Solofollower_validate(ctx, proto.SoloSignedValidate{})
-	return err
-}
-
-func PingSoloLeader(ctx context.Context, address string) error {
-	c, err := dial.DialSoloLeaderClient(ctx, libnet.TCPNet{}, address)
-	must.NoError(ctx, err)
-	defer c.Close()
-	return c.Sololeader_null(ctx)
 }

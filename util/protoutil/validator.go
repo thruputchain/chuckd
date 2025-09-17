@@ -10,6 +10,12 @@ import (
 
 const ShortHashLen = 5
 
+func ToSecretKey(v proto.ValidatorSecretKey) proto.SecretKey {
+	sk := proto.SecretKey{}
+	*sk.Ed25519() = proto.Ed25519SecretKey(v)
+	return sk
+}
+
 func ValidatorToNodeIDs(vids []proto.ValidatorID) []proto.SCPNodeID {
 	ns := make([]proto.SCPNodeID, len(vids))
 	for i, vid := range vids {

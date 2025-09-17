@@ -17,7 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/scp/solo/follower"
+	"github.com/groundhogchain/chuckd/scp/wing"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/wallet"
 	proto "github.com/groundhogchain/protocol-go"
@@ -37,10 +37,12 @@ type System struct {
 	Dogwood   *dogwood.DogwoodService
 	Multiplex *multiplex.Multiplex
 	//
-	Live     *LiveHandler
-	Baton    *baton.Baton
-	Follower *follower.SoloFollowerService
-	Catchup  *catchup.CatchupService
+	SCPController *wing.SCPController //XXX: hookup
+	SCPHandler    *wing.SCPHandler
+	//
+	Live    *LiveHandler
+	Baton   *baton.Baton
+	Catchup *catchup.CatchupService
 	//
 	Submitted *mempool.SubmittedMempool
 	Committed *mempool.CommittedMempool
@@ -74,9 +76,10 @@ func NewSystem(
 
 	sys.Discovery = discovery.NewDiscoveryService(
 		ctx,
-		*cfg.Discovery_config,
 		outside,
+		*cfg.Discovery_config,
 		*cfg.Validator_config,
+		*cfg.Scp_config,
 	)
 
 	sys.Router = router.NewDynamicUniformRouter(ctx, sys.Discovery, int(cfg.Router_config.Tree_fan_out))
@@ -114,13 +117,16 @@ func NewSystem(
 
 	sys.Baton = baton.NewBaton(ctx, *cfg.Baton_config, sys.Live, callsPerExec, batchSize)
 
-	sys.Follower = follower.NewSoloFollowerService(
+	wing.StartSCPDaemon(
 		ctx,
-		outside,
-		cfg.Solo_config.Leader,
-		cfg.Validator_config.Private_info,
-		sys.Baton.SCPHandler(),
+		scpdPathXXX,
+		controlAddrXXX,
+		handleAddrXXX,
+		isValidatorXXX,
+		*cfg.Scp_config,
+		protoutil.ToSecretKey(cfg.Validator_config.Private_info.Secret_key),
 	)
+
 	sys.Live.SetSCP(sys.Follower)
 
 	sys.Catchup = catchup.NewCatchupService(

@@ -22,7 +22,7 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-// LiveHandler is an sdk.Handler that connects a live system to the baton
+// LiveHandler is an batonapi.Handler that connects a live system to the baton
 type LiveHandler struct {
 	protoutil.Signatory
 	libtime.Time

@@ -9,14 +9,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func AddSCPConfig(base proto.Config, leader proto.ValidatorPublicInfo) proto.Config {
-	if base.Solo_config == nil {
-		base.Solo_config = &proto.SoloConfig{}
-	}
-	base.Solo_config.Leader = leader
-	return base
-}
-
 func MakeBaseConfig(
 	round time.Duration, // round is the target round duration (nominate + commit).
 	numVs int64, // numVs is an idealized number of equally important validators.
@@ -25,7 +17,14 @@ func MakeBaseConfig(
 	return proto.Config{
 		Validator_config: nil,
 		Wallet_config:    nil,
-		Scp_config:       nil,
+		Scp_config: &proto.SCPConfig{
+			Max_timeout_ms:                  1000,
+			Initial_ballot_timeout_ms:       750,
+			Increment_ballot_timeout_ms:     750,
+			Initial_nomination_timeout_ms:   750,
+			Increment_nomination_timeout_ms: 750,
+			Quorum_set:                      proto.SCPQuorumSet{},
+		},
 		Discovery_config: &proto.DiscoveryConfig{
 			Advertise_interval_msec: (5 * round).Milliseconds(),
 			Advertise_par:           5,
@@ -91,13 +90,13 @@ func GenQuorumConfigs(
 	for i := range cfgs {
 		cfgs[i] = base
 		cfgs[i].Validator_config = &proto.ValidatorConfig{
-			Private_info: vs[i],
-			Quorum_set: proto.SCPQuorumSet{
-				Threshold:  uint32(2 * len(addrs) / 3),
-				Validators: protoutil.ValidatorToNodeIDs(ids),
-				Inner_sets: nil,
-			},
+			Private_info:     vs[i],
 			Known_validators: ks,
+		}
+		cfgs[i].Scp_config.Quorum_set = proto.SCPQuorumSet{
+			Threshold:  uint32(2 * len(addrs) / 3),
+			Validators: protoutil.ValidatorToNodeIDs(ids),
+			Inner_sets: nil,
 		}
 	}
 
@@ -106,21 +105,4 @@ func GenQuorumConfigs(
 
 func GenIdentity(ctx context.Context, rand *rand.Rand, addr string) proto.ValidatorPrivateInfo {
 	return *protoutil.MustGenerateIdentity(ctx, rand, addr)
-}
-
-func MakeSoloLeaderCfg(
-	ctx context.Context,
-	rand *rand.Rand,
-	id proto.ValidatorPrivateInfo,
-	quorum []proto.ValidatorPublicInfo,
-) proto.Config {
-	return proto.Config{
-		Validator_config: &proto.ValidatorConfig{
-			Private_info:     id,
-			Known_validators: quorum,
-		},
-		Solo_config: &proto.SoloConfig{
-			Quorum: quorum,
-		},
-	}
 }

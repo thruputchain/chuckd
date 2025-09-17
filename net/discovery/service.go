@@ -46,9 +46,10 @@ type DiscoveryService struct {
 
 func NewDiscoveryService(
 	ctx context.Context,
-	cfg proto.DiscoveryConfig,
 	n libnet.Network,
+	cfg proto.DiscoveryConfig,
 	vcfg proto.ValidatorConfig,
+	scfg proto.SCPConfig,
 ) *DiscoveryService {
 
 	liblog.Infof("starting discovery service")
@@ -56,7 +57,7 @@ func NewDiscoveryService(
 		cfg:           cfg,
 		net:           n,
 		privInfo:      vcfg.Private_info,
-		ourQSet:       vcfg.Quorum_set,
+		ourQSet:       scfg.Quorum_set,
 		ourValidators: vcfg.Known_validators,
 		knownQSets:    map[proto.ValidatorID]proto.SignedQuorumSetSnapshot{},
 		hashQSet:      map[proto.SCPHash]proto.SCPQuorumSet{},
