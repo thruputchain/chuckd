@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libmath"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -94,7 +95,7 @@ func GenQuorumConfigs(
 			Known_validators: ks,
 		}
 		cfgs[i].Scp_config.Quorum_set = proto.SCPQuorumSet{
-			Threshold:  uint32(2 * len(addrs) / 3),
+			Threshold:  libmath.DivideRoundUp(uint32(2*len(addrs)), 3),
 			Validators: protoutil.ValidatorToNodeIDs(ids),
 			Inner_sets: nil,
 		}
