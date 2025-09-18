@@ -8,6 +8,31 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func TestUnion(t *testing.T) {
+	x := proto.SCPStatement{}
+	x.Pledges.Stmt_type = proto.SCP_ST_CONFIRM
+	*x.Pledges.Confirm() = proto.SCPStatementConfirm{
+		Ballot:          proto.SCPBallot{Counter: 5, Value: proto.SCPValue{1, 2, 3}},
+		N_prepared:      1,
+		N_commit:        2,
+		N_h:             3,
+		Quorum_set_hash: proto.SCPHash{1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4}, // SCPHash
+	}
+	s, err := XdrToJson(&x)
+	if err != nil {
+		t.Error(err)
+	}
+	println(string(s))
+	y := proto.SCPStatement{}
+	err = JsonToXdr(&y, s)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(x, y) {
+		t.Errorf("expecting equality")
+	}
+}
+
 func TestRoundtrip(t *testing.T) {
 	x := proto.ValidatorPublicInfo{Address: "1.2.3.4"}
 	s, err := XdrToJson(&x)
