@@ -35,6 +35,8 @@ type LoadGen struct {
 	//
 	nominateMsec *StatFloat64
 	validateMsec *StatFloat64
+	//
+	done chan struct{}
 }
 
 func NewLoadGenBench(
@@ -57,6 +59,7 @@ func NewLoadGenBench(
 		inside:       inside,
 		nominateMsec: NewStatFloat64(),
 		validateMsec: NewStatFloat64(),
+		done:         make(chan struct{}),
 	}
 	x.coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rand))
 	x.insideSrv = coordinator.NewServer(ctx, proto.Coordinator1_Server{Srv: x.coord})
@@ -76,6 +79,10 @@ func (x *LoadGen) Start(ctx context.Context, inAddr string, loadgenAddr string) 
 
 	go x.obtainTxs(ctx, lg, genesisCh, blockTxsCh, x.numTxs, x.numAccts, x.numBlocks)
 	go x.execTxs(ctx, genesisCh, blockTxsCh)
+}
+
+func (x *LoadGen) WaitDone() {
+	<-x.done
 }
 
 func (x *LoadGen) Close() {
@@ -116,6 +123,7 @@ func (x *LoadGen) obtainTxs(
 		ext := r.Success()
 		blockTxsCh <- protoutil.Unpack(ext.Work_txs)
 	}
+	close(blockTxsCh)
 }
 
 func (x *LoadGen) execTxs(
@@ -148,7 +156,10 @@ func (x *LoadGen) execTxs(
 		liblog.Infof("fetching block at height %d", tip.Height+1)
 
 		x0 := time.Now()
-		txs := <-blockTxsCh
+		txs, ok := <-blockTxsCh
+		if !ok {
+			break
+		}
 		obtainDelayMsec := float64(time.Since(x0).Milliseconds())
 
 		liblog.Infof("proposing block at height %d", tip.Height+1)
@@ -210,6 +221,7 @@ func (x *LoadGen) execTxs(
 			float64(len(txs))/(x.validateMsec.Average()/1e3),
 		)
 	}
+	close(x.done)
 }
 
 func getDbTip(ctx context.Context, c batonapi.DbCoordConn) (batonapi.Tip, error) {

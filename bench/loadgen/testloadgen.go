@@ -40,5 +40,5 @@ func TestLoadGen(
 	loadGen.Start(ctx, inAddr, "XXX")
 	cluster.Start(ctx, inAddr)
 
-	select {}
+	loadGen.WaitDone()
 }

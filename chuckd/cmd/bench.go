@@ -46,7 +46,7 @@ var (
 					benchBatchSize,
 				)
 				srv.Start(ctx, benchInAddress, benchLoadgenAddress)
-				select {}
+				srv.WaitDone()
 			})
 		},
 	}
