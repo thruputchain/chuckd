@@ -41,6 +41,7 @@ var (
 					libnet.TCPNet{},
 					benchNumAccts,
 					benchTxsPerBlock,
+					benchNumBlocks,
 					benchCallsPerExec,
 					benchBatchSize,
 				)
@@ -78,6 +79,7 @@ var (
 					benchInPort,
 					benchNumAccts,
 					benchTxsPerBlock,
+					benchNumBlocks,
 					benchCallsPerExec,
 					benchBatchSize,
 				)
@@ -195,6 +197,7 @@ var (
 	benchTPS            int64
 	benchTxsPerBlock    int
 	benchNumAccts       int
+	benchNumBlocks      int
 	//
 	benchNumDb        int
 	benchNumExec      int
@@ -241,12 +244,14 @@ func init() {
 	benchLoadGenCmd.Flags().StringVar(&benchLoadgenAddress, "loadgen-addr", "localhost:11222", "address of loadgen server")
 	benchLoadGenCmd.Flags().IntVar(&benchNumAccts, "num-accts", 1e4, "number of accounts")
 	benchLoadGenCmd.Flags().IntVar(&benchTxsPerBlock, "num-txs", 1e6, "transactions per block")
+	benchLoadGenCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 10, "number of blocks")
 	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
 	benchLoadGenCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 
 	benchCmd.AddCommand(benchLoadGenTestCmd)
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumAccts, "num-accts", 1e4, "number of accounts")
 	benchLoadGenTestCmd.Flags().IntVar(&benchTxsPerBlock, "num-txs", 1e6, "transactions per block")
+	benchLoadGenTestCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 10, "number of blocks")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "num-db", 2, "number of db shards")
 	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "num-exec", 20, "number of executors")
 	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")

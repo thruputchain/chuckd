@@ -23,6 +23,7 @@ import (
 type LoadGen struct {
 	numAccts     int
 	numTxs       int // txs per block
+	numBlocks    int
 	genPar       int
 	callsPerExec int
 	batchSize    int
@@ -42,12 +43,14 @@ func NewLoadGenBench(
 	inside libnet.Network,
 	numAccts int,
 	numTxs int, // txs per block
+	numBlocks int,
 	callsPerExec int,
 	batchSize int,
 ) *LoadGen {
 	x := &LoadGen{
 		numAccts:     numAccts,
 		numTxs:       numTxs,
+		numBlocks:    numBlocks,
 		callsPerExec: callsPerExec,
 		batchSize:    batchSize,
 		rand:         rand,
@@ -71,7 +74,7 @@ func (x *LoadGen) Start(ctx context.Context, inAddr string, loadgenAddr string) 
 
 	liblog.Infof("num_accounts=%d, num_txs_per_block=%d", x.numAccts, x.numTxs)
 
-	go x.obtainTxs(ctx, lg, genesisCh, blockTxsCh, x.numTxs, x.numAccts)
+	go x.obtainTxs(ctx, lg, genesisCh, blockTxsCh, x.numTxs, x.numAccts, x.numBlocks)
 	go x.execTxs(ctx, genesisCh, blockTxsCh)
 }
 
@@ -86,6 +89,7 @@ func (x *LoadGen) obtainTxs(
 	blockTxsCh chan<- []*proto.SignedTransaction,
 	numTxs int,
 	numAccts int,
+	numBlocks int,
 ) {
 
 	cfg := proto.ExperimentConfig{}
@@ -105,7 +109,7 @@ func (x *LoadGen) obtainTxs(
 	}
 
 	liblog.Infof("delivering work blocks")
-	for {
+	for i := 0; i < numBlocks; i++ {
 		r, err := lg.Extend_experiment(ctx, ctxID, uint64(numTxs))
 		must.NoError(ctx, err)
 
