@@ -5,18 +5,18 @@ import (
 )
 
 type SCPConfig_shim struct {
-	Max_timeout_ms                  uint64
-	Initial_ballot_timeout_ms       uint64
-	Increment_ballot_timeout_ms     uint64
-	Initial_nomination_timeout_ms   uint64
-	Increment_nomination_timeout_ms uint64
-	Quorum_set                      SCPQuorumSet_shim
+	Max_timeout_ms                  uint64            `json:"max_timeout_ms"`
+	Initial_ballot_timeout_ms       uint64            `json:"initial_ballot_timeout_ms"`
+	Increment_ballot_timeout_ms     uint64            `json:"increment_ballot_timeout_ms"`
+	Initial_nomination_timeout_ms   uint64            `json:"initial_nomination_timeout_ms"`
+	Increment_nomination_timeout_ms uint64            `json:"increment_nomination_timeout_ms"`
+	Quorum_set                      SCPQuorumSet_shim `json:"quorum_set"`
 }
 
 type SCPQuorumSet_shim struct {
-	Threshold  uint32
-	Validators []SCPNodeID_shim
-	Inner_sets []SCPQuorumSet_shim
+	Threshold  uint32              `json:"threshold"`
+	Validators []SCPNodeID_shim    `json:"validators"`
+	Inner_sets []SCPQuorumSet_shim `json:"inner_sets"`
 }
 
 type SCPNodeID_shim [32]byte

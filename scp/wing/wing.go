@@ -2,6 +2,7 @@ package wing
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/textutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -32,7 +32,12 @@ func StartSCPDaemon(
 
 	// prepare config
 
-	cfgText := xdrutil.MustXdrToJsonString(&cfg)
+	// cfgText := xdrutil.MustXdrToJsonString(&cfg)
+	// TODO: replace the shim when we have XDR-JSON for both Go and Rust
+	cfgBytes, err := json.MarshalIndent(SCPConfigToShim(cfg), "", "   ")
+	must.NoError(ctx, err)
+	cfgText := string(cfgBytes)
+
 	tmpFile, err := os.CreateTemp("", "chuckd-scpd-config-*.json")
 	tmpPath := tmpFile.Name()
 	must.NoError(ctx, err)
