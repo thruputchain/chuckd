@@ -26,6 +26,7 @@ func ValidatorToNodeIDs(vids []proto.ValidatorID) []proto.SCPNodeID {
 
 func ValidatorToNodeID(vid proto.ValidatorID) proto.SCPNodeID {
 	pk := proto.PublicKey{}
+	pk.Scheme = proto.Ed25519
 	*pk.Ed25519() = proto.Ed25519PublicKey(vid)
 	return pk
 }
