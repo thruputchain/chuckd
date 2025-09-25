@@ -12,6 +12,7 @@ const ShortHashLen = 5
 
 func ToSecretKey(v proto.ValidatorSecretKey) proto.SecretKey {
 	sk := proto.SecretKey{}
+	sk.Scheme = proto.Ed25519
 	*sk.Ed25519() = proto.Ed25519SecretKey(v)
 	return sk
 }
