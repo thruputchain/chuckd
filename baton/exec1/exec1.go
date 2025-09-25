@@ -30,9 +30,13 @@ func Exec[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg]](
 ) ([]DoneTx[Tx, Result], error) {
 
 	// connect to available executors
-	execs, err := handler.DialExecs(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("dialing exec (%v)", err)
+	execs := []batonapi.ExecCoordConn{}
+	for i := 0; i < callsPerExec; i++ {
+		xs, err := handler.DialExecs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("dialing exec (%v)", err)
+		}
+		execs = append(execs, xs...)
 	}
 	if len(execs) == 0 {
 		return nil, batonapi.ErrNoExecs
@@ -58,26 +62,23 @@ func execWithConns[Tx any, Result any, Pkg any, Submit SubmitPkg[Tx, Result, Pkg
 	feedCtx, feedCtxCancel := context.WithCancel(ctx)
 	defer feedCtxCancel()
 
-	numGo := len(conn) * callsPerConn
-	executedCh := make(chan executed[Tx, Result], numGo)
+	executedCh := make(chan executed[Tx, Result], len(conn))
 
-	// shards := util.ShardSlice(txs, numGo)
+	// shards := util.ShardSlice(txs, len(conn))
 	pkgCh := submit.Buffer(txs)
 
 	for _, conn := range conn {
-		for i := 0; i < callsPerConn; i++ {
-			go feedConn[Tx, Result, Pkg, Submit](
-				feedCtx, feedCtxCancel,
-				conn, blockID,
-				pkgCh,
-				// submit.Buffer(shards[j*callsPerExec+i]),
-				executedCh,
-				isProposal,
-			)
-		}
+		go feedConn[Tx, Result, Pkg, Submit](
+			feedCtx, feedCtxCancel,
+			conn, blockID,
+			pkgCh,
+			// submit.Buffer(shards[j*callsPerExec+i]),
+			executedCh,
+			isProposal,
+		)
 	}
 
-	return collectResults(executedCh, numGo)
+	return collectResults(executedCh, len(conn))
 }
 
 func collectResults[Tx any, Result any](
