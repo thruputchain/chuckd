@@ -28,7 +28,7 @@ func BenchTestClusterShellLocal(
 	quorumBinds := make([]string, numVs)
 	walletBinds := make([]string, numVs)
 	for i := range quorumAddrs {
-		quorumAddrs[i] = fmt.Sprintf("localhost:%d", quorumPortStart+i)
+		quorumAddrs[i] = fmt.Sprintf("127.0.0.1:%d", quorumPortStart+i)
 		quorumBinds[i] = fmt.Sprintf(":%d", quorumPortStart+i)
 		walletBinds[i] = fmt.Sprintf(":%d", walletPortStart+i)
 	}
@@ -68,8 +68,8 @@ func BenchTestClusterShellLocal(
 			--scp-control-addr %s \
 			--scp-is-validator true`,
 			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
-			fmt.Sprintf("localhost:%d", scpHandleBasePort+i),
-			fmt.Sprintf("localhost:%d", scpControlBasePort+i),
+			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
+			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)
 		fmt.Fprintf(&sh, "nohup %s > quorum-%d.log 2>&1 &\n", quorumCmd, i)
 		// fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > quorum-%d.pid\n", i)
