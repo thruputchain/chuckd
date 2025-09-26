@@ -1,4 +1,4 @@
-package wing
+package scpd
 
 import (
 	proto "github.com/groundhogchain/protocol-go"

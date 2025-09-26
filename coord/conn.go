@@ -31,7 +31,7 @@ func (x *CoordinatorService) DialExecs(ctx context.Context) ([]batonapi.ExecCoor
 			liblog.Errorf("dialing executor: %v", err)
 			continue
 		} else {
-			liblog.Infof("dialed executor %v", form.Display(card))
+			// liblog.Infof("dialed executor %v", form.Display(card))
 		}
 		conns = append(conns, conn)
 	}

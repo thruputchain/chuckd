@@ -17,7 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/scp/wing"
+	"github.com/groundhogchain/chuckd/scp/scpd"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/wallet"
 	proto "github.com/groundhogchain/protocol-go"
@@ -191,7 +191,7 @@ type OperationalConfig struct {
 
 func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
-	scpHandler, scpController := wing.StartSCPDaemon(
+	scpHandler, scpController := scpd.StartSCPDaemon(
 		ctx,
 		opcfg.SCPDaemonPath,
 		opcfg.SCPControlAddr,

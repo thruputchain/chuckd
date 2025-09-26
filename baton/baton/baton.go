@@ -116,8 +116,8 @@ func (b *Baton) drive(ctx context.Context) {
 
 	v := b.buildCleanView(ctx)
 
-	liblog.Debugf("baton stats: %s num_txs=%d num_committed_tx=%d",
-		v.ShortString(), b.handler.TxCount(), b.handler.CommittedTxCount())
+	// liblog.Debugf("baton stats: %s num_txs=%d num_committed_tx=%d",
+	// 	v.ShortString(), b.handler.TxCount(), b.handler.CommittedTxCount())
 	// liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	// validate and commit next block, if one is available and no commit is in progress
@@ -155,7 +155,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// start nomination, if the db there are no externalizations above the db tip
 	if nominate := v.ReadyToNominate(); b.canNominate(nominate, b.nominating, b.nominated) {
-		liblog.Debugf("baton nominating onto %v", nominate)
+		// liblog.Debugf("baton nominating onto %v", nominate)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.CancelFunc()
@@ -178,7 +178,9 @@ func (b *Baton) drive(ctx context.Context) {
 			}
 
 			if err != nil {
-				liblog.Errorf("nominate: %v", err)
+				if err != batonapi.ErrNothingToNominate {
+					liblog.Errorf("nominate: %v", err)
+				}
 				return
 			}
 
