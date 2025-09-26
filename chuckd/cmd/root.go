@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	chuckd_runtime "github.com/groundhogchain/chuckd/runtime"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -69,6 +70,7 @@ func init() {
 }
 
 func initAfterFlags() {
+	chuckd_runtime.SetLogLevel(rootLogLevel)
 	level, err := zerolog.ParseLevel(rootLogLevel)
 	if err != nil {
 		log.Fatal(err)

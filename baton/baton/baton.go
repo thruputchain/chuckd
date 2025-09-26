@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -119,7 +118,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	liblog.Debugf("baton stats: %s num_txs=%d num_committed_tx=%d",
 		v.ShortString(), b.handler.TxCount(), b.handler.CommittedTxCount())
-	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+	// liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/deploy/common"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -56,7 +57,7 @@ func BenchTestClusterShellLocal(
 	scpControlBasePort := 4400
 	for i := range quorumCfgs {
 		quorumCmd := fmt.Sprintf(
-			`chuckd -l debug --stack --config config-quorum-%d.json \
+			`chuckd -l %s --stack --config config-quorum-%d.json \
 	--instance quorum-%d \
 	--seed %d \
 	--metrics :%d \
@@ -67,6 +68,7 @@ func BenchTestClusterShellLocal(
 			--scp-handle-addr %s \
 			--scp-control-addr %s \
 			--scp-is-validator true`,
+			runtime.GetLogLevel(),
 			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),

@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/textutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -66,12 +67,13 @@ func StartSCPDaemon(
 		"--config-path", tmpPath,
 		"--secret-key", secretKeyText,
 	)
+	cmd.Env = []string{"RUST_BACKTRACE=1", "RUST_LOG=" + runtime.GetLogLevel()}
 	cmd.Stdout = textutil.NewPrefixWriter(os.Stderr, "[scpd:out] ")
 	cmd.Stderr = textutil.NewPrefixWriter(os.Stderr, "[scpd:err] ")
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
-	time.Sleep(100 * time.Millisecond) // allow time for the scp control service to start
+	time.Sleep(300 * time.Millisecond) // allow time for the scp control service to start
 
 	// connect controller
 
