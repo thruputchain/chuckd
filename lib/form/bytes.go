@@ -2,8 +2,7 @@ package form
 
 import (
 	"crypto/sha256"
-	"encoding/base32"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 )
@@ -32,11 +31,11 @@ func (x *Bytes) UnmarshalJSON(d []byte) error {
 }
 
 func EncodeBytesToString(buf []byte) string {
-	return base64.StdEncoding.EncodeToString(buf)
+	return hex.EncodeToString(buf)
 }
 
 func DecodeBytesFromString(s string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(s)
+	return hex.DecodeString(s)
 }
 
 func BytesHashForFilename(s []byte) string {
@@ -44,7 +43,7 @@ func BytesHashForFilename(s []byte) string {
 	if _, err := h.Write(s); err != nil {
 		panic(err)
 	}
-	return strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(h.Sum(nil)))
+	return strings.ToLower(hex.EncodeToString(h.Sum(nil)))
 }
 
 func StringHashForFilename(s string) string {

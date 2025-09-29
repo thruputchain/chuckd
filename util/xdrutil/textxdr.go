@@ -2,7 +2,7 @@ package xdrutil
 
 import (
 	"bytes"
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"reflect"
@@ -101,11 +101,11 @@ func (xp XdrPrint) marshalGo(name string, val any) {
 					fmt.Fprintf(xp.Out, "%s: ", name)
 				}
 				xp.Out.Write([]byte("\""))
-				enc := base64.NewEncoder(base64.StdEncoding, xp.Out)
+
 				aa := reflect.New(vv.Type()).Elem()
 				aa.Set(vv)
-				enc.Write(aa.Slice(0, aa.Len()).Bytes())
-				enc.Close()
+				xp.Out.Write([]byte(hex.EncodeToString(aa.Slice(0, aa.Len()).Bytes())))
+
 				xp.Out.Write([]byte("\"\n"))
 			default: // []T, [n]T
 				xp.printField(name, "")

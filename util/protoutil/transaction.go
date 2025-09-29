@@ -36,3 +36,11 @@ func HashSignedTx(m xdrutil.XdrMarshaler, tx *proto.SignedTransaction) proto.Sig
 	defer bb.Recycle()
 	return sha256.Sum256(bb.Bytes())
 }
+
+func HashSignedTxs(m xdrutil.XdrMarshaler, txs []proto.SignedTransaction) []proto.SignedTransactionHash {
+	sxs := make([]proto.SignedTransactionHash, len(txs))
+	for i := range txs {
+		sxs[i] = HashSignedTx(m, &txs[i])
+	}
+	return sxs
+}

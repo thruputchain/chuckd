@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/baton"
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -19,6 +20,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/scpd"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/chuckd/wallet"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -220,9 +222,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	// drive disseminated txs into mempool
 	go func() {
+		m := xdrutil.NewXdrMarshaler()
 		for {
 			_, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
-			liblog.Debugf("received %d txs", len(submittedTxs.Transactions))
+			liblog.Debugf("received %d txs: %v", len(submittedTxs.Transactions), form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
 			s.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
 		}
 	}()

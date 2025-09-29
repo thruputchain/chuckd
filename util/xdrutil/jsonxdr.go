@@ -3,7 +3,7 @@ package xdrutil
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -57,14 +57,14 @@ func (j *jsonIn) Marshal(name string, xval xdr.XdrType) {
 	case xdr.XdrString:
 		v.SetString(mustString(jval))
 	case xdr.XdrVecOpaque:
-		bs, err := base64.StdEncoding.DecodeString(mustString(jval))
+		bs, err := hex.DecodeString(mustString(jval))
 		if err != nil {
 			panic(err)
 		}
 		v.SetByteSlice(bs)
 	case xdr.XdrArrayOpaque:
 		dst := v.GetByteSlice()
-		bs, err := base64.StdEncoding.DecodeString(mustString(jval))
+		bs, err := hex.DecodeString(mustString(jval))
 		if err != nil {
 			panic(err)
 		} else if len(bs) != len(dst) {
@@ -163,9 +163,7 @@ func (j *jsonOut) Marshal(name string, val xdr.XdrType) {
 		j.printField(name, "%s", v.String())
 	case xdr.XdrBytes:
 		j.printField(name, "\"")
-		enc := base64.NewEncoder(base64.StdEncoding, j.out)
-		enc.Write(v.GetByteSlice())
-		enc.Close()
+		j.out.WriteString(hex.EncodeToString(v.GetByteSlice()))
 		j.out.WriteByte('"')
 	case fmt.Stringer:
 		j.printField(name, "%q", v.String())
@@ -227,11 +225,9 @@ func (j *jsonOut) marshalGo(name string, val any) {
 			switch {
 			case vv.Type().Elem() == byteType: // []byte, [n]byte
 				j.printField(name, "\"")
-				enc := base64.NewEncoder(base64.StdEncoding, j.out)
 				aa := reflect.New(vv.Type()).Elem()
 				aa.Set(vv)
-				enc.Write(aa.Slice(0, aa.Len()).Bytes())
-				enc.Close()
+				j.out.Write([]byte(hex.EncodeToString(aa.Slice(0, aa.Len()).Bytes())))
 				j.out.WriteByte('"')
 			default: // []T, [n]T
 				j.printField(name, "")

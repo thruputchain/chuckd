@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -142,6 +144,7 @@ func (mp *SubmittedMempool) wait(ctx context.Context) {
 			if ok {
 				w.reply <- txs
 			} else {
+				liblog.Infof("waiting for txs: %v", form.Display(w.hashes))
 				waiters[w] = true
 			}
 		case <-mp.arriving:
