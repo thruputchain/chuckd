@@ -1,10 +1,16 @@
 
-FINAL INTEGRATION
 
-- [ ] emit envelope hookup for scp
-- [ ] forward to scp/control/received_envelope
-- [ ] deploy SCP sidecar (chicken and egg connection)
-- [ ] call stop_nomination on externalizations, etc
+
+INTEGRATION WITH SCP
+
+- [ ] baton should wait for missing txs for the ttl of a transaction
+- [ ] SCP/baton
+  - [ ] cancel all timers below an externalized slot
+  - [ ] call stop_nomination on externalizations, etc??
+- [ ] who takes care of purging live SCP slots below a newly externalized slot?
+    - [ ] add purge_slots to SCP_CONTROL interface
+
+
 
 ROADMAP
 

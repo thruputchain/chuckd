@@ -3,8 +3,10 @@ package multiplex
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/net/dogwood"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -12,6 +14,7 @@ import (
 // scp msgs, proposed txsets,
 type Multiplex struct {
 	m                    xdrutil.XdrMarshaler
+	dbgM                 xdrutil.XdrMarshaler
 	dogwood              *dogwood.DogwoodService
 	receivedSubmittedTxs chan submittedTxsFrom
 	receivedEnvelope     chan envelopeFrom
@@ -30,6 +33,7 @@ type envelopeFrom struct {
 func NewMultiplex(ctx context.Context, dogwood *dogwood.DogwoodService) *Multiplex {
 	x := &Multiplex{
 		m:                    xdrutil.NewXdrMarshaler(),
+		dbgM:                 xdrutil.NewXdrMarshaler(),
 		dogwood:              dogwood,
 		receivedSubmittedTxs: make(chan submittedTxsFrom),
 		receivedEnvelope:     make(chan envelopeFrom),
@@ -63,6 +67,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 }
 
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
+	liblog.Debugf("multiplex sending txs: %v", form.Display(protoutil.HashSignedTxs(x.dbgM, submitted.Transactions)))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
@@ -77,6 +82,7 @@ func (x *Multiplex) Disseminate(ctx context.Context, submitted *proto.SubmittedT
 }
 
 func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
+	liblog.Debugf("multiplex sending envelope: %v", protoutil.SCPEnvelopeShortString(env))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSCP
 	*xmsg.Envelope() = env

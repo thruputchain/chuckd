@@ -80,7 +80,7 @@ func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRoutin
 }
 
 func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
-	liblog.Debugf("dogwood multiplex at %v: receiving routes, message size %d", x.selfString(), len(p))
+	liblog.Tracef("dogwood multiplex at %v: receiving routes, message size %d", x.selfString(), len(p))
 
 	routing := proto.DogwoodRouting{}
 
@@ -97,7 +97,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 			continue
 		}
 		h := dogwoodutil.TreeNodeHash(x.mTree, treeNodes[0])
-		liblog.Debugf("dogwood multiplex at %v: caching route %v", x.selfString(), form.Display(h))
+		liblog.Tracef("dogwood multiplex at %v: caching route %v", x.selfString(), form.Display(h))
 		x.nav.CacheRoute(ctx, linked)
 	}
 }

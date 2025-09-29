@@ -64,6 +64,8 @@ func NewSystem(
 	batchSize int,
 ) *System {
 
+	liblog.Infof("initializing validator %v", protoutil.VIDString(protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)))
+
 	sys := &System{
 		cfg:     cfg,
 		inside:  inside,
@@ -214,8 +216,8 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	// drive received envelopes into scp_control
 	go func() {
 		for {
-			_, env := s.Multiplex.ReceiveEnvelope(ctx)
-			liblog.Debugf("received envelope")
+			sender, env := s.Multiplex.ReceiveEnvelope(ctx)
+			liblog.Debugf("received envelope from %v: %v", protoutil.VIDString(sender), protoutil.SCPEnvelopeShortString(*env))
 			scpController.ReceivedEnvelope(ctx, *env)
 		}
 	}()
@@ -224,8 +226,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	go func() {
 		m := xdrutil.NewXdrMarshaler()
 		for {
-			_, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
-			liblog.Debugf("received %d txs: %v", len(submittedTxs.Transactions), form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
+			sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
+			liblog.Debugf("received %d txs from %v: %v",
+				len(submittedTxs.Transactions),
+				protoutil.VIDString(sender),
+				form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
 			s.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
 		}
 	}()
