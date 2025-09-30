@@ -154,26 +154,26 @@ func (b *Baton) drive(ctx context.Context) {
 	}
 
 	// start nomination, if the db there are no externalizations above the db tip
-	if nominate := v.ReadyToNominate(); b.canNominate(nominate, b.nominating, b.nominated) {
+	if tipToNominateOn := v.TipToNominateOn(); b.canNominate(tipToNominateOn, b.nominating, b.nominated) {
 		// liblog.Debugf("baton nominating onto %v", nominate)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
-			b.nominating.CancelFunc()
+			b.nominating.Cancel()
 			b.nominating = nil
 		}
 		nomCtx, nomCancel := context.WithCancel(ctx)
-		busy := &nominating{Tip: *nominate, CancelFunc: nomCancel}
+		busy := &nominating{OnTip: *tipToNominateOn, Cancel: nomCancel}
 		b.nominating = busy
 		go func() {
-			nomination, blockID, err := b.nominate(nomCtx, *nominate)
-			busy.CancelFunc()
+			nomination, blockID, err := b.nominate(nomCtx, *tipToNominateOn)
+			busy.Cancel()
 
 			b.lock()
 			defer b.unlock()
 
 			// if nomination was cancelled, b.nominating may point at a different nomination
-			replaced := b.nominating != busy
-			if !replaced {
+			busyWasReplaced := b.nominating != busy
+			if !busyWasReplaced {
 				b.nominating = nil
 			}
 
@@ -184,7 +184,7 @@ func (b *Baton) drive(ctx context.Context) {
 				return
 			}
 
-			if !replaced {
+			if !busyWasReplaced {
 				b.nominated = &nominated{
 					Time:       b.handler.Now(),
 					Nomination: nomination,

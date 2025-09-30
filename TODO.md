@@ -3,6 +3,8 @@
 
 INTEGRATION WITH SCP
 
+- [ ] why does the current baton impl allow re-nomination for the same slot?
+
 - [ ] baton should wait for missing txs for the ttl of a transaction
 - [ ] SCP/baton
   - [ ] cancel all timers below an externalized slot
@@ -22,9 +24,6 @@ ROADMAP
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
 - [ ] tier-1 router with weighted sampling
-- [ ] scp implementation
-  - [ ] reuse multicast trees for efficient broadcast of small (scp) messages
-- [ ] consider using unreliable broadcast (quic datagram) and still error correct across trees/shreds
 
 
 XDR

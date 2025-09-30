@@ -47,7 +47,7 @@ func (b *Baton) purgeBelowTip(_ context.Context) {
 	}
 
 	// purge nominations
-	if b.nominated != nil && b.nominated.Block_height <= b.tip.Height {
+	if b.nominated != nil && b.nominated.Nomination.Block_height <= b.tip.Height {
 		b.nominated = nil
 	}
 }

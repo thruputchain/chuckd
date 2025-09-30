@@ -240,7 +240,7 @@ type View struct {
 	NextToCommit *batonapi.ValidatableBlock
 }
 
-func (v *View) ReadyToNominate() *batonapi.Tip {
+func (v *View) TipToNominateOn() *batonapi.Tip {
 	if len(v.Blocks) != 1 {
 		return nil
 	}
