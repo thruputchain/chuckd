@@ -1,2 +1,0 @@
-
-- [x] expire stuck nominations
