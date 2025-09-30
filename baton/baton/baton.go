@@ -162,18 +162,18 @@ func (b *Baton) drive(ctx context.Context) {
 			b.nominating = nil
 		}
 		nomCtx, nomCancel := context.WithCancel(ctx)
-		busy := &nominating{OnTip: *tipToNominateOn, Cancel: nomCancel}
-		b.nominating = busy
+		current := &nominating{OnTip: *tipToNominateOn, Cancel: nomCancel}
+		b.nominating = current
 		go func() {
-			nomination, blockID, err := b.nominate(nomCtx, *tipToNominateOn)
-			busy.Cancel()
+			nomination, blockID, err := b.assembleNomination(nomCtx, *tipToNominateOn)
+			current.Cancel()
 
 			b.lock()
 			defer b.unlock()
 
 			// if nomination was cancelled, b.nominating may point at a different nomination
-			busyWasReplaced := b.nominating != busy
-			if !busyWasReplaced {
+			currentWasReplaced := b.nominating != current
+			if !currentWasReplaced {
 				b.nominating = nil
 			}
 
@@ -184,7 +184,7 @@ func (b *Baton) drive(ctx context.Context) {
 				return
 			}
 
-			if !busyWasReplaced {
+			if !currentWasReplaced {
 				b.nominated = &nominated{
 					Time:       b.handler.Now(),
 					Nomination: nomination,

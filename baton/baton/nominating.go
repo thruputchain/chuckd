@@ -41,7 +41,7 @@ func (b *Baton) canNominate(tipToNominateOn *batonapi.Tip, nominating *nominatin
 	panic("unreachable")
 }
 
-func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) assembleNomination(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
 
 	txs := []*proto.SignedTransaction{}
 	for _, tx := range b.handler.ListTxs(ctx) {
