@@ -82,8 +82,8 @@ func TestAnyToJson(t *testing.T) {
     "Int32": 0,
     "Int64": "0",
     "Unexported": false,
-    "ByteArray": "AAAA",
-    "SomeXdr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "ByteArray": "000000",
+    "SomeXdr": "0000000000000000000000000000000000000000000000000000000000000000",
     "Complex": (0+0i),
     "MissingPointer": <nil>,
     "PresentPointer": "prezo",
@@ -91,9 +91,9 @@ func TestAnyToJson(t *testing.T) {
         "abc",
         "def"
     ],
-    "Bytes": "AAEC",
+    "Bytes": "000102",
     "EmbeddedXDR": {
-        "Public_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "Public_key": "0000000000000000000000000000000000000000000000000000000000000000",
         "Address": "1.2.3.4"
     }
 }`
