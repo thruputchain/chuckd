@@ -17,6 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/repair"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/scpd"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -45,6 +46,7 @@ type System struct {
 	//
 	Submitted *mempool.SubmittedMempool
 	Committed *mempool.CommittedMempool
+	Repair    *repair.RepairService
 	//
 	Submitter *Submitter
 	//
@@ -102,6 +104,7 @@ func NewSystem(
 
 	sys.Submitted = mempool.NewTransactionMempoolReal(ctx, txTTL)
 	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*txTTL)
+	sys.Repair = repair.NewRepairService(ctx, sys.Submitted)
 
 	sys.Live = NewLiveHandler(
 		sys.Signer,
@@ -148,6 +151,7 @@ func NewSystem(
 		proto.Discovery1_Server{Srv: sys.Discovery},
 		proto.Dogwood1_Server{Srv: sys.Dogwood},
 		proto.Catchup1_Server{Srv: sys.Catchup},
+		proto.Repair1_Server{Srv: sys.Repair},
 	)
 
 	return sys

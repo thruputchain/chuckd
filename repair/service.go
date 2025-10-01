@@ -12,7 +12,7 @@ type RepairService struct {
 	submitted *mempool.SubmittedMempool
 }
 
-func NewRepairService(submitted *mempool.SubmittedMempool) *RepairService {
+func NewRepairService(_ context.Context, submitted *mempool.SubmittedMempool) *RepairService {
 	return &RepairService{
 		submitted: submitted,
 	}
@@ -22,6 +22,7 @@ func (x *RepairService) Repair_null(ctx context.Context) error {
 	return nil
 }
 
+// XXX: verify block_hash is our nomination; verify requester is worth responding to, and their signature
 func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
