@@ -2,9 +2,13 @@ package repair
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/librand"
+	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -33,13 +37,22 @@ func (x *RepairAgent) RepairMissingTxs(
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 
+	cfg := netutil.BackoffConfig{
+		BaseDelay:  XXX,
+		MaxDelay:   XXX,
+		Multiplier: XXX,
+		MaxRetries: 0,
+		JitterType: netutil.EqualJitter,
+	}
+	backoff := netutil.NewBackoff(cfg, librand.New())
+
 attempting:
 	for {
 		txs, err := x.attemptRepairMissingTxs(ctx, from, missing)
 		if err != nil {
-			panic("XXX")
-			XXX := time.Second
-			tmo := time.NewTimer(XXX) //backoff
+			delay, canRetry := backoff.NextDelay()
+			must.Assert(ctx, canRetry)
+			tmo := time.NewTimer(delay)
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
@@ -61,6 +74,7 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 	if err != nil {
 		return nil, err
 	}
+	defer c.Close()
 
 	env := proto.MissingTransactionsEnvelope{
 		Signer:               x.signatory.Signer().Public_key,
@@ -71,9 +85,16 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 	if err != nil {
 		return nil, err
 	}
-	_ = reply
 
-	// XXX: verify returned txs match hashes
+	// verify returned txs match hashes
+	if len(reply.Transactions) != len(missing.Transaction_hashes) {
+		return nil, fmt.Errorf("unexpected repaired transaction count")
+	}
+	for i, tx := range reply.Transactions {
+		if protoutil.HashSignedTx(x.m, &tx) != missing.Transaction_hashes[i] {
+			return nil, fmt.Errorf("repaired transaction hash mismatch")
+		}
+	}
 
-	panic("XXX")
+	return reply.Transactions, nil
 }
