@@ -4,7 +4,7 @@ INTEGRATION WITH SCP
   - because baton currently begins re-nomination after some TTL (in canNominate)
 
 - [ ] handle missing txs
-  - [ ] add coordinator rpc for retrieving missing txs
+  - [x] add coordinator rpc for retrieving missing txs
   - [ ] hold txs in mempool while nomination pending
   - [ ] on scp validation, attempt to retrieve missing txs until success or newer externalization
   - [ ] update baton to disallow nominations if there is an existing one

@@ -213,7 +213,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	s.Dogwood.Start(ctx)                              // dogwood
 	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr)    // coord, wallet
-	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup
+	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
 	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
 	s.Baton.Start(ctx)
 
