@@ -5,7 +5,7 @@ INTEGRATION WITH SCP
 
 - [ ] handle missing txs
   - [x] add coordinator rpc for retrieving missing txs
-  - [ ] hold txs in mempool while nomination pending
+  - [x] hold txs in mempool while txs not committed
   - [ ] on scp validation, attempt to retrieve missing txs until success or newer externalization
   - [ ] update baton to disallow nominations if there is an existing one
     - [ ] get rid of the nomination ttl
@@ -22,7 +22,9 @@ INTEGRATION WITH SCP
 ROADMAP
 
 - [ ] intro BlockHeader { height, merkle_hash, later on also txset hash }
-
+- [ ] design scp values 
+  - [ ] separate block txset distribution from scp value
+  - [ ] include timestamp and config updates
 
 
 - [ ] pebble db in catchup cache
