@@ -139,7 +139,7 @@ func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.Signe
 	liblog.Infof("serving catchup heights %s", heights.String())
 
 	result := proto.CatchupBlocksResult{
-		Timestamp: svc.time.Now().UnixNano(),
+		Timestamp: uint64(svc.time.Now().UnixNano()),
 		Blocks:    blocks,
 	}
 

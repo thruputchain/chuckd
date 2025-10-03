@@ -14,7 +14,7 @@ func MakeSignedQuorumSetSnapshot(
 	qset proto.SCPQuorumSet,
 ) proto.SignedQuorumSetSnapshot {
 	qss := proto.QuorumSetSnapshot{
-		Timestamp:  time.Now().UnixNano(),
+		Timestamp:  uint64(time.Now().UnixNano()),
 		Quorum_set: qset,
 	}
 	return proto.SignedQuorumSetSnapshot{
@@ -30,7 +30,7 @@ func MakeSignedValidatorInfoSnapshot(
 	v proto.ValidatorPublicInfo,
 ) proto.SignedValidatorInfoSnapshot {
 	w := proto.ValidatorInfoSnapshot{
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: uint64(time.Now().UnixNano()),
 		Validator: v,
 	}
 	return proto.SignedValidatorInfoSnapshot{

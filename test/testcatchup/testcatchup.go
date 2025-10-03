@@ -38,7 +38,7 @@ func (x *TestCatchupStaged) Catchup_solicit(ctx context.Context, req proto.Signe
 	defer x.lk.Unlock()
 	must.Assertf(ctx, len(x.result) > 0, "no staged catchup blocks")
 	result := proto.CatchupBlocksResult{
-		Timestamp: x.time.Now().UnixNano(),
+		Timestamp: uint64(x.time.Now().UnixNano()),
 		Blocks:    x.result[0],
 	}
 	r := proto.SignedCatchupBlocksResult{
