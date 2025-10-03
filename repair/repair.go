@@ -15,16 +15,19 @@ import (
 )
 
 type RepairAgent struct {
+	cfg       proto.RepairConfig
 	net       libnet.AddressDialer
 	signatory protoutil.Signatory
 	m         xdrutil.XdrMarshaler
 }
 
 func NewRepairAgent(
+	cfg proto.RepairConfig,
 	net libnet.AddressDialer,
 	signatory protoutil.Signatory,
 ) *RepairAgent {
 	return &RepairAgent{
+		cfg:       cfg,
 		net:       net,
 		signatory: signatory,
 		m:         xdrutil.NewXdrMarshaler(),
@@ -38,9 +41,9 @@ func (x *RepairAgent) RepairMissingTxs(
 ) ([]proto.SignedTransaction, error) {
 
 	cfg := netutil.BackoffConfig{
-		BaseDelay:  XXX,
-		MaxDelay:   XXX,
-		Multiplier: XXX,
+		BaseDelay:  time.Duration(x.cfg.Base_delay_msec) * time.Millisecond,
+		MaxDelay:   time.Duration(x.cfg.Max_delay_msec) * time.Millisecond,
+		Multiplier: float64(x.cfg.Multiplier_nom) / float64(x.cfg.Multiplier_denom),
 		MaxRetries: 0,
 		JitterType: netutil.EqualJitter,
 	}

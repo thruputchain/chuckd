@@ -46,7 +46,9 @@ type System struct {
 	//
 	Submitted *mempool.SubmittedMempool
 	Committed *mempool.CommittedMempool
-	Repair    *repair.RepairService
+	//
+	RepairService *repair.RepairService
+	RepairAgent   *repair.RepairAgent
 	//
 	Submitter *Submitter
 	//
@@ -104,7 +106,9 @@ func NewSystem(
 
 	sys.Submitted = mempool.NewTransactionMempoolReal(ctx, txTTL)
 	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*txTTL)
-	sys.Repair = repair.NewRepairService(ctx, sys.Submitted)
+
+	sys.RepairService = repair.NewRepairService(ctx, sys.Submitted)
+	sys.RepairAgent = repair.NewRepairAgent(*cfg.Repair_config, outside, sys.Signer)
 
 	sys.Live = NewLiveHandler(
 		sys.Signer,
@@ -151,7 +155,7 @@ func NewSystem(
 		proto.Discovery1_Server{Srv: sys.Discovery},
 		proto.Dogwood1_Server{Srv: sys.Dogwood},
 		proto.Catchup1_Server{Srv: sys.Catchup},
-		proto.Repair1_Server{Srv: sys.Repair},
+		proto.Repair1_Server{Srv: sys.RepairService},
 	)
 
 	return sys
