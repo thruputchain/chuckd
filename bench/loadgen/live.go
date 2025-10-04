@@ -56,6 +56,10 @@ func (x *LiveHandler) ListTxs(context.Context) []*proto.SignedTransaction {
 	panic("not used")
 }
 
+func (x *LiveHandler) PartialLookupTxs(context.Context, []proto.SignedTransactionHash) []*proto.SignedTransaction {
+	panic("not used")
+}
+
 func (x *LiveHandler) LookupTxs(context.Context, []proto.SignedTransactionHash) ([]*proto.SignedTransaction, bool) {
 	panic("not used")
 }

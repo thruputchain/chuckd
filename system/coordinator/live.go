@@ -15,6 +15,7 @@ import (
 	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/repair"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -32,6 +33,7 @@ type LiveHandler struct {
 	router  router.Router
 	*mempool.SubmittedMempool
 	*mempool.CommittedMempool
+	*repair.RepairAgent
 	dogwood *dogwood.DogwoodService
 	scp     scpapi.SCPController
 	m       xdrutil.XdrMarshaler
@@ -51,6 +53,7 @@ func NewLiveHandler(
 	router router.Router,
 	submitted *mempool.SubmittedMempool,
 	committed *mempool.CommittedMempool,
+	repairAgent *repair.RepairAgent,
 	dogwood *dogwood.DogwoodService,
 	rand *rand.Rand,
 ) *LiveHandler {
@@ -63,6 +66,7 @@ func NewLiveHandler(
 		router:           router,
 		SubmittedMempool: submitted,
 		CommittedMempool: committed,
+		RepairAgent:      repairAgent,
 		dogwood:          dogwood,
 		m:                xdrutil.NewXdrMarshaler(),
 		rand:             rand,

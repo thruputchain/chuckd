@@ -34,6 +34,7 @@ func NewRepairAgent(
 	}
 }
 
+// RepairMissingTxs ensures that the returned transactions match the desired hashes.
 func (x *RepairAgent) RepairMissingTxs(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,

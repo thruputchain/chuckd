@@ -171,6 +171,14 @@ func (h *TestRig) DialExecs(ctx context.Context) ([]batonapi.ExecCoordConn, erro
 	}
 }
 
+func (h *TestRig) RepairMissingTxs(
+	ctx context.Context,
+	from proto.ValidatorPublicInfo,
+	missing proto.MissingTransactions,
+) ([]proto.SignedTransaction, error) {
+	panic("not used")
+}
+
 func (h *TestRig) ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
 	return txs, nil
 }

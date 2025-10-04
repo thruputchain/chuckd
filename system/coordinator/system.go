@@ -119,6 +119,7 @@ func NewSystem(
 		sys.Router,
 		sys.Submitted,
 		sys.Committed,
+		sys.RepairAgent,
 		sys.Dogwood,
 		runtime.NewRandFromRand(rand),
 	)

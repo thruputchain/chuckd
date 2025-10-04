@@ -2,7 +2,6 @@ package baton
 
 import (
 	"context"
-	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/baton/validate"
@@ -107,17 +106,16 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	// this context will be cancelled upon new externalizations or commits
 	vCtx, vCtxCancel := context.WithCancel(ctx)
 	go func() {
+		// XXX: cancel the waiter of validation completes
 		b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
 		vCtxCancel()
 	}()
 
-	// Wait for missing transactions to arrive within some timeout.
-	wCtx, wCtxCancel := context.WithTimeout(vCtx, time.Second) //XXX: hard coded second
-	txs, ok := b.handler.WaitTxs(wCtx, nomination.Transaction_hashes)
-	wCtxCancel()
-	if !ok {
-		liblog.Infof("cannot validate, missing txs")
-		reply <- scpapi.MaybeValidValue
+	// XXX: add proposer to nominations on creation
+	txs, err := b.loadTxs(vCtx, nomination.Proposer, nomination.Block_hash, nomination.Transaction_hashes)
+	if err != nil {
+		liblog.Infof("cannot validate, context cancelled due to newer externalization (%v)", err)
+		reply <- scpapi.InvalidValue
 		return
 	}
 

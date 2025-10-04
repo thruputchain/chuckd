@@ -7,8 +7,11 @@ INTEGRATION WITH SCP
   - [x] add coordinator rpc for retrieving missing txs
   - [x] hold txs in mempool while txs not committed
   - [ ] on scp validation, attempt to retrieve missing txs until success or newer externalization
+    - [ ] write proposer to nominations!
+    - [ ] fill in repair config
   - [ ] update baton to disallow nominations if there is an existing one
     - [ ] get rid of the nomination ttl
+    - [ ] update scp mocks and unit tests
 
 
 - [ ] SCP/baton

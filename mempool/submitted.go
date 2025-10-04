@@ -91,6 +91,19 @@ func (mp *SubmittedMempool) RemoveTx(ctx context.Context, k proto.SignedTransact
 	delete(mp.tx, k)
 }
 
+func (mp *SubmittedMempool) PartialLookupTxs(ctx context.Context, hashes []proto.SignedTransactionHash) []*proto.SignedTransaction {
+	txs := make([]*proto.SignedTransaction, len(hashes))
+	mp.lk.Lock()
+	defer mp.lk.Unlock()
+	for i, h := range hashes {
+		tx, ok := mp.tx[h]
+		if ok {
+			txs[i] = tx.proto
+		}
+	}
+	return txs
+}
+
 func (mp *SubmittedMempool) LookupTxs(ctx context.Context, hashes []proto.SignedTransactionHash) ([]*proto.SignedTransaction, bool) {
 	txs := make([]*proto.SignedTransaction, len(hashes))
 	mp.lk.Lock()
