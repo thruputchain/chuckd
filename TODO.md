@@ -3,7 +3,7 @@ INTEGRATION WITH SCP
 - [x] why does the current baton impl allow re-nomination for the same slot?
   - because baton currently begins re-nomination after some TTL (in canNominate)
 
-- [ ] handle missing txs
+- [x] handle missing txs
   - [x] add coordinator rpc for retrieving missing txs
   - [x] hold txs in mempool while txs not committed
   - [x] on scp validation, attempt to retrieve missing txs until success or newer externalization
@@ -12,7 +12,7 @@ INTEGRATION WITH SCP
   - [x] use cache for validations
   - [x] update baton to disallow nominations if there is an existing one
     - [x] get rid of the nomination ttl
-    - [ ] update scp mocks and unit tests
+    - [x] update scp mocks and unit tests
 
 
 - [ ] SCP/baton

@@ -115,8 +115,9 @@ func TestValidateCommit(t *testing.T) {
 
 	println("NOMINATION: ", form.Display(block.Nomination))
 	vlevel := rig.ValidateValue(ctx, proto.SCPSlotIndex(block.Nomination.Block_height), testMarshaler.MarshalXdr(&block.Nomination).Bytes(), true)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
+	// validation is skipped, as the nomination is already cached
+	// _ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
+	// _ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
 	if <-vlevel != scpapi.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
@@ -128,8 +129,6 @@ func TestValidateCommit(t *testing.T) {
 	if committed.AlreadyValidatedBlockID == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
-
-	println("XXX4")
 
 	rig.PassTime(3 * tick)
 	goruntime.Gosched()

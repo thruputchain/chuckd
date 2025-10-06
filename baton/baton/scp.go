@@ -57,7 +57,9 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value s
 		kind = "nomination"
 	}
 	liblog.Infof("baton validate %s value for slot %d received", kind, slot)
-	defer liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpapi.ValidationLevelString(level))
+	defer func() {
+		liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpapi.ValidationLevelString(level))
+	}()
 
 	var prop proto.Nomination
 	err := xdrutil.UnmarshalXdr(&prop, value)
