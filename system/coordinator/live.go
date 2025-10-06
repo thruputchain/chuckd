@@ -84,6 +84,11 @@ func (x *LiveHandler) Nominate(ctx context.Context, slot scpapi.Slot, value xdr.
 	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
 }
 
+func (x *LiveHandler) StopNomination(ctx context.Context, slot scpapi.Slot) {
+	<-x.live
+	x.scp.StopNomination(ctx, slot)
+}
+
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	<-x.live
 	return x.router.ChooseCatchupProviders(ctx, seed)

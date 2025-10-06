@@ -115,6 +115,9 @@ func (h *TestRig) SignalNomination(result bool) {
 	h.nominateResponse <- result
 }
 
+func (h *TestRig) StopNomination(ctx context.Context, slot scpapi.Slot) {
+}
+
 func (h *TestRig) Signer() proto.ValidatorPublicInfo {
 	return h.signer.Public_info
 }
