@@ -69,6 +69,12 @@ func MakeBaseConfig(
 			Heartbeat_msec:      round.Milliseconds() / 10,
 			Nomination_ttl_msec: round.Milliseconds(),
 		},
+		Repair_config: &proto.RepairConfig{
+			Base_delay_msec:  200,
+			Max_delay_msec:   5000,
+			Multiplier_nom:   3,
+			Multiplier_denom: 2,
+		},
 	}
 }
 

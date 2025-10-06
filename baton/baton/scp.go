@@ -111,7 +111,6 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		vCtxCancel()
 	}()
 
-	// XXX: add proposer to nominations on creation
 	txs, err := b.loadTxs(vCtx, nomination.Proposer, nomination.Block_hash, nomination.Transaction_hashes)
 	if err != nil {
 		liblog.Infof("cannot validate, context cancelled due to newer externalization (%v)", err)

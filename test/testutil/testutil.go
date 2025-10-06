@@ -13,20 +13,22 @@ import (
 )
 
 type TestGen struct {
-	time libtime.Time
-	user proto.ValidatorSecretKey // wallet user who signs txs
-	m    xdrutil.XdrMarshaler
-	lk   sync.Mutex
-	rand *rand.Rand
+	time      libtime.Time
+	validator proto.ValidatorPrivateInfo
+	user      proto.ValidatorSecretKey // wallet user who signs txs
+	m         xdrutil.XdrMarshaler
+	lk        sync.Mutex
+	rand      *rand.Rand
 }
 
 func NewTestGen(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
+	validator proto.ValidatorPrivateInfo,
 	user proto.ValidatorSecretKey,
 ) *TestGen {
-	return &TestGen{time: time, user: user, m: xdrutil.NewXdrMarshaler(), rand: rand}
+	return &TestGen{time: time, validator: validator, user: user, m: xdrutil.NewXdrMarshaler(), rand: rand}
 }
 
 func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
@@ -98,6 +100,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 	return &TestBlock{
 		Nomination: proto.Nomination{
+			Proposer:                h.validator.Public_info,
 			Block_height:            onto.Height + 1,
 			Block_hash:              hash,
 			Prev_block_hash:         onto.Hash,

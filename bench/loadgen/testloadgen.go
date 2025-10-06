@@ -8,11 +8,13 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/runtime"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 func TestLoadGen(
 	ctx context.Context,
 	net libnet.Network,
+	validator proto.ValidatorPrivateInfo,
 	cfg testcluster.TestClusterConfig,
 	inPort int,
 	numAccts int,
@@ -29,12 +31,22 @@ func TestLoadGen(
 		libtime.RealTime{},
 		runtime.NewRandFromRoot(),
 		net,
+		validator,
 		nil,
 		cfg,
 		true,
 	)
 
-	loadGen := NewLoadGenBench(ctx, runtime.NewRandFromRoot(), net, numAccts, txsPerBlock, numBlocks, callPerExec, batchSize)
+	loadGen := NewLoadGenBench(
+		ctx,
+		runtime.NewRandFromRoot(),
+		net,
+		numAccts,
+		txsPerBlock,
+		numBlocks,
+		callPerExec,
+		batchSize,
+	)
 
 	inAddr := fmt.Sprintf("localhost:%d", inPort)
 	loadGen.Start(ctx, inAddr, "XXX")

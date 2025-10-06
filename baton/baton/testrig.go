@@ -57,10 +57,16 @@ func NewTestRig(
 	must.NoError(ctx, err)
 	time := libtime.NewTestTime(now)
 	h := &TestRig{
-		rand:             rand,
-		user:             user.Secret_key,
-		signer:           *signer,
-		TestGen:          testutil.NewTestGen(ctx, time, runtime.NewRandFromRand(rand), user.Secret_key),
+		rand:   rand,
+		user:   user.Secret_key,
+		signer: *signer,
+		TestGen: testutil.NewTestGen(
+			ctx,
+			time,
+			runtime.NewRandFromRand(rand),
+			*signer,
+			user.Secret_key,
+		),
 		TestBus:          NewTestBus(),
 		TestTime:         time,
 		SubmittedMempool: mempool.NewTransactionMempool(ctx, time, txTTL),

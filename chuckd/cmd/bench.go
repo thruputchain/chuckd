@@ -10,12 +10,14 @@ import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -75,9 +77,12 @@ var (
 				} else {
 					net = testnet.NewTestNetwork()
 				}
+				validator, err := protoutil.GenerateIdentity(librand.New(), "test_validator")
+				must.NoError(ctx, err)
 				loadgen.TestLoadGen(
 					ctx,
 					net,
+					*validator,
 					testCfg,
 					benchInPort,
 					benchNumAccts,

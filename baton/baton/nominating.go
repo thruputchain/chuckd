@@ -83,6 +83,7 @@ func (b *Baton) assembleNomination(ctx context.Context, tip batonapi.Tip) (*prot
 
 	// construct block nomination
 	nomination := &proto.Nomination{
+		Proposer:                b.handler.Signer(),
 		Block_height:            prepared.BlockHeight,
 		Block_hash:              prepared.BlockHash,
 		Prev_block_hash:         prepared.PrevBlockHash,
