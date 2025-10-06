@@ -49,6 +49,7 @@ type Baton struct {
 	scp           chan struct{}
 	cond          *sync.Cond
 	lk            sync.Mutex
+
 	// state
 	committing      bool
 	nominating      *nominating
@@ -58,7 +59,8 @@ type Baton struct {
 	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.Nomination
 	validated       map[proto.BlockHash]validated
-	//
+
+	// xdr marshalers
 	txM            xdrutil.XdrMarshaler
 	nomM           xdrutil.XdrMarshaler
 	catchupReqM    xdrutil.XdrMarshaler
@@ -124,6 +126,8 @@ func (b *Baton) drive(ctx context.Context) {
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
 		liblog.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.Display(vb.BlockHash))
 		b.committing = true
+		// cancel ongoing nominations trumped by this commit to save compute
+		b.cancelNominatingNotAbove(ctx, vb.BlockHeight)
 		go func() {
 			blockID, err := b.commit(ctx, vb)
 			if err != nil {
@@ -149,13 +153,13 @@ func (b *Baton) drive(ctx context.Context) {
 			b.tip.ID = blockID
 
 			// purge catchup or consensus blocks no higher than the newly committed one
-			b.purgeBelowTip(ctx)
+			b.purgeNotAboveTipHeight(ctx)
 		}()
 	}
 
-	// start nomination, if the db there are no externalizations above the db tip
+	// start nomination, if there are no externalizations above the db tip and no nomination has started
 	if tipToNominateOn := v.TipToNominateOn(); b.canNominate(tipToNominateOn, b.nominating, b.nominated) {
-		// liblog.Debugf("baton nominating onto %v", nominate)
+		liblog.Debugf("baton nominating onto %v", tipToNominateOn)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.Cancel()

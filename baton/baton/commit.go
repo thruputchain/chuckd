@@ -19,7 +19,7 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) (prot
 	}
 }
 
-func (b *Baton) purgeBelowTip(_ context.Context) {
+func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 
 	// purge catchup blocks
 	var catchup catchupBlocks
