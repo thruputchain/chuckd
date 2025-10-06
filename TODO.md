@@ -9,6 +9,7 @@ INTEGRATION WITH SCP
   - [x] on scp validation, attempt to retrieve missing txs until success or newer externalization
     - [x] write proposer to nominations!
     - [x] fill in repair config
+  - [x] use cache for validations
   - [ ] update baton to disallow nominations if there is an existing one
     - [ ] get rid of the nomination ttl
     - [ ] update scp mocks and unit tests

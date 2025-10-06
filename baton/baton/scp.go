@@ -79,7 +79,13 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	b.lock()
 	dbTip := b.tip
 	numExt := len(b.externalized)
+	_, alreadyValidated := b.validated[nomination.Block_hash]
 	b.unlock()
+
+	if alreadyValidated {
+		reply <- scpapi.FullyValidValue
+		return
+	}
 
 	if nomination.Block_height <= dbTip.Height {
 		liblog.Infof("cannot validate, nomination below tip")
@@ -148,13 +154,15 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 			reply <- scpapi.MaybeValidValue
 			return
 		}
-		reply <- scpapi.FullyValidValue
-
-		b.lock()
-		defer b.unlock()
 
 		// cache validated blocks
+		b.lock()
 		b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
+		b.unlock()
+
+		// NOTE: it is not necessary to check whether externalizations have progressed (while validation was being computed),
+		// because validation responses are asynchronous anyway.
+		reply <- scpapi.FullyValidValue
 	}()
 }
 
