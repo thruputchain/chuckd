@@ -40,8 +40,7 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 		5*roundTTL, // committedTTL
 	)
 	cfg := proto.BatonConfig{
-		Heartbeat_msec:      proto.Milliseconds(roundTTL) / 5,
-		Nomination_ttl_msec: proto.Milliseconds(roundTTL),
+		Heartbeat_msec: proto.Milliseconds(roundTTL) / 5,
 	}
 	callsPerExec := 2
 	batchSize := 10

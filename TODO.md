@@ -10,8 +10,8 @@ INTEGRATION WITH SCP
     - [x] write proposer to nominations!
     - [x] fill in repair config
   - [x] use cache for validations
-  - [ ] update baton to disallow nominations if there is an existing one
-    - [ ] get rid of the nomination ttl
+  - [x] update baton to disallow nominations if there is an existing one
+    - [x] get rid of the nomination ttl
     - [ ] update scp mocks and unit tests
 
 

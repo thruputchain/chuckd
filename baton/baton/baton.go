@@ -24,7 +24,6 @@ func NewBaton(
 		ctx:             ctx,
 		handler:         h,
 		heartbeat:       time.Millisecond * time.Duration(cfg.Heartbeat_msec),
-		nominationTTL:   time.Millisecond * time.Duration(cfg.Nomination_ttl_msec),
 		callsPerExec:    callsPerExec,
 		batchSize:       batchSize,
 		scp:             make(chan struct{}),
@@ -40,15 +39,14 @@ func NewBaton(
 }
 
 type Baton struct {
-	ctx           context.Context // ctx for drive
-	handler       batonapi.Handler
-	heartbeat     time.Duration
-	nominationTTL time.Duration
-	callsPerExec  int
-	batchSize     int
-	scp           chan struct{}
-	cond          *sync.Cond
-	lk            sync.Mutex
+	ctx          context.Context // ctx for drive
+	handler      batonapi.Handler
+	heartbeat    time.Duration
+	callsPerExec int
+	batchSize    int
+	scp          chan struct{}
+	cond         *sync.Cond
+	lk           sync.Mutex
 
 	// state
 	committing      bool
