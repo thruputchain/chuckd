@@ -17,7 +17,7 @@ INTEGRATION WITH SCP
 
 - [ ] SCP/baton
   - [x] stop all timers below an externalized slot (scp_server::control_kernel)
-  - [ ] call stop_nomination on externalizations, etc??
+  - [x] call stop_nomination on externalizations
 - [ ] who takes care of purging live SCP slots below a newly externalized slot?
     - [ ] add purge_slots to SCP_CONTROL interface
 

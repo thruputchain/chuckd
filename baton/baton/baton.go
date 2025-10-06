@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -164,7 +165,15 @@ func (b *Baton) drive(ctx context.Context) {
 			b.nominating = nil
 		}
 		nomCtx, nomCancel := context.WithCancel(ctx)
-		current := &nominating{OnTip: *tipToNominateOn, Cancel: nomCancel}
+		current := &nominating{
+			OnTip: *tipToNominateOn,
+			Cancel: func() {
+				nomCancel()
+				// StopNomination is an advisory signal to stop engaging in the nomination protocol (wasting resources).
+				// Stale nominations will definiteively be purged when externalizations happen.
+				b.handler.StopNomination(context.Background(), scpapi.Slot(tipToNominateOn.Height+1))
+			},
+		}
 		b.nominating = current
 		go func() {
 			nomination, blockID, err := b.assembleNomination(nomCtx, *tipToNominateOn)
