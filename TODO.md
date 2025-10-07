@@ -15,17 +15,17 @@ INTEGRATION WITH SCP
     - [x] update scp mocks and unit tests
 
 
-- [ ] SCP/baton
+- [x] SCP/baton
   - [x] stop all timers below an externalized slot (scp_server::control_kernel)
   - [x] call stop_nomination on externalizations
-- [ ] who takes care of purging live SCP slots below a newly externalized slot?
-    - [ ] add purge_slots to SCP_CONTROL interface
+  - [x] value_externalized can be called multiple times for the same slot
+- [x] who takes care of purging live SCP slots below a newly externalized slot? (scp_server::control_kernel)
 
 
 
 ROADMAP
 
-- [ ] intro BlockHeader { height, merkle_hash, later on also txset hash }
+- [ ] intro BlockHeader { timestamp, height, merkle_hash, txset hash, updates? }
 - [ ] design scp values 
   - [ ] separate block txset distribution from scp value
   - [ ] include timestamp and config updates

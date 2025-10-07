@@ -191,17 +191,20 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	defer x.baton.unlock()
 
 	// check validity and update state
-	ok := isValidExternalization(&nomination, x.baton.externalized)
+	ok := isValidExternalization(x.baton.tip, &nomination, x.baton.externalized)
 	if ok {
 		x.baton.externalized = append(x.baton.externalized, &nomination)
 	}
 }
 
-func isValidExternalization(p *proto.Nomination, ps []*proto.Nomination) bool {
+func isValidExternalization(tip batonapi.Tip, p *proto.Nomination, ps []*proto.Nomination) bool {
 	if len(ps) == 0 {
 		return true
 	}
 	last := ps[len(ps)-1]
+	if p.Block_height <= tip.Height {
+		return false
+	}
 	if p.Block_height <= last.Block_height {
 		return false
 	}
