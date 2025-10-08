@@ -8,7 +8,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-const ShortHashLen = 5
+const ShortHashLen = 3
 
 func ToSecretKey(v proto.ValidatorSecretKey) proto.SecretKey {
 	sk := proto.SecretKey{}
@@ -42,6 +42,10 @@ func VPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
 
 func VIDString(vid proto.ValidatorID) string {
 	return "vid:" + hex.EncodeToString(vid[:ShortHashLen])
+}
+
+func VIDUntypedString(vid proto.ValidatorID) string {
+	return hex.EncodeToString(vid[:ShortHashLen])
 }
 
 func VPublicShortString(pubInfo proto.ValidatorPublicInfo) string {

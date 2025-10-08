@@ -47,8 +47,8 @@ func BenchTestClusterShellLocal(
 
 	// write quorum configs
 	for _, qcfg := range quorumCfgs {
-		fmt.Fprintf(&sh, "cat > config-quorum-%s.json << EOF\n",
-			protoutil.VIDString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key)))
+		untypedVID := protoutil.VIDUntypedString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key))
+		fmt.Fprintf(&sh, "cat > config-%s.json << EOF\n", untypedVID)
 		fmt.Fprintln(&sh, xdrutil.MustXdrToJsonString(&qcfg))
 		fmt.Fprintln(&sh, "EOF")
 	}
@@ -58,8 +58,9 @@ func BenchTestClusterShellLocal(
 	scpHandleBasePort := 3300
 	scpControlBasePort := 4400
 	for i, qcfg := range quorumCfgs {
+		untypedVID := protoutil.VIDUntypedString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key))
 		quorumCmd := fmt.Sprintf(
-			`chuckd -l %s --stack --config config-quorum-%s.json \
+			`chuckd -l %s --stack --config config-%s.json \
 	--instance quorum-%d \
 	--seed %d \
 	--metrics :%d \
@@ -71,13 +72,13 @@ func BenchTestClusterShellLocal(
 			--scp-control-addr %s \
 			--scp-is-validator true`,
 			runtime.GetLogLevel(),
-			protoutil.VIDString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key)),
+			untypedVID,
 			i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)
-		fmt.Fprintf(&sh, "nohup %s > quorum-%d.log 2>&1 &\n", quorumCmd, i)
-		// fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > quorum-%d.pid\n", i)
+		fmt.Fprintf(&sh, "nohup %s > validator-%s.log 2>&1 &\n", quorumCmd, untypedVID)
+		// fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > validator-%s.pid\n", untypedVID)
 	}
 
 	return sh.String()
