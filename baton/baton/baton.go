@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -158,7 +157,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// start nomination, if there are no externalizations above the db tip and no nomination has started
 	if tipToNominateOn := v.TipToNominateOn(); b.canNominate(tipToNominateOn, b.nominating, b.nominated) {
-		liblog.Debugf("baton nominating onto %v", tipToNominateOn)
+		// liblog.Debugf("baton nominating onto %v", tipToNominateOn)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.Cancel()
@@ -168,10 +167,12 @@ func (b *Baton) drive(ctx context.Context) {
 		current := &nominating{
 			OnTip: *tipToNominateOn,
 			Cancel: func() {
+				// liblog.Debugf("baton cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
 				nomCancel()
+				// XXX: the below may be problematic
 				// StopNomination is an advisory signal to stop engaging in the nomination protocol (wasting resources).
 				// Stale nominations will definiteively be purged when externalizations happen.
-				b.handler.StopNomination(context.Background(), scpapi.Slot(tipToNominateOn.Height+1))
+				// b.handler.StopNomination(context.Background(), scpapi.Slot(tipToNominateOn.Height+1))
 			},
 		}
 		b.nominating = current
@@ -201,6 +202,7 @@ func (b *Baton) drive(ctx context.Context) {
 					Nomination: nomination,
 				}
 				b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
+				liblog.Infof("nominated at block height %d", nomination.Block_height)
 			}
 		}()
 	}

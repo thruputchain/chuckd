@@ -170,7 +170,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) *scpapi.Value {
 	<-x.baton.scp
-	return nil
+	return &value
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) {

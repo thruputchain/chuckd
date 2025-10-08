@@ -1,1 +1,3 @@
 chuckd
+*.log
+*.json

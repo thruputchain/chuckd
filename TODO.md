@@ -21,6 +21,10 @@ INTEGRATION WITH SCP
   - [x] value_externalized can be called multiple times for the same slot
 - [x] who takes care of purging live SCP slots below a newly externalized slot? (scp_server::control_kernel)
 
+- [x] does SCP resend messages? NO.
+  - [ ] dogwood wait for routes to be available (don't fail)
+****  - [ ] resend unsent dogwood messages?
+  - [ ] pull scp messages from peers?
 
 
 ROADMAP

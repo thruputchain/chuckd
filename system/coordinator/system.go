@@ -68,7 +68,8 @@ func NewSystem(
 	batchSize int,
 ) *System {
 
-	liblog.Infof("initializing validator %v", protoutil.VIDString(protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)))
+	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
+	liblog.Infof("initializing validator %v", protoutil.VIDString(vid))
 
 	sys := &System{
 		cfg:     cfg,
@@ -100,7 +101,7 @@ func NewSystem(
 		sys.Router,
 	)
 
-	sys.Multiplex = multiplex.NewMultiplex(ctx, sys.Dogwood)
+	sys.Multiplex = multiplex.NewMultiplex(ctx, vid, sys.Dogwood)
 
 	txTTL := time.Duration(cfg.Mempool_config.Transaction_ttl_msec) * time.Millisecond
 
@@ -220,6 +221,8 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr)    // coord, wallet
 	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
 	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
+	s.Dogwood.WaitReady(ctx) // wait until routes have been disseminated
+	liblog.Infof("dogwood system is ready")
 	s.Baton.Start(ctx)
 
 	// drive received envelopes into scp_control

@@ -13,6 +13,7 @@ import (
 
 // scp msgs, proposed txsets,
 type Multiplex struct {
+	self                 proto.ValidatorID
 	m                    xdrutil.XdrMarshaler
 	dbgM                 xdrutil.XdrMarshaler
 	dogwood              *dogwood.DogwoodService
@@ -30,8 +31,9 @@ type envelopeFrom struct {
 	*proto.SCPEnvelope
 }
 
-func NewMultiplex(ctx context.Context, dogwood *dogwood.DogwoodService) *Multiplex {
+func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.DogwoodService) *Multiplex {
 	x := &Multiplex{
+		self:                 self,
 		m:                    xdrutil.NewXdrMarshaler(),
 		dbgM:                 xdrutil.NewXdrMarshaler(),
 		dogwood:              dogwood,
@@ -67,7 +69,9 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 }
 
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	liblog.Debugf("multiplex sending txs: %v", form.Display(protoutil.HashSignedTxs(x.dbgM, submitted.Transactions)))
+	liblog.Debugf("%v multiplex sending txs: %v",
+		protoutil.VIDString(x.self),
+		form.Display(protoutil.HashSignedTxs(x.dbgM, submitted.Transactions)))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
@@ -82,7 +86,9 @@ func (x *Multiplex) Disseminate(ctx context.Context, submitted *proto.SubmittedT
 }
 
 func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
-	liblog.Debugf("multiplex sending envelope: %v", protoutil.SCPEnvelopeShortString(env))
+	liblog.Debugf("%v multiplex sending envelope: %v",
+		protoutil.VIDString(x.self),
+		protoutil.SCPEnvelopeShortString(env))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSCP
 	*xmsg.Envelope() = env
@@ -95,10 +101,16 @@ func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) err
 
 func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID, *proto.SubmittedTransactions) {
 	submittedTxsFrom := <-x.receivedSubmittedTxs
+	liblog.Debugf("%v multiplex received txs %d from %v",
+		protoutil.VIDString(x.self),
+		len(submittedTxsFrom.Transactions), protoutil.VIDString(submittedTxsFrom.From))
 	return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions
 }
 
 func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *proto.SCPEnvelope) {
 	envelopeFrom := <-x.receivedEnvelope
+	liblog.Debugf("%v multiplex received envelope from %v",
+		protoutil.VIDString(x.self),
+		protoutil.VIDString(envelopeFrom.From))
 	return envelopeFrom.From, envelopeFrom.SCPEnvelope
 }
