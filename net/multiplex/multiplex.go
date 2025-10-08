@@ -109,8 +109,9 @@ func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID,
 
 func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *proto.SCPEnvelope) {
 	envelopeFrom := <-x.receivedEnvelope
-	liblog.Debugf("%v multiplex received envelope from %v",
+	liblog.Debugf("%v multiplex received envelope from %v: %v",
 		protoutil.VIDString(x.self),
-		protoutil.VIDString(envelopeFrom.From))
+		protoutil.VIDString(envelopeFrom.From),
+		protoutil.SCPEnvelopeShortString(*envelopeFrom.SCPEnvelope))
 	return envelopeFrom.From, envelopeFrom.SCPEnvelope
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/groundhogchain/chuckd/baton/baton"
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/coord"
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -228,8 +227,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	// drive received envelopes into scp_control
 	go func() {
 		for {
-			sender, env := s.Multiplex.ReceiveEnvelope(ctx)
-			liblog.Debugf("received envelope from %v: %v", protoutil.VIDString(sender), protoutil.SCPEnvelopeShortString(*env))
+			_, env := s.Multiplex.ReceiveEnvelope(ctx)
 			scpController.ReceivedEnvelope(ctx, *env)
 		}
 	}()
@@ -237,12 +235,14 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	// drive disseminated txs into mempool
 	go func() {
 		m := xdrutil.NewXdrMarshaler()
+		_ = m
 		for {
 			sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
-			liblog.Debugf("received %d txs from %v: %v",
-				len(submittedTxs.Transactions),
-				protoutil.VIDString(sender),
-				form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
+			_ = sender
+			// liblog.Debugf("received %d txs from %v: %v",
+			// 	len(submittedTxs.Transactions),
+			// 	protoutil.VIDString(sender),
+			// 	form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
 			s.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
 		}
 	}()

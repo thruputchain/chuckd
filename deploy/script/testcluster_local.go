@@ -9,6 +9,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/deploy/common"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -45,8 +46,9 @@ func BenchTestClusterShellLocal(
 	fmt.Fprintf(&sh, "set -e\n\n")
 
 	// write quorum configs
-	for i, qcfg := range quorumCfgs {
-		fmt.Fprintf(&sh, "cat > config-quorum-%d.json << EOF\n", i)
+	for _, qcfg := range quorumCfgs {
+		fmt.Fprintf(&sh, "cat > config-quorum-%s.json << EOF\n",
+			protoutil.VIDString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key)))
 		fmt.Fprintln(&sh, xdrutil.MustXdrToJsonString(&qcfg))
 		fmt.Fprintln(&sh, "EOF")
 	}
@@ -55,9 +57,9 @@ func BenchTestClusterShellLocal(
 	metricsBasePort := 2223
 	scpHandleBasePort := 3300
 	scpControlBasePort := 4400
-	for i := range quorumCfgs {
+	for i, qcfg := range quorumCfgs {
 		quorumCmd := fmt.Sprintf(
-			`chuckd -l %s --stack --config config-quorum-%d.json \
+			`chuckd -l %s --stack --config config-quorum-%s.json \
 	--instance quorum-%d \
 	--seed %d \
 	--metrics :%d \
@@ -69,7 +71,8 @@ func BenchTestClusterShellLocal(
 			--scp-control-addr %s \
 			--scp-is-validator true`,
 			runtime.GetLogLevel(),
-			i, i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
+			protoutil.VIDString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key)),
+			i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)
