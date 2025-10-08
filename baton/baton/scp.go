@@ -8,7 +8,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -24,21 +23,28 @@ type scpHandler struct {
 func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, values []scpapi.Value) scpapi.Value {
 	<-x.baton.scp
 
-	nominations := make(protoutil.NominationsByHash, 0, len(values))
-	for _, v := range values {
-		var p proto.Nomination
-		if err := xdrutil.UnmarshalXdr(&p, v); err != nil {
-			liblog.Errorf("unable to decode nomination for combining: %v", err)
-			break
-		}
-		nominations = append(nominations, &p)
-	}
-	nominations.Sort()
-	if len(nominations) == 0 {
+	if len(values) == 0 {
 		return nil
 	} else {
-		return x.baton.nomM.MarshalXdr(nominations[0]).Bytes()
+		scpapi.Values(values).Sort()
+		return values[0]
 	}
+
+	// nominations := make(protoutil.NominationsByHash, 0, len(values))
+	// for _, v := range values {
+	// 	var p proto.Nomination
+	// 	if err := xdrutil.UnmarshalXdr(&p, v); err != nil {
+	// 		liblog.Errorf("unable to decode nomination for combining: %v", err)
+	// 		break
+	// 	}
+	// 	nominations = append(nominations, &p)
+	// }
+	// nominations.Sort()
+	// if len(nominations) == 0 {
+	// 	return nil
+	// } else {
+	// 	return x.baton.nomM.MarshalXdr(nominations[0]).Bytes()
+	// }
 }
 
 func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) (level scpapi.ValidationLevel) {
