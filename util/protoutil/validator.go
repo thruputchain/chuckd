@@ -32,6 +32,10 @@ func ValidatorToNodeID(vid proto.ValidatorID) proto.SCPNodeID {
 	return pk
 }
 
+func NodeToValidatorID(pk proto.SCPNodeID) proto.ValidatorID {
+	return *pk.Ed25519()
+}
+
 func PublicVID(v proto.ValidatorPublicInfo) proto.ValidatorID {
 	return VPublicKeyToID(v.Public_key)
 }
