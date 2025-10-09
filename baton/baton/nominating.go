@@ -12,7 +12,7 @@ import (
 )
 
 type nominating struct {
-	OnTip  batonapi.Tip
+	Onto   batonapi.Tip
 	Cancel context.CancelFunc
 }
 
@@ -31,9 +31,9 @@ func (b *Baton) canNominate(tipToNominateOn *batonapi.Tip, nominating *nominatin
 	case nominating == nil && nominated != nil:
 		return tipToNominateOn.Height+1 > nominated.Nomination.Block_height
 	case nominating != nil && nominated == nil:
-		return tipToNominateOn.Height > nominating.OnTip.Height
+		return tipToNominateOn.Height > nominating.Onto.Height
 	case nominating != nil && nominated != nil:
-		return tipToNominateOn.Height > nominating.OnTip.Height &&
+		return tipToNominateOn.Height > nominating.Onto.Height &&
 			tipToNominateOn.Height+1 > nominated.Nomination.Block_height
 	}
 	panic("unreachable")
@@ -76,7 +76,7 @@ func (b *Baton) prepareNomination(ctx context.Context, tip batonapi.Tip) (*proto
 
 func (b *Baton) cancelNominatingNotAbove(_ context.Context, height proto.BlockHeight) {
 
-	if b.nominating == nil || b.nominating.OnTip.Height+1 > height {
+	if b.nominating == nil || b.nominating.Onto.Height+1 > height {
 		return
 	}
 

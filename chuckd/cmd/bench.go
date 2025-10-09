@@ -5,18 +5,14 @@ import (
 
 	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
 	benchecho "github.com/groundhogchain/chuckd/bench/echo"
-	"github.com/groundhogchain/chuckd/bench/loadgen"
 	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/chuckd/test/testnet"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -27,69 +23,6 @@ var (
 		Short: "run a benchmark",
 		Long:  ``,
 		Run:   func(cmd *cobra.Command, args []string) {},
-	}
-
-	benchLoadGenCmd = &cobra.Command{
-		Use:   "loadgen",
-		Short: "start load generator benchmark",
-		Long:  ``,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
-				ctx = libmetrics.WithMetricAttributes(ctx,
-					attribute.String("cmd", "bench loadgen"),
-					attribute.Int("txs_per_block", benchTxsPerBlock),
-				)
-				srv := loadgen.NewLoadGenBench(
-					ctx,
-					runtime.NewRandFromRoot(),
-					libnet.TCPNet{},
-					benchNumAccts,
-					benchTxsPerBlock,
-					benchNumBlocks,
-					benchCallsPerExec,
-					benchBatchSize,
-				)
-				srv.Start(ctx, benchInAddress, benchLoadgenAddress)
-				srv.WaitDone()
-			})
-		},
-	}
-
-	benchLoadGenTestCmd = &cobra.Command{
-		Use:   "loadgen-test",
-		Short: "test the load generator",
-		Long:  ``,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
-				testCfg := testcluster.TestClusterConfig{
-					TPS:          0,
-					NumDb:        benchNumDb,
-					NumExec:      benchNumExec,
-					DbBasePort:   benchDbBasePort,
-					ExecBasePort: benchExecBasePort,
-				}
-				var net libnet.Network
-				if benchTCP {
-					net = libnet.TCPNet{}
-				} else {
-					net = testnet.NewTestNetwork()
-				}
-				validator, err := protoutil.GenerateIdentity(librand.New(), "test_validator")
-				must.NoError(ctx, err)
-				loadgen.TestLoadGen(
-					ctx,
-					net,
-					*validator,
-					testCfg,
-					benchInPort,
-					benchNumAccts,
-					benchTxsPerBlock,
-					benchNumBlocks,
-					benchCallsPerExec,
-					benchBatchSize,
-				)
-			})
-		},
 	}
 
 	benchTestClusterCmd = &cobra.Command{
@@ -191,20 +124,13 @@ var (
 
 var (
 	benchServerAddress   string
-	benchTreeFanOut      int
-	benchChunkPerChannel int
-	benchBytesPerSec     int
 	benchNumIterations   int
 	benchBytesPerPay     int
 	//
-	benchLoadgenAddress string
 	benchInAddress      string
 	benchOutAddress     string
 	benchWalletAddress  string
 	benchTPS            int64
-	benchTxsPerBlock    int
-	benchNumAccts       int
-	benchNumBlocks      int
 	//
 	benchSCPDaemonPath  string
 	benchSCPHandleAddr  string
@@ -216,10 +142,8 @@ var (
 	benchCallsPerExec int
 	benchBatchSize    int
 	//
-	benchInPort       int
 	benchDbBasePort   int
 	benchExecBasePort int
-	benchTCP          bool // use TCP instead of testnet
 	//
 	benchDoSend          bool
 	benchOurAddress      string
@@ -254,28 +178,6 @@ func init() {
 	benchTestClusterCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
 	benchTestClusterCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
-
-	benchCmd.AddCommand(benchLoadGenCmd)
-	benchLoadGenCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
-	benchLoadGenCmd.Flags().StringVar(&benchLoadgenAddress, "loadgen-addr", "localhost:11222", "address of loadgen server")
-	benchLoadGenCmd.Flags().IntVar(&benchNumAccts, "num-accts", 1e4, "number of accounts")
-	benchLoadGenCmd.Flags().IntVar(&benchTxsPerBlock, "num-txs", 1e6, "transactions per block")
-	benchLoadGenCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 10, "number of blocks")
-	benchLoadGenCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
-	benchLoadGenCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
-
-	benchCmd.AddCommand(benchLoadGenTestCmd)
-	benchLoadGenTestCmd.Flags().IntVar(&benchNumAccts, "num-accts", 1e4, "number of accounts")
-	benchLoadGenTestCmd.Flags().IntVar(&benchTxsPerBlock, "num-txs", 1e6, "transactions per block")
-	benchLoadGenTestCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 10, "number of blocks")
-	benchLoadGenTestCmd.Flags().IntVar(&benchNumDb, "num-db", 2, "number of db shards")
-	benchLoadGenTestCmd.Flags().IntVar(&benchNumExec, "num-exec", 20, "number of executors")
-	benchLoadGenTestCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
-	benchLoadGenTestCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
-	benchLoadGenTestCmd.Flags().IntVar(&benchInPort, "in-port", 54054, "coodinator port")
-	benchLoadGenTestCmd.Flags().IntVar(&benchDbBasePort, "db-port", 30000, "dbs base port")
-	benchLoadGenTestCmd.Flags().IntVar(&benchExecBasePort, "exec-port", 40000, "execs base port")
-	benchLoadGenTestCmd.Flags().BoolVar(&benchTCP, "tcp", false, "use tcp")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")

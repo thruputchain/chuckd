@@ -165,7 +165,7 @@ func (b *Baton) drive(ctx context.Context) {
 		}
 		nomCtx, nomCancel := context.WithCancel(ctx)
 		current := &nominating{
-			OnTip: *tipToNominateOn,
+			Onto: *tipToNominateOn,
 			Cancel: func() {
 				// liblog.Debugf("baton cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
 				nomCancel()
