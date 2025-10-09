@@ -7,6 +7,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// XXX: not used, change logic?
 func (b *Baton) loadTxs(
 	ctx context.Context,
 	proposer proto.ValidatorPublicInfo,

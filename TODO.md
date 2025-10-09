@@ -1,3 +1,7 @@
+SCHEDULER INTEGRATION
+
+- [ ] handle missing txs
+
 ROADMAP
 
 - [ ] intro BlockHeader { timestamp, height, merkle_hash, txset hash, updates? }

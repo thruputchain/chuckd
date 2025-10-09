@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/baton/validate"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
@@ -117,60 +116,56 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		return
 	}
 
-	// this context will be cancelled upon new externalizations or commits
-	vCtx, vCtxCancel := context.WithCancel(ctx)
 	go func() {
-		// XXX: cancel the waiter of validation completes
-		b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
-		vCtxCancel()
-	}()
-
-	txs, err := b.loadTxs(vCtx, nomination.Proposer, nomination.Block_hash, nomination.Transaction_hashes)
-	if err != nil {
-		liblog.Infof("cannot validate, context cancelled due to newer externalization (%v)", err)
-		reply <- scpapi.InvalidValue
-		return
-	}
-
-	ptxs := make([]*proto.ProposedTransaction, len(txs))
-	for i, tx := range txs {
-		ptxs[i] = &proto.ProposedTransaction{
-			Signed_tx:                      *tx,
-			Nondeterministic_proposal_data: nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
-		}
-	}
-
-	vb := &batonapi.ValidatableBlock{
-		BlockHeight:          nomination.Block_height,
-		BlockHash:            nomination.Block_hash,
-		PrevBlockHash:        nomination.Prev_block_hash,
-		ProposedTransactions: ptxs,
-		DbTip:                dbTip,
-	}
-
-	go func() {
+		// this context will be cancelled upon new externalizations or commits
+		vCtx, vCtxCancel := context.WithCancel(ctx)
+		go func() {
+			// XXX: cancel the waiter of validation completes
+			b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
+			vCtxCancel()
+		}()
 		defer vCtxCancel()
 
-		blockID, err := validate.ValidateClose(vCtx, b.handler, vb, b.callsPerExec, b.batchSize)
-		if err == batonapi.ErrNotValid {
-			liblog.Infof("cannot validate, inconsistent")
+		schedValidResult, err := b.handler.Schedulercoord_validate(vCtx, dbTip.Proto(), *nomination)
+		if err != nil {
+			liblog.Infof("cannot validate, scheduler error (%v)", err)
 			reply <- scpapi.InvalidValue
 			return
 		}
-		if err != nil {
-			liblog.Infof("cannot validate, other: %v", err)
-			reply <- scpapi.MaybeValidValue
+		switch schedValidResult.Outcome {
+
+		case proto.SchedulerValidationOK:
+			validatedTip := *schedValidResult.Db_tip()
+
+			// cache validated blocks
+			b.lock()
+			b.validated[nomination.Block_hash] = validated{
+				Nomination: nomination,
+				BlockID:    validatedTip.Id,
+			}
+			b.unlock()
+
+			reply <- scpapi.FullyValidValue
 			return
+
+		case proto.SchedulerValidationInvalid:
+			reply <- scpapi.InvalidValue
+			return
+
+		case proto.SchedulerValidationMissingTxs:
+			panic("XXX")
+
+		case proto.SchedulerValidationDbFailed:
+			// see https://github.com/groundhogchain/hogd/issues/541
+			panic("cannot validate, db failed")
+
+		case proto.SchedulerValidationExecutorFailed:
+			// see https://github.com/groundhogchain/hogd/issues/541
+			panic("cannot validate, executor failed")
+
+		default:
+			panic("bug")
 		}
-
-		// cache validated blocks
-		b.lock()
-		b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
-		b.unlock()
-
-		// NOTE: it is not necessary to check whether externalizations have progressed (while validation was being computed),
-		// because validation responses are asynchronous anyway.
-		reply <- scpapi.FullyValidValue
 	}()
 }
 
