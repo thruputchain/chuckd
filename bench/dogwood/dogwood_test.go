@@ -84,7 +84,6 @@ func TestDogwood(t *testing.T) {
 	}
 
 	n := libnet.TCPNet{}
-	// n := quic.NewQUICNet(ctx)
 	bb0 := NewDogwoodBenchmark(ctx, r0, n, cfg0, testBytesPerPay, testNumIterations)
 	bb1 := NewDogwoodBenchmark(ctx, r1, n, cfg1, testBytesPerPay, testNumIterations)
 	bb2 := NewDogwoodBenchmark(ctx, r2, n, cfg2, testBytesPerPay, testNumIterations)

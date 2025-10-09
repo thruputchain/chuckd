@@ -8,7 +8,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/discovery"
-	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/test/testnet"
@@ -33,11 +32,6 @@ func NewDogwood3Testnet(cfg proto.DogwoodConfig) *Dogwood3Harness {
 
 func NewDogwood3TCPNet(cfg proto.DogwoodConfig) *Dogwood3Harness {
 	return NewDogwood3Harness(cfg, libtime.RealTime{}, libnet.TCPNet{}, ":55550", ":55551", ":55552")
-}
-
-func NewDogwood3QUICNet(cfg proto.DogwoodConfig) *Dogwood3Harness {
-	ctx := context.Background()
-	return NewDogwood3Harness(cfg, libtime.RealTime{}, quic.NewQUICNet(ctx), ":55550", ":55551", ":55552")
 }
 
 func NewDogwood3Harness(

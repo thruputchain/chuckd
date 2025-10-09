@@ -13,8 +13,6 @@ import (
 )
 
 type BenchDogwoodExecDef struct {
-	QUIC bool
-	//
 	BytesPerPay   int
 	NumIterations int
 	//
@@ -143,7 +141,6 @@ echo "benchmark working directory $(pwd)"
 	--metrics :{{ .MetricsPort }} \
 	bench dogwood \
 	--addr :{{ .BenchPort }} \
-	{{ if .Def.QUIC }}--quic{{ end }} \
 	--bytes-per-pay {{ .Def.BytesPerPay }} \
 	--num-iterations {{ .Def.NumIterations }} \
 	{{ .Suffix }} 2> {{ .LogName }} | tee {{ .ReportName }}

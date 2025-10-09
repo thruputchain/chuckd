@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/dogwood"
@@ -32,10 +31,6 @@ var (
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				inside := libnet.Network(libnet.TCPNet{})
 				outside := libnet.Network(libnet.TCPNet{})
-				if serverQUIC {
-					inside = libnet.TCPNet{}
-					outside = quic.NewQUICNet(ctx)
-				}
 				srv := coordinator.NewSystem(
 					ctx,
 					runtime.NewRandFromRoot(),
@@ -82,7 +77,6 @@ var (
 )
 
 var (
-	serverQUIC          bool
 	serverInAddress     string
 	serverOutAddress    string
 	serverWalletAddress string
@@ -102,7 +96,6 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	sysCmd.AddCommand(sysCoordinatorCmd)
-	sysCoordinatorCmd.Flags().BoolVar(&serverQUIC, "quic", false, "use QUIC for external apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")

@@ -13,7 +13,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/net/quic"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testnet"
@@ -72,8 +71,6 @@ var (
 				var net libnet.Network
 				if benchTCP {
 					net = libnet.TCPNet{}
-				} else if benchQUIC {
-					net = quic.NewQUICNet(ctx)
 				} else {
 					net = testnet.NewTestNetwork()
 				}
@@ -108,9 +105,6 @@ var (
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				outside := libnet.Network(libnet.TCPNet{})
-				if benchQUIC {
-					outside = quic.NewQUICNet(ctx)
-				}
 				testCfg := testcluster.TestClusterConfig{
 					TPS:          benchTPS,
 					NumDb:        benchNumDb,
@@ -158,9 +152,6 @@ var (
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				must.Assertf(ctx, cfg.Dogwood_config != nil, "missing dogwood config section")
 				outside := libnet.Network(libnet.TCPNet{})
-				if benchQUIC {
-					outside = quic.NewQUICNet(ctx)
-				}
 				srv := benchdogwood.NewDogwoodBenchmark(
 					ctx,
 					runtime.NewRandFromRoot(),
@@ -199,7 +190,6 @@ var (
 )
 
 var (
-	benchQUIC            bool
 	benchServerAddress   string
 	benchTreeFanOut      int
 	benchChunkPerChannel int
@@ -243,7 +233,6 @@ func init() {
 	rootCmd.AddCommand(benchCmd)
 
 	benchCmd.AddCommand(benchDogwoodCmd)
-	benchDogwoodCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchDogwoodCmd.Flags().StringVar(&benchServerAddress, "addr", "localhost:9111", "address for broadcast api")
 	benchDogwoodCmd.Flags().IntVar(&benchBytesPerPay, "bytes-per-pay", 300000, "bytes per payload")
 	benchDogwoodCmd.Flags().IntVar(&benchNumIterations, "num-iterations", 10000, "number of iterations")
@@ -251,7 +240,6 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
-	benchTestClusterCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use QUIC for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")
@@ -288,7 +276,6 @@ func init() {
 	benchLoadGenTestCmd.Flags().IntVar(&benchDbBasePort, "db-port", 30000, "dbs base port")
 	benchLoadGenTestCmd.Flags().IntVar(&benchExecBasePort, "exec-port", 40000, "execs base port")
 	benchLoadGenTestCmd.Flags().BoolVar(&benchTCP, "tcp", false, "use tcp")
-	benchLoadGenTestCmd.Flags().BoolVar(&benchQUIC, "quic", false, "use quic")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")

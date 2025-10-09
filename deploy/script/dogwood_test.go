@@ -13,7 +13,6 @@ func TestDogwoodLocalScript(t *testing.T) {
 	ctx := context.Background()
 
 	def := BenchDogwoodExecDef{
-		QUIC:          true,
 		BytesPerPay:   300e3,
 		NumIterations: 50000,
 		MetricsPort:   2222,
