@@ -4,22 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
-
-type OpsHandler interface {
-	SubmittedTxMempool
-	CommittedTxMempool
-	DialDb(context.Context) (DbCoordConn, error)
-	DialExecs(context.Context) ([]ExecCoordConn, error)
-	GenerateBlockID(context.Context) proto.BlockID
-	Committed(context.Context, *proto.CatchupBlock)
-	Emit(ctx context.Context, event any)
-}
 
 type Handler interface {
 	protoutil.Signatory
@@ -27,6 +19,7 @@ type Handler interface {
 	SubmittedTxMempool
 	CommittedTxMempool
 	Consensus
+	sched.SchedulerConn
 
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
 
@@ -35,10 +28,7 @@ type Handler interface {
 	GenerateBlockID(context.Context) proto.BlockID
 	GenerateID64(context.Context) ID64
 
-	DialCatchup(context.Context, proto.ValidatorPublicInfo) (CatchupConn, error)
-	DialDb(context.Context) (DbCoordConn, error)
-	// DialExecs blocks and returns a set of executor the handler can spare for the next validation/nomination task.
-	DialExecs(context.Context) ([]ExecCoordConn, error)
+	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)
 
 	RepairMissingTxs(
 		ctx context.Context,
@@ -74,21 +64,6 @@ type CommittedTxMempool interface {
 	AddCommittedTx(context.Context, proto.SignedTransactionHash)
 	IsCommittedTx(context.Context, proto.SignedTransactionHash) bool
 	CommittedTxCount() int
-}
-
-type CatchupConn interface {
-	proto.Catchup1
-	Close()
-}
-
-type DbCoordConn interface {
-	proto.DbCoord1
-	Close()
-}
-
-type ExecCoordConn interface {
-	proto.ExecutorCoord1
-	Close()
 }
 
 type Consensus interface {

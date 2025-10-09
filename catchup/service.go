@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/pebble"
-	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -22,7 +21,6 @@ type CatchupService struct {
 	signer  protoutil.Signatory
 	time    libtime.Time
 	net     libnet.Network
-	dialDb  DialDb
 	ttl     time.Duration // ttl of cached catchup blocks
 	age     proto.BlockHeight
 	shallow *pebble.DB // shallow cache
@@ -35,10 +33,6 @@ type CatchupService struct {
 	resultM xdrutil.XdrMarshaler
 }
 
-type DialDb interface {
-	DialDb(context.Context) (batonapi.DbCoordConn, error)
-}
-
 type stampedCatchupBlock struct {
 	time.Time
 	*proto.CatchupBlock
@@ -49,7 +43,6 @@ func NewCatchupService(
 	signer protoutil.Signatory,
 	time libtime.Time,
 	net libnet.Network,
-	dialDb DialDb,
 	ttl time.Duration,
 	age proto.BlockHeight,
 ) *CatchupService {
@@ -59,7 +52,6 @@ func NewCatchupService(
 		signer:  signer,
 		time:    time,
 		net:     net,
-		dialDb:  dialDb,
 		ttl:     ttl,
 		age:     age,
 		block:   map[proto.BlockHeight]stampedCatchupBlock{},

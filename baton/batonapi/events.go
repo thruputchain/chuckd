@@ -9,7 +9,7 @@ import (
 
 type EventNominating struct {
 	Nominating any
-	Tip        Tip
+	Onto       Tip
 	NumTx      int
 	Nomination *proto.Nomination
 }
@@ -20,7 +20,7 @@ func (x EventNominating) String() string {
 
 type EventNominated struct {
 	Nominated  any
-	Tip        Tip
+	Onto       Tip
 	NumTx      int
 	Nomination *proto.Nomination
 }

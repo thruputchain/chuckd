@@ -10,6 +10,11 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
+type CatchupConn interface {
+	proto.Catchup1
+	Close()
+}
+
 type CatchupClient struct {
 	proto.Catchup1_Client
 	driver *rpc.Driver

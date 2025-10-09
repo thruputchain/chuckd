@@ -2,13 +2,12 @@ package baton
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/baton/nominate"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -40,81 +39,39 @@ func (b *Baton) canNominate(tipToNominateOn *batonapi.Tip, nominating *nominatin
 	panic("unreachable")
 }
 
-func (b *Baton) assembleNomination(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) prepareNomination(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
 
-	txs := []*proto.SignedTransaction{}
-	for _, tx := range b.handler.ListTxs(ctx) {
-		if !b.handler.IsCommittedTx(ctx, protoutil.HashSignedTx(b.txM, tx)) {
-			txs = append(txs, tx)
-		}
-	}
-
-	scheduledTxs, rejectedTxs := b.handler.ScheduleTxs(ctx, txs)
-	for _, rtx := range rejectedTxs {
-		hash := protoutil.HashSignedTx(b.txM, &rtx.Transaction)
-		b.handler.AddCommittedTx(ctx, hash) // adding to committed so they are not tried again
-		b.handler.RejectedTx(ctx, rtx)
-	}
-	if len(scheduledTxs) == 0 {
-		return nil, 0, batonapi.ErrNothingToNominate
-	}
-
-	// start working on proposing a block, while being ready to cancel if a block is externalized by someone else
-	blockID := b.handler.GenerateBlockID(ctx)
-	prepared, err := nominate.PrepareNomination(ctx, b.handler, tip, scheduledTxs, b.callsPerExec, b.batchSize, blockID)
+	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip.Proto())
 	if err != nil {
-		// XXX: ctx may be cancelled
-		// XXX: ErrNoExecs
 		return nil, 0, err
 	}
-
-	proposedTxHashes := []proto.SignedTransactionHash{}
-	proposedTxNominations := []proto.NominatedTransaction{}
-	for _, propsedTx := range prepared.ProposedTxs {
-		if propsedTx.Err != nil {
-			// XXX: should invalid transaction be marked AddCommittedTx so they are not tried again?
-			continue
-		}
-		proposedTxHashes = append(proposedTxHashes, protoutil.HashSignedTx(b.txM, propsedTx.Tx))
-		proposedTxNominations = append(proposedTxNominations,
-			proto.NominatedTransaction{Nondeterministic_proposal_data: *propsedTx.Result})
+	if schedNomResult.Outcome != proto.SchedulerNominationOK {
+		return nil, 0, fmt.Errorf("scheduler nomination error")
 	}
+	schedNom := *schedNomResult.Scheduler_nomination()
 
-	// construct block nomination
-	nomination := &proto.Nomination{
-		Proposer:                b.handler.Signer(),
-		Block_height:            prepared.BlockHeight,
-		Block_hash:              prepared.BlockHash,
-		Prev_block_hash:         prepared.PrevBlockHash,
-		Transaction_hashes:      proposedTxHashes,
-		Transaction_nominations: proposedTxNominations,
-	}
+	nom := &schedNom.Nomination
+	nom.Proposer = b.handler.Signer()
 
-	an := &assembledNomination{tip: tip, prepared: prepared, proto: nomination}
-	return b.submitNomination(ctx, an)
-}
-
-type assembledNomination struct {
-	tip      batonapi.Tip
-	prepared *nominate.Nomination
-	proto    *proto.Nomination
-}
-
-func (b *Baton) submitNomination(ctx context.Context, an *assembledNomination) (*proto.Nomination, proto.BlockID, error) {
-	b.handler.Emit(ctx, batonapi.EventNominating{Tip: an.tip, NumTx: len(an.proto.Transaction_hashes), Nomination: an.proto})
+	b.handler.Emit(ctx, batonapi.EventNominating{
+		Onto:       tip, // XXX: rename OntoTip
+		NumTx:      len(nom.Transaction_hashes),
+		Nomination: nom,
+	})
 
 	// nominate to consensus
-	prevSummary := proto.PrevNominationSummary{
-		Block_hash: an.proto.Prev_block_hash,
-	}
-	// block until nomination is over
-	if ok := b.handler.Nominate(ctx, scpapi.Slot(an.proto.Block_height), an.proto, &prevSummary); ok {
-		b.handler.Emit(ctx, batonapi.EventNominated{Tip: an.tip, NumTx: len(an.proto.Transaction_hashes), Nomination: an.proto})
+	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
+	if ok := b.handler.Nominate(ctx, scpapi.Slot(nom.Block_height), nom, &prevSummary); ok {
+		b.handler.Emit(ctx, batonapi.EventNominated{
+			Onto:       tip,
+			NumTx:      len(nom.Transaction_hashes),
+			Nomination: nom,
+		})
 	} else {
-		liblog.Infof("nomination rejected, onto tip %v", an.tip.String())
+		liblog.Infof("nomination rejected, onto tip %v", tip.String())
 	}
 
-	return an.proto, an.prepared.BlockID, nil
+	return nom, schedNom.Block_id, nil
 }
 
 func (b *Baton) cancelNominatingNotAbove(_ context.Context, height proto.BlockHeight) {

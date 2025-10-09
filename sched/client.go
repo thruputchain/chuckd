@@ -10,12 +10,17 @@ import (
 	"github.com/xdrpp/goxdr/rpc"
 )
 
+type SchedulerConn interface {
+	proto.SchedulerCoord1
+	Close()
+}
+
 type SchedulerCoordClient struct {
 	proto.SchedulerCoord1_Client
 	driver *rpc.Driver
 }
 
-func DialSchedulerCoordClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*SchedulerCoordClient, error) {
+func DialSchedulerCoordClient(ctx context.Context, dialer libnet.AddressDialer, address string) (SchedulerConn, error) {
 	sock, err := dialer.DialAddress(ctx, address)
 	if err != nil {
 		return nil, err

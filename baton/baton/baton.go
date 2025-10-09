@@ -177,7 +177,7 @@ func (b *Baton) drive(ctx context.Context) {
 		}
 		b.nominating = current
 		go func() {
-			nomination, blockID, err := b.assembleNomination(nomCtx, *tipToNominateOn)
+			nomination, blockID, err := b.prepareNomination(nomCtx, *tipToNominateOn)
 			current.Cancel()
 
 			b.lock()
