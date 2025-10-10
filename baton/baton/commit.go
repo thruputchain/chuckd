@@ -5,7 +5,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -16,25 +15,20 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 
 	// validate
 	if validatedBlockID == nil {
-		// XXX: if there is a catchup block, submit its txs to mempool first
-		XXX
-
-		validatedTip, err := b.validate(ctx, onto, &vb.Nomination)
-		must.NoError(ctx, err)
-		validatedBlockID = &validatedTip.Id
+		// if there is a catchup block, validate using dedicated scheduler method
+		if vb.Catchup != nil {
+			panic("XXX: not implemented")
+		} else {
+			validatedTip, err := b.validate(ctx, onto, &vb.Nomination)
+			must.NoError(ctx, err)
+			validatedBlockID = &validatedTip.Id
+		}
 	}
 
 	// commit
+	// XXX: scheduler should persist catchup blocks after every commit
 	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
-
-	// record catchup block
-	b.handler.Committed(ctx, &proto.CatchupBlock{
-		Block_height:          vb.BlockHeight(),
-		Block_hash:            vb.BlockHash(),
-		Prev_block_hash:       vb.PrevBlockHash(),
-		Proposed_transactions: protoutil.PackProposedTransactions(vb.ProposedTransactions),
-	})
 
 	b.handler.Emit(ctx, batonapi.EventCommitted{ValidatableBlock: vb, BlockID: *validatedBlockID})
 
