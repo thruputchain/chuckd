@@ -44,7 +44,3 @@ type Consensus interface {
 	Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool
 	StopNomination(ctx context.Context, slot scpapi.Slot)
 }
-
-type Submitter interface {
-	SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction)
-}

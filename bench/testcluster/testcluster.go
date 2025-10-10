@@ -8,6 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/coord"
+	"github.com/groundhogchain/chuckd/kit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -27,7 +28,7 @@ type TestCluster struct {
 	cfg       TestClusterConfig
 	db        testdb.TestDb
 	gen       *testutil.TestGen
-	submitter batonapi.Submitter
+	submitter kit.Submitter
 	shards    []*testshard.TestShard
 	execs     []*testexec.TestExec
 }
