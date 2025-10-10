@@ -265,7 +265,6 @@ func (v *View) nextBlockToCommit(b *Baton) *batonapi.ValidatableBlock {
 
 	// are we committing a block that we have already validated?
 	if vtd, ok := b.validated[vb.BlockHash]; ok {
-		vb.AlreadyValidatedNomination = vtd.Nomination
 		vb.AlreadyValidatedBlockID = &vtd.BlockID
 	}
 
