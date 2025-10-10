@@ -2,8 +2,8 @@ package baton
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -25,7 +25,7 @@ func (b *Baton) validate(
 		return *schedValidResult.Db_tip(), nil
 
 	case proto.SchedulerValidationInvalid:
-		return proto.DbTip{}, fmt.Errorf("block proposal not valid")
+		return proto.DbTip{}, batonapi.ErrNotValid
 
 	case proto.SchedulerValidationMissingTxs:
 		panic("XXX")

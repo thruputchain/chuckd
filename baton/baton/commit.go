@@ -17,6 +17,13 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 	if validatedBlockID == nil {
 		// if there is a catchup block, validate using dedicated scheduler method
 		if vb.Catchup != nil {
+
+			// submit catchup transactions
+
+			// create nomination block
+
+			// validate
+
 			panic("XXX: not implemented")
 		} else {
 			validatedTip, err := b.validate(ctx, onto, &vb.Nomination)

@@ -4,6 +4,7 @@ SCHEDULER INTEGRATION
 - [ ] make number of blocks, beyond which catchup doesn't help, dynamically configurable
 - [ ] emitted events need not include large ValidatableBlock object
 
+- [ ] fix events.go
 - [ ] fix tests in baton
 
 ROADMAP
