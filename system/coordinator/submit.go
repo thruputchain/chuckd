@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -14,10 +13,14 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type Disseminator interface {
+	Disseminate(ctx context.Context, submitted *proto.SubmittedTransactions)
+}
+
 type Submitter struct {
 	time         libtime.Time
 	pool         *mempool.SubmittedMempool
-	disseminator batonapi.Disseminator
+	disseminator Disseminator
 	lotSize      int
 	lotWait      time.Duration
 	ch           chan *proto.SignedTransaction
@@ -27,7 +30,7 @@ func NewSubmitter(
 	ctx context.Context,
 	time libtime.Time,
 	pool *mempool.SubmittedMempool,
-	disseminator batonapi.Disseminator,
+	disseminator Disseminator,
 	lotSize int,
 	lotWait time.Duration,
 ) *Submitter {
