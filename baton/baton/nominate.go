@@ -39,7 +39,7 @@ func (b *Baton) canNominate(tipToNominateOn *batonapi.Tip, nominating *nominatin
 	panic("unreachable")
 }
 
-func (b *Baton) prepareNomination(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
 
 	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip.Proto())
 	if err != nil {

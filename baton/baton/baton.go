@@ -127,20 +127,13 @@ func (b *Baton) drive(ctx context.Context) {
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, vb.BlockHeight)
 		go func() {
-			blockID, err := b.commit(ctx, vb)
-			if err != nil {
-				liblog.Errorf("commit: %v", err)
-			}
+			blockID := b.commit(ctx, vb)
 
 			b.lock()
 			defer b.unlock()
 
 			must.Assertf(ctx, b.committing, "race committing")
 			b.committing = false
-
-			if err != nil { // commit failed
-				return
-			}
 
 			if b.tip.Height+1 != vb.BlockHeight {
 				panic("bug")
@@ -177,7 +170,7 @@ func (b *Baton) drive(ctx context.Context) {
 		}
 		b.nominating = current
 		go func() {
-			nomination, blockID, err := b.prepareNomination(nomCtx, *tipToNominateOn)
+			nomination, blockID, err := b.nominate(nomCtx, *tipToNominateOn)
 			current.Cancel()
 
 			b.lock()

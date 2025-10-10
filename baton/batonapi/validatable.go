@@ -4,6 +4,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// XXX: is this structure necessary any more?
 type ValidatableBlock struct {
 	FromCatchup   bool
 	FromConsensus bool

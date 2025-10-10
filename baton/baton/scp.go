@@ -126,46 +126,21 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		}()
 		defer vCtxCancel()
 
-		schedValidResult, err := b.handler.Schedulercoord_validate(vCtx, dbTip.Proto(), *nomination)
+		validatedTip, err := b.validate(vCtx, dbTip.Proto(), *&nomination)
 		if err != nil {
-			liblog.Infof("cannot validate, scheduler error (%v)", err)
 			reply <- scpapi.InvalidValue
 			return
 		}
-		switch schedValidResult.Outcome {
 
-		case proto.SchedulerValidationOK:
-			validatedTip := *schedValidResult.Db_tip()
-
-			// cache validated blocks
-			b.lock()
-			b.validated[nomination.Block_hash] = validated{
-				Nomination: nomination,
-				BlockID:    validatedTip.Id,
-			}
-			b.unlock()
-
-			reply <- scpapi.FullyValidValue
-			return
-
-		case proto.SchedulerValidationInvalid:
-			reply <- scpapi.InvalidValue
-			return
-
-		case proto.SchedulerValidationMissingTxs:
-			panic("XXX")
-
-		case proto.SchedulerValidationDbFailed:
-			// see https://github.com/groundhogchain/hogd/issues/541
-			panic("cannot validate, db failed")
-
-		case proto.SchedulerValidationExecutorFailed:
-			// see https://github.com/groundhogchain/hogd/issues/541
-			panic("cannot validate, executor failed")
-
-		default:
-			panic("bug")
+		// cache validated blocks
+		b.lock()
+		b.validated[nomination.Block_hash] = validated{
+			Nomination: nomination,
+			BlockID:    validatedTip.Id,
 		}
+		b.unlock()
+
+		reply <- scpapi.FullyValidValue
 	}()
 }
 

@@ -4,19 +4,38 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/baton/commit"
-	"github.com/groundhogchain/chuckd/baton/validate"
+	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) (proto.BlockID, error) {
-	if vb.AlreadyValidatedBlockID != nil {
-		// skip validation when committing our own nomination
-		return commit.CommitAlreadyValidated(ctx, b.txM, b.handler, vb)
-	} else {
-		blockID := b.handler.GenerateBlockID(ctx)
-		return validate.ValidateCommit(ctx, b.txM, b.handler, vb, b.callsPerExec, b.batchSize, blockID)
+func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto.BlockID {
+
+	onto := vb.DbTip.Proto()
+	validatedBlockID := vb.AlreadyValidatedBlockID
+
+	// validate
+	if validatedBlockID == nil {
+		validatedTip, err := b.validate(ctx, onto, b.vbNomination(vb))
+		must.NoError(ctx, err)
+		validatedBlockID = &validatedTip.Id
 	}
+
+	// commit
+	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
+	must.NoError(ctx, err)
+
+	// record catchup block
+	b.handler.Committed(ctx, &proto.CatchupBlock{
+		Block_height:          vb.BlockHeight,
+		Block_hash:            vb.BlockHash,
+		Prev_block_hash:       vb.PrevBlockHash,
+		Proposed_transactions: protoutil.PackProposedTransactions(vb.ProposedTransactions),
+	})
+
+	b.handler.Emit(ctx, batonapi.EventCommitted{ValidatableBlock: vb, BlockID: *validatedBlockID})
+
+	return *validatedBlockID
 }
 
 func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
