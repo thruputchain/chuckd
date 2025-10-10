@@ -34,15 +34,14 @@ func (b *Baton) validate(
 
 	case proto.SchedulerValidationDbFailed:
 		// see https://github.com/groundhogchain/hogd/issues/541
-		panic("cannot validate, db failed")
+		liblog.Fatalf("cannot validate, db failed")
 
 	case proto.SchedulerValidationExecutorFailed:
 		// see https://github.com/groundhogchain/hogd/issues/541
-		panic("cannot validate, executor failed")
+		liblog.Fatalf("cannot validate, executor failed")
 
-	default:
-		panic("bug")
 	}
+	panic("bug")
 }
 
 func (b *Baton) vbNomination(vb *batonapi.ValidatableBlock) *proto.Nomination {
