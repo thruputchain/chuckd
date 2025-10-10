@@ -30,7 +30,6 @@ type CatchupBlock struct {
 	Source proto.ValidatorID
 	Stamp  time.Time
 	Block  *proto.CatchupBlock
-	Txs    []*proto.ProposedTransaction
 }
 
 func (b CatchupBlock) Provider() proto.ValidatorID {
@@ -141,7 +140,6 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 				Source: protoutil.PublicVID(src),
 				Stamp:  now,
 				Block:  &block,
-				Txs:    protoutil.UnpackProposedTransactions(block.Proposed_transactions),
 			})
 		}
 

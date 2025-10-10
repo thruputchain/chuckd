@@ -1,6 +1,7 @@
 SCHEDULER INTEGRATION
 
 - [ ] handle missing txs
+- [ ] make number of blocks, beyond which catchup doesn't help, dynamically configurable
 
 ROADMAP
 

@@ -5,15 +5,32 @@ import (
 )
 
 type ValidatableBlock struct {
-	FromCatchup   bool
-	FromConsensus bool
+	Nomination       proto.Nomination
+	Catchup          *proto.CatchupBlock
+	AlreadyValidated *proto.BlockID
+	Onto             Tip
+}
 
-	BlockHeight          proto.BlockHeight
-	BlockHash            proto.BlockHash
-	PrevBlockHash        proto.BlockHash
-	ProposedTransactions []*proto.ProposedTransaction
+func (vb *ValidatableBlock) BlockHeight() proto.BlockHeight {
+	if vb.Catchup != nil {
+		return vb.Catchup.Block_height
+	} else {
+		return vb.Nomination.Block_height
+	}
+}
 
-	DbTip Tip
+func (vb *ValidatableBlock) BlockHash() proto.BlockHash {
+	if vb.Catchup != nil {
+		return vb.Catchup.Block_hash
+	} else {
+		return vb.Nomination.Block_hash
+	}
+}
 
-	AlreadyValidatedBlockID *proto.BlockID
+func (vb *ValidatableBlock) PrevBlockHash() proto.BlockHash {
+	if vb.Catchup != nil {
+		return vb.Catchup.Prev_block_hash
+	} else {
+		return vb.Nomination.Prev_block_hash
+	}
 }

@@ -2,7 +2,6 @@ package baton
 
 import (
 	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -49,11 +48,7 @@ func (x ViewCatchupBlock) IsCatchup() bool                { return true }
 func (x ViewCatchupBlock) IsDb() bool                     { return false }
 func (x ViewCatchupBlock) ValidatableBlock() *batonapi.ValidatableBlock {
 	return &batonapi.ValidatableBlock{
-		FromCatchup:          true,
-		BlockHeight:          x.BlockHeight(),
-		BlockHash:            x.BlockHash(),
-		PrevBlockHash:        x.PrevBlockHash(),
-		ProposedTransactions: x.Candidate.Txs,
+		Catchup: x.Candidate.Block,
 	}
 }
 func (x ViewCatchupBlock) Icon() string {
@@ -66,49 +61,24 @@ func (x ViewCatchupBlock) Icon() string {
 
 type ViewExternalizedBlock struct {
 	Nomination *proto.Nomination
-	Txs        []*proto.SignedTransaction
 	Catchup    *CatchupBlock // a catchup block can be used if txs are missing
 }
 
 func (x ViewExternalizedBlock) BlockHash() proto.BlockHash     { return x.Nomination.Block_hash }
 func (x ViewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.Nomination.Block_height }
 func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.Nomination.Prev_block_hash }
-func (x ViewExternalizedBlock) IsReadyToValidate() bool {
-	// if a catchup block is placed inside an scp block, then it must link against it by design
-	return (!x.IsMissingTransactions()) || x.Catchup != nil
-}
-func (x ViewExternalizedBlock) IsMissingTransactions() bool {
-	return len(x.Txs) != len(x.Nomination.Transaction_hashes)
-}
-func (x ViewExternalizedBlock) IsMissing() bool { return false }
-func (x ViewExternalizedBlock) IsSCP() bool     { return true }
-func (x ViewExternalizedBlock) IsCatchup() bool { return false }
-func (x ViewExternalizedBlock) IsDb() bool      { return false }
+func (x ViewExternalizedBlock) IsReadyToValidate() bool        { return true }
+func (x ViewExternalizedBlock) IsMissing() bool                { return false }
+func (x ViewExternalizedBlock) IsSCP() bool                    { return true }
+func (x ViewExternalizedBlock) IsCatchup() bool                { return false }
+func (x ViewExternalizedBlock) IsDb() bool                     { return false }
 func (x ViewExternalizedBlock) ValidatableBlock() *batonapi.ValidatableBlock {
-	var txs []*proto.ProposedTransaction
-	var fromCatchup bool
-	var fromConsensus bool
-	if x.IsMissingTransactions() {
-		fromCatchup = true
-		txs = protoutil.UnpackProposedTransactions(x.Catchup.Block.Proposed_transactions)
-	} else {
-		fromConsensus = true
-		txs = make([]*proto.ProposedTransaction, len(x.Nomination.Transaction_hashes))
-		for i := range txs {
-			txs[i] = &proto.ProposedTransaction{
-				Signed_tx:                      *x.Txs[i],
-				Nondeterministic_proposal_data: x.Nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
-			}
-		}
+	vb := &batonapi.ValidatableBlock{}
+	if x.Catchup != nil {
+		vb.Catchup = x.Catchup.Block
 	}
-	return &batonapi.ValidatableBlock{
-		FromCatchup:          fromCatchup,
-		FromConsensus:        fromConsensus,
-		BlockHeight:          x.BlockHeight(),
-		BlockHash:            x.BlockHash(),
-		PrevBlockHash:        x.PrevBlockHash(),
-		ProposedTransactions: txs,
-	}
+	vb.Nomination = *x.Nomination
+	return vb
 }
 func (x ViewExternalizedBlock) Icon() string {
 	return "X"

@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -42,25 +40,4 @@ func (b *Baton) validate(
 
 	}
 	panic("bug")
-}
-
-func (b *Baton) vbNomination(vb *batonapi.ValidatableBlock) *proto.Nomination {
-
-	hashes := make([]proto.SignedTransactionHash, len(vb.ProposedTransactions))
-	txs := make([]proto.NominatedTransaction, len(vb.ProposedTransactions))
-	for i, ptx := range vb.ProposedTransactions {
-		hashes[i] = protoutil.HashSignedTx(b.txM, &ptx.Signed_tx)
-		txs[i] = proto.NominatedTransaction{
-			Nondeterministic_proposal_data: ptx.Nondeterministic_proposal_data,
-		}
-	}
-
-	return &proto.Nomination{
-		Proposer:                b.handler.Signer(),
-		Block_height:            vb.BlockHeight,
-		Block_hash:              vb.BlockHash,
-		Prev_block_hash:         vb.PrevBlockHash,
-		Transaction_hashes:      hashes,
-		Transaction_nominations: txs,
-	}
 }

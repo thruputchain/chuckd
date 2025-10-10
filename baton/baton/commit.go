@@ -11,12 +11,15 @@ import (
 
 func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto.BlockID {
 
-	onto := vb.DbTip.Proto()
-	validatedBlockID := vb.AlreadyValidatedBlockID
+	onto := vb.Onto.Proto()
+	validatedBlockID := vb.AlreadyValidated
 
 	// validate
 	if validatedBlockID == nil {
-		validatedTip, err := b.validate(ctx, onto, b.vbNomination(vb))
+		// XXX: if there is a catchup block, submit its txs to mempool first
+		XXX
+
+		validatedTip, err := b.validate(ctx, onto, &vb.Nomination)
 		must.NoError(ctx, err)
 		validatedBlockID = &validatedTip.Id
 	}
@@ -27,9 +30,9 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 
 	// record catchup block
 	b.handler.Committed(ctx, &proto.CatchupBlock{
-		Block_height:          vb.BlockHeight,
-		Block_hash:            vb.BlockHash,
-		Prev_block_hash:       vb.PrevBlockHash,
+		Block_height:          vb.BlockHeight(),
+		Block_hash:            vb.BlockHash(),
+		Prev_block_hash:       vb.PrevBlockHash(),
 		Proposed_transactions: protoutil.PackProposedTransactions(vb.ProposedTransactions),
 	})
 

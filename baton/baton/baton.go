@@ -122,10 +122,10 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		liblog.Debugf("baton committing [%v; %v]", vb.BlockHeight, form.Display(vb.BlockHash))
+		liblog.Debugf("baton committing [%v; %v]", vb.BlockHeight(), form.Display(vb.BlockHash))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
-		b.cancelNominatingNotAbove(ctx, vb.BlockHeight)
+		b.cancelNominatingNotAbove(ctx, vb.BlockHeight())
 		go func() {
 			blockID := b.commit(ctx, vb)
 
@@ -135,12 +135,12 @@ func (b *Baton) drive(ctx context.Context) {
 			must.Assertf(ctx, b.committing, "race committing")
 			b.committing = false
 
-			if b.tip.Height+1 != vb.BlockHeight {
+			if b.tip.Height+1 != vb.BlockHeight() {
 				panic("bug")
 			}
 
-			b.tip.Hash = vb.BlockHash
-			b.tip.Height = vb.BlockHeight
+			b.tip.Hash = vb.BlockHash()
+			b.tip.Height = vb.BlockHeight()
 			b.tip.ID = blockID
 
 			// purge catchup or consensus blocks no higher than the newly committed one
@@ -162,10 +162,6 @@ func (b *Baton) drive(ctx context.Context) {
 			Cancel: func() {
 				// liblog.Debugf("baton cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
 				nomCancel()
-				// XXX: the below may be problematic
-				// StopNomination is an advisory signal to stop engaging in the nomination protocol (wasting resources).
-				// Stale nominations will definiteively be purged when externalizations happen.
-				// b.handler.StopNomination(context.Background(), scpapi.Slot(tipToNominateOn.Height+1))
 			},
 		}
 		b.nominating = current
