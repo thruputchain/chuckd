@@ -11,7 +11,7 @@ import (
 
 func (b *Baton) commit(ctx context.Context, vb *batonkit.ValidatableBlock) proto.BlockID {
 
-	onto := vb.Onto.Proto()
+	onto := vb.Onto
 	validatedBlockID := vb.AlreadyValidated
 
 	// validate

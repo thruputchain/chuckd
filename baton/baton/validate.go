@@ -17,7 +17,7 @@ func (b *Baton) validate(
 ) (proto.DbTip, error) {
 
 	b.handler.Emit(ctx, batonkit.EventValidating{
-		Onto:   batonkit.FromDbTip(onto),
+		Onto:   onto,
 		NumTx:  len(nomination.Transaction_hashes),
 		Height: nomination.Block_height,
 		Hash:   nomination.Block_hash,
@@ -25,7 +25,7 @@ func (b *Baton) validate(
 
 	defer func() {
 		b.handler.Emit(ctx, batonkit.EventValidated{
-			Onto:   batonkit.FromDbTip(onto),
+			Onto:   onto,
 			NumTx:  len(nomination.Transaction_hashes),
 			Height: nomination.Block_height,
 			Hash:   nomination.Block_hash,

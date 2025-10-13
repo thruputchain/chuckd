@@ -9,7 +9,7 @@ import (
 
 type EventNominating struct {
 	Nominating any
-	Onto       Tip
+	Onto       proto.DbTip
 	NumTx      int
 	Height     proto.BlockHeight
 	Hash       proto.BlockHash
@@ -21,7 +21,7 @@ func (x EventNominating) String() string {
 
 type EventNominated struct {
 	Nominated any
-	Onto      Tip
+	Onto      proto.DbTip
 	NumTx     int
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash
@@ -33,7 +33,7 @@ func (x EventNominated) String() string {
 
 type EventCommitted struct {
 	Committed any
-	Onto      Tip
+	Onto      proto.DbTip
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash
 }
@@ -44,7 +44,7 @@ func (x EventCommitted) String() string {
 
 type EventValidating struct {
 	Validating any
-	Onto       Tip
+	Onto       proto.DbTip
 	NumTx      int
 	Height     proto.BlockHeight
 	Hash       proto.BlockHash
@@ -56,7 +56,7 @@ func (x EventValidating) String() string {
 
 type EventValidated struct {
 	Validated any
-	Onto      Tip
+	Onto      proto.DbTip
 	NumTx     int
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash

@@ -21,7 +21,7 @@ type Handler interface {
 	Consensus
 	sched.SchedulerConn
 
-	RestoreDb(context.Context) (Tip, error)
+	RestoreDb(context.Context) (proto.DbTip, error)
 
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)

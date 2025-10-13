@@ -8,11 +8,12 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type nominating struct {
-	Onto   batonkit.Tip
+	Onto   proto.DbTip
 	Cancel context.CancelFunc
 }
 
@@ -21,7 +22,7 @@ type nominated struct {
 	Nomination *proto.Nomination
 }
 
-func (b *Baton) canNominate(tipToNominateOn *batonkit.Tip, nominating *nominating, nominated *nominated) bool {
+func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating, nominated *nominated) bool {
 	if tipToNominateOn == nil {
 		return false
 	}
@@ -39,9 +40,9 @@ func (b *Baton) canNominate(tipToNominateOn *batonkit.Tip, nominating *nominatin
 	panic("unreachable")
 }
 
-func (b *Baton) nominate(ctx context.Context, tip batonkit.Tip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nomination, proto.BlockID, error) {
 
-	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip.Proto())
+	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -70,7 +71,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonkit.Tip) (*proto.Nominati
 			Hash:   nom.Block_hash,
 		})
 	} else {
-		liblog.Infof("nomination rejected, onto tip %v", tip.String())
+		liblog.Infof("nomination rejected, onto tip %v", protoutil.DbTipString(tip))
 	}
 
 	return nom, schedNom.Block_id, nil

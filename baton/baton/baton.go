@@ -48,7 +48,7 @@ type Baton struct {
 	committing      bool
 	nominating      *nominating
 	nominated       *nominated
-	tip             batonkit.Tip
+	tip             proto.DbTip
 	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.Nomination
@@ -137,7 +137,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 			b.tip.Hash = vb.BlockHash()
 			b.tip.Height = vb.BlockHeight()
-			b.tip.ID = blockID
+			b.tip.Id = blockID
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)

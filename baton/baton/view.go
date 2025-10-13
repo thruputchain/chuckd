@@ -16,7 +16,7 @@ type View struct {
 	NextToCommit *batonkit.ValidatableBlock
 }
 
-func (v *View) TipToNominateOn() *batonkit.Tip {
+func (v *View) TipToNominateOn() *proto.DbTip {
 	if len(v.Blocks) != 1 {
 		return nil
 	}

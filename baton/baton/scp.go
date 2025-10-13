@@ -3,7 +3,6 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
@@ -126,7 +125,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		}()
 		defer vCtxCancel()
 
-		validatedTip, err := b.validate(vCtx, dbTip.Proto(), nomination)
+		validatedTip, err := b.validate(vCtx, dbTip, nomination)
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
 			// it occurs only if scp has externalized newer blocks and thus
@@ -177,7 +176,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	}
 }
 
-func isValidExternalization(tip batonkit.Tip, p *proto.Nomination, ps []*proto.Nomination) bool {
+func isValidExternalization(tip proto.DbTip, p *proto.Nomination, ps []*proto.Nomination) bool {
 	if len(ps) == 0 {
 		return true
 	}

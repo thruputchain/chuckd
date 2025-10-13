@@ -8,7 +8,7 @@ type ValidatableBlock struct {
 	Nomination       proto.Nomination
 	Catchup          *proto.CatchupBlock
 	AlreadyValidated *proto.BlockID
-	Onto             Tip
+	Onto             proto.DbTip
 }
 
 func (vb *ValidatableBlock) BlockHeight() proto.BlockHeight {

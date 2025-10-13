@@ -19,7 +19,7 @@ type ViewBlock interface {
 }
 
 type ViewDbBlock struct {
-	Tip batonkit.Tip
+	Tip proto.DbTip
 }
 
 func (x ViewDbBlock) BlockHash() proto.BlockHash                   { return x.Tip.Hash }
