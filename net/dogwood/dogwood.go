@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -141,6 +142,7 @@ func (x *DogwoodService) WaitReady(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-x.ready:
+		liblog.Infof("dogwood system is ready")
 		return nil
 	}
 }

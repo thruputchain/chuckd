@@ -7,7 +7,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/baton"
 	"github.com/groundhogchain/chuckd/catchup"
-	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -35,7 +34,8 @@ type System struct {
 	//
 	Signer protoutil.Signatory
 	//
-	Coord     *coord.CoordinatorService
+	SchedCallback *sched.SchedulerCallbackService
+	//
 	Discovery *discovery.DiscoveryService
 	Router    router.Router
 	Dogwood   *dogwood.DogwoodService
@@ -77,7 +77,7 @@ func NewSystem(
 		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
-	sys.Coord = coord.NewCoordinatorService(ctx, inside, runtime.NewRandFromRand(rand))
+	sys.SchedCallback = sched.NewSchedulerCallbackService()
 
 	sys.Discovery = discovery.NewDiscoveryService(
 		ctx,
@@ -233,9 +233,16 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
 
 	s.Dogwood.WaitReady(ctx) // wait until routes have been disseminated
-	liblog.Infof("dogwood system is ready")
 
 	s.Baton.Start(ctx)
+
+	// drive dissemination of vetted transactions
+	go func() {
+		for {
+			txs := s.SchedCallback.ReceiveVetted()
+			s.Multiplex.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: txs})
+		}
+	}()
 
 	// drive received envelopes into scp_control
 	go func() {
