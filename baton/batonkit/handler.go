@@ -1,4 +1,4 @@
-package batonapi
+package batonkit
 
 import (
 	"context"
@@ -16,13 +16,12 @@ import (
 type Handler interface {
 	protoutil.Signatory
 	libtime.Time
+	GenerateID64(context.Context) ID64
 
 	Consensus
 	sched.SchedulerConn
 
-	RestoreDb(context.Context) (Tip, error) // implemented by the coordinator service
-
-	GenerateID64(context.Context) ID64
+	RestoreDb(context.Context) (Tip, error)
 
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)

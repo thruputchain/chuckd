@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type nominating struct {
-	Onto   batonapi.Tip
+	Onto   batonkit.Tip
 	Cancel context.CancelFunc
 }
 
@@ -21,7 +21,7 @@ type nominated struct {
 	Nomination *proto.Nomination
 }
 
-func (b *Baton) canNominate(tipToNominateOn *batonapi.Tip, nominating *nominating, nominated *nominated) bool {
+func (b *Baton) canNominate(tipToNominateOn *batonkit.Tip, nominating *nominating, nominated *nominated) bool {
 	if tipToNominateOn == nil {
 		return false
 	}
@@ -39,7 +39,7 @@ func (b *Baton) canNominate(tipToNominateOn *batonapi.Tip, nominating *nominatin
 	panic("unreachable")
 }
 
-func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) nominate(ctx context.Context, tip batonkit.Tip) (*proto.Nomination, proto.BlockID, error) {
 
 	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip.Proto())
 	if err != nil {
@@ -53,7 +53,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 	nom := &schedNom.Nomination
 	nom.Proposer = b.handler.Signer()
 
-	b.handler.Emit(ctx, batonapi.EventNominating{
+	b.handler.Emit(ctx, batonkit.EventNominating{
 		Onto:   tip,
 		NumTx:  len(nom.Transaction_hashes),
 		Height: nom.Block_height,
@@ -63,7 +63,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
 	if ok := b.handler.Nominate(ctx, scpapi.Slot(nom.Block_height), nom, &prevSummary); ok {
-		b.handler.Emit(ctx, batonapi.EventNominated{
+		b.handler.Emit(ctx, batonkit.EventNominated{
 			Onto:   tip,
 			NumTx:  len(nom.Transaction_hashes),
 			Height: nom.Block_height,

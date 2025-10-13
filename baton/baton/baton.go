@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -16,7 +16,7 @@ import (
 func NewBaton(
 	ctx context.Context,
 	cfg proto.BatonConfig,
-	h batonapi.Handler,
+	h batonkit.Handler,
 ) *Baton {
 	b := &Baton{
 		ctx:              ctx,
@@ -24,7 +24,7 @@ func NewBaton(
 		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
 		maxCatchupHeight: int(cfg.Max_catchup_height),
 		scp:              make(chan struct{}),
-		catchupRequests:  map[batonapi.ID64]catchupRequest{},
+		catchupRequests:  map[batonkit.ID64]catchupRequest{},
 		validated:        map[proto.BlockHash]validated{},
 		txM:              xdrutil.NewXdrMarshaler(),
 		nomM:             xdrutil.NewXdrMarshaler(),
@@ -37,7 +37,7 @@ func NewBaton(
 
 type Baton struct {
 	ctx              context.Context // ctx for drive
-	handler          batonapi.Handler
+	handler          batonkit.Handler
 	heartbeat        time.Duration
 	maxCatchupHeight int
 	scp              chan struct{}
@@ -48,8 +48,8 @@ type Baton struct {
 	committing      bool
 	nominating      *nominating
 	nominated       *nominated
-	tip             batonapi.Tip
-	catchupRequests map[batonapi.ID64]catchupRequest // pending catchup requests
+	tip             batonkit.Tip
+	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.Nomination
 	validated       map[proto.BlockHash]validated
@@ -175,7 +175,7 @@ func (b *Baton) drive(ctx context.Context) {
 			}
 
 			if err != nil {
-				if err != batonapi.ErrNothingToNominate {
+				if err != batonkit.ErrNothingToNominate {
 					liblog.Errorf("nominate: %v", err)
 				}
 				return

@@ -3,7 +3,7 @@ package testdb
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -14,15 +14,15 @@ func NewTestDbNoop() TestDb {
 	return &testDbNoop{}
 }
 
-func (db *testDbNoop) GetTip() batonapi.Tip {
-	return batonapi.Tip{}
+func (db *testDbNoop) GetTip() batonkit.Tip {
+	return batonkit.Tip{}
 }
 
-func (db *testDbNoop) RestoreDb(context.Context) (batonapi.Tip, error) {
-	return batonapi.Tip{}, nil
+func (db *testDbNoop) RestoreDb(context.Context) (batonkit.Tip, error) {
+	return batonkit.Tip{}, nil
 }
 
-func (db *testDbNoop) DbCoord() batonapi.DbCoordConn {
+func (db *testDbNoop) DbCoord() batonkit.DbCoordConn {
 	return db
 }
 
@@ -37,7 +37,7 @@ func (db *testDbNoop) Dbcoord_null(ctx context.Context) error {
 }
 
 func (db *testDbNoop) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
-	tip := batonapi.Tip{}
+	tip := batonkit.Tip{}
 	r := proto.DbTipResult{Result: proto.DbResultOK}
 	*r.Db_tip() = proto.DbTip{Height: tip.Height, Hash: tip.Hash, Id: tip.ID}
 	return r, nil

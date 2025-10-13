@@ -1,4 +1,4 @@
-package batonapi
+package batonkit
 
 import (
 	"fmt"

@@ -6,33 +6,31 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/catchup"
-	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/repair"
+	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/jay/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-// LiveHandler is an batonapi.Handler that connects a live system to the baton
+// LiveHandler is an batonkit.Handler that connects a live system to the baton
 type LiveHandler struct {
 	protoutil.Signatory
 	libtime.Time
 	inside  libnet.Network
 	outside libnet.Network
-	coord   *coord.CoordinatorService
+	sched   sched.SchedulerConn
 	router  router.Router
-	*mempool.SubmittedMempool
-	*mempool.CommittedMempool
 	*repair.RepairAgent
 	dogwood *dogwood.DogwoodService
 	scp     scpapi.SCPController
@@ -41,7 +39,8 @@ type LiveHandler struct {
 	rlk  sync.Mutex
 	rand *rand.Rand
 	//
-	live chan struct{}
+	scpReady   chan struct{}
+	schedReady chan struct{}
 }
 
 func NewLiveHandler(
@@ -49,106 +48,72 @@ func NewLiveHandler(
 	time libtime.Time,
 	inside libnet.Network,
 	outside libnet.Network,
-	coord *coord.CoordinatorService,
 	router router.Router,
-	submitted *mempool.SubmittedMempool,
-	committed *mempool.CommittedMempool,
 	repairAgent *repair.RepairAgent,
 	dogwood *dogwood.DogwoodService,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
-		Signatory:        signer,
-		Time:             time,
-		inside:           inside,
-		outside:          outside,
-		coord:            coord,
-		router:           router,
-		SubmittedMempool: submitted,
-		CommittedMempool: committed,
-		RepairAgent:      repairAgent,
-		dogwood:          dogwood,
-		m:                xdrutil.NewXdrMarshaler(),
-		rand:             rand,
-		live:             make(chan struct{}),
+		Signatory:   signer,
+		Time:        time,
+		inside:      inside,
+		outside:     outside,
+		router:      router,
+		RepairAgent: repairAgent,
+		dogwood:     dogwood,
+		m:           xdrutil.NewXdrMarshaler(),
+		rand:        rand,
+		scpReady:    make(chan struct{}),
+		schedReady:  make(chan struct{}),
 	}
 }
 
 func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 	x.scp = scp
-	close(x.live)
+	close(x.scpReady)
+}
+
+func (x *LiveHandler) SetScheduler(conn sched.SchedulerConn) {
+	x.sched = conn
+	close(x.schedReady)
+}
+
+func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.DbTip, error) {
+	<-x.schedReady
+
+	tipResult, err := x.sched.Schedcoord_get_tip(ctx)
+	must.NoError(ctx, err)
+	if tipResult.Result != proto.DbSchedResultOK {
+		return batonkit.Tip{}, fmt.Errorf("sched get tip error")
+	}
+	tip := *tipResult.Db_tip()
+	return tip, nil
 }
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
-	<-x.live
+	<-x.scpReady
 	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
 }
 
 func (x *LiveHandler) StopNomination(ctx context.Context, slot scpapi.Slot) {
-	<-x.live
+	<-x.scpReady
 	x.scp.StopNomination(ctx, slot)
 }
 
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
-	<-x.live
+	<-x.scpReady
 	return x.router.ChooseCatchupProviders(ctx, seed)
 }
 
-func (x *LiveHandler) GenerateBlockID(context.Context) proto.BlockID {
-	x.rlk.Lock()
-	defer x.rlk.Unlock()
-	return x.rand.Uint64()
-}
-
-func (x *LiveHandler) GenerateID64(context.Context) batonapi.ID64 {
-	x.rlk.Lock()
-	defer x.rlk.Unlock()
-	return batonapi.ID64(x.rand.Int63())
-}
-
-func (x *LiveHandler) RestoreDb(ctx context.Context) (batonapi.Tip, error) {
-	<-x.live
-	x.coord.WaitDbReady()
-
-	c, err := x.coord.DialDb(ctx)
-	if err != nil {
-		return batonapi.Tip{}, err
-	}
-	r, err := c.Dbcoord_get_tip(ctx)
-	if err != nil {
-		return batonapi.Tip{}, err
-	}
-	if r.Result != proto.DbResultOK {
-		return batonapi.Tip{}, fmt.Errorf("db get tip error")
-	}
-	return batonapi.Tip{Height: r.Db_tip().Height, Hash: r.Db_tip().Hash, ID: r.Db_tip().Id}, nil
-}
-
-func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (batonapi.CatchupConn, error) {
-	<-x.live
+func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (catchup.CatchupConn, error) {
+	<-x.scpReady
 	return catchup.DialCatchupClient(ctx, x.outside, v.Address)
 }
 
-func (x *LiveHandler) DialDb(ctx context.Context) (batonapi.DbCoordConn, error) {
-	<-x.live
-	return x.coord.DialDb(ctx)
-}
-
-func (x *LiveHandler) DialExecs(ctx context.Context) ([]batonapi.ExecCoordConn, error) {
-	<-x.live
-	return x.coord.DialExecs(ctx)
-}
-
-func (x *LiveHandler) ScheduleTxs(ctx context.Context, txs []*proto.SignedTransaction) ([]*proto.SignedTransaction, []*proto.RejectedTransaction) {
-	return txs, nil
-}
-
-func (x *LiveHandler) RejectedTx(context.Context, *proto.RejectedTransaction) {
-	// can be used to report back to a wallet
-}
-
-func (x *LiveHandler) Committed(context.Context, *proto.CatchupBlock) {
-	// can be used to report back to a wallet
+func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
+	x.rlk.Lock()
+	defer x.rlk.Unlock()
+	return batonkit.ID64(x.rand.Int63())
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {

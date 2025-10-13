@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -16,16 +16,16 @@ func (b *Baton) validate(
 	nomination *proto.Nomination,
 ) (proto.DbTip, error) {
 
-	b.handler.Emit(ctx, batonapi.EventValidating{
-		Onto:   batonapi.FromDbTip(onto),
+	b.handler.Emit(ctx, batonkit.EventValidating{
+		Onto:   batonkit.FromDbTip(onto),
 		NumTx:  len(nomination.Transaction_hashes),
 		Height: nomination.Block_height,
 		Hash:   nomination.Block_hash,
 	})
 
 	defer func() {
-		b.handler.Emit(ctx, batonapi.EventValidated{
-			Onto:   batonapi.FromDbTip(onto),
+		b.handler.Emit(ctx, batonkit.EventValidated{
+			Onto:   batonkit.FromDbTip(onto),
 			NumTx:  len(nomination.Transaction_hashes),
 			Height: nomination.Block_height,
 			Hash:   nomination.Block_hash,
@@ -44,7 +44,7 @@ func (b *Baton) validate(
 			return *schedValidResult.Db_tip(), nil
 
 		case proto.SchedulerValidationInvalid:
-			return proto.DbTip{}, batonapi.ErrNotValid
+			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationMissingTxs:
 			missing := proto.MissingTransactions{

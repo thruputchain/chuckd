@@ -3,13 +3,13 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto.BlockID {
+func (b *Baton) commit(ctx context.Context, vb *batonkit.ValidatableBlock) proto.BlockID {
 
 	onto := vb.Onto.Proto()
 	validatedBlockID := vb.AlreadyValidated
@@ -53,7 +53,7 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
 
-	b.handler.Emit(ctx, batonapi.EventCommitted{
+	b.handler.Emit(ctx, batonkit.EventCommitted{
 		Onto:   vb.Onto,
 		Height: vb.BlockHeight(),
 		Hash:   vb.BlockHash(),

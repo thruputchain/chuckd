@@ -3,14 +3,14 @@ package testdb
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestDb interface {
-	GetTip() batonapi.Tip
-	RestoreDb(context.Context) (batonapi.Tip, error)
-	DbCoord() batonapi.DbCoordConn
+	GetTip() batonkit.Tip
+	RestoreDb(context.Context) (batonkit.Tip, error)
+	DbCoord() batonkit.DbCoordConn
 	AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction)
 	AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction)
 	Dbcoord_null(ctx context.Context) error

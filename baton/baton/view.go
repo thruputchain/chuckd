@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type View struct {
 	Stamp        time.Time
 	Blocks       []ViewBlock
-	Reqs         [][]batonapi.ID64 // catchup requests already fired for this block
-	NextToCommit *batonapi.ValidatableBlock
+	Reqs         [][]batonkit.ID64 // catchup requests already fired for this block
+	NextToCommit *batonkit.ValidatableBlock
 }
 
-func (v *View) TipToNominateOn() *batonapi.Tip {
+func (v *View) TipToNominateOn() *batonkit.Tip {
 	if len(v.Blocks) != 1 {
 		return nil
 	}
@@ -24,11 +24,11 @@ func (v *View) TipToNominateOn() *batonapi.Tip {
 	return &db.Tip
 }
 
-func (v *View) NextBlockToCommit() *batonapi.ValidatableBlock {
+func (v *View) NextBlockToCommit() *batonkit.ValidatableBlock {
 	return v.NextToCommit
 }
 
-func (v *View) nextBlockToCommit(b *Baton) *batonapi.ValidatableBlock {
+func (v *View) nextBlockToCommit(b *Baton) *batonkit.ValidatableBlock {
 
 	if len(v.Blocks) < 2 || !v.Blocks[1].IsReadyToValidate() {
 		return nil

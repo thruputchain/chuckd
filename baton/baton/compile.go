@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -63,7 +63,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	// if there are no scp blocks, we are done
 	if len(b.externalized) == 0 {
 		v.Blocks = []ViewBlock{dbBlock}
-		v.Reqs = [][]batonapi.ID64{nil}
+		v.Reqs = [][]batonkit.ID64{nil}
 		return v, nil
 	}
 
@@ -75,7 +75,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	if scpTopHeight == dbBlock.Tip.Height {
 		if scpTopBlock.Block_hash == dbBlock.BlockHash() {
 			v.Blocks = []ViewBlock{dbBlock}
-			v.Reqs = [][]batonapi.ID64{nil}
+			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
 		} else {
 			return nil, ErrDbConsensusDisagree
@@ -221,7 +221,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *View) error {
 }
 
 func (b *Baton) compileRequests(_ context.Context, v *View) error {
-	v.Reqs = make([][]batonapi.ID64, len(v.Blocks))
+	v.Reqs = make([][]batonkit.ID64, len(v.Blocks))
 	for i := 1; i < len(v.Blocks); i++ {
 		height := v.Blocks[0].BlockHeight() + proto.BlockHeight(i)
 		v.Reqs[i] = b.findCatchupRequestsAtHeight(height)

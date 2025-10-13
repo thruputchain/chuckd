@@ -3,7 +3,7 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
@@ -177,7 +177,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	}
 }
 
-func isValidExternalization(tip batonapi.Tip, p *proto.Nomination, ps []*proto.Nomination) bool {
+func isValidExternalization(tip batonkit.Tip, p *proto.Nomination, ps []*proto.Nomination) bool {
 	if len(ps) == 0 {
 		return true
 	}

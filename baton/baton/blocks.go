@@ -1,7 +1,7 @@
 package baton
 
 import (
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -14,12 +14,12 @@ type ViewBlock interface {
 	IsSCP() bool
 	IsCatchup() bool
 	IsDb() bool
-	ValidatableBlock() *batonapi.ValidatableBlock
+	ValidatableBlock() *batonkit.ValidatableBlock
 	Icon() string
 }
 
 type ViewDbBlock struct {
-	Tip batonapi.Tip
+	Tip batonkit.Tip
 }
 
 func (x ViewDbBlock) BlockHash() proto.BlockHash                   { return x.Tip.Hash }
@@ -30,7 +30,7 @@ func (x ViewDbBlock) IsMissing() bool                              { return fals
 func (x ViewDbBlock) IsSCP() bool                                  { return false }
 func (x ViewDbBlock) IsCatchup() bool                              { return false }
 func (x ViewDbBlock) IsDb() bool                                   { return true }
-func (x ViewDbBlock) ValidatableBlock() *batonapi.ValidatableBlock { panic("should not be called") }
+func (x ViewDbBlock) ValidatableBlock() *batonkit.ValidatableBlock { panic("should not be called") }
 func (x ViewDbBlock) Icon() string                                 { return "D" }
 
 type ViewCatchupBlock struct {
@@ -46,8 +46,8 @@ func (x ViewCatchupBlock) IsMissing() bool                { return false }
 func (x ViewCatchupBlock) IsSCP() bool                    { return false }
 func (x ViewCatchupBlock) IsCatchup() bool                { return true }
 func (x ViewCatchupBlock) IsDb() bool                     { return false }
-func (x ViewCatchupBlock) ValidatableBlock() *batonapi.ValidatableBlock {
-	return &batonapi.ValidatableBlock{
+func (x ViewCatchupBlock) ValidatableBlock() *batonkit.ValidatableBlock {
+	return &batonkit.ValidatableBlock{
 		Catchup: x.Candidate.Block,
 	}
 }
@@ -72,8 +72,8 @@ func (x ViewExternalizedBlock) IsMissing() bool                { return false }
 func (x ViewExternalizedBlock) IsSCP() bool                    { return true }
 func (x ViewExternalizedBlock) IsCatchup() bool                { return false }
 func (x ViewExternalizedBlock) IsDb() bool                     { return false }
-func (x ViewExternalizedBlock) ValidatableBlock() *batonapi.ValidatableBlock {
-	vb := &batonapi.ValidatableBlock{}
+func (x ViewExternalizedBlock) ValidatableBlock() *batonkit.ValidatableBlock {
+	vb := &batonkit.ValidatableBlock{}
 	if x.Catchup != nil {
 		vb.Catchup = x.Catchup.Block
 	}
@@ -96,5 +96,5 @@ func (x ViewMissing) IsMissing() bool                              { return true
 func (x ViewMissing) IsSCP() bool                                  { return false }
 func (x ViewMissing) IsCatchup() bool                              { return false }
 func (x ViewMissing) IsDb() bool                                   { return false }
-func (x ViewMissing) ValidatableBlock() *batonapi.ValidatableBlock { panic("must not call") }
+func (x ViewMissing) ValidatableBlock() *batonkit.ValidatableBlock { panic("must not call") }
 func (x ViewMissing) Icon() string                                 { return "?" }

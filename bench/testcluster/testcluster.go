@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/coord"
 	"github.com/groundhogchain/chuckd/kit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -47,12 +47,12 @@ func NewTestCluster(
 	rand *rand.Rand,
 	net libnet.Network,
 	validator proto.ValidatorPrivateInfo,
-	submitter batonapi.Submitter,
+	submitter batonkit.Submitter,
 	cfg TestClusterConfig,
 	speed bool,
 ) *TestCluster {
 
-	db := testdb.NewTestDbConsistent(batonapi.Tip{})
+	db := testdb.NewTestDbConsistent(batonkit.Tip{})
 
 	shards := make([]*testshard.TestShard, cfg.NumDb)
 	for i := range shards {

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -62,19 +62,19 @@ type BlockHandle struct {
 	Height proto.BlockHeight
 }
 
-func VBHandle(vb *batonapi.ValidatableBlock) *BlockHandle {
+func VBHandle(vb *batonkit.ValidatableBlock) *BlockHandle {
 	return &BlockHandle{Hash: vb.BlockHash, Height: vb.BlockHeight}
 }
 
-func TipHandle(tip batonapi.Tip) *BlockHandle {
+func TipHandle(tip batonkit.Tip) *BlockHandle {
 	return &BlockHandle{Hash: tip.Hash, Height: tip.Height}
 }
 
-func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto batonapi.Tip) *TestBlock {
+func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto batonkit.Tip) *TestBlock {
 	return h.GenNominationOnto(ctx, ntxs, TipHandle(onto))
 }
 
-func (h *TestGen) GenNominationOntoVB(ctx context.Context, ntxs int, onto *batonapi.ValidatableBlock) *TestBlock {
+func (h *TestGen) GenNominationOntoVB(ctx context.Context, ntxs int, onto *batonkit.ValidatableBlock) *TestBlock {
 	return h.GenNominationOnto(ctx, ntxs, VBHandle(onto))
 }
 

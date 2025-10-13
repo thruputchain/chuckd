@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -19,12 +19,12 @@ type testDbConsistent struct {
 }
 
 type testDbSnapshot struct {
-	tip       batonapi.Tip
+	tip       batonkit.Tip
 	open      int
 	committed bool
 }
 
-func NewTestDbConsistent(tip batonapi.Tip) TestDb {
+func NewTestDbConsistent(tip batonkit.Tip) TestDb {
 	db := &testDbConsistent{
 		m:  xdrutil.NewXdrMarshaler(),
 		id: map[proto.BlockID]*testDbSnapshot{},
@@ -38,19 +38,19 @@ func NewTestDbConsistent(tip batonapi.Tip) TestDb {
 	return db
 }
 
-func (db *testDbConsistent) GetTip() batonapi.Tip {
+func (db *testDbConsistent) GetTip() batonkit.Tip {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip
 }
 
-func (db *testDbConsistent) RestoreDb(context.Context) (batonapi.Tip, error) {
+func (db *testDbConsistent) RestoreDb(context.Context) (batonkit.Tip, error) {
 	db.lk.Lock()
 	defer db.lk.Unlock()
 	return db.top.tip, nil
 }
 
-func (db *testDbConsistent) DbCoord() batonapi.DbCoordConn {
+func (db *testDbConsistent) DbCoord() batonkit.DbCoordConn {
 	return db
 }
 
@@ -109,7 +109,7 @@ func (db *testDbConsistent) Dbcoord_create_snapshot(ctx context.Context, parentI
 	parent, ok := db.id[parentID]
 	must.Assertf(ctx, ok, "missing parent block")
 	child := &testDbSnapshot{
-		tip: batonapi.Tip{
+		tip: batonkit.Tip{
 			Height: parent.tip.Height + 1,
 			Hash:   parent.tip.Hash,
 			ID:     id,

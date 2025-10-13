@@ -106,10 +106,7 @@ func NewSystem(
 		libtime.RealTime{},
 		inside,
 		outside,
-		XXX, // scheduler conn
 		s.Router,
-		s.Submitted,
-		s.Committed,
 		s.RepairAgent,
 		s.Dogwood,
 		runtime.NewRandFromRand(rand),
@@ -122,7 +119,6 @@ func NewSystem(
 		s.Signer,
 		libtime.RealTime{},
 		outside,
-		nil, // TODO: dialDb for deep archival access to catchup blocks, currently not used
 		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
 		cfg.Catchup_config.Catchup_block_age,
 	)

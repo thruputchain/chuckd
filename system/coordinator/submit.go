@@ -34,6 +34,7 @@ func NewSubmitter(
 	lotSize int,
 	lotWait time.Duration,
 ) *Submitter {
+	XXX
 	x := &Submitter{
 		time:         time,
 		pool:         pool,
