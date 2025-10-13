@@ -6,7 +6,10 @@ SCHEDULER INTEGRATION
 - [x] fix events.go
 
 - [ ] fix tests in baton
-- [ ] register with scheduler (scheduler flag)
+
+- [x] register with scheduler (scheduler flag)
+- [ ] accept vetted txs from scheduler
+- [ ] remove mempools
 
 ROADMAP
 

@@ -52,10 +52,9 @@ var (
 					outside,
 					cfg,
 					testCfg,
-					benchCallsPerExec,
-					benchBatchSize,
 				)
 				opcfg := coordinator.OperationalConfig{
+					SchedAddr:      benchSchedAddress,
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
 					WalletAddr:     benchWalletAddress,
@@ -123,24 +122,23 @@ var (
 )
 
 var (
-	benchServerAddress   string
-	benchNumIterations   int
-	benchBytesPerPay     int
+	benchServerAddress string
+	benchNumIterations int
+	benchBytesPerPay   int
 	//
-	benchInAddress      string
-	benchOutAddress     string
-	benchWalletAddress  string
-	benchTPS            int64
+	benchSchedAddress  string
+	benchInAddress     string
+	benchOutAddress    string
+	benchWalletAddress string
+	benchTPS           int64
 	//
 	benchSCPDaemonPath  string
 	benchSCPHandleAddr  string
 	benchSCPControlAddr string
 	benchSCPIsValidator bool
 	//
-	benchNumDb        int
-	benchNumExec      int
-	benchCallsPerExec int
-	benchBatchSize    int
+	benchNumDb   int
+	benchNumExec int
 	//
 	benchDbBasePort   int
 	benchExecBasePort int
@@ -164,12 +162,11 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
+	benchTestClusterCmd.Flags().StringVar(&benchSchedAddress, "sched-addr", "localhost:7555", "address of scheduler")
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")
-	benchTestClusterCmd.Flags().IntVar(&benchCallsPerExec, "exec-par", 2, "concurrent calls per executor")
-	benchTestClusterCmd.Flags().IntVar(&benchBatchSize, "exec-batch", 100, "batch size for executor")
 	benchTestClusterCmd.Flags().IntVar(&benchNumDb, "num-db", 2, "number of db shards")
 	benchTestClusterCmd.Flags().IntVar(&benchNumExec, "num-exec", 20, "number of executors")
 	benchTestClusterCmd.Flags().IntVar(&benchDbBasePort, "db-port", 30000, "dbs base port")

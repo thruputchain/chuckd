@@ -37,10 +37,9 @@ var (
 					cfg,
 					inside,
 					outside,
-					serverCallsPerExec,
-					serverBatchSize,
 				)
 				opcfg := coordinator.OperationalConfig{
+					SchedAddr:      serverSchedAddress,
 					InAddr:         serverInAddress,
 					OutAddr:        serverOutAddress,
 					WalletAddr:     serverWalletAddress,
@@ -77,6 +76,7 @@ var (
 )
 
 var (
+	serverSchedAddress  string
 	serverInAddress     string
 	serverOutAddress    string
 	serverWalletAddress string
@@ -85,9 +85,6 @@ var (
 	serverSCPHandleAddr  string
 	serverSCPControlAddr string
 	serverSCPIsValidator bool
-	//
-	serverCallsPerExec int
-	serverBatchSize    int
 )
 
 func init() {
@@ -96,11 +93,10 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	sysCmd.AddCommand(sysCoordinatorCmd)
+	sysCoordinatorCmd.Flags().StringVar(&serverSchedAddress, "sched-addr", "localhost:7555", "address of scheduler")
 	sysCoordinatorCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")
-	sysCoordinatorCmd.Flags().IntVar(&serverCallsPerExec, "exec-par", 2, "concurrent calls per executor")
-	sysCoordinatorCmd.Flags().IntVar(&serverBatchSize, "exec-batch", 100, "batch size for executor")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")

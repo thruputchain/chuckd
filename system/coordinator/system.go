@@ -18,10 +18,12 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/repair"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/scp/scpd"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/chuckd/wallet"
+	"github.com/groundhogchain/jay/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -63,8 +65,6 @@ func NewSystem(
 	cfg proto.Config,
 	inside libnet.Network,
 	outside libnet.Network,
-	callsPerExec int,
-	batchSize int,
 ) *System {
 
 	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
@@ -124,7 +124,7 @@ func NewSystem(
 		runtime.NewRandFromRand(rand),
 	)
 
-	sys.Baton = baton.NewBaton(ctx, *cfg.Baton_config, sys.Live, callsPerExec, batchSize)
+	sys.Baton = baton.NewBaton(ctx, *cfg.Baton_config, sys.Live)
 
 	sys.Catchup = catchup.NewCatchupService(
 		ctx,
@@ -193,6 +193,7 @@ func NewSystem(
 //	 multiplex_receiver --> submitter, scp_control
 
 type OperationalConfig struct {
+	SchedAddr      string
 	InAddr         string
 	OutAddr        string
 	WalletAddr     string
@@ -204,6 +205,14 @@ type OperationalConfig struct {
 
 func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
+	// intro to scheduler
+	conn, err := sched.DialSchedulerCoordClient(ctx, s.inside, opcfg.SchedAddr)
+	must.NoError(ctx, err)
+
+	err = sched.Intro(ctx, conn, opcfg.InAddr)
+	must.NoError(ctx, err)
+
+	// handshake with scpd
 	scpHandler, scpController := scpd.StartSCPDaemon(
 		ctx,
 		opcfg.SCPDaemonPath,
@@ -216,12 +225,16 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	s.Live.SetSCP(scpController)
 	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
 
-	s.Dogwood.Start(ctx)                              // dogwood
+	s.Dogwood.Start(ctx) // dogwood
+
 	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr)    // coord, wallet
 	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
+
 	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
+
 	s.Dogwood.WaitReady(ctx) // wait until routes have been disseminated
 	liblog.Infof("dogwood system is ready")
+
 	s.Baton.Start(ctx)
 
 	// drive received envelopes into scp_control
