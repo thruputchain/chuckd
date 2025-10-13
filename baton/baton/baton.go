@@ -17,36 +17,32 @@ func NewBaton(
 	ctx context.Context,
 	cfg proto.BatonConfig,
 	h batonapi.Handler,
-	callsPerExec int,
-	batchSize int,
 ) *Baton {
 	b := &Baton{
-		ctx:             ctx,
-		handler:         h,
-		heartbeat:       time.Millisecond * time.Duration(cfg.Heartbeat_msec),
-		callsPerExec:    callsPerExec,
-		batchSize:       batchSize,
-		scp:             make(chan struct{}),
-		catchupRequests: map[batonapi.ID64]catchupRequest{},
-		validated:       map[proto.BlockHash]validated{},
-		txM:             xdrutil.NewXdrMarshaler(),
-		nomM:            xdrutil.NewXdrMarshaler(),
-		catchupReqM:     xdrutil.NewXdrMarshaler(),
-		catchupResultM:  xdrutil.NewXdrMarshaler(),
+		ctx:              ctx,
+		handler:          h,
+		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
+		maxCatchupHeight: int(cfg.Max_catchup_height),
+		scp:              make(chan struct{}),
+		catchupRequests:  map[batonapi.ID64]catchupRequest{},
+		validated:        map[proto.BlockHash]validated{},
+		txM:              xdrutil.NewXdrMarshaler(),
+		nomM:             xdrutil.NewXdrMarshaler(),
+		catchupReqM:      xdrutil.NewXdrMarshaler(),
+		catchupResultM:   xdrutil.NewXdrMarshaler(),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
 }
 
 type Baton struct {
-	ctx          context.Context // ctx for drive
-	handler      batonapi.Handler
-	heartbeat    time.Duration
-	callsPerExec int
-	batchSize    int
-	scp          chan struct{}
-	cond         *sync.Cond
-	lk           sync.Mutex
+	ctx              context.Context // ctx for drive
+	handler          batonapi.Handler
+	heartbeat        time.Duration
+	maxCatchupHeight int
+	scp              chan struct{}
+	cond             *sync.Cond
+	lk               sync.Mutex
 
 	// state
 	committing      bool

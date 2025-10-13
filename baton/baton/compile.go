@@ -48,6 +48,12 @@ func (b *Baton) buildCleanView(ctx context.Context) (v *View) {
 	return v
 }
 
+// getMaxCatchupHeight returns the maximum gap between the db and new externalizations
+// that can be handled by the replay catchup block mechanism.
+func (b *Baton) getMaxCatchupHeight() int {
+	return b.maxCatchupHeight
+}
+
 func (b *Baton) buildView(ctx context.Context) (*View, error) {
 
 	v := &View{Stamp: b.handler.Now()}
@@ -77,7 +83,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	}
 
 	n := int(scpTopHeight) + 1 - int(dbBlock.Tip.Height)
-	if n > 10000 { //XXX: make configurable dynamic parameter
+	if n > b.getMaxCatchupHeight() {
 		return nil, ErrDbFarBehind
 	}
 	v.Blocks = make([]ViewBlock, n)

@@ -48,7 +48,8 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 	}
 
 	// commit
-	// XXX: scheduler should persist catchup blocks after every commit
+	// TODO: scheduler should persist catchup blocks after every commit
+	// See https://github.com/groundhogchain/chuckd/issues/15
 	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
 
