@@ -98,7 +98,7 @@ func NewSystem(
 
 	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
 
-	s.RepairService = repair.NewRepairService(ctx, s.Submitted)
+	s.RepairService = repair.NewRepairService()
 	s.RepairAgent = repair.NewRepairAgent(*cfg.Repair_config, outside, s.Signer)
 
 	s.Live = NewLiveHandler(
@@ -202,6 +202,8 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	err = sched.Intro(ctx, schedConn, opcfg.InAddr)
 	must.NoError(ctx, err)
+
+	s.RepairService.SetSchedConn(schedConn)
 
 	// handshake with scpd
 	scpHandler, scpController := scpd.StartSCPDaemon(

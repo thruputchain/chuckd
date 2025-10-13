@@ -9,7 +9,7 @@ SCHEDULER INTEGRATION
 
 - [x] register with scheduler (scheduler flag)
 - [x] accept vetted txs from scheduler
-- [ ] remove mempools
+- [x] remove mempools
 - [ ] rewrite repair agent to use scheduler
 
 ROADMAP

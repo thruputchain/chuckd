@@ -3,20 +3,24 @@ package repair
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/mempool"
-	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/sched"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// XXX: use scheduler
 type RepairService struct {
-	submitted *mempool.SubmittedMempool
+	conn  sched.SchedulerConn
+	ready chan struct{}
 }
 
-func NewRepairService(_ context.Context, submitted *mempool.SubmittedMempool) *RepairService {
+func NewRepairService() *RepairService {
 	return &RepairService{
-		submitted: submitted,
+		ready: make(chan struct{}),
 	}
+}
+
+func (x *RepairService) SetSchedConn(conn sched.SchedulerConn) {
+	x.conn = conn
+	close(x.ready)
 }
 
 func (x *RepairService) Repair_null(ctx context.Context) error {
@@ -28,13 +32,12 @@ func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
 ) (proto.RepairedTransactions, error) {
+	<-x.ready
 
-	txs, found := x.submitted.LookupTxs(ctx, env.Missing_transactions.Transaction_hashes)
-	if !found {
-		return proto.RepairedTransactions{}, nil
-	}
+	// XXX: loookup transactions from mempool
+	panic("XXX")
 
 	return proto.RepairedTransactions{
-		Transactions: protoutil.Pack(txs),
+		Transactions: XXX,
 	}, nil
 }
