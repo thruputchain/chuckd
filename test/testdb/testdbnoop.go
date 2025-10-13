@@ -3,7 +3,6 @@ package testdb
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/baton/batonkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -14,16 +13,12 @@ func NewTestDbNoop() TestDb {
 	return &testDbNoop{}
 }
 
-func (db *testDbNoop) GetTip() batonkit.Tip {
-	return batonkit.Tip{}
+func (db *testDbNoop) GetTip() proto.DbTip {
+	return proto.DbTip{}
 }
 
-func (db *testDbNoop) RestoreDb(context.Context) (batonkit.Tip, error) {
-	return batonkit.Tip{}, nil
-}
-
-func (db *testDbNoop) DbCoord() batonkit.DbCoordConn {
-	return db
+func (db *testDbNoop) RestoreDb(context.Context) (proto.DbTip, error) {
+	return proto.DbTip{}, nil
 }
 
 func (db *testDbNoop) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *proto.ProposedTransaction) {
@@ -32,58 +27,23 @@ func (db *testDbNoop) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *
 func (db *testDbNoop) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
 }
 
-func (db *testDbNoop) Dbcoord_null(ctx context.Context) error {
-	return nil
+func (db *testDbNoop) OpenSnapshot(ctx context.Context, id proto.BlockID) {
 }
 
-func (db *testDbNoop) Dbcoord_get_tip(context.Context) (proto.DbTipResult, error) {
-	tip := batonkit.Tip{}
-	r := proto.DbTipResult{Result: proto.DbResultOK}
-	*r.Db_tip() = proto.DbTip{Height: tip.Height, Hash: tip.Hash, Id: tip.ID}
-	return r, nil
+func (db *testDbNoop) CreateSnapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) {
 }
 
-func (db *testDbNoop) Dbcoord_open_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
-	return proto.DbResultOK, nil
+func (db *testDbNoop) CommitSnapshot(ctx context.Context, id proto.BlockID) proto.BlockHash {
+	return proto.BlockHash{}
 }
 
-func (db *testDbNoop) Dbcoord_create_snapshot(ctx context.Context, parentID proto.BlockID, id proto.BlockID, mode proto.BlockExecutionMode) (proto.DbResult, error) {
-	return proto.DbResultOK, nil
+func (db *testDbNoop) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.BlockHash {
+	return proto.BlockHash{}
 }
 
-func (db *testDbNoop) Dbcoord_commit_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
-	result := proto.DbBlockResult{Result: proto.DbResultOK}
-	return result, nil
+func (db *testDbNoop) AbandonSnapshot(ctx context.Context, id proto.BlockID) {
 }
 
-func (db *testDbNoop) Dbcoord_close_snapshot(ctx context.Context, id proto.BlockID) (proto.DbBlockResult, error) {
-	result := proto.DbBlockResult{Result: proto.DbResultOK}
-	return result, nil
-}
-
-func (db *testDbNoop) Dbcoord_abandon_snapshot(ctx context.Context, id proto.BlockID) (proto.DbResult, error) {
-	return proto.DbResultOK, nil
-}
-
-func (db *testDbNoop) Dbcoord_catchup(context.Context, proto.BlockHeight) (proto.DbCatchupResult, error) {
+func (db *testDbNoop) GetCatchup(context.Context, proto.BlockHeight) *proto.CatchupBlock {
 	panic("not used here")
-}
-
-func (db *testDbNoop) Dbcoord_get_hog_ages(context.Context, proto.ContractAddressBatch) (proto.HogAgeResult, error) {
-	panic("not used")
-}
-
-func (db *testDbNoop) Dbcoord_write_hog_ages(context.Context, proto.HogAgeBatch) (proto.DbResult, error) {
-	panic("not used")
-}
-
-func (db *testDbNoop) Dbcoord_load_genesis_block(context.Context, proto.GenesisBlock) (proto.DbResult, error) {
-	panic("not used")
-}
-
-func (db *testDbNoop) Dbcoord_shard_restore(ctx context.Context, a1 proto.BlockHeight) (r proto.DbShardResult, _ error) {
-	return proto.ShardOK, nil
-}
-
-func (db *testDbNoop) Close() {
 }
