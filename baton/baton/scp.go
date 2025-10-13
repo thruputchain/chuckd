@@ -126,8 +126,12 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		}()
 		defer vCtxCancel()
 
-		validatedTip, err := b.validate(vCtx, dbTip.Proto(), *&nomination)
+		validatedTip, err := b.validate(vCtx, dbTip.Proto(), nomination)
 		if err != nil {
+			// err can only ever be context cancelled or deadline exceeded.
+			// it occurs only if scp has externalized newer blocks and thus
+			// the validation request is not relevant any longer.
+			// therefore, returning invalid value is not in violation of scp honest semantics.
 			reply <- scpapi.InvalidValue
 			return
 		}

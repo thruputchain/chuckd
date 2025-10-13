@@ -54,7 +54,7 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 	nom.Proposer = b.handler.Signer()
 
 	b.handler.Emit(ctx, batonapi.EventNominating{
-		Onto:       tip, // XXX: rename OntoTip
+		Onto:       tip,
 		NumTx:      len(nom.Transaction_hashes),
 		Nomination: nom,
 	})

@@ -1,6 +1,6 @@
 SCHEDULER INTEGRATION
 
-- [ ] handle missing txs
+- [x] handle missing txs
 - [ ] make number of blocks, beyond which catchup doesn't help, dynamically configurable
 - [ ] emitted events need not include large ValidatableBlock object
 

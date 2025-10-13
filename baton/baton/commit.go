@@ -16,6 +16,9 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 
 	// validate
 	if validatedBlockID == nil {
+
+		var nomination *proto.Nomination
+
 		// if there is a catchup block,
 		if vb.Catchup != nil {
 
@@ -24,7 +27,7 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 			must.NoError(ctx, err)
 
 			// create nomination block
-			catchupNomination := &proto.Nomination{
+			nomination = &proto.Nomination{
 				Proposer:                b.handler.Signer(),
 				Block_height:            vb.Catchup.Block_height,
 				Block_hash:              vb.Catchup.Block_hash,
@@ -33,17 +36,15 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 				Transaction_nominations: vb.Catchup.Nominated_transactions,
 			}
 
-			// validate catchup nomination
-			validatedTip, err := b.validate(ctx, onto, catchupNomination)
-			must.NoError(ctx, err)
-			validatedBlockID = &validatedTip.Id
-
 		} else {
-
-			validatedTip, err := b.validate(ctx, onto, &vb.Nomination)
-			must.NoError(ctx, err)
-			validatedBlockID = &validatedTip.Id
+			nomination = &vb.Nomination
 		}
+
+		validatedTip, err := b.validate(ctx, onto, nomination)
+		// err can only ever be context cancelled or deadline exceeded.
+		// however, this error is not expected on the commit path.
+		must.NoError(ctx, err)
+		validatedBlockID = &validatedTip.Id
 	}
 
 	// commit
