@@ -5,6 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/batonapi"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -15,17 +16,30 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 
 	// validate
 	if validatedBlockID == nil {
-		// if there is a catchup block, validate using dedicated scheduler method
+		// if there is a catchup block,
 		if vb.Catchup != nil {
 
 			// submit catchup transactions
+			err := b.handler.Schedulercoord_submit_unvetted(ctx, vb.Catchup.Signed_transactions)
+			must.NoError(ctx, err)
 
 			// create nomination block
+			catchupNomination := &proto.Nomination{
+				Proposer:                b.handler.Signer(),
+				Block_height:            vb.Catchup.Block_height,
+				Block_hash:              vb.Catchup.Block_hash,
+				Prev_block_hash:         vb.Catchup.Prev_block_hash,
+				Transaction_hashes:      protoutil.HashSignedTxs(b.txM, vb.Catchup.Signed_transactions),
+				Transaction_nominations: vb.Catchup.Nominated_transactions,
+			}
 
-			// validate
+			// validate catchup nomination
+			validatedTip, err := b.validate(ctx, onto, catchupNomination)
+			must.NoError(ctx, err)
+			validatedBlockID = &validatedTip.Id
 
-			panic("XXX: not implemented")
 		} else {
+
 			validatedTip, err := b.validate(ctx, onto, &vb.Nomination)
 			must.NoError(ctx, err)
 			validatedBlockID = &validatedTip.Id
