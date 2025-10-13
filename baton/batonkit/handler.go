@@ -6,7 +6,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -19,7 +18,7 @@ type Handler interface {
 	GenerateID64(context.Context) ID64
 
 	Consensus
-	sched.SchedulerConn
+	proto.SchedulerCoord1
 
 	RestoreDb(context.Context) (proto.DbTip, error)
 

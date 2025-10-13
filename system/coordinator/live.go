@@ -29,8 +29,8 @@ type LiveHandler struct {
 	libtime.Time
 	inside  libnet.Network
 	outside libnet.Network
-	sched   sched.SchedulerConn
-	router  router.Router
+	sched.SchedulerConn
+	router router.Router
 	*repair.RepairAgent
 	dogwood *dogwood.DogwoodService
 	scp     scpapi.SCPController
@@ -74,17 +74,17 @@ func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 }
 
 func (x *LiveHandler) SetScheduler(conn sched.SchedulerConn) {
-	x.sched = conn
+	x.SchedulerConn = conn
 	close(x.schedReady)
 }
 
 func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.DbTip, error) {
 	<-x.schedReady
 
-	tipResult, err := x.sched.Schedcoord_get_tip(ctx)
+	tipResult, err := x.Schedcoord_get_tip(ctx)
 	must.NoError(ctx, err)
 	if tipResult.Result != proto.DbSchedResultOK {
-		return batonkit.Tip{}, fmt.Errorf("sched get tip error")
+		return proto.DbTip{}, fmt.Errorf("sched get tip error")
 	}
 	tip := *tipResult.Db_tip()
 	return tip, nil

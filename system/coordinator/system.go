@@ -99,7 +99,11 @@ func NewSystem(
 	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
 
 	s.RepairService = repair.NewRepairService()
-	s.RepairAgent = repair.NewRepairAgent(*cfg.Repair_config, outside, s.Signer)
+	s.RepairAgent = repair.NewRepairAgent(
+		*cfg.Repair_config,
+		outside,
+		s.Signer,
+	)
 
 	s.Live = NewLiveHandler(
 		s.Signer,
@@ -132,7 +136,12 @@ func NewSystem(
 		time.Duration(cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 	)
 
-	s.Wallet = wallet.NewWalletGateway(ctx, s.Submitter, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
+	s.Wallet = wallet.NewWalletGateway(
+		ctx,
+		s.Submitter,
+		cfg.Wallet_config.Secret_key,
+		cfg.Wallet_config.Users,
+	)
 
 	s.insideSrv = NewServer(ctx,
 		proto.CoordScheduler1_Server{Srv: s.SchedCallback},
@@ -200,6 +209,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	must.NoError(ctx, err)
 
 	s.RepairService.SetSchedConn(schedConn)
+	s.Live.SetScheduler(schedConn)
 
 	// handshake with scpd
 	scpHandler, scpController := scpd.StartSCPDaemon(
