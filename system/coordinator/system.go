@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/baton/baton"
 	"github.com/groundhogchain/chuckd/catchup"
+	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -28,6 +29,7 @@ import (
 type System struct {
 	cfg proto.Config
 	//
+	time    libtime.Time
 	inside  libnet.Network
 	outside libnet.Network
 	//
@@ -68,6 +70,7 @@ func NewSystem(
 
 	s := &System{
 		cfg:     cfg,
+		time:    libtime.RealTime{},
 		inside:  inside,
 		outside: outside,
 		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
@@ -88,7 +91,7 @@ func NewSystem(
 	s.Dogwood = dogwood.NewDogwoodService(
 		ctx,
 		*cfg.Dogwood_config,
-		libtime.RealTime{},
+		s.time,
 		runtime.NewRandFromRand(rand),
 		outside,
 		inside,
@@ -237,9 +240,18 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	// drive vetted transactions to dissemination
 	go func() {
+		buf := libflow.NewBuffer(
+			ctx,
+			s.time,
+			func(ctx context.Context, txs []proto.SignedTransaction) {
+				s.Multiplex.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: txs})
+			},
+			int(s.cfg.Mempool_config.Submission_lot_size),
+			time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
+		)
 		for {
 			txs := s.SchedCallback.ReceiveVetted()
-			s.Multiplex.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: txs})
+			buf.Submit(ctx, txs...)
 		}
 	}()
 
