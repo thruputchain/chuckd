@@ -33,17 +33,14 @@ var (
 			return api.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench testcluster"),
-					attribute.Int64("txs_per_sec", benchTPS),
+					attribute.Int64("txs_per_sec", benchTxPerSec),
 				)
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				outside := libnet.Network(libnet.TCPNet{})
 				testCfg := testcluster.TestClusterConfig{
-					TPS:          benchTPS,
-					NumDb:        benchNumDb,
-					NumExec:      benchNumExec,
-					DbBasePort:   benchDbBasePort,
-					ExecBasePort: benchExecBasePort,
+					TxsPerSec: benchTxPerSec,
+					SchedPort: benchSchedPort,
 				}
 				srv := testcluster.NewTestClusterSystem(
 					ctx,
@@ -130,18 +127,14 @@ var (
 	benchInAddress     string
 	benchOutAddress    string
 	benchWalletAddress string
-	benchTPS           int64
+	benchTxPerSec      int64
 	//
 	benchSCPDaemonPath  string
 	benchSCPHandleAddr  string
 	benchSCPControlAddr string
 	benchSCPIsValidator bool
 	//
-	benchNumDb   int
-	benchNumExec int
-	//
-	benchDbBasePort   int
-	benchExecBasePort int
+	benchSchedPort int
 	//
 	benchDoSend          bool
 	benchOurAddress      string
@@ -165,12 +158,9 @@ func init() {
 	benchTestClusterCmd.Flags().StringVar(&benchSchedAddress, "sched-addr", "localhost:7555", "address of scheduler")
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
-	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "w-addr", "localhost:6666", "bind address for wallet api")
-	benchTestClusterCmd.Flags().Int64Var(&benchTPS, "tps", 1e4, "transactions per second")
-	benchTestClusterCmd.Flags().IntVar(&benchNumDb, "num-db", 2, "number of db shards")
-	benchTestClusterCmd.Flags().IntVar(&benchNumExec, "num-exec", 20, "number of executors")
-	benchTestClusterCmd.Flags().IntVar(&benchDbBasePort, "db-port", 30000, "dbs base port")
-	benchTestClusterCmd.Flags().IntVar(&benchExecBasePort, "exec-port", 40000, "execs base port")
+	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
+	benchTestClusterCmd.Flags().Int64Var(&benchTxPerSec, "tps", 1e4, "transactions per second")
+	benchTestClusterCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30000, "scheduler port")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")

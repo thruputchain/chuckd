@@ -9,12 +9,12 @@ import (
 )
 
 type WalletService struct {
-	submitter kit.Submitter
+	submitter kit.SignedTxSubmitter
 }
 
 func NewWalletService(
 	ctx context.Context,
-	submitter kit.Submitter,
+	submitter kit.SignedTxSubmitter,
 ) *WalletService {
 	return &WalletService{
 		submitter: submitter,

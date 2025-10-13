@@ -65,9 +65,9 @@ func BenchTestClusterShellLocal(
 	--seed %d \
 	--metrics :%d \
 		bench testcluster \
-			--tps %d \
+			--tx-per-sec %d \
 			--out-addr %s \
-			--w-addr %s \
+			--wallet-addr %s \
 			--scp-handle-addr %s \
 			--scp-control-addr %s \
 			--scp-is-validator true`,

@@ -6,6 +6,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type Submitter interface {
+type SignedTxSubmitter interface {
 	SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction)
 }

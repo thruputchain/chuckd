@@ -24,11 +24,9 @@ func NewTestClusterSystem(
 	outside libnet.Network,
 	cfg proto.Config,
 	testCfg TestClusterConfig,
-	callsPerExec int,
-	batchSize int,
 ) *TestClusterSystem {
 	inside := testnet.NewTestNetwork()
-	sys := coordinator.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside, callsPerExec, batchSize)
+	sys := coordinator.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &TestClusterSystem{
 		System: sys,
 		TestCluster: NewTestCluster(

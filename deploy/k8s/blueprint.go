@@ -48,7 +48,7 @@ func BenchTestClusterBlueprint(ctx context.Context, rand *rand.Rand, round time.
 		serviceNameQuorum,
 		"groundhogchain:chuckd.latest",
 		//XXX: missing scpd flags
-		fmt.Sprintf("bench testcluster --tps %d --out-addr :9111 --w-addr :6666", tps),
+		fmt.Sprintf("bench testcluster --tx-per-sec %d --out-addr :9111 --wallet-addr :6666", tps),
 		quorumCfgs,
 		quorumServices,
 	)
