@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -28,7 +27,13 @@ func NewTestGen(
 	validator proto.ValidatorPrivateInfo,
 	user proto.ValidatorSecretKey,
 ) *TestGen {
-	return &TestGen{time: time, validator: validator, user: user, m: xdrutil.NewXdrMarshaler(), rand: rand}
+	return &TestGen{
+		time:      time,
+		validator: validator,
+		user:      user,
+		m:         xdrutil.NewXdrMarshaler(),
+		rand:      rand,
+	}
 }
 
 func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
@@ -62,20 +67,12 @@ type BlockHandle struct {
 	Height proto.BlockHeight
 }
 
-func VBHandle(vb *batonkit.ValidatableBlock) *BlockHandle {
-	return &BlockHandle{Hash: vb.BlockHash, Height: vb.BlockHeight}
-}
-
-func TipHandle(tip batonkit.Tip) *BlockHandle {
+func TipHandle(tip proto.DbTip) *BlockHandle {
 	return &BlockHandle{Hash: tip.Hash, Height: tip.Height}
 }
 
-func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto batonkit.Tip) *TestBlock {
+func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto proto.DbTip) *TestBlock {
 	return h.GenNominationOnto(ctx, ntxs, TipHandle(onto))
-}
-
-func (h *TestGen) GenNominationOntoVB(ctx context.Context, ntxs int, onto *batonkit.ValidatableBlock) *TestBlock {
-	return h.GenNominationOnto(ctx, ntxs, VBHandle(onto))
 }
 
 func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
@@ -109,10 +106,11 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		},
 		Txs: txs,
 		Catchup: proto.CatchupBlock{
-			Block_height:          onto.Height + 1,
-			Block_hash:            hash,
-			Prev_block_hash:       onto.Hash,
-			Proposed_transactions: ptxs,
+			Block_height:           onto.Height + 1,
+			Block_hash:             hash,
+			Prev_block_hash:        onto.Hash,
+			Signed_transactions:    txs,
+			Nominated_transactions: ntxs,
 		},
 	}
 }
