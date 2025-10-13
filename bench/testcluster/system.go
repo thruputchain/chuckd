@@ -37,7 +37,7 @@ func NewTestClusterSystem(
 			runtime.NewRandFromRand(rand),
 			inside,
 			cfg.Validator_config.Private_info,
-			sys.Submitter,
+			sys.WalletSubmitter,
 			testCfg,
 			false, // use slower testdb with consistency checks
 		),
