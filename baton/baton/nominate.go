@@ -54,18 +54,20 @@ func (b *Baton) nominate(ctx context.Context, tip batonapi.Tip) (*proto.Nominati
 	nom.Proposer = b.handler.Signer()
 
 	b.handler.Emit(ctx, batonapi.EventNominating{
-		Onto:       tip,
-		NumTx:      len(nom.Transaction_hashes),
-		Nomination: nom,
+		Onto:   tip,
+		NumTx:  len(nom.Transaction_hashes),
+		Height: nom.Block_height,
+		Hash:   nom.Block_hash,
 	})
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
 	if ok := b.handler.Nominate(ctx, scpapi.Slot(nom.Block_height), nom, &prevSummary); ok {
 		b.handler.Emit(ctx, batonapi.EventNominated{
-			Onto:       tip,
-			NumTx:      len(nom.Transaction_hashes),
-			Nomination: nom,
+			Onto:   tip,
+			NumTx:  len(nom.Transaction_hashes),
+			Height: nom.Block_height,
+			Hash:   nom.Block_hash,
 		})
 	} else {
 		liblog.Infof("nomination rejected, onto tip %v", tip.String())

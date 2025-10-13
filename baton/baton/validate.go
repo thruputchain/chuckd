@@ -16,6 +16,22 @@ func (b *Baton) validate(
 	nomination *proto.Nomination,
 ) (proto.DbTip, error) {
 
+	b.handler.Emit(ctx, batonapi.EventValidating{
+		Onto:   batonapi.FromDbTip(onto),
+		NumTx:  len(nomination.Transaction_hashes),
+		Height: nomination.Block_height,
+		Hash:   nomination.Block_hash,
+	})
+
+	defer func() {
+		b.handler.Emit(ctx, batonapi.EventValidated{
+			Onto:   batonapi.FromDbTip(onto),
+			NumTx:  len(nomination.Transaction_hashes),
+			Height: nomination.Block_height,
+			Hash:   nomination.Block_hash,
+		})
+	}()
+
 	for {
 		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, *nomination)
 		if err != nil {

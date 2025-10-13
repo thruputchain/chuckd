@@ -2,10 +2,11 @@ SCHEDULER INTEGRATION
 
 - [x] handle missing txs
 - [x] make number of blocks, beyond which catchup doesn't help, dynamically configurable
-- [ ] emitted events need not include large ValidatableBlock object
+- [x] emitted events need not include large ValidatableBlock object
+- [x] fix events.go
 
-- [ ] fix events.go
 - [ ] fix tests in baton
+- [ ] register with scheduler (scheduler flag)
 
 ROADMAP
 

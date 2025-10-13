@@ -53,7 +53,11 @@ func (b *Baton) commit(ctx context.Context, vb *batonapi.ValidatableBlock) proto
 	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
 
-	b.handler.Emit(ctx, batonapi.EventCommitted{ValidatableBlock: vb, BlockID: *validatedBlockID})
+	b.handler.Emit(ctx, batonapi.EventCommitted{
+		Onto:   vb.Onto,
+		Height: vb.BlockHeight(),
+		Hash:   vb.BlockHash(),
+	})
 
 	return *validatedBlockID
 }
