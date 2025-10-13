@@ -8,8 +8,9 @@ SCHEDULER INTEGRATION
 - [ ] fix tests in baton
 
 - [x] register with scheduler (scheduler flag)
-- [ ] accept vetted txs from scheduler
+- [x] accept vetted txs from scheduler
 - [ ] remove mempools
+- [ ] rewrite repair agent to use scheduler
 
 ROADMAP
 

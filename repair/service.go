@@ -8,6 +8,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// XXX: use scheduler
 type RepairService struct {
 	submitted *mempool.SubmittedMempool
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/mempool"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/multiplex"
@@ -45,9 +44,6 @@ type System struct {
 	Baton   *baton.Baton
 	Catchup *catchup.CatchupService
 	//
-	Submitted *mempool.SubmittedMempool
-	Committed *mempool.CommittedMempool
-	//
 	RepairService *repair.RepairService
 	RepairAgent   *repair.RepairAgent
 	//
@@ -70,16 +66,16 @@ func NewSystem(
 	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
 	liblog.Infof("initializing validator %v", protoutil.VIDString(vid))
 
-	sys := &System{
+	s := &System{
 		cfg:     cfg,
 		inside:  inside,
 		outside: outside,
 		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
-	sys.SchedCallback = sched.NewSchedulerCallbackService()
+	s.SchedCallback = sched.NewSchedulerCallbackService()
 
-	sys.Discovery = discovery.NewDiscoveryService(
+	s.Discovery = discovery.NewDiscoveryService(
 		ctx,
 		outside,
 		*cfg.Discovery_config,
@@ -87,48 +83,43 @@ func NewSystem(
 		*cfg.Scp_config,
 	)
 
-	sys.Router = router.NewDynamicUniformRouter(ctx, sys.Discovery, int(cfg.Router_config.Tree_fan_out))
+	s.Router = router.NewDynamicUniformRouter(ctx, s.Discovery, int(cfg.Router_config.Tree_fan_out))
 
-	sys.Dogwood = dogwood.NewDogwoodService(
+	s.Dogwood = dogwood.NewDogwoodService(
 		ctx,
 		*cfg.Dogwood_config,
 		libtime.RealTime{},
 		runtime.NewRandFromRand(rand),
 		outside,
 		inside,
-		sys.Discovery,
-		sys.Router,
+		s.Discovery,
+		s.Router,
 	)
 
-	sys.Multiplex = multiplex.NewMultiplex(ctx, vid, sys.Dogwood)
+	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
 
-	txTTL := time.Duration(cfg.Mempool_config.Transaction_ttl_msec) * time.Millisecond
+	s.RepairService = repair.NewRepairService(ctx, s.Submitted)
+	s.RepairAgent = repair.NewRepairAgent(*cfg.Repair_config, outside, s.Signer)
 
-	sys.Submitted = mempool.NewTransactionMempoolReal(ctx, txTTL)
-	sys.Committed = mempool.NewCommittedMempoolReal(ctx, 2*txTTL)
-
-	sys.RepairService = repair.NewRepairService(ctx, sys.Submitted)
-	sys.RepairAgent = repair.NewRepairAgent(*cfg.Repair_config, outside, sys.Signer)
-
-	sys.Live = NewLiveHandler(
-		sys.Signer,
+	s.Live = NewLiveHandler(
+		s.Signer,
 		libtime.RealTime{},
 		inside,
 		outside,
-		sys.Coord,
-		sys.Router,
-		sys.Submitted,
-		sys.Committed,
-		sys.RepairAgent,
-		sys.Dogwood,
+		XXX, // scheduler conn
+		s.Router,
+		s.Submitted,
+		s.Committed,
+		s.RepairAgent,
+		s.Dogwood,
 		runtime.NewRandFromRand(rand),
 	)
 
-	sys.Baton = baton.NewBaton(ctx, *cfg.Baton_config, sys.Live)
+	s.Baton = baton.NewBaton(ctx, *cfg.Baton_config, s.Live)
 
-	sys.Catchup = catchup.NewCatchupService(
+	s.Catchup = catchup.NewCatchupService(
 		ctx,
-		sys.Signer,
+		s.Signer,
 		libtime.RealTime{},
 		outside,
 		nil, // TODO: dialDb for deep archival access to catchup blocks, currently not used
@@ -136,30 +127,30 @@ func NewSystem(
 		cfg.Catchup_config.Catchup_block_age,
 	)
 
-	sys.Submitter = NewSubmitter(
+	s.Submitter = NewSubmitter(
 		ctx,
 		libtime.RealTime{},
-		sys.Submitted,
-		sys.Multiplex,
+		s.Submitted,
+		s.Multiplex,
 		int(cfg.Mempool_config.Submission_lot_size),
 		time.Duration(cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 	)
 
-	sys.Wallet = wallet.NewWalletGateway(ctx, sys.Submitter, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
+	s.Wallet = wallet.NewWalletGateway(ctx, s.Submitter, cfg.Wallet_config.Secret_key, cfg.Wallet_config.Users)
 
-	sys.insideSrv = NewServer(ctx,
-		proto.Coordinator1_Server{Srv: sys.Coord},
-		proto.Wallet1_Server{Srv: sys.Wallet.Service()},
+	s.insideSrv = NewServer(ctx,
+		proto.CoordScheduler1_Server{Srv: s.SchedCallback},
+		proto.Wallet1_Server{Srv: s.Wallet.Service()},
 	)
 
-	sys.outsideSrv = NewServer(ctx,
-		proto.Discovery1_Server{Srv: sys.Discovery},
-		proto.Dogwood1_Server{Srv: sys.Dogwood},
-		proto.Catchup1_Server{Srv: sys.Catchup},
-		proto.Repair1_Server{Srv: sys.RepairService},
+	s.outsideSrv = NewServer(ctx,
+		proto.Discovery1_Server{Srv: s.Discovery},
+		proto.Dogwood1_Server{Srv: s.Dogwood},
+		proto.Catchup1_Server{Srv: s.Catchup},
+		proto.Repair1_Server{Srv: s.RepairService},
 	)
 
-	return sys
+	return s
 }
 
 // System dependencies:
@@ -206,10 +197,10 @@ type OperationalConfig struct {
 func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	// intro to scheduler
-	conn, err := sched.DialSchedulerCoordClient(ctx, s.inside, opcfg.SchedAddr)
+	schedConn, err := sched.DialSchedulerCoordClient(ctx, s.inside, opcfg.SchedAddr)
 	must.NoError(ctx, err)
 
-	err = sched.Intro(ctx, conn, opcfg.InAddr)
+	err = sched.Intro(ctx, schedConn, opcfg.InAddr)
 	must.NoError(ctx, err)
 
 	// handshake with scpd
@@ -236,7 +227,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	s.Baton.Start(ctx)
 
-	// drive dissemination of vetted transactions
+	// drive vetted transactions to dissemination
 	go func() {
 		for {
 			txs := s.SchedCallback.ReceiveVetted()
@@ -259,11 +250,14 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 		for {
 			sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
 			_ = sender
+
 			// liblog.Debugf("received %d txs from %v: %v",
 			// 	len(submittedTxs.Transactions),
 			// 	protoutil.VIDString(sender),
 			// 	form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
-			s.Submitted.AddTxs(ctx, protoutil.Unpack(submittedTxs.Transactions)...)
+
+			err := schedConn.Schedulercoord_submit_unvetted(ctx, submittedTxs.Transactions)
+			must.NoError(ctx, err)
 		}
 	}()
 }
