@@ -71,7 +71,7 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nominatio
 			Hash:   nom.Block_hash,
 		})
 	} else {
-		liblog.Infof("nomination rejected, onto tip %v", protoutil.DbTipString(tip))
+		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(tip))
 	}
 
 	return nom, schedNom.Block_id, nil

@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -77,6 +78,13 @@ func (b *Baton) repairMissingTxs(
 	proposer proto.ValidatorPublicInfo,
 	missing proto.MissingTransactions,
 ) error {
+
+	liblog.Debugf("baton repairing %d missing transactions", len(missing.Transaction_hashes))
+
+	time.Sleep(time.Second / 2)
+	return nil
+
+	//XXX: temporarily disable the code below
 
 	stxs, err := b.handler.RepairMissingTxs(ctx, proposer, missing)
 	if err != nil {

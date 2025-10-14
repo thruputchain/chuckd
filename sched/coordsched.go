@@ -21,7 +21,6 @@ func NewCoordSchedulerService() *CoordSchedulerService {
 }
 
 func (x *CoordSchedulerService) ReceiveVetted() proto.SignedTransactionBatch {
-	// XXX: buffer?
 	return <-x.vetted
 }
 

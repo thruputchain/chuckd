@@ -11,6 +11,7 @@ SCHEDULER INTEGRATION
 - [x] accept vetted txs from scheduler
 - [x] remove mempools
 - [ ] rewrite repair agent to use scheduler
+- [ ] remove NothingToNominate error
 
 ROADMAP
 

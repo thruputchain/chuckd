@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -40,6 +41,7 @@ func (x *WalletSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1
 			case <-ctx.Done():
 				return
 			case txs := <-x.lot:
+				liblog.Debugf("submitting %d unvetted txs from wallet to scheduler", len(txs))
 				err := sched.Schedulercoord_submit_unvetted(ctx, protoutil.Pack(txs))
 				must.NoError(ctx, err)
 			}

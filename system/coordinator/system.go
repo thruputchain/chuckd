@@ -244,6 +244,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 			ctx,
 			s.time,
 			func(ctx context.Context, txs []proto.SignedTransaction) {
+				liblog.Debugf("disseminating %d vetted txs", len(txs))
 				s.Multiplex.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: txs})
 			},
 			int(s.cfg.Mempool_config.Submission_lot_size),
@@ -251,6 +252,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 		)
 		for {
 			txs := s.CoordScheduler.ReceiveVetted()
+			liblog.Debugf("received %d vetted txs from scheduler", len(txs))
 			buf.Submit(ctx, txs...)
 		}
 	}()
