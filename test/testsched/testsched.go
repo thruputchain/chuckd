@@ -2,22 +2,46 @@ package testsched
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/test/testdb"
+	"github.com/groundhogchain/chuckd/test/testmempool"
+	"github.com/groundhogchain/chuckd/test/testutil"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/jay/lib/librand"
 	"github.com/groundhogchain/jay/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestScheduler struct {
-	lk     sync.Mutex
-	introd bool
+	m       xdrutil.XdrMarshaler
+	signer  protoutil.Signatory
+	mempool *testmempool.TestMempool
+	db      *testdb.TestDb
+	lk      sync.Mutex
+	introd  bool
+	rand    *rand.Rand
 }
 
-func NewTestScheduler(ctx context.Context, tip proto.DbTip) *TestScheduler {
-	return &TestScheduler{}
+func NewTestScheduler(ctx context.Context, signer protoutil.Signatory, tip proto.DbTip) *TestScheduler {
+	return &TestScheduler{
+		m:       xdrutil.NewXdrMarshaler(),
+		signer:  signer,
+		db:      testdb.NewTestDb(tip),
+		mempool: testmempool.NewTestMempool(),
+		rand:    librand.New(),
+	}
 }
 
-func (x *TestScheduler) Schedulercoord_null(context.Context) error {
+func (x *TestScheduler) generateBlockID() proto.BlockID {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return proto.BlockID(x.rand.Int63())
+}
+
+func (x *TestScheduler) Schedulercoord_null(_ context.Context) error {
 	return nil
 }
 
@@ -30,21 +54,91 @@ func (x *TestScheduler) Schedulercoord_intro_coord(ctx context.Context, card pro
 }
 
 func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
-	panic("XXX")
+	x.mempool.AddTxs(txs)
+	return nil
 }
 
 func (x *TestScheduler) Schedulercoord_nominate(ctx context.Context, onto proto.DbTip) (proto.SchedulerNominationResult, error) {
-	panic("XXX")
+
+	blockID := x.generateBlockID()
+	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeProposal)
+
+	txs := x.mempool.DrainTxs()
+
+	txnoms := make([]proto.NominatedTransaction, len(txs))
+	for i, tx := range txs {
+		x.db.AddSignedTx(ctx, blockID, tx)
+		txnoms[i] = proto.NominatedTransaction{
+			Nondeterministic_proposal_data: testutil.TestNondeterministicData,
+		}
+	}
+
+	blockHash := x.db.CloseSnapshot(ctx, blockID)
+
+	nomination := proto.Nomination{
+		Proposer:                x.signer.Signer(),
+		Block_height:            onto.Height + 1,
+		Block_hash:              blockHash,
+		Prev_block_hash:         onto.Hash,
+		Transaction_hashes:      protoutil.HashSignedTxs(x.m, protoutil.Pack(txs)),
+		Transaction_nominations: txnoms,
+	}
+
+	r := proto.SchedulerNominationResult{Outcome: proto.SchedulerNominationOK}
+	*r.Scheduler_nomination() = proto.SchedulerNomination{
+		Block_id:   blockID,
+		Nomination: nomination,
+	}
+	return r, nil
 }
 
 func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.DbTip, nomination proto.Nomination) (proto.SchedulerValidationResult, error) {
-	panic("XXX")
+
+	blockID := x.generateBlockID()
+	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeValidation)
+
+	txs, missingTxHashes := x.mempool.LookupTxs(nomination.Transaction_hashes)
+	if len(missingTxHashes) > 0 {
+		x.db.AbandonSnapshot(ctx, blockID)
+		r := proto.SchedulerValidationResult{
+			Outcome: proto.SchedulerValidationMissingTxs,
+		}
+		*r.Missing_tx_hashes() = missingTxHashes
+		return r, nil
+	}
+
+	for i, tx := range txs {
+		ptx := &proto.ProposedTransaction{
+			Signed_tx:                      *tx,
+			Nondeterministic_proposal_data: nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
+		}
+		x.db.AddProposedTx(ctx, blockID, ptx)
+	}
+
+	blockHash := x.db.CloseSnapshot(ctx, blockID)
+
+	r := proto.SchedulerValidationResult{
+		Outcome: proto.SchedulerValidationOK,
+	}
+	*r.Db_tip() = proto.DbTip{
+		Height: onto.Height + 1,
+		Hash:   blockHash,
+		Id:     blockID,
+	}
+	return r, nil
 }
 
 func (x *TestScheduler) Schedulercoord_commit_block(ctx context.Context, blockID proto.BlockID) error {
-	panic("XXX")
+	x.db.OpenSnapshot(ctx, blockID)
+	_, hashes := x.db.CommitSnapshot(ctx, blockID)
+	x.mempool.RemoveTxs(hashes)
+	return nil
 }
 
 func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.DbTipResult, error) {
-	panic("XXX")
+	r := proto.DbTipResult{
+		Result: proto.DbSchedResultOK,
+	}
+	*r.Db_tip() = x.db.GetTip()
+	return r, nil
 }
