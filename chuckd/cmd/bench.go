@@ -159,7 +159,7 @@ func init() {
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
-	benchTestClusterCmd.Flags().Int64Var(&benchTxPerSec, "tps", 1e4, "transactions per second")
+	benchTestClusterCmd.Flags().Int64Var(&benchTxPerSec, "tx-per-sec", 1e4, "transactions per second")
 	benchTestClusterCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30000, "scheduler port")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")

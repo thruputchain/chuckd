@@ -6,8 +6,8 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/jay/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

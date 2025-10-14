@@ -5,13 +5,13 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/lib/librand"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testmempool"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/jay/lib/librand"
-	"github.com/groundhogchain/jay/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

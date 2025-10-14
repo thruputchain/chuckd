@@ -71,10 +71,10 @@ func init() {
 	deployCmd.AddCommand(deployK8sBenchTestClusterCmd)
 	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
-	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tps", 1e3, "transactions per second")
+	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tx-per-sec", 1e3, "transactions per second")
 
 	deployCmd.AddCommand(deployLocalBenchTestClusterCmd)
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
-	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tps", 1e3, "transactions per second")
+	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tx-per-sec", 1e3, "transactions per second")
 }

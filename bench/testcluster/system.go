@@ -43,8 +43,8 @@ func NewTestClusterSystem(
 }
 
 func (sys *TestClusterSystem) Start(ctx context.Context, opcfg coordinator.OperationalConfig) {
-	sys.System.Start(ctx, opcfg)
 	sys.TestCluster.Start(ctx, opcfg.InAddr)
+	sys.System.Start(ctx, opcfg)
 }
 
 func (sys *TestClusterSystem) Close() {
