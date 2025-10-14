@@ -26,16 +26,16 @@ func NewTestClusterSystem(
 	testCfg TestClusterConfig,
 ) *TestClusterSystem {
 	inside := testnet.NewTestNetwork()
-	sys := coordinator.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
+	s := coordinator.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &TestClusterSystem{
-		System: sys,
+		System: s,
 		TestCluster: NewTestCluster(
 			ctx,
 			time,
 			runtime.NewRandFromRand(rand),
 			inside,
 			cfg.Validator_config.Private_info,
-			sys.WalletSubmitter,
+			s.WalletSubmitter,
 			testCfg,
 			false, // use slower testdb with consistency checks
 		),

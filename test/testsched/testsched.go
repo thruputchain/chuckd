@@ -17,7 +17,7 @@ import (
 
 type TestScheduler struct {
 	m       xdrutil.XdrMarshaler
-	signer  protoutil.Signatory
+	signer  proto.ValidatorPublicInfo
 	mempool *testmempool.TestMempool
 	db      *testdb.TestDb
 	lk      sync.Mutex
@@ -25,7 +25,7 @@ type TestScheduler struct {
 	rand    *rand.Rand
 }
 
-func NewTestScheduler(ctx context.Context, signer protoutil.Signatory, tip proto.DbTip) *TestScheduler {
+func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip proto.DbTip) *TestScheduler {
 	return &TestScheduler{
 		m:       xdrutil.NewXdrMarshaler(),
 		signer:  signer,
@@ -76,7 +76,7 @@ func (x *TestScheduler) Schedulercoord_nominate(ctx context.Context, onto proto.
 	blockHash := x.db.CloseSnapshot(ctx, blockID)
 
 	nomination := proto.Nomination{
-		Proposer:                x.signer.Signer(),
+		Proposer:                x.signer,
 		Block_height:            onto.Height + 1,
 		Block_hash:              blockHash,
 		Prev_block_hash:         onto.Hash,

@@ -33,7 +33,7 @@ type System struct {
 	inside  libnet.Network
 	outside libnet.Network
 	//
-	Signer protoutil.Signatory
+	signer protoutil.Signatory
 	//
 	SchedCallback *sched.SchedulerCallbackService
 	//
@@ -73,7 +73,7 @@ func NewSystem(
 		time:    libtime.RealTime{},
 		inside:  inside,
 		outside: outside,
-		Signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
+		signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
 	s.SchedCallback = sched.NewSchedulerCallbackService()
@@ -105,11 +105,11 @@ func NewSystem(
 	s.RepairAgent = repair.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,
-		s.Signer,
+		s.signer,
 	)
 
 	s.Live = NewLiveHandler(
-		s.Signer,
+		s.signer,
 		libtime.RealTime{},
 		inside,
 		outside,
@@ -123,7 +123,7 @@ func NewSystem(
 
 	s.Catchup = catchup.NewCatchupService(
 		ctx,
-		s.Signer,
+		s.signer,
 		libtime.RealTime{},
 		outside,
 		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,

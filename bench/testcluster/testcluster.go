@@ -19,6 +19,7 @@ import (
 )
 
 type TestCluster struct {
+	signer    protoutil.Signatory
 	net       libnet.Network
 	cfg       TestClusterConfig
 	sched     *testsched.TestScheduler
@@ -42,16 +43,22 @@ func NewTestCluster(
 	speed bool,
 ) *TestCluster {
 
-	sched := testsched.NewTestScheduler(ctx, proto.DbTip{})
+	sched := testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{})
 
 	userPriv, err := protoutil.GenerateIdentity(rand, "")
 	must.NoError(ctx, err)
 
 	return &TestCluster{
-		net:       net,
-		cfg:       cfg,
-		sched:     sched,
-		gen:       testutil.NewTestGen(ctx, time, rand, validator, userPriv.Secret_key),
+		net:   net,
+		cfg:   cfg,
+		sched: sched,
+		gen: testutil.NewTestGen(
+			ctx,
+			time,
+			rand,
+			validator,
+			userPriv.Secret_key,
+		),
 		submitter: submitter,
 	}
 }

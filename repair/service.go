@@ -37,7 +37,7 @@ func (x *RepairService) Repair_missing_txs(
 	// XXX: loookup transactions from mempool
 	panic("XXX")
 
-	return proto.RepairedTransactions{
-		Transactions: XXX,
-	}, nil
+	// return proto.RepairedTransactions{
+	// 	Transactions: XXX,
+	// }, nil
 }
