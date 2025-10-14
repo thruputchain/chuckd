@@ -35,7 +35,7 @@ type System struct {
 	//
 	signer protoutil.Signatory
 	//
-	SchedCallback *sched.SchedulerCallbackService
+	CoordScheduler *sched.CoordSchedulerService
 	//
 	Discovery *discovery.DiscoveryService
 	Router    router.Router
@@ -76,7 +76,7 @@ func NewSystem(
 		signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
 	}
 
-	s.SchedCallback = sched.NewSchedulerCallbackService()
+	s.CoordScheduler = sched.NewCoordSchedulerService()
 
 	s.Discovery = discovery.NewDiscoveryService(
 		ctx,
@@ -145,7 +145,7 @@ func NewSystem(
 	)
 
 	s.insideSrv = NewServer(ctx,
-		proto.CoordScheduler1_Server{Srv: s.SchedCallback},
+		proto.CoordScheduler1_Server{Srv: s.CoordScheduler},
 		proto.Wallet1_Server{Srv: s.Wallet.Service()},
 	)
 
@@ -250,7 +250,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 			time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 		)
 		for {
-			txs := s.SchedCallback.ReceiveVetted()
+			txs := s.CoordScheduler.ReceiveVetted()
 			buf.Submit(ctx, txs...)
 		}
 	}()

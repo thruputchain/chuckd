@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testmempool"
 	"github.com/groundhogchain/chuckd/test/testutil"
@@ -20,9 +21,13 @@ type TestScheduler struct {
 	signer  proto.ValidatorPublicInfo
 	mempool *testmempool.TestMempool
 	db      *testdb.TestDb
-	lk      sync.Mutex
-	introd  bool
-	rand    *rand.Rand
+	//
+	coord sched.CoordSchedulerConn
+	ready chan struct{}
+	//
+	lk     sync.Mutex
+	introd bool
+	rand   *rand.Rand
 }
 
 func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip proto.DbTip) *TestScheduler {
@@ -30,9 +35,15 @@ func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip
 		m:       xdrutil.NewXdrMarshaler(),
 		signer:  signer,
 		db:      testdb.NewTestDb(tip),
+		ready:   make(chan struct{}),
 		mempool: testmempool.NewTestMempool(),
 		rand:    librand.New(),
 	}
+}
+
+func (x *TestScheduler) SetCoordScheduler(conn sched.CoordSchedulerConn) {
+	x.coord = conn
+	close(x.ready)
 }
 
 func (x *TestScheduler) generateBlockID() proto.BlockID {
@@ -54,6 +65,11 @@ func (x *TestScheduler) Schedulercoord_intro_coord(ctx context.Context, card pro
 }
 
 func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
+	<-x.ready
+
+	err := x.coord.Coordscheduler_notify_vetted(ctx, txs)
+	must.NoError(ctx, err)
+
 	x.mempool.AddTxs(txs)
 	return nil
 }

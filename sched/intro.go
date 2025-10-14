@@ -11,7 +11,7 @@ const Protocol = "hogd-coordinator-0.0.1"
 
 func Intro(
 	ctx context.Context,
-	conn SchedulerConn,
+	conn SchedulerCoordConn,
 	address_for_sched string,
 ) error {
 	outcome, err := conn.Schedulercoord_intro_coord(ctx, proto.CoordCard{

@@ -8,7 +8,7 @@ import (
 )
 
 type RepairService struct {
-	conn  sched.SchedulerConn
+	conn  sched.SchedulerCoordConn
 	ready chan struct{}
 }
 
@@ -18,7 +18,7 @@ func NewRepairService() *RepairService {
 	}
 }
 
-func (x *RepairService) SetSchedConn(conn sched.SchedulerConn) {
+func (x *RepairService) SetSchedConn(conn sched.SchedulerCoordConn) {
 	x.conn = conn
 	close(x.ready)
 }

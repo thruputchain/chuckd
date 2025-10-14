@@ -29,7 +29,7 @@ type LiveHandler struct {
 	libtime.Time
 	inside  libnet.Network
 	outside libnet.Network
-	sched.SchedulerConn
+	sched.SchedulerCoordConn
 	router router.Router
 	*repair.RepairAgent
 	dogwood *dogwood.DogwoodService
@@ -73,8 +73,8 @@ func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
 	close(x.scpReady)
 }
 
-func (x *LiveHandler) SetScheduler(conn sched.SchedulerConn) {
-	x.SchedulerConn = conn
+func (x *LiveHandler) SetScheduler(conn sched.SchedulerCoordConn) {
+	x.SchedulerCoordConn = conn
 	close(x.schedReady)
 }
 
