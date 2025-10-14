@@ -20,13 +20,15 @@ func (x *TestSCP) CombineCandidates(ctx context.Context, slot scpapi.Slot, value
 	return ch
 }
 
-func (x *TestSCP) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) <-chan scpapi.ValidationLevel {
+func (x *TestSCP) ValidateNominationValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) <-chan scpapi.ValidationLevel {
 	ch := make(chan scpapi.ValidationLevel, 1)
-	if nomination {
-		go func() { ch <- x.scpHandler.ValidateNominationValue(ctx, slot, value) }()
-	} else {
-		go func() { ch <- x.scpHandler.ValidateBallotValue(ctx, slot, value) }()
-	}
+	go func() { ch <- x.scpHandler.ValidateNominationValue(ctx, slot, value) }()
+	return ch
+}
+
+func (x *TestSCP) ValidateBallotValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) <-chan scpapi.ValidationLevel {
+	ch := make(chan scpapi.ValidationLevel, 1)
+	go func() { ch <- x.scpHandler.ValidateBallotValue(ctx, slot, value) }()
 	return ch
 }
 

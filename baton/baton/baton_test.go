@@ -3,12 +3,10 @@ package baton
 import (
 	"context"
 	"os"
-	goruntime "runtime"
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/baton/batonapi"
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
@@ -36,32 +34,14 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 		ctx,
 		runtime.NewRandFromRoot(),
 		time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
-		3*roundTTL, // txTTL
-		5*roundTTL, // committedTTL
 	)
 	cfg := proto.BatonConfig{
 		Heartbeat_msec:     proto.Milliseconds(roundTTL) / 5,
 		Max_catchup_height: 10000,
 	}
-	callsPerExec := 2
-	batchSize := 10
-	baton := NewBaton(ctx, cfg, rig, callsPerExec, batchSize)
+	baton := NewBaton(ctx, cfg, rig)
 	rig.Bind(baton)
 	return ctx, rig, baton, roundTTL
-}
-
-func TestSubmittedExpiry(t *testing.T) {
-	ctx, rig, _, tick := testSetup()
-
-	block := rig.GenNomination(ctx, 1)
-	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
-	rig.PassTime(tick * 5)
-	goruntime.Gosched()
-	time.Sleep(time.Millisecond) // XXX: flaky
-	_, ok := rig.LookupTxs(ctx, []proto.SignedTransactionHash{block.Nomination.Transaction_hashes[0]})
-	if ok {
-		t.Errorf("expecting txs to be missing")
-	}
 }
 
 // TestNominateCommit tests committing of blocks that we have nominated.
@@ -71,28 +51,26 @@ func TestNominateCommit(t *testing.T) {
 
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
-	rig.StageExecs(1)
 	baton.Start(ctx)
-	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
+	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.StageExecs(1)
-	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                    // txs for stage 3
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.Nomination).Bytes()) // trigger commit, trigger stage 3
-	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
-	if committed.AlreadyValidatedBlockID == nil {
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                       // txs for stage 3
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.DbgNomination).Bytes()) // trigger commit, trigger stage 3
+	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed.DbgValidatable.AlreadyValidated == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
 
 	// stage 3: nominate [2]
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 	rig.PassTime(tick)
 
 }
@@ -103,22 +81,24 @@ func TestValidateCommit(t *testing.T) {
 	ctx, rig, baton, tick := testSetup()
 
 	// stage 1: validate [1]
-	rig.StageExecs(1)
 	baton.Start(ctx)
 	block := rig.GenNomination(ctx, 2)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
 
 	// consume nomination
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
-	println("NOMINATION: ", form.Display(block.Nomination))
-	vlevel := rig.ValidateValue(ctx, proto.SCPSlotIndex(block.Nomination.Block_height), testMarshaler.MarshalXdr(&block.Nomination).Bytes(), true)
+	vlevel := rig.ValidateNominationValue(
+		ctx,
+		proto.SCPSlotIndex(block.Nomination.Block_height),
+		testMarshaler.MarshalXdr(&block.Nomination).Bytes(),
+	)
 	// validation is skipped, as the nomination is already cached
-	// _ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
-	// _ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
+	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	if <-vlevel != scpapi.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
@@ -126,19 +106,10 @@ func TestValidateCommit(t *testing.T) {
 
 	// stage 2: commit already validated [1]
 	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.Nomination).Bytes())
-	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
-	if committed.AlreadyValidatedBlockID == nil {
+	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed.DbgValidatable.AlreadyValidated == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
-
-	rig.PassTime(3 * tick)
-	goruntime.Gosched()
-	time.Sleep(time.Millisecond) //XXX: flaky -race
-	_, ok := rig.LookupTxs(ctx, block.Nomination.Transaction_hashes)
-	if ok {
-		t.Fatalf("txs not removed after expiry")
-	}
-
 }
 
 // TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
@@ -152,19 +123,18 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.StageCatchup(block1.Catchup)
 
 	baton.Start(ctx)
-	rig.StageExecs(1) // for validation and commit
 
 	// consume nomination
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
 	rig.ExternalizedValue(ctx, 2, testMarshaler.MarshalXdr(&block2.Nomination).Bytes())
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
-	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
-	if committed.BlockHeight != 1 {
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
+	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed.Height != 1 {
 		t.Errorf("expecting committed height 1")
 	}
 }
@@ -178,13 +148,13 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 	rig.StageCatchup(block1.Catchup)
 
 	baton.Start(ctx)
-	rig.StageExecs(1) // for validation and commit
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.Nomination).Bytes())
 	// catchup provisions the block
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
-	committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
-	if committed.BlockHeight != 1 {
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated) //XXX: hanging; trying repair txs, but should be trying catchup
+	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed.Height != 1 {
 		t.Errorf("expecting committed height 1")
 	}
 
@@ -197,7 +167,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 	baton.Start(ctx)
 
-	lastCommitted := testutil.TipHandle(rig.GetTip())
+	lastCommitted := testutil.TipHandle(rig.getTip(ctx))
 	for height := proto.BlockHeight(1); height < maxHeight; height++ {
 
 		theirBlock := rig.GenNominationOnto(ctx, 1, lastCommitted)
@@ -206,26 +176,30 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // submit tx
 		baton.Kick()                          // wake baton after submitting transactions
 
-		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventNominating)
+		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 		rig.WaitNomination(ctx)
 		rig.SignalNomination(true)
-		nominated := rig.ReceiveEvent(ctx).Event.(batonapi.EventNominated)
+		nominated := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
 		// kick off validation
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.ValidateValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(), true)
-		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidating)
-		_ = rig.ReceiveEvent(ctx).Event.(batonapi.EventValidated)
+		rig.ValidateNominationValue(
+			ctx,
+			proto.SCPSlotIndex(height),
+			testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(),
+		)
+		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(nominated.Nomination).Bytes())
+			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(nominated.DbgNomination).Bytes())
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
 			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes())
 		}
-		committed := rig.ReceiveEvent(ctx).Event.(batonapi.EventCommitted)
-		lastCommitted = testutil.VBHandle(committed.ValidatableBlock)
+		committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+		lastCommitted.Hash, lastCommitted.Height = committed.Hash, committed.Height
 
 		rig.PassTime(tick)
 	}

@@ -13,6 +13,8 @@ type EventNominating struct {
 	NumTx      int
 	Height     proto.BlockHeight
 	Hash       proto.BlockHash
+	//
+	DbgNomination *proto.Nomination
 }
 
 func (x EventNominating) String() string {
@@ -25,6 +27,8 @@ type EventNominated struct {
 	NumTx     int
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash
+	//
+	DbgNomination *proto.Nomination
 }
 
 func (x EventNominated) String() string {
@@ -36,6 +40,8 @@ type EventCommitted struct {
 	Onto      proto.DbTip
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash
+	//
+	DbgValidatable *ValidatableBlock
 }
 
 func (x EventCommitted) String() string {

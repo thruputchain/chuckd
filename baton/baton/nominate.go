@@ -57,6 +57,8 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nominatio
 		NumTx:  len(nom.Transaction_hashes),
 		Height: nom.Block_height,
 		Hash:   nom.Block_hash,
+		//
+		DbgNomination: nom,
 	})
 
 	// nominate to consensus
@@ -67,6 +69,8 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nominatio
 			NumTx:  len(nom.Transaction_hashes),
 			Height: nom.Block_height,
 			Hash:   nom.Block_hash,
+			//
+			DbgNomination: nom,
 		})
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(tip))

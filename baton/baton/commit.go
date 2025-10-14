@@ -57,6 +57,8 @@ func (b *Baton) commit(ctx context.Context, vb *batonkit.ValidatableBlock) proto
 		Onto:   vb.Onto,
 		Height: vb.BlockHeight(),
 		Hash:   vb.BlockHash(),
+		//
+		DbgValidatable: vb,
 	})
 
 	return *validatedBlockID

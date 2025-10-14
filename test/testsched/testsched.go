@@ -64,6 +64,10 @@ func (x *TestScheduler) Schedulercoord_intro_coord(ctx context.Context, card pro
 	return proto.CoordinatorRegistrationOK, nil
 }
 
+func (x *TestScheduler) AddTxs(ctx context.Context, txs ...*proto.SignedTransaction) {
+	x.mempool.AddTxs(protoutil.Pack(txs))
+}
+
 func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
 	<-x.ready
 

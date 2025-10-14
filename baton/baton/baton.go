@@ -119,7 +119,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// validate and commit next block, if one is available and no commit is in progress
 	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		liblog.Debugf("baton committing [%v; %v]", vb.BlockHeight(), form.Display(vb.BlockHash))
+		liblog.Debugf("baton committing [height %v; hash %s]", vb.BlockHeight(), form.Display(vb.BlockHash()))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, vb.BlockHeight())
