@@ -2,11 +2,11 @@ package baton
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -43,12 +43,10 @@ func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating
 func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nomination, proto.BlockID, error) {
 
 	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip)
-	if err != nil {
-		return nil, 0, err
-	}
-	if schedNomResult.Outcome != proto.SchedulerNominationOK {
-		return nil, 0, fmt.Errorf("scheduler nomination error")
-	}
+	// we cannot continue if nomination fails
+	must.NoError(ctx, err)
+	must.Assert(ctx, schedNomResult.Outcome == proto.SchedulerNominationOK)
+
 	schedNom := *schedNomResult.Scheduler_nomination()
 
 	nom := &schedNom.Nomination

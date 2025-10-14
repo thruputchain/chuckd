@@ -10,8 +10,8 @@ SCHEDULER INTEGRATION
 - [x] register with scheduler (scheduler flag)
 - [x] accept vetted txs from scheduler
 - [x] remove mempools
+- [x] remove NothingToNominate error
 - [ ] rewrite repair agent to use scheduler
-- [ ] remove NothingToNominate error
 
 ROADMAP
 

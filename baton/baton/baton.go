@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -175,9 +176,7 @@ func (b *Baton) drive(ctx context.Context) {
 			}
 
 			if err != nil {
-				if err != batonkit.ErrNothingToNominate {
-					liblog.Errorf("nominate: %v", err)
-				}
+				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 				return
 			}
 
