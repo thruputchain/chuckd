@@ -4,11 +4,7 @@ SCHEDULER INTEGRATION
 - [x] make number of blocks, beyond which catchup doesn't help, dynamically configurable
 - [x] emitted events need not include large ValidatableBlock object
 - [x] fix events.go
-
-- [ ] fix tests in baton
-  - [ ] fix externalized block on top of db, not previously validated
-    - don't present as committable (unless catchup available)
-    - reqest catchup block
+- [x] fix tests in baton
 
 - [ ] add Schedulercoord_submit_peer_txs, Schedulercoord_lookup_txs
   - [ ] rewrite repair agent to use scheduler

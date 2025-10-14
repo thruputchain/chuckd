@@ -183,13 +183,14 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		// kick off validation
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.ValidateNominationValue(
+		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
 			proto.SCPSlotIndex(height),
 			testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(),
 		)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
+		<-validatedTheirs
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
