@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os/exec"
 
 	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
@@ -51,7 +52,7 @@ var (
 					testCfg,
 				)
 				opcfg := coordinator.OperationalConfig{
-					SchedAddr:      benchSchedAddress,
+					SchedAddr:      fmt.Sprintf("localhost:%d", benchSchedPort),
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
 					WalletAddr:     benchWalletAddress,
@@ -123,7 +124,6 @@ var (
 	benchNumIterations int
 	benchBytesPerPay   int
 	//
-	benchSchedAddress  string
 	benchInAddress     string
 	benchOutAddress    string
 	benchWalletAddress string
@@ -155,12 +155,11 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
-	benchTestClusterCmd.Flags().StringVar(&benchSchedAddress, "sched-addr", "localhost:7555", "address of scheduler")
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
 	benchTestClusterCmd.Flags().Int64Var(&benchTxPerSec, "tx-per-sec", 1e4, "transactions per second")
-	benchTestClusterCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30000, "scheduler port")
+	benchTestClusterCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	benchTestClusterCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
