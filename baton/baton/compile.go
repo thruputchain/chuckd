@@ -97,6 +97,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		//
 		v.Blocks[int(nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
 			Nomination: nomination,
+			Validated:  b.getValidated(nomination.Block_hash),
 		}
 	}
 
@@ -138,14 +139,16 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 				v.Blocks[i] = ViewMissing{Height: height}
 			}
 		case ViewExternalizedBlock:
-			// if the block is missing txs, catchup can still help
-			if cb, ok := b.findCatchupBlockAtHeight(height); ok {
-				// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-				if cb.BlockHash() == u.BlockHash() && cb.PrevBlockHash() == u.PrevBlockHash() {
-					u.Catchup = &cb
-					v.Blocks[i] = u
-				} else {
-					return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
+			// if the block has not been validated already, catchup can help
+			if u.Validated == nil {
+				if cb, ok := b.findCatchupBlockAtHeight(height); ok {
+					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
+					if cb.BlockHash() == u.BlockHash() && cb.PrevBlockHash() == u.PrevBlockHash() {
+						u.Catchup = &cb
+						v.Blocks[i] = u
+					} else {
+						return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
+					}
 				}
 			}
 		default:

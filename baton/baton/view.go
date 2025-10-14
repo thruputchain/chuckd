@@ -13,7 +13,7 @@ type View struct {
 	Stamp        time.Time
 	Blocks       []ViewBlock
 	Reqs         [][]batonkit.ID64 // catchup requests already fired for this block
-	NextToCommit *batonkit.ValidatableBlock
+	NextToCommit *batonkit.CommittableBlock
 }
 
 func (v *View) TipToNominateOn() *proto.DbTip {
@@ -24,16 +24,16 @@ func (v *View) TipToNominateOn() *proto.DbTip {
 	return &db.Tip
 }
 
-func (v *View) NextBlockToCommit() *batonkit.ValidatableBlock {
+func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {
 	return v.NextToCommit
 }
 
-func (v *View) nextBlockToCommit(b *Baton) *batonkit.ValidatableBlock {
+func (v *View) nextBlockToCommit(b *Baton) *batonkit.CommittableBlock {
 
-	if len(v.Blocks) < 2 || !v.Blocks[1].IsReadyToValidate() {
+	if len(v.Blocks) < 2 || !v.Blocks[1].IsReadyToCommit() {
 		return nil
 	}
-	vb := v.Blocks[1].ValidatableBlock()
+	vb := v.Blocks[1].CommittableBlock()
 
 	// db state
 	db := v.Blocks[0].(ViewDbBlock)
@@ -68,7 +68,7 @@ func (v *View) NeededUnrequestedSpans() Spans {
 					start = &j
 				}
 			case ViewExternalizedBlock:
-				if u.IsReadyToValidate() {
+				if u.IsReadyToCommit() {
 					if start != nil {
 						spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
 						start = nil

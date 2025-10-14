@@ -11,6 +11,14 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func (b *Baton) getValidated(hash proto.BlockHash) *proto.BlockID {
+	v, ok := b.validated[hash]
+	if !ok {
+		return nil
+	}
+	return &v.BlockID
+}
+
 func (b *Baton) validate(
 	ctx context.Context,
 	onto proto.DbTip,

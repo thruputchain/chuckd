@@ -9,12 +9,12 @@ type ViewBlock interface {
 	BlockHash() proto.BlockHash
 	BlockHeight() proto.BlockHeight
 	PrevBlockHash() proto.BlockHash
-	IsReadyToValidate() bool // enough data is available to run block validation
+	IsReadyToCommit() bool
 	IsMissing() bool
 	IsSCP() bool
 	IsCatchup() bool
 	IsDb() bool
-	ValidatableBlock() *batonkit.ValidatableBlock
+	CommittableBlock() *batonkit.CommittableBlock
 	Icon() string
 }
 
@@ -25,12 +25,12 @@ type ViewDbBlock struct {
 func (x ViewDbBlock) BlockHash() proto.BlockHash                   { return x.Tip.Hash }
 func (x ViewDbBlock) BlockHeight() proto.BlockHeight               { return x.Tip.Height }
 func (x ViewDbBlock) PrevBlockHash() proto.BlockHash               { panic("should not be called") }
-func (x ViewDbBlock) IsReadyToValidate() bool                      { panic("should not be called") }
+func (x ViewDbBlock) IsReadyToCommit() bool                        { panic("should not be called") }
 func (x ViewDbBlock) IsMissing() bool                              { return false }
 func (x ViewDbBlock) IsSCP() bool                                  { return false }
 func (x ViewDbBlock) IsCatchup() bool                              { return false }
 func (x ViewDbBlock) IsDb() bool                                   { return true }
-func (x ViewDbBlock) ValidatableBlock() *batonkit.ValidatableBlock { panic("should not be called") }
+func (x ViewDbBlock) CommittableBlock() *batonkit.CommittableBlock { panic("should not be called") }
 func (x ViewDbBlock) Icon() string                                 { return "D" }
 
 type ViewCatchupBlock struct {
@@ -41,13 +41,13 @@ type ViewCatchupBlock struct {
 func (x ViewCatchupBlock) BlockHash() proto.BlockHash     { return x.Candidate.BlockHash() }
 func (x ViewCatchupBlock) BlockHeight() proto.BlockHeight { return x.Candidate.BlockHeight() }
 func (x ViewCatchupBlock) PrevBlockHash() proto.BlockHash { return x.Candidate.PrevBlockHash() }
-func (x ViewCatchupBlock) IsReadyToValidate() bool        { return x.Linked }
+func (x ViewCatchupBlock) IsReadyToCommit() bool          { return x.Linked }
 func (x ViewCatchupBlock) IsMissing() bool                { return false }
 func (x ViewCatchupBlock) IsSCP() bool                    { return false }
 func (x ViewCatchupBlock) IsCatchup() bool                { return true }
 func (x ViewCatchupBlock) IsDb() bool                     { return false }
-func (x ViewCatchupBlock) ValidatableBlock() *batonkit.ValidatableBlock {
-	return &batonkit.ValidatableBlock{
+func (x ViewCatchupBlock) CommittableBlock() *batonkit.CommittableBlock {
+	return &batonkit.CommittableBlock{
 		Catchup: x.Candidate.Block,
 	}
 }
@@ -61,24 +61,29 @@ func (x ViewCatchupBlock) Icon() string {
 
 type ViewExternalizedBlock struct {
 	Nomination *proto.Nomination
-	Catchup    *CatchupBlock // a catchup block can be used if txs are missing
+	Validated  *proto.BlockID
+	Catchup    *CatchupBlock
 }
 
 func (x ViewExternalizedBlock) BlockHash() proto.BlockHash     { return x.Nomination.Block_hash }
 func (x ViewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.Nomination.Block_height }
 func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.Nomination.Prev_block_hash }
-func (x ViewExternalizedBlock) IsReadyToValidate() bool        { return true }
-func (x ViewExternalizedBlock) IsMissing() bool                { return false }
-func (x ViewExternalizedBlock) IsSCP() bool                    { return true }
-func (x ViewExternalizedBlock) IsCatchup() bool                { return false }
-func (x ViewExternalizedBlock) IsDb() bool                     { return false }
-func (x ViewExternalizedBlock) ValidatableBlock() *batonkit.ValidatableBlock {
-	vb := &batonkit.ValidatableBlock{}
-	if x.Catchup != nil {
-		vb.Catchup = x.Catchup.Block
+func (x ViewExternalizedBlock) IsReadyToCommit() bool {
+	return x.Validated != nil || x.Catchup != nil
+}
+func (x ViewExternalizedBlock) IsMissing() bool { return false }
+func (x ViewExternalizedBlock) IsSCP() bool     { return true }
+func (x ViewExternalizedBlock) IsCatchup() bool { return false }
+func (x ViewExternalizedBlock) IsDb() bool      { return false }
+func (x ViewExternalizedBlock) CommittableBlock() *batonkit.CommittableBlock {
+	cb := &batonkit.CommittableBlock{
+		Nomination:       *x.Nomination,
+		AlreadyValidated: x.Validated,
 	}
-	vb.Nomination = *x.Nomination
-	return vb
+	if x.Catchup != nil {
+		cb.Catchup = x.Catchup.Block
+	}
+	return cb
 }
 func (x ViewExternalizedBlock) Icon() string {
 	return "X"
@@ -91,10 +96,10 @@ type ViewMissing struct {
 func (x ViewMissing) BlockHash() proto.BlockHash                   { panic("must not call") }
 func (x ViewMissing) BlockHeight() proto.BlockHeight               { return x.Height }
 func (x ViewMissing) PrevBlockHash() proto.BlockHash               { panic("must not call") }
-func (x ViewMissing) IsReadyToValidate() bool                      { return false }
+func (x ViewMissing) IsReadyToCommit() bool                        { return false }
 func (x ViewMissing) IsMissing() bool                              { return true }
 func (x ViewMissing) IsSCP() bool                                  { return false }
 func (x ViewMissing) IsCatchup() bool                              { return false }
 func (x ViewMissing) IsDb() bool                                   { return false }
-func (x ViewMissing) ValidatableBlock() *batonkit.ValidatableBlock { panic("must not call") }
+func (x ViewMissing) CommittableBlock() *batonkit.CommittableBlock { panic("must not call") }
 func (x ViewMissing) Icon() string                                 { return "?" }

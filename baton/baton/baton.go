@@ -185,7 +185,10 @@ func (b *Baton) drive(ctx context.Context) {
 					Time:       b.handler.Now(),
 					Nomination: nomination,
 				}
-				b.validated[nomination.Block_hash] = validated{Nomination: nomination, BlockID: blockID}
+				b.validated[nomination.Block_hash] = validated{
+					Nomination: nomination,
+					BlockID:    blockID,
+				}
 				liblog.Infof("nominated at block height %d", nomination.Block_height)
 			}
 		}()

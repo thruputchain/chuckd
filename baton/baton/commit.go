@@ -9,7 +9,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) commit(ctx context.Context, vb *batonkit.ValidatableBlock) proto.BlockID {
+func (b *Baton) commit(ctx context.Context, vb *batonkit.CommittableBlock) proto.BlockID {
 
 	onto := vb.Onto
 	validatedBlockID := vb.AlreadyValidated

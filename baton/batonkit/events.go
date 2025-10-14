@@ -41,7 +41,7 @@ type EventCommitted struct {
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash
 	//
-	DbgValidatable *ValidatableBlock
+	DbgValidatable *CommittableBlock
 }
 
 func (x EventCommitted) String() string {

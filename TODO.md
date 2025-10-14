@@ -6,12 +6,17 @@ SCHEDULER INTEGRATION
 - [x] fix events.go
 
 - [ ] fix tests in baton
+  - [ ] fix externalized block on top of db, not previously validated
+    - don't present as committable (unless catchup available)
+    - reqest catchup block
+
+- [ ] add Schedulercoord_submit_peer_txs, Schedulercoord_lookup_txs
+  - [ ] rewrite repair agent to use scheduler
 
 - [x] register with scheduler (scheduler flag)
 - [x] accept vetted txs from scheduler
 - [x] remove mempools
 - [x] remove NothingToNominate error
-- [ ] rewrite repair agent to use scheduler
 
 ROADMAP
 
