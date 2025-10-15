@@ -3,6 +3,7 @@ package repair
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sched"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -32,12 +33,26 @@ func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
 ) (proto.RepairedTransactions, error) {
-	<-x.ready
+	<-x.ready // wait for x.conn != nil
 
-	// XXX: loookup transactions from mempool
-	panic("XXX")
+	// XXX: verify env.Missing_transactions.Block_hash is our nomination, and
+	// XXX: requested txs are part of our nomination
 
-	// return proto.RepairedTransactions{
-	// 	Transactions: XXX,
-	// }, nil
+	found, err := x.conn.Schedcoord_lookup_transactions(ctx, env.Missing_transactions.Transaction_hashes)
+	must.NoError(ctx, err)
+	must.Assert(ctx, len(found) == len(env.Missing_transactions.Transaction_hashes))
+
+	txs := make([]proto.SignedTransaction, len(env.Missing_transactions.Transaction_hashes))
+	for i, otx := range found {
+		// we must have all transactions that we have nominated, or else
+		// the request is invalid
+		if otx == nil {
+			return proto.RepairedTransactions{}, nil
+		}
+		txs[i] = *otx
+	}
+
+	return proto.RepairedTransactions{
+		Transactions: txs,
+	}, nil
 }
