@@ -1,6 +1,6 @@
 SCHEDULER INTEGRATION
 
-- [ ] reject validations below or at db tip
+- [x] reject validations below or at db tip
 - [ ] wait when asked to validate ahead of dbtip+1
 
 ROADMAP

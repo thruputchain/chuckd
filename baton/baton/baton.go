@@ -106,7 +106,7 @@ func (b *Baton) start(ctx context.Context) {
 	}
 }
 
-func (b *Baton) WaitGrowBeyond(ctx context.Context, height proto.BlockHeight) {
+func (b *Baton) WaitExternalizedAbove(ctx context.Context, height proto.BlockHeight) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {
@@ -130,4 +130,20 @@ func (b *Baton) seenExternalizationsAbove(height proto.BlockHeight) bool {
 		return false
 	}
 	return b.externalized[len(b.externalized)-1].Block_height > height
+}
+
+func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (proto.DbTip, error) {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	for {
+		select {
+		case <-ctx.Done():
+			return proto.DbTip{}, ctx.Err()
+		default:
+		}
+		if tip := b.haveCommitAt(height); tip != nil {
+			return *tip, nil
+		}
+		b.cond.Wait()
+	}
 }

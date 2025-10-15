@@ -86,47 +86,58 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 	b.lock()
 	dbTip := b.tip
-	numExt := len(b.externalized)
 	_, alreadyValidated := b.validated[nomination.Block_hash]
 	b.unlock()
-
-	if alreadyValidated {
-		reply <- scpapi.FullyValidValue
-		return
-	}
 
 	if nomination.Block_height <= dbTip.Height {
 		liblog.Infof("cannot validate, nomination below tip")
 		reply <- scpapi.InvalidValue
 		return
 	}
-	if nomination.Block_height > dbTip.Height+1 {
-		liblog.Infof("cannot validate, nomination far ahead")
-		//XXX: wait until we reach height
-		reply <- scpapi.MaybeValidValue
-		return
-	}
-	if nomination.Prev_block_hash != dbTip.Hash {
-		liblog.Infof("cannot validate, previous block %v != db tip %v",
-			form.Display(nomination.Prev_block_hash), form.Display(dbTip.Hash))
-		reply <- scpapi.InvalidValue
-		return
-	}
-	if numExt > 0 {
-		liblog.Infof("cannot validate, newer externalizations not processed")
-		reply <- scpapi.InvalidValue // there are newer externalizations
+
+	if alreadyValidated {
+		reply <- scpapi.FullyValidValue
 		return
 	}
 
 	go func() {
+
+		// Step 1: cancel validation request if externalization arise
+
 		// this context will be cancelled upon new externalizations or commits
 		vCtx, vCtxCancel := context.WithCancel(ctx)
 		go func() {
 			// waiter is cancelled whenever validation completes or externalization occurs
-			b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
+			b.WaitExternalizedAbove(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
 			vCtxCancel()
 		}()
 		defer vCtxCancel()
+
+		// Step 2: wait for the block below the validation request to be committed
+
+		if nomination.Block_height > dbTip.Height+1 {
+
+			tip, err := b.WaitCommittedAt(vCtx, nomination.Block_height-1)
+			if err != nil { // context cancelled
+				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+				reply <- scpapi.InvalidValue
+				return
+			}
+			dbTip = tip
+		}
+
+		must.Assert(ctx, dbTip.Height+1 == nomination.Block_height)
+
+		// Step 3: sanity check nomination
+
+		if nomination.Prev_block_hash != dbTip.Hash {
+			liblog.Infof("cannot validate, previous block %v != db tip %v",
+				form.Display(nomination.Prev_block_hash), form.Display(dbTip.Hash))
+			reply <- scpapi.InvalidValue
+			return
+		}
+
+		// Step 4: start validation
 
 		validatedTip, err := b.validate(vCtx, dbTip, nomination)
 		if err != nil {
