@@ -174,26 +174,18 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	x.baton.lock()
 	defer x.baton.unlock()
 
-	// check validity and update state
-	ok := isValidExternalization(x.baton.tip, &nomination, x.baton.externalized)
-	if ok {
-		x.baton.externalized = append(x.baton.externalized, &nomination)
-	}
+	checkExternalizationCompatible(ctx, x.baton.tip, &nomination, x.baton.externalized)
+	x.baton.externalized = append(x.baton.externalized, &nomination)
 }
 
-func isValidExternalization(tip proto.DbTip, p *proto.Nomination, ps []*proto.Nomination) bool {
-	if len(ps) == 0 {
-		return true
+// checkExternalizationCompatible checks that an externalization is compatible with the state of our system
+func checkExternalizationCompatible(ctx context.Context, tip proto.DbTip, ext *proto.Nomination, priorExts []*proto.Nomination) {
+	must.Assertf(ctx, ext.Block_height > tip.Height,
+		"externalization height %d is not above db %d", ext.Block_height, tip.Height)
+	if len(priorExts) == 0 {
+		return // no prior externalizations
 	}
-	last := ps[len(ps)-1]
-	if p.Block_height <= tip.Height {
-		return false
-	}
-	if p.Block_height <= last.Block_height {
-		return false
-	}
-	if p.Block_height == last.Block_height+1 && p.Prev_block_hash != last.Block_hash {
-		return false
-	}
-	return true
+	last := priorExts[len(priorExts)-1]
+	must.Assert(ctx, ext.Block_height > last.Block_height)
+	must.Assert(ctx, ext.Block_height != last.Block_height+1 || ext.Prev_block_hash == last.Block_hash)
 }

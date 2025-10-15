@@ -100,11 +100,7 @@ func Try1Thru[R1 any](f func() R1) (_ R1, err *Error) {
 func LogPanic(r any) {
 	if xerr, ok := r.(*Error); ok {
 		if xerr != nil {
-			if liblog.IsVerbose() {
-				liblog.Error().Str("stack", xerr.StackString()).Msg(xerr.Error())
-			} else {
-				liblog.Error().Msg(xerr.Error())
-			}
+			liblog.Errorf("%s\n%s", xerr.Error(), xerr.StackString())
 		} else {
 			liblog.Errorf("encountered panic without error payload")
 		}

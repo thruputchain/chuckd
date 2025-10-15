@@ -16,10 +16,6 @@ func init() {
 	LogLevel(zerolog.ErrorLevel)
 }
 
-func IsVerbose() bool {
-	return zerolog.GlobalLevel() < zerolog.WarnLevel
-}
-
 func LogLevel(level zerolog.Level) error {
 	zerolog.SetGlobalLevel(level)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
