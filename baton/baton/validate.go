@@ -3,11 +3,11 @@ package baton
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -88,17 +88,14 @@ func (b *Baton) repairMissingTxs(
 
 	liblog.Debugf("baton repairing %d missing transactions", len(missing.Transaction_hashes))
 
-	time.Sleep(time.Second / 2)
-	return nil
-
-	//XXX: temporarily disable the code below
-
 	stxs, err := b.handler.RepairMissingTxs(ctx, proposer, missing)
 	if err != nil {
-		return err // this can only ever be context cancelled
+		// this can only ever be context cancelled
+		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+		return err
 	}
 
-	err = b.handler.Schedulercoord_submit_unvetted(ctx, stxs)
+	err = b.handler.Schedulercoord_submit_vetted(ctx, protoutil.PublicVID(proposer), stxs)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return err

@@ -83,6 +83,14 @@ func (x *TestScheduler) Schedulercoord_submit_vetted(ctx context.Context, vid pr
 	return nil
 }
 
+func (x *TestScheduler) Schedcoord_lookup_transactions(
+	ctx context.Context,
+	hashes proto.SignedTransactionHashBatch,
+) (proto.OptSignedTransactionBatch, error) {
+	_, _, mixed := x.mempool.LookupTxs(hashes)
+	return mixed, nil
+}
+
 func (x *TestScheduler) Schedulercoord_nominate(ctx context.Context, onto proto.DbTip) (proto.SchedulerNominationResult, error) {
 
 	blockID := x.generateBlockID()
@@ -122,7 +130,7 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 	blockID := x.generateBlockID()
 	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeValidation)
 
-	txs, missingTxHashes := x.mempool.LookupTxs(nomination.Transaction_hashes)
+	txs, missingTxHashes, _ := x.mempool.LookupTxs(nomination.Transaction_hashes)
 	if len(missingTxHashes) > 0 {
 		x.db.AbandonSnapshot(ctx, blockID)
 		r := proto.SchedulerValidationResult{
@@ -134,7 +142,7 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 
 	for i, tx := range txs {
 		ptx := &proto.ProposedTransaction{
-			Signed_tx:                      *tx,
+			Signed_tx:                      tx,
 			Nondeterministic_proposal_data: nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
 		}
 		x.db.AddProposedTx(ctx, blockID, ptx)

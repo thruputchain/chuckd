@@ -41,22 +41,29 @@ func (x *TestMempool) DrainTxs() []*proto.SignedTransaction {
 
 func (x *TestMempool) LookupTxs(
 	hashes []proto.SignedTransactionHash,
-) (found []*proto.SignedTransaction, missing []proto.SignedTransactionHash) {
+) (
+	found []proto.SignedTransaction,
+	missing []proto.SignedTransactionHash,
+	mixed proto.OptSignedTransactionBatch,
+) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	found = make([]*proto.SignedTransaction, len(hashes))
+	found = make([]proto.SignedTransaction, len(hashes))
 	missing = []proto.SignedTransactionHash{}
+	mixed = make(proto.OptSignedTransactionBatch, len(hashes))
 	for i, h := range hashes {
-		var ok bool
-		found[i], ok = x.pool[h]
-		if !ok {
+		got, ok := x.pool[h]
+		if ok {
+			found[i] = *got
+			mixed[i] = got
+		} else {
 			missing = append(missing, h)
 		}
 	}
 	if len(missing) > 0 {
-		return nil, missing
+		return nil, missing, mixed
 	}
-	return found, nil
+	return found, nil, mixed
 }
 
 func (x *TestMempool) RemoveTxs(hashes []proto.SignedTransactionHash) {
