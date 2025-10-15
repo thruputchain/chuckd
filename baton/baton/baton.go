@@ -118,7 +118,6 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// commit next block, if one is available and no commit is in progress
 	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
-		liblog.Debugf("XXX %s", form.Display(cb))
 		liblog.Debugf("baton committing [height %v; hash %s]", cb.BlockHeight(), form.Display(cb.BlockHash()))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
@@ -189,7 +188,8 @@ func (b *Baton) drive(ctx context.Context) {
 					Nomination: nomination,
 					BlockID:    blockID,
 				}
-				liblog.Infof("nominated at block height %d", nomination.Block_height)
+				liblog.Infof("nominated block at height %d with hash %s",
+					nomination.Block_height, form.Display(nomination.Block_hash))
 			}
 		}()
 	}

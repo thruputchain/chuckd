@@ -62,7 +62,7 @@ func TestNominateCommit(t *testing.T) {
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                       // txs for stage 3
 	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.DbgNomination).Bytes()) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
-	if committed.DbgValidatable.AlreadyValidated == nil {
+	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
 
@@ -81,15 +81,17 @@ func TestValidateCommit(t *testing.T) {
 	ctx, rig, baton, tick := testSetup()
 
 	// stage 1: validate [1]
-	baton.Start(ctx)
 	block := rig.GenNomination(ctx, 2)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
+
+	baton.Start(ctx)
 
 	// consume nomination
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
+	liblog.Debugf("STAGE 1: nomination succeeded")
 
 	vlevel := rig.ValidateNominationValue(
 		ctx,
@@ -102,12 +104,13 @@ func TestValidateCommit(t *testing.T) {
 	if <-vlevel != scpapi.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
+	liblog.Debugf("STAGE 1: validation succeeded")
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
 	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.Nomination).Bytes())
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
-	if committed.DbgValidatable.AlreadyValidated == nil {
+	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
 	}
 }
@@ -155,7 +158,7 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.Nomination).Bytes())
 	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
-	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated) //XXX: hanging; trying repair txs, but should be trying catchup
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.Height != 1 {
 		t.Errorf("expecting committed height 1")

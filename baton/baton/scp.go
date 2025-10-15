@@ -137,6 +137,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 		// cache validated blocks
 		b.lock()
+		liblog.Debugf("caching validation for %s", form.Display(nomination.Block_hash))
 		b.validated[nomination.Block_hash] = validated{
 			Nomination: nomination,
 			BlockID:    validatedTip.Id,
