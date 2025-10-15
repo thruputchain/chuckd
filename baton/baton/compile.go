@@ -123,8 +123,6 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		return nil, err
 	}
 
-	v.NextToCommit = v.nextBlockToCommit(b)
-
 	return v, nil
 }
 

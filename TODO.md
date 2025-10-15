@@ -1,7 +1,7 @@
 SCHEDULER INTEGRATION
 
-- [ ] add Schedulercoord_submit_peer_txs, Schedulercoord_lookup_txs
-  - [ ] rewrite repair agent to use scheduler
+- [ ] reject validations below or at db tip
+- [ ] wait when asked to validate ahead of dbtip+1
 
 ROADMAP
 

@@ -102,6 +102,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 	}
 	if nomination.Block_height > dbTip.Height+1 {
 		liblog.Infof("cannot validate, nomination far ahead")
+		//XXX: wait until we reach height
 		reply <- scpapi.MaybeValidValue
 		return
 	}

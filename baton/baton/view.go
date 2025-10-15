@@ -10,10 +10,9 @@ import (
 )
 
 type View struct {
-	Stamp        time.Time
-	Blocks       []ViewBlock
-	Reqs         [][]batonkit.ID64 // catchup requests already fired for this block
-	NextToCommit *batonkit.CommittableBlock
+	Stamp  time.Time
+	Blocks []ViewBlock
+	Reqs   [][]batonkit.ID64 // catchup requests already fired for this block
 }
 
 func (v *View) TipToNominateOn() *proto.DbTip {
@@ -25,10 +24,6 @@ func (v *View) TipToNominateOn() *proto.DbTip {
 }
 
 func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {
-	return v.NextToCommit
-}
-
-func (v *View) nextBlockToCommit(b *Baton) *batonkit.CommittableBlock {
 
 	if len(v.Blocks) < 2 {
 		return nil
