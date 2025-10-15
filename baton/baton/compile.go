@@ -134,7 +134,11 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 		switch u := v.Blocks[i].(type) {
 		case nil:
 			if cb, ok := b.findCatchupBlockAtHeight(height); ok {
-				v.Blocks[i] = ViewCatchupBlock{Candidate: cb, Linked: false} // linked will be computed later
+				v.Blocks[i] = ViewCatchupBlock{
+					Candidate: cb,
+					Linked:    false, // linked will be computed later
+					Validated: b.getValidated(cb.BlockHash()),
+				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}
 			}

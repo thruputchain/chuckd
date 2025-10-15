@@ -119,8 +119,11 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	block1 := rig.GenNomination(ctx, 1)
 	block2 := rig.GenNominationOntoBlock(ctx, 1, block1)
+
 	rig.AddTxs(ctx, protoutil.Unpack(block2.Txs)...) // prevent catchup request for [2]
+
 	rig.StageCatchup(block1.Catchup)
+	rig.StageCatchup(block2.Catchup)
 
 	baton.Start(ctx)
 

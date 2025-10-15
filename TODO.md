@@ -1,18 +1,7 @@
 SCHEDULER INTEGRATION
 
-- [x] handle missing txs
-- [x] make number of blocks, beyond which catchup doesn't help, dynamically configurable
-- [x] emitted events need not include large ValidatableBlock object
-- [x] fix events.go
-- [x] fix tests in baton
-
 - [ ] add Schedulercoord_submit_peer_txs, Schedulercoord_lookup_txs
   - [ ] rewrite repair agent to use scheduler
-
-- [x] register with scheduler (scheduler flag)
-- [x] accept vetted txs from scheduler
-- [x] remove mempools
-- [x] remove NothingToNominate error
 
 ROADMAP
 
@@ -22,10 +11,8 @@ ROADMAP
   - [ ] include timestamp and config updates
 
 
-- [ ] pebble db in catchup cache
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
-- [ ] tier-1 router with weighted sampling
 
 
 XDR
@@ -48,12 +35,3 @@ GITHUB
 IDEAS
 
 - Marco: nodes disseminate network topology (instead of trees), can even use set reconciliation
-- active queue management https://en.wikipedia.org/wiki/CoDel
-
-- multiple channels per worker pools
-- or, one goroutine that stays with a packet through all its life
-    https://vimeo.com/649009599
-
-- raptorQ
-  - https://datatracker.ietf.org/doc/html/rfc6330
-  - https://datatracker.ietf.org/ipr/2554/

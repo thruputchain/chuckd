@@ -30,21 +30,23 @@ func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {
 
 func (v *View) nextBlockToCommit(b *Baton) *batonkit.CommittableBlock {
 
-	if len(v.Blocks) < 2 || !v.Blocks[1].IsReadyToCommit() {
+	if len(v.Blocks) < 2 {
 		return nil
 	}
-	vb := v.Blocks[1].CommittableBlock()
+
+	committable := v.Blocks[1].Committable()
+
+	if committable == nil {
+		return nil
+	}
 
 	// db state
 	db := v.Blocks[0].(ViewDbBlock)
-	vb.Onto = db.Tip
 
-	// are we committing a block that we have already validated?
-	if vtd, ok := b.validated[vb.BlockHash()]; ok {
-		vb.AlreadyValidated = &vtd.BlockID
+	return &batonkit.CommittableBlock{
+		Committable: committable,
+		Onto:        db.Tip,
 	}
-
-	return vb
 }
 
 func (v *View) indexHeight(i int) proto.BlockHeight {
@@ -68,7 +70,7 @@ func (v *View) NeededUnrequestedSpans() Spans {
 					start = &j
 				}
 			case ViewExternalizedBlock:
-				if u.IsReadyToCommit() {
+				if u.Committable() != nil {
 					if start != nil {
 						spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
 						start = nil

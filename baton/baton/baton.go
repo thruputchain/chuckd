@@ -113,18 +113,18 @@ func (b *Baton) drive(ctx context.Context) {
 
 	v := b.buildCleanView(ctx)
 
-	// liblog.Debugf("baton stats: %s num_txs=%d num_committed_tx=%d",
-	// 	v.ShortString(), b.handler.TxCount(), b.handler.CommittedTxCount())
+	liblog.Debugf("baton view: %s", v.ShortString())
 	// liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
-	// validate and commit next block, if one is available and no commit is in progress
-	if vb := v.NextBlockToCommit(); vb != nil && !b.committing {
-		liblog.Debugf("baton committing [height %v; hash %s]", vb.BlockHeight(), form.Display(vb.BlockHash()))
+	// commit next block, if one is available and no commit is in progress
+	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
+		liblog.Debugf("XXX %s", form.Display(cb))
+		liblog.Debugf("baton committing [height %v; hash %s]", cb.BlockHeight(), form.Display(cb.BlockHash()))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
-		b.cancelNominatingNotAbove(ctx, vb.BlockHeight())
+		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 		go func() {
-			blockID := b.commit(ctx, vb)
+			blockID := b.commit(ctx, cb)
 
 			b.lock()
 			defer b.unlock()
@@ -132,12 +132,12 @@ func (b *Baton) drive(ctx context.Context) {
 			must.Assertf(ctx, b.committing, "race committing")
 			b.committing = false
 
-			if b.tip.Height+1 != vb.BlockHeight() {
+			if b.tip.Height+1 != cb.BlockHeight() {
 				panic("bug")
 			}
 
-			b.tip.Hash = vb.BlockHash()
-			b.tip.Height = vb.BlockHeight()
+			b.tip.Hash = cb.BlockHash()
+			b.tip.Height = cb.BlockHeight()
 			b.tip.Id = blockID
 
 			// purge catchup or consensus blocks no higher than the newly committed one
