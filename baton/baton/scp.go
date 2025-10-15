@@ -121,7 +121,7 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		// this context will be cancelled upon new externalizations or commits
 		vCtx, vCtxCancel := context.WithCancel(ctx)
 		go func() {
-			// XXX: cancel the waiter of validation completes
+			// waiter is cancelled whenever validation completes or externalization occurs
 			b.WaitGrowBeyond(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
 			vCtxCancel()
 		}()
