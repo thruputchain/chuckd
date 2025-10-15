@@ -63,7 +63,6 @@ func (b *Baton) validate(
 			err := b.repairMissingTxs(ctx, nomination.Proposer, missing)
 			if err != nil { // err can only be context cancelled
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-					//XXX: check that upstream caller handles this error correctly
 					return proto.DbTip{}, err
 				}
 				must.NoError(ctx, err)

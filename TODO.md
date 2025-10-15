@@ -6,6 +6,8 @@ SCHEDULER INTEGRATION
 ROADMAP
 
 - [ ] intro BlockHeader { timestamp, height, merkle_hash, txset hash, updates? }
+  - [ ] verify that the hashes in nomination and catchup blocks match the contents of the block
+
 - [ ] design scp values 
   - [ ] separate block txset distribution from scp value
   - [ ] include timestamp and config updates

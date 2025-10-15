@@ -69,11 +69,16 @@ func (x *TestScheduler) AddTxs(ctx context.Context, txs ...*proto.SignedTransact
 }
 
 func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
-	<-x.ready
+	<-x.ready // wait for x.coord != nil
 
 	err := x.coord.Coordscheduler_notify_vetted(ctx, txs)
 	must.NoError(ctx, err)
 
+	x.mempool.AddTxs(txs)
+	return nil
+}
+
+func (x *TestScheduler) Schedulercoord_submit_vetted(ctx context.Context, vid proto.ValidatorID, txs proto.SignedTransactionBatch) error {
 	x.mempool.AddTxs(txs)
 	return nil
 }
@@ -161,4 +166,8 @@ func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.DbTipResu
 	}
 	*r.Db_tip() = x.db.GetTip()
 	return r, nil
+}
+
+func (x *TestScheduler) Schedcoord_load_genesis_block(context.Context, proto.GenesisBlock) (proto.DbSchedResult, error) {
+	panic("not used")
 }

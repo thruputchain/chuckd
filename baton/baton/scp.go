@@ -2,9 +2,11 @@ package baton
 
 import (
 	"context"
+	"errors"
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/scp/scpapi"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -128,9 +130,10 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		validatedTip, err := b.validate(vCtx, dbTip, nomination)
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
+			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			// it occurs only if scp has externalized newer blocks and thus
 			// the validation request is not relevant any longer.
-			// therefore, returning invalid value is not in violation of scp honest semantics.
+			// in this case, returning invalid value does not violate scp honest semantics.
 			reply <- scpapi.InvalidValue
 			return
 		}
