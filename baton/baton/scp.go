@@ -174,18 +174,27 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	x.baton.lock()
 	defer x.baton.unlock()
 
-	checkExternalizationCompatible(ctx, x.baton.tip, &nomination, x.baton.externalized)
-	x.baton.externalized = append(x.baton.externalized, &nomination)
+	if isNewExternalization(ctx, x.baton.tip, &nomination, x.baton.externalized) {
+		x.baton.externalized = append(x.baton.externalized, &nomination)
+	}
 }
 
-// checkExternalizationCompatible checks that an externalization is compatible with the state of our system
-func checkExternalizationCompatible(ctx context.Context, tip proto.DbTip, ext *proto.Nomination, priorExts []*proto.Nomination) {
-	must.Assertf(ctx, ext.Block_height > tip.Height,
-		"externalization height %d is not above db %d", ext.Block_height, tip.Height)
-	if len(priorExts) == 0 {
-		return // no prior externalizations
+// isNewExternalization checks that an externalization has not already been seen;
+// scp can produce duplicate externalizations.
+func isNewExternalization(ctx context.Context, tip proto.DbTip, ext *proto.Nomination, priorExts []*proto.Nomination) bool {
+	if ext.Block_height <= tip.Height {
+		return false
 	}
-	last := priorExts[len(priorExts)-1]
-	must.Assert(ctx, ext.Block_height > last.Block_height)
-	must.Assert(ctx, ext.Block_height != last.Block_height+1 || ext.Prev_block_hash == last.Block_hash)
+	if len(priorExts) == 0 {
+		return true // no prior externalizations
+	}
+	lastExt := priorExts[len(priorExts)-1]
+	if ext.Block_height <= lastExt.Block_height {
+		return false
+	}
+	must.Assertf(ctx,
+		ext.Block_height != lastExt.Block_height+1 || ext.Prev_block_hash == lastExt.Block_hash,
+		"scp externalization is invalid",
+	)
+	return true
 }
