@@ -278,7 +278,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 			// 	protoutil.VIDString(sender),
 			// 	form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
 
-			err := schedConn.Schedulercoord_submit_unvetted(ctx, submittedTxs.Transactions)
+			err := schedConn.Schedulercoord_submit_vetted(
+				ctx,
+				proto.ValidatorID{}, // XXX: who vetted them is not known
+				submittedTxs.Transactions)
 			must.NoError(ctx, err)
 		}
 	}()
