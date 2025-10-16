@@ -1,6 +1,8 @@
 CONSENSUS VALUE
 
 - [ ] validate timestamp
+  - not in the future
+  - monotonically increasing
 - [ ] verify that catchup blocks (proposal+upgrades) include valid upgrades
   - current block hash linking algorithm does not consider updates
 

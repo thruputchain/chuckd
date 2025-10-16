@@ -86,7 +86,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 
 	b.lock()
 	dbTip := b.tip
-	_, alreadyValidated := b.validated[cv.Nomination.Block_hash]
+	alreadyValidated := b.isAlreadyValidated(cv)
 	b.unlock()
 
 	if cv.Nomination.Block_height <= dbTip.Height {
@@ -95,7 +95,6 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		return
 	}
 
-	// XXX: alreadyValidated does not account for upgrades
 	if alreadyValidated {
 		reply <- scpapi.FullyValidValue
 		return
@@ -158,10 +157,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		// cache validated blocks
 		b.lock()
 		liblog.Debugf("caching validation for %s", form.Display(cv.Nomination.Block_hash))
-		b.validated[cv.Nomination.Block_hash] = validated{
-			Nomination: &cv.Nomination,
-			BlockID:    validatedTip.Id,
-		}
+		b.setValidated(cv, validatedTip.Id)
 		b.unlock()
 
 		reply <- scpapi.FullyValidValue

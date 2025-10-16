@@ -11,8 +11,24 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) getValidated(hash proto.BlockHash) *proto.BlockID {
-	v, ok := b.validated[hash]
+func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
+	return protoutil.HashCV(b.cvM, cv)
+}
+
+func (b *Baton) isAlreadyValidated(cv *proto.ConsensusValue) bool {
+	_, alreadyValidated := b.validated[b.hashCV(cv)]
+	return alreadyValidated
+}
+
+func (b *Baton) setValidated(cv *proto.ConsensusValue, blockID proto.BlockID) {
+	b.validated[b.hashCV(cv)] = validated{
+		ConsensusValue: cv,
+		BlockID:        blockID,
+	}
+}
+
+func (b *Baton) getValidated(cv *proto.ConsensusValue) *proto.BlockID {
+	v, ok := b.validated[b.hashCV(cv)]
 	if !ok {
 		return nil
 	}

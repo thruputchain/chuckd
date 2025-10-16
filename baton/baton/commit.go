@@ -68,17 +68,17 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	b.catchupBlocks = catchup
 
 	// purge consensus blocks
-	var props []*proto.Nomination
+	var exts []*proto.ConsensusValue
 	for _, p := range b.externalized {
-		if p.Block_height > b.tip.Height {
-			props = append(props, p)
+		if p.Nomination.Block_height > b.tip.Height {
+			exts = append(exts, p)
 		}
 	}
-	b.externalized = props
+	b.externalized = exts
 
 	// purge validations
 	for h, p := range b.validated {
-		if p.Block_height <= b.tip.Height {
+		if p.Nomination.Block_height <= b.tip.Height {
 			delete(b.validated, h)
 		}
 	}

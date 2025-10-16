@@ -97,7 +97,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		//
 		v.Blocks[int(cv.Nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
 			Nomination: &cv.Nomination,
-			Validated:  b.getValidated(cv.Nomination.Block_hash),
+			Validated:  b.getValidated(cv),
 		}
 	}
 
@@ -134,8 +134,8 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 				v.Blocks[i] = ViewCatchupBlock{
 					Candidate: cb,
-					Linked:    false, // linked will be computed later
-					Validated: b.getValidated(cb.BlockHash()),
+					Linked:    false,                          // linked will be computed later
+					Validated: b.getValidated(cb.BlockHash()), //XXX: catchup will include cv
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}

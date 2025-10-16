@@ -25,7 +25,8 @@ func NewBaton(
 		maxCatchupHeight: int(cfg.Max_catchup_height),
 		scp:              make(chan struct{}),
 		catchupRequests:  map[batonkit.ID64]catchupRequest{},
-		validated:        map[proto.BlockHash]validated{},
+		validated:        map[proto.ConsensusValueHash]validated{},
+		cvM:              xdrutil.NewXdrMarshaler(),
 		txM:              xdrutil.NewXdrMarshaler(),
 		nomM:             xdrutil.NewXdrMarshaler(),
 		catchupReqM:      xdrutil.NewXdrMarshaler(),
@@ -52,17 +53,18 @@ type Baton struct {
 	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.ConsensusValue
-	validated       map[proto.BlockHash]validated
+	validated       map[proto.ConsensusValueHash]validated
 
 	// xdr marshalers
-	txM            xdrutil.XdrMarshaler
+	cvM            xdrutil.XdrMarshaler // for marshalling ConsensusValue
+	txM            xdrutil.XdrMarshaler // for marshalling SignedTransaction
 	nomM           xdrutil.XdrMarshaler
 	catchupReqM    xdrutil.XdrMarshaler
 	catchupResultM xdrutil.XdrMarshaler
 }
 
 type validated struct {
-	*proto.Nomination
+	*proto.ConsensusValue
 	proto.BlockID
 }
 
