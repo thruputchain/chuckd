@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -63,7 +64,7 @@ func (b *Baton) drive(ctx context.Context) {
 		}
 		b.nominating = current
 		go func() {
-			nomination, blockID, err := b.nominate(nomCtx, *tipToNominateOn)
+			cv, blockID, err := b.nominate(nomCtx, *tipToNominateOn)
 			current.Cancel()
 
 			b.lock()
@@ -82,15 +83,15 @@ func (b *Baton) drive(ctx context.Context) {
 
 			if !currentWasReplaced {
 				b.nominated = &nominated{
-					Time:       b.handler.Now(),
-					Nomination: nomination,
+					Time:           time.Unix(0, int64(cv.Timestamp)),
+					ConsensusValue: cv,
 				}
-				b.validated[nomination.Block_hash] = validated{
-					Nomination: nomination,
+				b.validated[cv.Nomination.Block_hash] = validated{
+					Nomination: &cv.Nomination,
 					BlockID:    blockID,
 				}
 				liblog.Infof("nominated block at height %d with hash %s",
-					nomination.Block_height, form.Display(nomination.Block_hash))
+					cv.Nomination.Block_height, form.Display(cv.Nomination.Block_hash))
 			}
 		}()
 	}

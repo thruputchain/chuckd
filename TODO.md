@@ -11,6 +11,7 @@ ROADMAP
 - [ ] upgrade mechanism
   - [ ] baton pulls pending upgrades from persistence and places them in consensus values
   - [ ] extract valid value strips unrecognizable upgrades?
+  - [ ] NOTE that baton.validated caches block validations, but on the upgrade validations
 
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls

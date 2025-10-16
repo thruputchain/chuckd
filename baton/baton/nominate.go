@@ -19,7 +19,7 @@ type nominating struct {
 
 type nominated struct {
 	time.Time
-	Nomination *proto.Nomination
+	ConsensusValue *proto.ConsensusValue
 }
 
 func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating, nominated *nominated) bool {
@@ -30,17 +30,17 @@ func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating
 	case nominating == nil && nominated == nil:
 		return true
 	case nominating == nil && nominated != nil:
-		return tipToNominateOn.Height+1 > nominated.Nomination.Block_height
+		return tipToNominateOn.Height+1 > nominated.ConsensusValue.Nomination.Block_height
 	case nominating != nil && nominated == nil:
 		return tipToNominateOn.Height > nominating.Onto.Height
 	case nominating != nil && nominated != nil:
 		return tipToNominateOn.Height > nominating.Onto.Height &&
-			tipToNominateOn.Height+1 > nominated.Nomination.Block_height
+			tipToNominateOn.Height+1 > nominated.ConsensusValue.Nomination.Block_height
 	}
 	panic("unreachable")
 }
 
-func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nomination, proto.BlockID, error) {
+func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.ConsensusValue, proto.BlockID, error) {
 
 	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tip)
 	// we cannot continue if nomination fails
@@ -50,7 +50,13 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nominatio
 	schedNom := *schedNomResult.Scheduler_nomination()
 
 	nom := &schedNom.Nomination
-	nom.Proposer = b.handler.Signer()
+	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
+
+	cv := &proto.ConsensusValue{
+		Timestamp:  uint64(b.handler.Now().UnixNano()),
+		Nomination: *nom,
+		Upgrades:   nil, // XXX: placeholder for upgrades
+	}
 
 	b.handler.Emit(ctx, batonkit.EventNominating{
 		Onto:   tip,
@@ -63,7 +69,7 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nominatio
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
-	if ok := b.handler.Nominate(ctx, scpapi.Slot(nom.Block_height), nom, &prevSummary); ok {
+	if ok := b.handler.Nominate(ctx, scpapi.Slot(nom.Block_height), cv, &prevSummary); ok {
 		b.handler.Emit(ctx, batonkit.EventNominated{
 			Onto:   tip,
 			NumTx:  len(nom.Transaction_hashes),
@@ -76,7 +82,7 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Nominatio
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(tip))
 	}
 
-	return nom, schedNom.Block_id, nil
+	return cv, schedNom.Block_id, nil
 }
 
 func (b *Baton) cancelNominatingNotAbove(_ context.Context, height proto.BlockHeight) {
