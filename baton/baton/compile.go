@@ -96,8 +96,8 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		scpPrevHeight = cv.Nomination.Block_height
 		//
 		v.Blocks[int(cv.Nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
-			Nomination: &cv.Nomination,
-			Validated:  b.getValidated(cv),
+			ConsensusValue: cv,
+			Validated:      b.getValidated(cv),
 		}
 	}
 
@@ -134,8 +134,8 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 				v.Blocks[i] = ViewCatchupBlock{
 					Candidate: cb,
-					Linked:    false,                          // linked will be computed later
-					Validated: b.getValidated(cb.BlockHash()), //XXX: catchup will include cv
+					Linked:    false, // linked will be computed later
+					Validated: b.getValidated(&cb.Block.Consensus_value),
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}
@@ -145,7 +145,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if u.Validated == nil {
 				if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-					if cb.BlockHash() == u.BlockHash() && cb.PrevBlockHash() == u.PrevBlockHash() {
+					if b.hashCV(&cb.Block.Consensus_value) == b.hashCV(u.ConsensusValue) {
 						u.Catchup = &cb
 						v.Blocks[i] = u
 					} else {
@@ -160,6 +160,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 	return nil
 }
 
+// XXX: consensus value must include the hash of the previous consensus value to enable correct chaining here
 func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 	prev := v.Blocks[0]
 	for i := 1; i < len(v.Blocks); i++ {

@@ -62,24 +62,30 @@ func (x ViewCatchupBlock) Icon() string {
 }
 
 type ViewExternalizedBlock struct {
-	Nomination *proto.Nomination
-	Validated  *proto.BlockID
-	Catchup    *CatchupBlock
+	ConsensusValue *proto.ConsensusValue
+	Validated      *proto.BlockID
+	Catchup        *CatchupBlock
 }
 
-func (x ViewExternalizedBlock) BlockHash() proto.BlockHash     { return x.Nomination.Block_hash }
-func (x ViewExternalizedBlock) BlockHeight() proto.BlockHeight { return x.Nomination.Block_height }
-func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash { return x.Nomination.Prev_block_hash }
-func (x ViewExternalizedBlock) IsMissing() bool                { return false }
-func (x ViewExternalizedBlock) IsSCP() bool                    { return true }
-func (x ViewExternalizedBlock) IsCatchup() bool                { return false }
-func (x ViewExternalizedBlock) IsDb() bool                     { return false }
+func (x ViewExternalizedBlock) BlockHash() proto.BlockHash {
+	return x.ConsensusValue.Nomination.Block_hash
+}
+func (x ViewExternalizedBlock) BlockHeight() proto.BlockHeight {
+	return x.ConsensusValue.Nomination.Block_height
+}
+func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash {
+	return x.ConsensusValue.Nomination.Prev_block_hash
+}
+func (x ViewExternalizedBlock) IsMissing() bool { return false }
+func (x ViewExternalizedBlock) IsSCP() bool     { return true }
+func (x ViewExternalizedBlock) IsCatchup() bool { return false }
+func (x ViewExternalizedBlock) IsDb() bool      { return false }
 func (x ViewExternalizedBlock) Committable() batonkit.Committable {
 	switch {
 	case x.Validated != nil:
 		return &batonkit.CommittableNomination{
-			Nomination: x.Nomination,
-			Validated:  x.Validated,
+			ConsensusValue: x.ConsensusValue,
+			Validated:      x.Validated,
 		}
 	case x.Catchup != nil:
 		return &batonkit.CommittableCatchup{

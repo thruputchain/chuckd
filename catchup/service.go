@@ -69,8 +69,8 @@ func (svc *CatchupService) Start(ctx context.Context, address string) {
 func (svc *CatchupService) Add(ctx context.Context, cb *proto.CatchupBlock) {
 	svc.lk.Lock()
 	defer svc.lk.Unlock()
-	svc.highest = max(svc.highest, cb.Block_height)
-	svc.block[cb.Block_height] = stampedCatchupBlock{Time: svc.time.Now(), CatchupBlock: cb}
+	svc.highest = max(svc.highest, cb.Consensus_value.Nomination.Block_height)
+	svc.block[cb.Consensus_value.Nomination.Block_height] = stampedCatchupBlock{Time: svc.time.Now(), CatchupBlock: cb}
 }
 
 func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) (*proto.CatchupBlock, bool) {
@@ -89,7 +89,7 @@ func (svc *CatchupService) expire(_ context.Context) {
 		now := svc.time.Now()
 		svc.lk.Lock()
 		for height, scb := range svc.block {
-			if now.Sub(scb.Time) > svc.ttl || svc.highest > svc.age+scb.Block_height {
+			if now.Sub(scb.Time) > svc.ttl || svc.highest > svc.age+scb.Consensus_value.Nomination.Block_height {
 				delete(svc.block, height)
 			}
 		}
@@ -126,7 +126,7 @@ func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.Signe
 	// log
 	var heights bytes.Buffer
 	for _, b := range blocks {
-		fmt.Fprintf(&heights, "%d, ", b.Block_height)
+		fmt.Fprintf(&heights, "%d, ", b.Consensus_value.Nomination.Block_height)
 	}
 	liblog.Infof("serving catchup heights %s", heights.String())
 

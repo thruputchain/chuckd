@@ -37,15 +37,15 @@ func (b CatchupBlock) Provider() proto.ValidatorID {
 }
 
 func (b CatchupBlock) BlockHeight() proto.BlockHeight {
-	return b.Block.Block_height
+	return b.Block.Consensus_value.Nomination.Block_height
 }
 
 func (b CatchupBlock) BlockHash() proto.BlockHash {
-	return b.Block.Block_hash
+	return b.Block.Consensus_value.Nomination.Block_hash
 }
 
 func (b CatchupBlock) PrevBlockHash() proto.BlockHash {
-	return b.Block.Prev_block_hash
+	return b.Block.Consensus_value.Nomination.Prev_block_hash
 }
 
 type catchupRequest struct {

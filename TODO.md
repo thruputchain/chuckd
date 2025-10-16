@@ -5,6 +5,7 @@ CONSENSUS VALUE
   - monotonically increasing
 - [ ] verify that catchup blocks (proposal+upgrades) include valid upgrades
   - current block hash linking algorithm does not consider updates
+  - consensus value must include the hash of the previous consensus value to enable correct chaining here
 
 - [ ] catchup blocks must include consensus value (timestamp and upgrades)
 

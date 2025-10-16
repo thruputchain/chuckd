@@ -86,10 +86,7 @@ func (b *Baton) drive(ctx context.Context) {
 					Time:           time.Unix(0, int64(cv.Timestamp)),
 					ConsensusValue: cv,
 				}
-				b.validated[cv.Nomination.Block_hash] = validated{
-					ConsensusValue: cv,
-					BlockID:        blockID,
-				}
+				b.setValidated(cv, blockID)
 				liblog.Infof("nominated block at height %d with hash %s",
 					cv.Nomination.Block_height, form.Display(cv.Nomination.Block_hash))
 			}

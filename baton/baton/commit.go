@@ -17,8 +17,8 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// validate, if not already validated
 	if validatedBlockID == nil {
 
-		nomination := cb.AsNomination(b.txM)
-		proposer := protoutil.PublicVID(nomination.Proposer)
+		cv := cb.AsConsensusValue()
+		proposer := protoutil.PublicVID(cv.Nomination.Proposer)
 
 		if txs := cb.SignedTransactions(); txs != nil {
 			// submit catchup transactions
@@ -26,7 +26,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 			must.NoError(ctx, err)
 		}
 
-		validatedTip, err := b.validate(ctx, cb.Onto, nomination)
+		validatedTip, err := b.validate(ctx, cb.Onto, cv)
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))

@@ -15,11 +15,6 @@ func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	return protoutil.HashCV(b.cvM, cv)
 }
 
-func (b *Baton) isAlreadyValidated(cv *proto.ConsensusValue) bool {
-	_, alreadyValidated := b.validated[b.hashCV(cv)]
-	return alreadyValidated
-}
-
 func (b *Baton) setValidated(cv *proto.ConsensusValue, blockID proto.BlockID) {
 	b.validated[b.hashCV(cv)] = validated{
 		ConsensusValue: cv,
