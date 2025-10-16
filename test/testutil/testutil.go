@@ -57,9 +57,9 @@ var TestNondeterministicData = proto.NondeterministicProposalData{
 }
 
 type TestBlock struct {
-	Nomination proto.Nomination
-	Txs        []proto.SignedTransaction
-	Catchup    proto.CatchupBlock
+	ConsensusValue proto.ConsensusValue
+	Txs            []proto.SignedTransaction
+	Catchup        proto.CatchupBlock
 }
 
 type BlockHandle struct {
@@ -76,7 +76,14 @@ func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto proto
 }
 
 func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
-	return h.GenNominationOnto(ctx, ntxs, &BlockHandle{Height: onto.Nomination.Block_height, Hash: onto.Nomination.Block_hash})
+	return h.GenNominationOnto(
+		ctx,
+		ntxs,
+		&BlockHandle{
+			Height: onto.ConsensusValue.Nomination.Block_height,
+			Hash:   onto.ConsensusValue.Nomination.Block_hash,
+		},
+	)
 }
 
 func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
@@ -95,7 +102,8 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		}
 		hash = BlendPropopsedTx(h.m, hash, &ptxs[i])
 	}
-	return &TestBlock{
+	cv := proto.ConsensusValue{
+		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
 		Nomination: proto.Nomination{
 			Proposer:                h.validator.Public_info,
 			Block_height:            onto.Height + 1,
@@ -104,13 +112,14 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 			Transaction_hashes:      hashes,
 			Transaction_nominations: ntxs,
 		},
-		Txs: txs,
+		Upgrades: nil, // XXX: upgrades not yet supported in test
+	}
+	return &TestBlock{
+		ConsensusValue: cv,
+		Txs:            txs,
 		Catchup: proto.CatchupBlock{
-			Block_height:           onto.Height + 1,
-			Block_hash:             hash,
-			Prev_block_hash:        onto.Hash,
-			Signed_transactions:    txs,
-			Nominated_transactions: ntxs,
+			Consensus_value:     cv,
+			Signed_transactions: txs,
 		},
 	}
 }

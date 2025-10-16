@@ -110,7 +110,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		defer c.Close()
 
 		req := proto.CatchupBlocksRequest{
-			Timestamp: uint64(b.handler.Now().UnixNano()),
+			Timestamp: protoutil.TimepointFromTime(b.handler.Now()),
 			Spans:     make([]proto.CatchupSpan, len(spans)),
 		}
 		for i, span := range spans {

@@ -53,7 +53,7 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Consensus
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 
 	cv := &proto.ConsensusValue{
-		Timestamp:  uint64(b.handler.Now().UnixNano()),
+		Timestamp:  protoutil.TimepointFromTime(b.handler.Now()),
 		Nomination: *nom,
 		Upgrades:   nil, // XXX: placeholder for upgrades
 	}

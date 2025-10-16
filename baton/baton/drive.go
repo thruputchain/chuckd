@@ -3,11 +3,11 @@ package baton
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
 func (b *Baton) drive(ctx context.Context) {
@@ -83,7 +83,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 			if !currentWasReplaced {
 				b.nominated = &nominated{
-					Time:           time.Unix(0, int64(cv.Timestamp)),
+					Time:           protoutil.TimeFromTimepoint(cv.Timestamp),
 					ConsensusValue: cv,
 				}
 				b.setValidated(cv, blockID)
