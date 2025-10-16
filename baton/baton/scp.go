@@ -67,34 +67,35 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value s
 		liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpapi.ValidationLevelString(level))
 	}()
 
-	var prop proto.Nomination
-	err := xdrutil.UnmarshalXdr(&prop, value)
+	var cv proto.ConsensusValue
+	err := xdrutil.UnmarshalXdr(&cv, value)
 	if err != nil {
 		return scpapi.InvalidValue
 	}
-	if len(prop.Transaction_hashes) != len(prop.Transaction_nominations) {
+	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
 		return scpapi.InvalidValue
 	}
 
 	reply := make(chan scpapi.ValidationLevel, 1)
-	x.baton.validateValue(ctx, &prop, reply)
+	x.baton.validateValue(ctx, &cv, reply)
 	level = <-reply
 	return
 }
 
-func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination, reply chan<- scpapi.ValidationLevel) {
+func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpapi.ValidationLevel) {
 
 	b.lock()
 	dbTip := b.tip
-	_, alreadyValidated := b.validated[nomination.Block_hash]
+	_, alreadyValidated := b.validated[cv.Nomination.Block_hash]
 	b.unlock()
 
-	if nomination.Block_height <= dbTip.Height {
+	if cv.Nomination.Block_height <= dbTip.Height {
 		liblog.Infof("cannot validate, nomination below tip")
 		reply <- scpapi.InvalidValue
 		return
 	}
 
+	// XXX: alreadyValidated does not account for upgrades
 	if alreadyValidated {
 		reply <- scpapi.FullyValidValue
 		return
@@ -108,16 +109,16 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		vCtx, vCtxCancel := context.WithCancel(ctx)
 		go func() {
 			// waiter is cancelled whenever validation completes or externalization occurs
-			b.WaitExternalizedBeyond(vCtx, nomination.Block_height) // cancel ctx if tip or ext moves
+			b.WaitExternalizedBeyond(vCtx, cv.Nomination.Block_height) // cancel ctx if tip or ext moves
 			vCtxCancel()
 		}()
 		defer vCtxCancel()
 
 		// Step 2: wait for the block below the validation request to be reached and committed
 
-		if nomination.Block_height > dbTip.Height+1 {
+		if cv.Nomination.Block_height > dbTip.Height+1 {
 
-			tip, err := b.WaitCommittedAt(vCtx, nomination.Block_height-1)
+			tip, err := b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
 			if err != nil { // context cancelled
 				if errors.Is(err, ErrTipAlreadyAhead) {
 					reply <- scpapi.InvalidValue
@@ -130,20 +131,20 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 			dbTip = tip
 		}
 
-		must.Assert(ctx, dbTip.Height+1 == nomination.Block_height)
+		must.Assert(ctx, dbTip.Height+1 == cv.Nomination.Block_height)
 
 		// Step 3: sanity check nomination
 
-		if nomination.Prev_block_hash != dbTip.Hash {
+		if cv.Nomination.Prev_block_hash != dbTip.Hash {
 			liblog.Infof("cannot validate, previous block %v != db tip %v",
-				form.Display(nomination.Prev_block_hash), form.Display(dbTip.Hash))
+				form.Display(cv.Nomination.Prev_block_hash), form.Display(dbTip.Hash))
 			reply <- scpapi.InvalidValue
 			return
 		}
 
 		// Step 4: start validation
 
-		validatedTip, err := b.validate(vCtx, dbTip, nomination)
+		validatedTip, err := b.validate(vCtx, dbTip, cv)
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
@@ -156,9 +157,9 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 
 		// cache validated blocks
 		b.lock()
-		liblog.Debugf("caching validation for %s", form.Display(nomination.Block_hash))
-		b.validated[nomination.Block_hash] = validated{
-			Nomination: nomination,
+		liblog.Debugf("caching validation for %s", form.Display(cv.Nomination.Block_hash))
+		b.validated[cv.Nomination.Block_hash] = validated{
+			Nomination: &cv.Nomination,
 			BlockID:    validatedTip.Id,
 		}
 		b.unlock()

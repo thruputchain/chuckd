@@ -19,30 +19,32 @@ func (b *Baton) getValidated(hash proto.BlockHash) *proto.BlockID {
 	return &v.BlockID
 }
 
+// XXX: validate timestamp
+// XXX: validate upgrades; update validation cache with regards to upgrades (now only caching block proposal validity)
 func (b *Baton) validate(
 	ctx context.Context,
 	onto proto.DbTip,
-	nomination *proto.Nomination,
+	cv *proto.ConsensusValue,
 ) (proto.DbTip, error) {
 
 	b.handler.Emit(ctx, batonkit.EventValidating{
 		Onto:   onto,
-		NumTx:  len(nomination.Transaction_hashes),
-		Height: nomination.Block_height,
-		Hash:   nomination.Block_hash,
+		NumTx:  len(cv.Nomination.Transaction_hashes),
+		Height: cv.Nomination.Block_height,
+		Hash:   cv.Nomination.Block_hash,
 	})
 
 	defer func() {
 		b.handler.Emit(ctx, batonkit.EventValidated{
 			Onto:   onto,
-			NumTx:  len(nomination.Transaction_hashes),
-			Height: nomination.Block_height,
-			Hash:   nomination.Block_hash,
+			NumTx:  len(cv.Nomination.Transaction_hashes),
+			Height: cv.Nomination.Block_height,
+			Hash:   cv.Nomination.Block_hash,
 		})
 	}()
 
 	for {
-		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, *nomination)
+		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, cv.Nomination)
 		if err != nil {
 			liblog.Infof("cannot validate, scheduler error (%v)", err)
 			panic("scheduler failed on validation")
@@ -58,9 +60,9 @@ func (b *Baton) validate(
 		case proto.SchedulerValidationMissingTxs:
 			missing := proto.MissingTransactions{
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
-				Block_hash:         nomination.Block_hash,
+				Block_hash:         cv.Nomination.Block_hash,
 			}
-			err := b.repairMissingTxs(ctx, nomination.Proposer, missing)
+			err := b.repairMissingTxs(ctx, cv.Nomination.Proposer, missing)
 			if err != nil { // err can only be context cancelled
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					return proto.DbTip{}, err

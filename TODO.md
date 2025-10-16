@@ -1,7 +1,14 @@
 CONSENSUS VALUE
 
-- [ ] baton.nominate should return ConsensusValue
-- [ ] scp.ValidationNomination/Ballot decodes ConsensusValue
+- [x] baton.nominate should return ConsensusValue
+- [x] scp.ValidationNomination/Ballot decodes ConsensusValue
+- [ ] externalized value uses ConsensusValue
+- [ ] validate timestamp
+
+- [ ] catchup blocks must include consensus value (timestamp and upgrades)
+
+- [ ] purpose of extract valid value?
+- [ ] purpose of MaybeValid?
 
 ROADMAP
 
