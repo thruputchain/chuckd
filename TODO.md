@@ -1,14 +1,16 @@
-SCHEDULER INTEGRATION
+CONSENSUS VALUE
+
+- [ ] baton.nominate should return ConsensusValue
+- [ ] scp.ValidationNomination/Ballot decodes ConsensusValue
 
 ROADMAP
 
-- [ ] intro BlockHeader { timestamp, height, merkle_hash, txset hash, updates? }
-  - [ ] verify that the hashes in nomination and catchup blocks match the contents of the block
+- [ ] verify that the hashes in nomination and catchup blocks match the contents of the block
+- [ ] separate block txset distribution from scp value
 
-- [ ] design scp values 
-  - [ ] separate block txset distribution from scp value
-  - [ ] include timestamp and config updates
-
+- [ ] upgrade mechanism
+  - [ ] baton pulls pending upgrades from persistence and places them in consensus values
+  - [ ] extract valid value strips unrecognizable upgrades?
 
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
