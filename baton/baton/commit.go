@@ -10,6 +10,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// XXX: commit currently does not handle the upgrades in the consensus value
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
 	validatedBlockID := cb.AlreadyValidated()
