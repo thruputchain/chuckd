@@ -176,13 +176,13 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpapi.Slot, val
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) {
 	<-x.baton.scp
 
-	var nomination proto.Nomination
-	if err := xdrutil.UnmarshalXdr(&nomination, value); err != nil {
+	var cv proto.ConsensusValue
+	if err := xdrutil.UnmarshalXdr(&cv, value); err != nil {
 		return
 	}
 
 	// check that SCP slot equals nomination's block height
-	if slot != proto.SCPSlotIndex(nomination.Block_height) {
+	if slot != proto.SCPSlotIndex(cv.Nomination.Block_height) {
 		liblog.Errorf("scp slot index does not equal proposed block height")
 		return
 	}
@@ -190,26 +190,32 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, val
 	x.baton.lock()
 	defer x.baton.unlock()
 
-	if isNewExternalization(ctx, x.baton.tip, &nomination, x.baton.externalized) {
-		x.baton.externalized = append(x.baton.externalized, &nomination)
+	if isNewExternalization(ctx, x.baton.tip, &cv, x.baton.externalized) {
+		x.baton.externalized = append(x.baton.externalized, &cv)
 	}
 }
 
 // isNewExternalization checks that an externalization has not already been seen;
 // scp can produce duplicate externalizations.
-func isNewExternalization(ctx context.Context, tip proto.DbTip, ext *proto.Nomination, priorExts []*proto.Nomination) bool {
-	if ext.Block_height <= tip.Height {
+func isNewExternalization(
+	ctx context.Context,
+	tip proto.DbTip,
+	ext *proto.ConsensusValue,
+	priorExts []*proto.ConsensusValue,
+) bool {
+	if ext.Nomination.Block_height <= tip.Height {
 		return false
 	}
 	if len(priorExts) == 0 {
 		return true // no prior externalizations
 	}
 	lastExt := priorExts[len(priorExts)-1]
-	if ext.Block_height <= lastExt.Block_height {
+	if ext.Nomination.Block_height <= lastExt.Nomination.Block_height {
 		return false
 	}
 	must.Assertf(ctx,
-		ext.Block_height != lastExt.Block_height+1 || ext.Prev_block_hash == lastExt.Block_hash,
+		ext.Nomination.Block_height != lastExt.Nomination.Block_height+1 ||
+			ext.Nomination.Prev_block_hash == lastExt.Nomination.Block_hash,
 		"scp externalization is invalid",
 	)
 	return true

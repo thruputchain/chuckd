@@ -1,9 +1,8 @@
 CONSENSUS VALUE
 
-- [x] baton.nominate should return ConsensusValue
-- [x] scp.ValidationNomination/Ballot decodes ConsensusValue
-- [ ] externalized value uses ConsensusValue
 - [ ] validate timestamp
+- [ ] verify that catchup blocks (proposal+upgrades) include valid upgrades
+  - current block hash linking algorithm does not consider updates
 
 - [ ] catchup blocks must include consensus value (timestamp and upgrades)
 

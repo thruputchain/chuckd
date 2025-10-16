@@ -51,7 +51,7 @@ type Baton struct {
 	tip             proto.DbTip
 	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks                    // received catchup blocks
-	externalized    []*proto.Nomination
+	externalized    []*proto.ConsensusValue
 	validated       map[proto.BlockHash]validated
 
 	// xdr marshalers
@@ -130,7 +130,7 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 	if len(b.externalized) == 0 {
 		return false
 	}
-	return b.externalized[len(b.externalized)-1].Block_height >= height
+	return b.externalized[len(b.externalized)-1].Nomination.Block_height >= height
 }
 
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")

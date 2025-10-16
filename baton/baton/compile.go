@@ -67,13 +67,13 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		return v, nil
 	}
 
-	scpTopBlock := b.externalized[len(b.externalized)-1]
-	scpTopHeight := scpTopBlock.Block_height
+	scpTopCV := b.externalized[len(b.externalized)-1]
+	scpTopHeight := scpTopCV.Nomination.Block_height
 	if scpTopHeight < dbBlock.Tip.Height {
 		return nil, ErrConsensusBelowDb
 	}
 	if scpTopHeight == dbBlock.Tip.Height {
-		if scpTopBlock.Block_hash == dbBlock.BlockHash() {
+		if scpTopCV.Nomination.Block_hash == dbBlock.BlockHash() {
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -90,14 +90,14 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	v.Blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, nomination := range b.externalized {
+	for _, cv := range b.externalized {
 		// there can be gaps between scp blocks
-		must.Assertf(ctx, nomination.Block_height > scpPrevHeight, "scp nomination heights not increasing")
-		scpPrevHeight = nomination.Block_height
+		must.Assertf(ctx, cv.Nomination.Block_height > scpPrevHeight, "scp nomination heights not increasing")
+		scpPrevHeight = cv.Nomination.Block_height
 		//
-		v.Blocks[int(nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
-			Nomination: nomination,
-			Validated:  b.getValidated(nomination.Block_hash),
+		v.Blocks[int(cv.Nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
+			Nomination: &cv.Nomination,
+			Validated:  b.getValidated(cv.Nomination.Block_hash),
 		}
 	}
 
