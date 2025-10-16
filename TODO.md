@@ -1,8 +1,5 @@
 SCHEDULER INTEGRATION
 
-- [x] reject validations below or at db tip
-- [ ] wait when asked to validate ahead of dbtip+1
-
 ROADMAP
 
 - [ ] intro BlockHeader { timestamp, height, merkle_hash, txset hash, updates? }

@@ -108,17 +108,21 @@ func (b *Baton) validateValue(ctx context.Context, nomination *proto.Nomination,
 		vCtx, vCtxCancel := context.WithCancel(ctx)
 		go func() {
 			// waiter is cancelled whenever validation completes or externalization occurs
-			b.WaitExternalizedAbove(vCtx, nomination.Block_height-1) // cancel ctx if tip or ext moves
+			b.WaitExternalizedBeyond(vCtx, nomination.Block_height) // cancel ctx if tip or ext moves
 			vCtxCancel()
 		}()
 		defer vCtxCancel()
 
-		// Step 2: wait for the block below the validation request to be committed
+		// Step 2: wait for the block below the validation request to be reached and committed
 
 		if nomination.Block_height > dbTip.Height+1 {
 
 			tip, err := b.WaitCommittedAt(vCtx, nomination.Block_height-1)
 			if err != nil { // context cancelled
+				if errors.Is(err, ErrTipAlreadyAhead) {
+					reply <- scpapi.InvalidValue
+					return
+				}
 				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 				reply <- scpapi.InvalidValue
 				return

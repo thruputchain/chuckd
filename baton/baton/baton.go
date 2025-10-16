@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -106,7 +107,7 @@ func (b *Baton) start(ctx context.Context) {
 	}
 }
 
-func (b *Baton) WaitExternalizedAbove(ctx context.Context, height proto.BlockHeight) {
+func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHeight) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {
@@ -114,23 +115,25 @@ func (b *Baton) WaitExternalizedAbove(ctx context.Context, height proto.BlockHei
 		case <-ctx.Done():
 			return
 		default:
+			if b.seenExternalizationsBeyond(height) {
+				return
+			}
+			b.cond.Wait()
 		}
-		if b.seenExternalizationsAbove(height) {
-			return
-		}
-		b.cond.Wait()
 	}
 }
 
-func (b *Baton) seenExternalizationsAbove(height proto.BlockHeight) bool {
-	if b.tip.Height > height {
+func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
+	if b.tip.Height >= height {
 		return true
 	}
 	if len(b.externalized) == 0 {
 		return false
 	}
-	return b.externalized[len(b.externalized)-1].Block_height > height
+	return b.externalized[len(b.externalized)-1].Block_height >= height
 }
+
+var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
 func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (proto.DbTip, error) {
 	b.lk.Lock()
@@ -140,10 +143,14 @@ func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (
 		case <-ctx.Done():
 			return proto.DbTip{}, ctx.Err()
 		default:
+			switch {
+			case b.tip.Height > height:
+				return proto.DbTip{}, ErrTipAlreadyAhead
+			case b.tip.Height == height:
+				return b.tip, nil
+			default:
+				b.cond.Wait()
+			}
 		}
-		if tip := b.haveCommitAt(height); tip != nil {
-			return *tip, nil
-		}
-		b.cond.Wait()
 	}
 }
