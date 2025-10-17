@@ -19,6 +19,17 @@ func (b *Baton) drive(ctx context.Context) {
 	// liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	// commit next block, if one is available and no commit is in progress
+	b.driveCommit(ctx, v)
+
+	// start nomination, if there are no externalizations above the db tip and no nomination has started
+	b.driveNominate(ctx, v)
+
+	// send catchup requests
+	b.driveCatchup(ctx, v)
+}
+
+// driveCommit commits the next block, if one is available and no commit is in progress
+func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
 		liblog.Debugf("baton committing [height %v; hash %s]", cb.BlockHeight(), form.Display(cb.BlockHash()))
 		b.committing = true
@@ -45,8 +56,10 @@ func (b *Baton) drive(ctx context.Context) {
 			b.purgeNotAboveTipHeight(ctx)
 		}()
 	}
+}
 
-	// start nomination, if there are no externalizations above the db tip and no nomination has started
+// driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started
+func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	if tipToNominateOn := v.TipToNominateOn(); b.canNominate(tipToNominateOn, b.nominating, b.nominated) {
 		// liblog.Debugf("baton nominating onto %v", tipToNominateOn)
 		// cancel prior unfinished nominations
@@ -92,8 +105,10 @@ func (b *Baton) drive(ctx context.Context) {
 			}
 		}()
 	}
+}
 
-	// send catchup requests
+// driveCatchup sends catchup requests, if needed
+func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
 		liblog.Debugf("baton requesting catchup")
 		b.requestCatchup(ctx, needed)
