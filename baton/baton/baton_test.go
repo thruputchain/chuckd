@@ -59,8 +59,8 @@ func TestNominateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                       // txs for stage 3
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.DbgNomination).Bytes()) // trigger commit, trigger stage 3
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                           // txs for stage 3
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.DbgConsensusValue).Bytes()) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -95,8 +95,8 @@ func TestValidateCommit(t *testing.T) {
 
 	vlevel := rig.ValidateNominationValue(
 		ctx,
-		proto.SCPSlotIndex(block.Nomination.Block_height),
-		testMarshaler.MarshalXdr(&block.Nomination).Bytes(),
+		proto.SCPSlotIndex(block.ConsensusValue.Nomination.Block_height),
+		testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes(),
 	)
 	// validation is skipped, as the nomination is already cached
 	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -108,7 +108,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.Nomination).Bytes())
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes())
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -136,7 +136,7 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
-	rig.ExternalizedValue(ctx, 2, testMarshaler.MarshalXdr(&block2.Nomination).Bytes())
+	rig.ExternalizedValue(ctx, 2, testMarshaler.MarshalXdr(&block2.ConsensusValue).Bytes())
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
@@ -155,7 +155,7 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	baton.Start(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.Nomination).Bytes())
+	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.ConsensusValue).Bytes())
 	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
@@ -192,7 +192,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
 			proto.SCPSlotIndex(height),
-			testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes(),
+			testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
 		)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
@@ -200,10 +200,10 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		if height%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(nominated.DbgNomination).Bytes())
+			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(nominated.DbgConsensusValue).Bytes())
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
-			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.Nomination).Bytes())
+			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes())
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 		lastCommitted.Hash, lastCommitted.Height = committed.Hash, committed.Height
