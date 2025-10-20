@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -16,14 +17,17 @@ import (
 )
 
 type DiskStorage struct {
-	dir string
-	cbm xdrutil.XdrMarshaler
+	dir  string
+	cbm  xdrutil.XdrMarshaler
+	scpm xdrutil.XdrMarshaler
 }
 
 func NewStorage(ctx context.Context, dir string) *DiskStorage {
+	//XXX: advisory lock directory
 	return &DiskStorage{
-		dir: dir,
-		cbm: xdrutil.NewXdrMarshaler(),
+		dir:  dir,
+		cbm:  xdrutil.NewXdrMarshaler(),
+		scpm: xdrutil.NewXdrMarshaler(),
 	}
 }
 
@@ -92,7 +96,7 @@ func (x *DiskStorage) AddConsensusValue(ctx context.Context, cv proto.ConsensusV
 
 var errStopWalking = fmt.Errorf("stop reverse file walk")
 
-func (x *DiskStorage) LatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
+func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
 
 	rootpath := x.ConsensusValueRootpath()
 	err := os.MkdirAll(filepath.Dir(rootpath), 0o755)
@@ -130,4 +134,58 @@ func (x *DiskStorage) LatestConsensusValues(ctx context.Context, n int) ([]proto
 
 	}
 	return cvs, nil
+}
+
+// scp envelopes
+
+func (x *DiskStorage) AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+
+	hash := xdrutil.HashXdr(x.scpm, &env)
+
+	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, time.Now(), hash[:5])
+	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
+
+	err := os.MkdirAll(filepath.Dir(full), 0o755)
+	must.NoError(ctx, err)
+
+	// write staging file
+	borrowBytes := x.scpm.MarshalXdr(&env)
+	defer borrowBytes.Recycle()
+
+	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
+	must.NoError(ctx, err)
+
+	// atomicly move staging to permanent
+	err = os.Rename(fullStaging, full)
+	must.NoError(ctx, err)
+
+}
+
+func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
+
+	found := []proto.SCPEnvelope{}
+
+	for {
+		slotpath := x.SCPEnvelopeSlotpath(slot)
+		slot += 1
+
+		envpaths, err := ListScpFiles(slotpath)
+		if err != nil {
+			break
+		}
+
+		for _, envpath := range envpaths {
+			env := proto.SCPEnvelope{}
+
+			bytes, err := os.ReadFile(path.Join(slotpath, envpath))
+			must.NoError(ctx, err)
+
+			xdrutil.UnmarshalXdr(&env, bytes)
+			must.NoError(ctx, err)
+
+			found = append(found, env)
+		}
+	}
+
+	return found, nil
 }

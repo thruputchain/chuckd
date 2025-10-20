@@ -5,12 +5,17 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/groundhogchain/jay/lib/must"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 // consensus values
@@ -80,11 +85,45 @@ func ParseUnixNano(s string) (time.Time, error) {
 	return time.Unix(sec, nano).UTC(), nil
 }
 
-func (x *DiskStorage) SCPEnvelopeFilepath(stamp time.Time, seqno int) string {
+// Matches e.g. scp-000000017213.123456789-deadbeef.xdr
+var scpRE = regexp.MustCompile(`^scp-(\d{12}\.\d{9})-([0-9a-fA-F]+)\.xdr$`)
+
+func ListScpFiles(dir string) ([]string, error) {
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if scpRE.MatchString(name) {
+			matches = append(matches, filepath.Join(dir, name))
+		}
+	}
+
+	// list in ascending chrono order, breaking ties with hashes
+	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
+
+	return matches, nil
+}
+
+func (x *DiskStorage) SCPEnvelopeSlotpath(slot proto.SCPSlotIndex) string {
 	return path.Join(
 		x.dir,
 		"scp",
-		fmt.Sprintf("scp-%s-%010d.xdr", FormatUnixNano(stamp), seqno),
+		fmt.Sprintf("%020%d", slot),
+	)
+}
+
+func (x *DiskStorage) SCPEnvelopeFilepath(slot proto.SCPSlotIndex, stamp time.Time, hash []byte) string {
+	return path.Join(
+		x.SCPEnvelopeSlotpath(slot),
+		fmt.Sprintf("scp-%s-%x.xdr", FormatUnixNano(stamp), hash),
 	)
 }
 
