@@ -7,6 +7,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+// TODO: garbage collect catchup blocks, scp envelopes
+
 type Storage interface {
 	StorageReader
 	StorageWriter
@@ -20,6 +22,6 @@ type StorageWriter interface {
 
 type StorageReader interface {
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) (proto.CatchupBlock, error)
-	LatestConsensusValues(ctx context.Context, intoReverseChrono []proto.ConsensusValue) error
+	LatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error)
 	SCPEnvelopesSince(ctx context.Context, since time.Time) ([]proto.SCPEnvelope, error)
 }

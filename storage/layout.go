@@ -13,23 +13,43 @@ import (
 	"github.com/groundhogchain/jay/lib/must"
 )
 
-// all externalized consensus values
-// recently emitted scp envelopes
-// catchup blocks for recently committed blocks
+// consensus values
+
+func (x *DiskStorage) ConsensusValueRootpath() string {
+	return path.Join(x.dir, "consensus")
+}
 
 func (x *DiskStorage) ConsensusValueFilepath(stamp time.Time, slot int64) string {
-	year := fmt.Sprintf("Y%04d", stamp.Year())
-	month := fmt.Sprintf("M%02d", stamp.Month())
-	day := fmt.Sprintf("D%02d", stamp.Day())
-	hour := fmt.Sprintf("H%02d", stamp.Hour())
-	minute := fmt.Sprintf("m%02d", stamp.Minute())
+	year := fmt.Sprintf("%04d", stamp.Year())
+	month := fmt.Sprintf("%02d", stamp.Month())
+	day := fmt.Sprintf("%02d", stamp.Day())
+	hour := fmt.Sprintf("%02d", stamp.Hour())
+	minute := fmt.Sprintf("%02d", stamp.Minute())
 	return path.Join(
-		x.dir,
-		"consensus",
+		x.ConsensusValueRootpath(),
 		year, month, day, hour, minute,
-		fmt.Sprintf("consensus-%20d.xdr", slot),
+		fmt.Sprintf("consensus-%020d.xdr", slot),
 	)
 }
+
+func ParseConsensusValueFilename(name string) (int64, error) {
+	const prefix = "consensus-"
+	const suffix = ".xdr"
+
+	if !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+		return 0, fmt.Errorf("invalid filename format: %q", name)
+	}
+
+	numStr := strings.TrimSuffix(strings.TrimPrefix(name, prefix), suffix)
+	slot, err := strconv.ParseInt(numStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid slot number in filename %q: %w", name, err)
+	}
+
+	return slot, nil
+}
+
+// scp envelopes
 
 func FormatUnixNano(t time.Time) string {
 	seconds := t.Unix()
@@ -64,7 +84,7 @@ func (x *DiskStorage) SCPEnvelopeFilepath(stamp time.Time, seqno int) string {
 	return path.Join(
 		x.dir,
 		"scp",
-		fmt.Sprintf("scp-%s-%10d.xdr", FormatUnixNano(stamp), seqno),
+		fmt.Sprintf("scp-%s-%010d.xdr", FormatUnixNano(stamp), seqno),
 	)
 }
 
@@ -72,7 +92,7 @@ func (x *DiskStorage) CatchupBlockFilepath(height int64) string {
 	return path.Join(
 		x.dir,
 		"catchup",
-		fmt.Sprintf("catchup-%20d.xdr", height),
+		fmt.Sprintf("catchup-%020d.xdr", height),
 	)
 }
 
