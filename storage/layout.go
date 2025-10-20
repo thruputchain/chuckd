@@ -1,29 +1,30 @@
 package storage
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/groundhogchain/jay/lib/must"
 )
 
 // all externalized consensus values
 // recently emitted scp envelopes
 // catchup blocks for recently committed blocks
 
-type Layout struct {
-	Dir string
-}
-
-func (x *Layout) ConsensusValueFilepath(stamp time.Time, slot int64) string {
+func (x *DiskStorage) ConsensusValueFilepath(stamp time.Time, slot int64) string {
 	year := fmt.Sprintf("Y%04d", stamp.Year())
 	month := fmt.Sprintf("M%02d", stamp.Month())
 	day := fmt.Sprintf("D%02d", stamp.Day())
 	hour := fmt.Sprintf("H%02d", stamp.Hour())
 	minute := fmt.Sprintf("m%02d", stamp.Minute())
 	return path.Join(
-		x.Dir,
+		x.dir,
 		"consensus",
 		year, month, day, hour, minute,
 		fmt.Sprintf("consensus-%20d.xdr", slot),
@@ -59,18 +60,25 @@ func ParseUnixNano(s string) (time.Time, error) {
 	return time.Unix(sec, nano).UTC(), nil
 }
 
-func (x *Layout) SCPEnvelopeFilepath(stamp time.Time, seqno int) string {
+func (x *DiskStorage) SCPEnvelopeFilepath(stamp time.Time, seqno int) string {
 	return path.Join(
-		x.Dir,
+		x.dir,
 		"scp",
 		fmt.Sprintf("scp-%s-%10d.xdr", FormatUnixNano(stamp), seqno),
 	)
 }
 
-func (x *Layout) CatchupBlockFilepath(height int64) string {
+func (x *DiskStorage) CatchupBlockFilepath(height int64) string {
 	return path.Join(
-		x.Dir,
+		x.dir,
 		"catchup",
 		fmt.Sprintf("catchup-%20d.xdr", height),
 	)
+}
+
+func FilenameNonce(ctx context.Context) string {
+	b := make([]byte, 5)
+	_, err := rand.Read(b)
+	must.NoError(ctx, err)
+	return hex.EncodeToString(b)
 }

@@ -7,6 +7,11 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type Storage interface {
+	StorageReader
+	StorageWriter
+}
+
 type StorageWriter interface {
 	AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
 	AddConsensusValue(ctx context.Context, cv proto.ConsensusValue)
