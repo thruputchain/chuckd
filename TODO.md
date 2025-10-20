@@ -1,8 +1,18 @@
 CONSENSUS VALUE
 
+- [ ] add storage to system
+  - [ ] persist scp envelopes
+- [ ] add storage access to baton handler
+  - [ ] persist consensus values
+  - [ ] track consensus value corresponding to db tip
+
 - [ ] validate timestamp
   - not in the future
   - monotonically increasing
+
+- [ ] add hash of prev consensus value in cv
+
+===========================
 
 - [ ] verify that catchup blocks (proposal+upgrades) include valid upgrades
   - current block hash linking algorithm does not consider updates
