@@ -27,7 +27,7 @@ func WalkReverseDescendants(
 		return err
 	}
 	// Sort by base name descending so larger prefixes get processed first.
-	sort.Slice(entries, func(i, j int) bool { return entries[i].Name() > entries[j].Name() })
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
 
 	// Pre-size stack approximately; avoids deep recursion.
 	st := make([]item, 0, len(entries)+16)
