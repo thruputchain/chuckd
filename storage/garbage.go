@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"os"
-	"path"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -29,7 +28,7 @@ func (x *DiskStorage) reclaimCatchupBlocks(ctx context.Context) {
 	}
 
 	for i := 0; i < len(files)-x.cfg.MaxCatchupBlocks; i++ {
-		err = os.Remove(path.Join(catchupDir, files[i]))
+		err = os.Remove(files[i])
 		must.NoError(ctx, err)
 	}
 }
@@ -46,7 +45,7 @@ func (x *DiskStorage) reclaimSCPEnvelopes(ctx context.Context) {
 	}
 
 	for i := 0; i < len(slotdirs)-x.cfg.MaxSCPSlots; i++ {
-		err = os.RemoveAll(path.Join(slotsDir, slotdirs[i]))
+		err = os.RemoveAll(slotdirs[i])
 		must.NoError(ctx, err)
 	}
 

@@ -208,7 +208,7 @@ func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.
 		for _, envpath := range envpaths {
 			env := proto.SCPEnvelope{}
 
-			bytes, err := os.ReadFile(path.Join(slotpath, envpath))
+			bytes, err := os.ReadFile(envpath)
 			must.NoError(ctx, err)
 
 			xdrutil.UnmarshalXdr(&env, bytes)
