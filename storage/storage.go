@@ -10,9 +10,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gofrs/flock"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/jay/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -23,7 +24,15 @@ type DiskStorage struct {
 }
 
 func NewStorage(ctx context.Context, dir string) *DiskStorage {
-	//XXX: advisory lock directory
+
+	// obtain an advisory lock
+	err := os.MkdirAll(dir, 0o755)
+	must.NoError(ctx, err)
+
+	flk := flock.New(path.Join(dir, "lock"))
+	_, err = flk.TryLock()
+	must.NoError(ctx, err)
+
 	return &DiskStorage{
 		dir:  dir,
 		cbm:  xdrutil.NewXdrMarshaler(),

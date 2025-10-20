@@ -20,6 +20,7 @@ ROADMAP
   - [ ] baton pulls pending upgrades from persistence and places them in consensus values
   - [ ] extract valid value strips unrecognizable upgrades?
   - [ ] NOTE that baton.validated caches block validations, but on the upgrade validations
+  - [ ] interaction between storage and protocol upgrades???
 
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/groundhogchain/jay/lib/must"
+	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -116,7 +116,7 @@ func (x *DiskStorage) SCPEnvelopeSlotpath(slot proto.SCPSlotIndex) string {
 	return path.Join(
 		x.dir,
 		"scp",
-		fmt.Sprintf("%020%d", slot),
+		fmt.Sprintf("%020d", slot),
 	)
 }
 
