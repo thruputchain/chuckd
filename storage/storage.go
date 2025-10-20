@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -18,12 +19,18 @@ import (
 )
 
 type DiskStorage struct {
-	dir  string
-	cbm  xdrutil.XdrMarshaler
-	scpm xdrutil.XdrMarshaler
+	dir string
+	cfg Config
+	//
+	catchupLk   sync.Mutex
+	scpLk       sync.Mutex
+	consensusLk sync.Mutex
+	//
+	catchupM xdrutil.XdrMarshaler
+	scpM     xdrutil.XdrMarshaler
 }
 
-func NewStorage(ctx context.Context, dir string) *DiskStorage {
+func NewStorage(ctx context.Context, dir string, cfg Config) *DiskStorage {
 
 	// obtain an advisory lock
 	err := os.MkdirAll(dir, 0o755)
@@ -33,16 +40,24 @@ func NewStorage(ctx context.Context, dir string) *DiskStorage {
 	_, err = flk.TryLock()
 	must.NoError(ctx, err)
 
-	return &DiskStorage{
-		dir:  dir,
-		cbm:  xdrutil.NewXdrMarshaler(),
-		scpm: xdrutil.NewXdrMarshaler(),
+	x := &DiskStorage{
+		dir:      dir,
+		cfg:      cfg,
+		catchupM: xdrutil.NewXdrMarshaler(),
+		scpM:     xdrutil.NewXdrMarshaler(),
 	}
+
+	go x.reclaimLoop(ctx)
+	return x
 }
 
 // catchup blocks
 
 func (x *DiskStorage) AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+	// lock ensures concurrent duplicate adds don't interfere
+	// no lock is necessary on reading or garbage collection
+	x.catchupLk.Lock()
+	defer x.catchupLk.Unlock()
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
 	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
@@ -51,7 +66,7 @@ func (x *DiskStorage) AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock
 	must.NoError(ctx, err)
 
 	// write staging file
-	borrowBytes := x.cbm.MarshalXdr(&cb)
+	borrowBytes := x.catchupM.MarshalXdr(&cb)
 	defer borrowBytes.Recycle()
 
 	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
@@ -83,6 +98,9 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 // consensus values
 
 func (x *DiskStorage) AddConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	// lock ensures concurrent duplicate adds don't interfere
+	x.consensusLk.Lock()
+	defer x.consensusLk.Unlock()
 
 	stamp := protoutil.TimeFromTimepoint(cv.Timestamp)
 	full := x.ConsensusValueFilepath(stamp, cv.Nomination.Block_height)
@@ -92,7 +110,7 @@ func (x *DiskStorage) AddConsensusValue(ctx context.Context, cv proto.ConsensusV
 	must.NoError(ctx, err)
 
 	// write staging file
-	borrowBytes := x.cbm.MarshalXdr(&cv)
+	borrowBytes := x.catchupM.MarshalXdr(&cv)
 	defer borrowBytes.Recycle()
 
 	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
@@ -107,7 +125,7 @@ var errStopWalking = fmt.Errorf("stop reverse file walk")
 
 func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
 
-	rootpath := x.ConsensusValueRootpath()
+	rootpath := x.ConsensusValuesDirpath()
 	err := os.MkdirAll(filepath.Dir(rootpath), 0o755)
 	must.NoError(ctx, err)
 
@@ -148,8 +166,12 @@ func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]p
 // scp envelopes
 
 func (x *DiskStorage) AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+	// lock ensures concurrent duplicate adds don't interfere
+	// note that no lock is necessary when reclaiming or reading
+	x.scpLk.Lock()
+	defer x.scpLk.Unlock()
 
-	hash := xdrutil.HashXdr(x.scpm, &env)
+	hash := xdrutil.HashXdr(x.scpM, &env)
 
 	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, time.Now(), hash[:5])
 	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
@@ -158,7 +180,7 @@ func (x *DiskStorage) AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)
 	must.NoError(ctx, err)
 
 	// write staging file
-	borrowBytes := x.scpm.MarshalXdr(&env)
+	borrowBytes := x.scpM.MarshalXdr(&env)
 	defer borrowBytes.Recycle()
 
 	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)

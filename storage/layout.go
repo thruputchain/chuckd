@@ -20,7 +20,7 @@ import (
 
 // consensus values
 
-func (x *DiskStorage) ConsensusValueRootpath() string {
+func (x *DiskStorage) ConsensusValuesDirpath() string {
 	return path.Join(x.dir, "consensus")
 }
 
@@ -31,7 +31,7 @@ func (x *DiskStorage) ConsensusValueFilepath(stamp time.Time, slot int64) string
 	hour := fmt.Sprintf("%02d", stamp.Hour())
 	minute := fmt.Sprintf("%02d", stamp.Minute())
 	return path.Join(
-		x.ConsensusValueRootpath(),
+		x.ConsensusValuesDirpath(),
 		year, month, day, hour, minute,
 		fmt.Sprintf("consensus-%020d.xdr", slot),
 	)
@@ -112,10 +112,16 @@ func ListScpFiles(dir string) ([]string, error) {
 	return matches, nil
 }
 
-func (x *DiskStorage) SCPEnvelopeSlotpath(slot proto.SCPSlotIndex) string {
+func (x *DiskStorage) SCPEnvelopesDirpath() string {
 	return path.Join(
 		x.dir,
 		"scp",
+	)
+}
+
+func (x *DiskStorage) SCPEnvelopeSlotpath(slot proto.SCPSlotIndex) string {
+	return path.Join(
+		x.SCPEnvelopesDirpath(),
 		fmt.Sprintf("%020d", slot),
 	)
 }
@@ -127,10 +133,16 @@ func (x *DiskStorage) SCPEnvelopeFilepath(slot proto.SCPSlotIndex, stamp time.Ti
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height int64) string {
+func (x *DiskStorage) CatchupBlocksDirpath() string {
 	return path.Join(
 		x.dir,
 		"catchup",
+	)
+}
+
+func (x *DiskStorage) CatchupBlockFilepath(height int64) string {
+	return path.Join(
+		x.CatchupBlocksDirpath(),
 		fmt.Sprintf("catchup-%020d.xdr", height),
 	)
 }
@@ -140,4 +152,58 @@ func FilenameNonce(ctx context.Context) string {
 	_, err := rand.Read(b)
 	must.NoError(ctx, err)
 	return hex.EncodeToString(b)
+}
+
+// Matches strings like: "catchup-00000000000000001234.xdr"
+var catchupRE = regexp.MustCompile(`^catchup-([0-9]{20})\.xdr$`)
+
+func ListCatchupFiles(dir string) ([]string, error) {
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if catchupRE.MatchString(name) {
+			matches = append(matches, filepath.Join(dir, name))
+		}
+	}
+
+	// list in ascending chrono order, breaking ties with hashes
+	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
+
+	return matches, nil
+}
+
+// Matches strings like: "00000000000000001234"
+var scpSlotRE = regexp.MustCompile(`^[0-9]{20}$`)
+
+func ListSCPSlotDirs(dir string) ([]string, error) {
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if scpSlotRE.MatchString(name) {
+			matches = append(matches, filepath.Join(dir, name))
+		}
+	}
+
+	// list in ascending order
+	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
+
+	return matches, nil
 }
