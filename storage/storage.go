@@ -2,9 +2,9 @@ package storage
 
 import "context"
 
-type Storage struct {
+type DiskStorage struct {
 }
 
-func NewStorage(ctx context.Context, path string) *Storage {
-	return &Storage{}
+func NewStorage(ctx context.Context, path string) *DiskStorage {
+	return &DiskStorage{}
 }
