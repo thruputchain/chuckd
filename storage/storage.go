@@ -13,7 +13,6 @@ import (
 
 	"github.com/gofrs/flock"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -113,8 +112,7 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	x.consensusLk.Lock()
 	defer x.consensusLk.Unlock()
 
-	stamp := protoutil.TimeFromTimepoint(cv.Timestamp)
-	full := x.ConsensusValueFilepath(stamp, cv.Nomination.Block_height)
+	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
 	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
 
 	err := os.MkdirAll(filepath.Dir(full), 0o755)
@@ -132,47 +130,64 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	must.NoError(ctx, err)
 }
 
-var errStopWalking = fmt.Errorf("stop reverse file walk")
+func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
+	<-x.ready
 
-func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
+	full := x.ConsensusValueFilepath(height)
+
+	bytes, err := os.ReadFile(full)
+	if err != nil {
+		return nil
+	}
+
+	cv := &proto.ConsensusValue{}
+	err = xdrutil.UnmarshalXdr(cv, bytes)
+	must.NoError(ctx, err)
+
+	return cv
+}
+
+func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.BlockHeight {
 	<-x.ready
 
 	rootpath := x.ConsensusValuesDirpath()
 	err := os.MkdirAll(filepath.Dir(rootpath), 0o755)
 	must.NoError(ctx, err)
 
-	paths := make([]string, 0, n)
+	var maxHeight int64
 
 	visit := func(path string, d fs.DirEntry) error {
-		if len(paths) >= cap(paths) {
-			return errStopWalking
-		}
 		if d.IsDir() {
 			return nil // skip dirs
 		}
-		_, err := ParseConsensusValueFilename(d.Name())
+		height, err := ParseConsensusValueFilename(d.Name())
 		if err != nil {
 			return nil // skip non-consensus files
 		}
-		paths = append(paths, path)
-		return nil
+		maxHeight = height
+		return errStopWalking
 	}
 
 	err = WalkReverseDescendants(ctx, rootpath, visit)
 	must.Assert(ctx, err == nil || errors.Is(err, errStopWalking))
 
-	// decode values
-	cvs := make([]proto.ConsensusValue, len(paths))
-	for i, path := range paths {
+	return maxHeight
+}
 
-		bytes, err := os.ReadFile(path)
-		must.NoError(ctx, err)
+var errStopWalking = fmt.Errorf("stop reverse file walk")
 
-		err = xdrutil.UnmarshalXdr(&cvs[i], bytes)
-		must.NoError(ctx, err)
-
+func (x *DiskStorage) FindConsensusValuesAbove(ctx context.Context, above proto.BlockHeight) []proto.ConsensusValue {
+	found := []proto.ConsensusValue{}
+	maxHeight := x.findConsensusValueMaxHeight(ctx)
+	for height := above + 1; height <= maxHeight; height++ {
+		height += 1
+		cv := x.FindConsensusValue(ctx, height)
+		if cv == nil {
+			continue
+		}
+		found = append(found, *cv)
 	}
-	return cvs, nil
+	return found
 }
 
 // scp envelopes

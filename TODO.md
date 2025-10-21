@@ -5,6 +5,9 @@ CONSENSUS VALUE
 - [x] add storage access to baton handler
   - [x] persist consensus values
   - [ ] track consensus value corresponding to db tip
+    - [ ] on startup, load tip cv unless height == 0
+    - [ ] on startup, load cvs above tip
+    - [ ] update tip cv on commit
 
 - [ ] validate timestamp
   - not in the future

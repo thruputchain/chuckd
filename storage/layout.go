@@ -24,16 +24,20 @@ func (x *DiskStorage) ConsensusValuesDirpath() string {
 	return path.Join(x.dir, "consensus")
 }
 
-func (x *DiskStorage) ConsensusValueFilepath(stamp time.Time, slot int64) string {
-	year := fmt.Sprintf("%04d", stamp.Year())
-	month := fmt.Sprintf("%02d", stamp.Month())
-	day := fmt.Sprintf("%02d", stamp.Day())
-	hour := fmt.Sprintf("%02d", stamp.Hour())
-	minute := fmt.Sprintf("%02d", stamp.Minute())
+func SlotToParts(h int64) [3]string {
+	return [3]string{
+		fmt.Sprintf("%03d", h/10e9),
+		fmt.Sprintf("%03d", (h%10e9)/10e6),
+		fmt.Sprintf("%03d", (h%10e6)/10e3),
+	}
+}
+
+func (x *DiskStorage) ConsensusValueFilepath(slot int64) string {
+	parts := SlotToParts(slot)
 	return path.Join(
 		x.ConsensusValuesDirpath(),
-		year, month, day, hour, minute,
-		fmt.Sprintf("consensus-%020d.xdr", slot),
+		parts[0], parts[1], parts[2],
+		fmt.Sprintf("consensus-%012d.xdr", slot),
 	)
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -47,71 +46,6 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 	_, err = st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
 	if !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected os.ErrNotExist for missing height, got %v", err)
-	}
-}
-
-func TestFindLatestConsensusValues(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	dir := t.TempDir()
-	cfg := Config{
-		Freq:             time.Hour,
-		MaxCatchupBlocks: 10,
-		MaxSCPSlots:      10,
-	}
-
-	st := NewStorage(ctx, cfg)
-	st.Start(ctx, dir)
-
-	base := time.Date(2024, 10, 18, 12, 0, 0, 0, time.UTC)
-	vals := []proto.ConsensusValue{
-		newConsensusValue(base, 88),
-		newConsensusValue(base.Add(3*time.Minute), 89),
-		newConsensusValue(base.Add(6*time.Minute), 90),
-	}
-
-	for _, cv := range vals {
-		st.PersistConsensusValue(ctx, cv)
-	}
-
-	// Drop an unrelated file that should be ignored by the walker.
-	invalidDir := filepath.Dir(st.ConsensusValueFilepath(
-		protoutil.TimeFromTimepoint(vals[0].Timestamp),
-		vals[0].Nomination.Block_height,
-	))
-	if err := os.WriteFile(filepath.Join(invalidDir, "not-a-consensus.xdr"), []byte("junk"), 0o644); err != nil {
-		t.Fatalf("write invalid file: %v", err)
-	}
-
-	latest, err := st.FindLatestConsensusValues(ctx, 2)
-	if err != nil {
-		t.Fatalf("FindLatestConsensusValues returned error: %v", err)
-	}
-
-	if len(latest) != 2 {
-		t.Fatalf("expected 2 consensus values, got %d", len(latest))
-	}
-
-	wantHeights := []proto.BlockHeight{
-		vals[2].Nomination.Block_height,
-		vals[1].Nomination.Block_height,
-	}
-	for i, cv := range latest {
-		if cv.Nomination.Block_height != wantHeights[i] {
-			t.Fatalf("consensus value %d height mismatch: got %d, want %d", i, cv.Nomination.Block_height, wantHeights[i])
-		}
-		if cv.Nomination.Block_hash != vals[2-i].Nomination.Block_hash {
-			t.Fatalf("consensus value %d hash mismatch", i)
-		}
-	}
-
-	all, err := st.FindLatestConsensusValues(ctx, 10)
-	if err != nil {
-		t.Fatalf("FindLatestConsensusValues (all) returned error: %v", err)
-	}
-	if len(all) != len(vals) {
-		t.Fatalf("expected %d consensus values, got %d", len(vals), len(all))
 	}
 }
 
