@@ -7,7 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -53,7 +53,7 @@ func NewDiscoveryService(
 	scfg proto.SCPConfig,
 ) *DiscoveryService {
 
-	scpapi.NormalizeQSet(&scfg.Quorum_set, nil)
+	scpkit.NormalizeQSet(&scfg.Quorum_set, nil)
 
 	liblog.Infof("starting discovery service")
 	s := &DiscoveryService{
@@ -167,7 +167,7 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 	}
 
 	// index by qset hash
-	scpapi.NormalizeQSet(&qset.Quorum_set_snapshot.Quorum_set, nil)
+	scpkit.NormalizeQSet(&qset.Quorum_set_snapshot.Quorum_set, nil)
 	s.hashQSet[xdrutil.HashXdr(s.m, &qset.Quorum_set_snapshot.Quorum_set)] = qset.Quorum_set_snapshot.Quorum_set
 }
 

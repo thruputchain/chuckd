@@ -1,4 +1,4 @@
-package scpapi
+package scpkit
 
 import (
 	"context"

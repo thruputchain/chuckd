@@ -4,16 +4,16 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type SCPHandler struct {
 	ready chan struct{}
-	env   scpapi.SCPEmitEnvelope // implemented by multiplex
-	qset  scpapi.SCPGetQuorumSet // implemented by discovery
-	scp   scpapi.SCPHandler      // implemented by baton
+	env   scpkit.SCPEmitEnvelope // implemented by multiplex
+	qset  scpkit.SCPGetQuorumSet // implemented by discovery
+	scp   scpkit.SCPHandler      // implemented by baton
 }
 
 func NewSCPHandler(ctx context.Context) *SCPHandler {
@@ -21,9 +21,9 @@ func NewSCPHandler(ctx context.Context) *SCPHandler {
 }
 
 func (x *SCPHandler) SetHandlers(
-	env scpapi.SCPEmitEnvelope,
-	qset scpapi.SCPGetQuorumSet,
-	scp scpapi.SCPHandler,
+	env scpkit.SCPEmitEnvelope,
+	qset scpkit.SCPGetQuorumSet,
+	scp scpkit.SCPHandler,
 ) {
 	x.env = env
 	x.qset = qset

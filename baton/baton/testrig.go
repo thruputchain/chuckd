@@ -11,7 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/test/testcatchup"
 	"github.com/groundhogchain/chuckd/test/testcoord"
 	"github.com/groundhogchain/chuckd/test/testsched"
@@ -98,17 +98,17 @@ func (h *TestRig) Emit(ctx context.Context, event any) {
 }
 
 type nominateIn struct {
-	Slot  scpapi.Slot
+	Slot  scpkit.Slot
 	Value xdr.XdrType
 	Prev  xdr.XdrType
 }
 
-func (h *TestRig) Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
+func (h *TestRig) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	h.nominateRequest <- nominateIn{Slot: slot, Value: value, Prev: prev}
 	return <-h.nominateResponse
 }
 
-func (h *TestRig) WaitNomination(ctx context.Context) (slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) {
+func (h *TestRig) WaitNomination(ctx context.Context) (slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) {
 	x := <-h.nominateRequest
 	return x.Slot, x.Value, x.Prev
 }
@@ -117,7 +117,7 @@ func (h *TestRig) SignalNomination(result bool) {
 	h.nominateResponse <- result
 }
 
-func (h *TestRig) StopNomination(ctx context.Context, slot scpapi.Slot) {
+func (h *TestRig) StopNomination(ctx context.Context, slot scpkit.Slot) {
 }
 
 func (h *TestRig) Signer() proto.ValidatorPublicInfo {

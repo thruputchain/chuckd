@@ -6,7 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
@@ -40,13 +40,13 @@ func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnve
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPController) Nominate(ctx context.Context, slot scpapi.Slot, value scpapi.Value, prev scpapi.Value) bool {
+func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
 	r, err := cc.Scp_control_nominate(ctx, slot, value, prev)
 	must.NoError(ctx, err)
 	return r
 }
 
-func (cc *SCPController) StopNomination(ctx context.Context, slot scpapi.Slot) {
+func (cc *SCPController) StopNomination(ctx context.Context, slot scpkit.Slot) {
 	err := cc.Scp_control_stop_nomination(ctx, slot)
 	must.NoError(ctx, err)
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/groundhogchain/chuckd/repair"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sched"
+	"github.com/groundhogchain/chuckd/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/scp/scpd"
 	"github.com/groundhogchain/chuckd/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -268,10 +269,12 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	}()
 
 	// drive received envelopes into scp_control
+	scpBroker := scpbroker.NewSCPBroker(ctx, s.Storage, scpController)
+	s.RepairService.SetSCPBroker(scpBroker)
 	go func() {
 		for {
 			_, env := s.Multiplex.ReceiveEnvelope(ctx)
-			scpController.ReceivedEnvelope(ctx, *env)
+			scpBroker.ReceivedEnvelope(ctx, *env)
 		}
 	}()
 

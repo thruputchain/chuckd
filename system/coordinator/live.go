@@ -16,7 +16,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/repair"
 	"github.com/groundhogchain/chuckd/sched"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -33,7 +33,7 @@ type LiveHandler struct {
 	router router.Router
 	*repair.RepairAgent
 	dogwood *dogwood.DogwoodService
-	scp     scpapi.SCPController
+	scp     scpkit.SCPController
 	m       xdrutil.XdrMarshaler
 	//
 	rlk  sync.Mutex
@@ -68,7 +68,7 @@ func NewLiveHandler(
 	}
 }
 
-func (x *LiveHandler) SetSCP(scp scpapi.SCPController) {
+func (x *LiveHandler) SetSCP(scp scpkit.SCPController) {
 	x.scp = scp
 	close(x.scpReady)
 }
@@ -90,12 +90,12 @@ func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.DbTip, error) {
 	return tip, nil
 }
 
-func (x *LiveHandler) Nominate(ctx context.Context, slot scpapi.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
+func (x *LiveHandler) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.scpReady
 	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
 }
 
-func (x *LiveHandler) StopNomination(ctx context.Context, slot scpapi.Slot) {
+func (x *LiveHandler) StopNomination(ctx context.Context, slot scpkit.Slot) {
 	<-x.scpReady
 	x.scp.StopNomination(ctx, slot)
 }

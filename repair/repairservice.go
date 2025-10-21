@@ -5,23 +5,32 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sched"
+	"github.com/groundhogchain/chuckd/scp/scpbroker"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type RepairService struct {
-	conn  sched.SchedulerCoordConn
-	ready chan struct{}
+	conn        sched.SchedulerCoordConn
+	broker      *scpbroker.SCPBroker
+	schedReady  chan struct{}
+	brokerReady chan struct{}
 }
 
 func NewRepairService() *RepairService {
 	return &RepairService{
-		ready: make(chan struct{}),
+		schedReady:  make(chan struct{}),
+		brokerReady: make(chan struct{}),
 	}
 }
 
 func (x *RepairService) SetSchedConn(conn sched.SchedulerCoordConn) {
 	x.conn = conn
-	close(x.ready)
+	close(x.schedReady)
+}
+
+func (x *RepairService) SetSCPBroker(broker *scpbroker.SCPBroker) {
+	x.broker = broker
+	close(x.brokerReady)
 }
 
 func (x *RepairService) Repair_null(ctx context.Context) error {
@@ -33,7 +42,7 @@ func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
 ) (proto.RepairedTransactions, error) {
-	<-x.ready // wait for x.conn != nil
+	<-x.schedReady // wait for x.conn != nil
 
 	// XXX: verify env.Missing_transactions.Block_hash is our nomination, and
 	// XXX: requested txs are part of our nomination

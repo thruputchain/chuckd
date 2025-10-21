@@ -7,7 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -69,7 +69,7 @@ func (b *Baton) nominate(ctx context.Context, tip proto.DbTip) (*proto.Consensus
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
-	if ok := b.handler.Nominate(ctx, scpapi.Slot(nom.Block_height), cv, &prevSummary); ok {
+	if ok := b.handler.Nominate(ctx, scpkit.Slot(nom.Block_height), cv, &prevSummary); ok {
 		b.handler.Emit(ctx, batonkit.EventNominated{
 			Onto:   tip,
 			NumTx:  len(nom.Transaction_hashes),

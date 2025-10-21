@@ -9,7 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -101,7 +101,7 @@ func TestValidateCommit(t *testing.T) {
 	// validation is skipped, as the nomination is already cached
 	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
-	if <-vlevel != scpapi.FullyValidValue {
+	if <-vlevel != scpkit.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
 	liblog.Debugf("STAGE 1: validation succeeded")

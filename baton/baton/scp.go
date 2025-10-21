@@ -7,12 +7,12 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/scp/scpapi"
+	"github.com/groundhogchain/chuckd/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) SCPHandler() scpapi.SCPHandler {
+func (b *Baton) SCPHandler() scpkit.SCPHandler {
 	return scpHandler{b}
 }
 
@@ -20,26 +20,26 @@ type scpHandler struct {
 	baton *Baton
 }
 
-func (x scpHandler) CombineCandidates(ctx context.Context, slot scpapi.Slot, values []scpapi.Value) scpapi.Value {
+func (x scpHandler) CombineCandidates(ctx context.Context, slot scpkit.Slot, values []scpkit.Value) scpkit.Value {
 	<-x.baton.scp
 
 	if len(values) == 0 {
 		return nil
 	} else {
-		scpapi.Values(values).Sort()
+		scpkit.Values(values).Sort()
 		return values[0]
 	}
 }
 
-func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) (level scpapi.ValidationLevel) {
+func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
 	return x.ValidateValue(ctx, slot, value, false)
 }
 
-func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) (level scpapi.ValidationLevel) {
+func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
 	return x.ValidateValue(ctx, slot, value, true)
 }
 
-func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value, nomination bool) (level scpapi.ValidationLevel) {
+func (x scpHandler) ValidateValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value, nomination bool) (level scpkit.ValidationLevel) {
 	<-x.baton.scp
 
 	kind := "ballot"
@@ -48,25 +48,25 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpapi.Slot, value s
 	}
 	liblog.Infof("baton validate %s value for slot %d received", kind, slot)
 	defer func() {
-		liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpapi.ValidationLevelString(level))
+		liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpkit.ValidationLevelString(level))
 	}()
 
 	var cv proto.ConsensusValue
 	err := xdrutil.UnmarshalXdr(&cv, value)
 	if err != nil {
-		return scpapi.InvalidValue
+		return scpkit.InvalidValue
 	}
 	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
-		return scpapi.InvalidValue
+		return scpkit.InvalidValue
 	}
 
-	reply := make(chan scpapi.ValidationLevel, 1)
+	reply := make(chan scpkit.ValidationLevel, 1)
 	x.baton.validateValue(ctx, &cv, reply)
 	level = <-reply
 	return
 }
 
-func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpapi.ValidationLevel) {
+func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpkit.ValidationLevel) {
 
 	b.lock()
 	dbTip := b.tip
@@ -75,12 +75,12 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 
 	if cv.Nomination.Block_height <= dbTip.Height {
 		liblog.Infof("cannot validate, nomination below tip")
-		reply <- scpapi.InvalidValue
+		reply <- scpkit.InvalidValue
 		return
 	}
 
 	if alreadyValidated != nil {
-		reply <- scpapi.FullyValidValue
+		reply <- scpkit.FullyValidValue
 		return
 	}
 
@@ -104,11 +104,11 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 			tip, err := b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
 			if err != nil { // context cancelled
 				if errors.Is(err, ErrTipAlreadyAhead) {
-					reply <- scpapi.InvalidValue
+					reply <- scpkit.InvalidValue
 					return
 				}
 				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-				reply <- scpapi.InvalidValue
+				reply <- scpkit.InvalidValue
 				return
 			}
 			dbTip = tip
@@ -121,7 +121,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		if cv.Nomination.Prev_block_hash != dbTip.Hash {
 			liblog.Infof("cannot validate, previous block %v != db tip %v",
 				form.Display(cv.Nomination.Prev_block_hash), form.Display(dbTip.Hash))
-			reply <- scpapi.InvalidValue
+			reply <- scpkit.InvalidValue
 			return
 		}
 
@@ -134,7 +134,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 			// it occurs only if scp has externalized newer blocks and thus
 			// the validation request is not relevant any longer.
 			// in this case, returning invalid value does not violate scp honest semantics.
-			reply <- scpapi.InvalidValue
+			reply <- scpkit.InvalidValue
 			return
 		}
 
@@ -144,16 +144,16 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		b.setValidated(cv, validatedTip.Id)
 		b.unlock()
 
-		reply <- scpapi.FullyValidValue
+		reply <- scpkit.FullyValidValue
 	}()
 }
 
-func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) *scpapi.Value {
+func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
 	<-x.baton.scp
 	return &value
 }
 
-func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpapi.Slot, value scpapi.Value) {
+func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
 	<-x.baton.scp
 
 	var cv proto.ConsensusValue
