@@ -171,6 +171,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	defer x.baton.unlock()
 
 	if isNewExternalization(ctx, x.baton.tip, &cv, x.baton.externalized) {
+		x.baton.handler.PersistConsensusValue(ctx, cv)
 		x.baton.externalized = append(x.baton.externalized, &cv)
 	}
 }

@@ -3,7 +3,7 @@ CONSENSUS VALUE
 - [x] add storage to system
   - [x] persist scp envelopes
 - [x] add storage access to baton handler
-  - [ ] persist consensus values
+  - [x] persist consensus values
   - [ ] track consensus value corresponding to db tip
 
 - [ ] validate timestamp
