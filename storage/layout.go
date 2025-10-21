@@ -126,7 +126,7 @@ func (x *DiskStorage) SCPEnvelopesDirpath() string {
 func (x *DiskStorage) SCPEnvelopeSlotpath(slot proto.SCPSlotIndex) string {
 	return path.Join(
 		x.SCPEnvelopesDirpath(),
-		fmt.Sprintf("%020d", slot),
+		fmt.Sprintf("%012d", slot),
 	)
 }
 
@@ -147,7 +147,7 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 func (x *DiskStorage) CatchupBlockFilepath(height int64) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
-		fmt.Sprintf("catchup-%020d.xdr", height),
+		fmt.Sprintf("catchup-%012d.xdr", height),
 	)
 }
 
@@ -159,7 +159,7 @@ func FilenameNonce(ctx context.Context) string {
 }
 
 // Matches strings like: "catchup-00000000000000001234.xdr"
-var catchupRE = regexp.MustCompile(`^catchup-([0-9]{20})\.xdr$`)
+var catchupRE = regexp.MustCompile(`^catchup-([0-9]{12})\.xdr$`)
 
 func ListCatchupFiles(dir string) ([]string, error) {
 
@@ -186,7 +186,7 @@ func ListCatchupFiles(dir string) ([]string, error) {
 }
 
 // Matches strings like: "00000000000000001234"
-var scpSlotRE = regexp.MustCompile(`^[0-9]{20}$`)
+var scpSlotRE = regexp.MustCompile(`^[0-9]{12}$`)
 
 func ListSCPSlotDirs(dir string) ([]string, error) {
 

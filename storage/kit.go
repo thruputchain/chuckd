@@ -9,7 +9,6 @@ import (
 
 // XXX: interaction between storage and protocol upgrades?
 // XXX: remove error return values
-// XXX: %020d -> %012d
 
 type CatchupBlockPersistence interface {
 	PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
