@@ -9,9 +9,9 @@ CONSENSUS VALUE
     - [x] on startup, load cvs above tip
     - [x] update tip cv on commit
 
-- [ ] validate timestamp
-  - not in the future
-  - monotonically increasing
+- [x] validate timestamp
+  - [x] not in the future
+  - [x] monotonically increasing
 
 - [ ] add hash of prev consensus value in cv
 

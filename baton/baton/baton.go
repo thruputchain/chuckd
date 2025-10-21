@@ -155,19 +155,20 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
-func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (proto.DbTip, error) {
+func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *proto.ConsensusValue, error) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {
 		select {
 		case <-ctx.Done():
-			return proto.DbTip{}, ctx.Err()
+			return nil, nil, ctx.Err()
 		default:
 			switch {
 			case b.tip.Height > height:
-				return proto.DbTip{}, ErrTipAlreadyAhead
+				return nil, nil, ErrTipAlreadyAhead
 			case b.tip.Height == height:
-				return b.tip, nil
+				copyTip, copyTipCV := b.tip, b.tipCV
+				return &copyTip, &copyTipCV, nil
 			default:
 				b.cond.Wait()
 			}

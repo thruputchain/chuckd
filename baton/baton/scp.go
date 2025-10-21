@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/scp/scpkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -69,11 +70,11 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpkit.Slot, value s
 func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpkit.ValidationLevel) {
 
 	b.lock()
-	dbTip := b.tip
+	dbTipOnRequest := b.tip
 	alreadyValidated := b.getValidated(cv)
 	b.unlock()
 
-	if cv.Nomination.Block_height <= dbTip.Height {
+	if cv.Nomination.Block_height <= dbTipOnRequest.Height {
 		liblog.Infof("cannot validate, nomination below tip")
 		reply <- scpkit.InvalidValue
 		return
@@ -99,19 +100,19 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 
 		// Step 2: wait for the block below the validation request to be reached and committed
 
-		if cv.Nomination.Block_height > dbTip.Height+1 {
+		var dbTip *proto.DbTip
+		var cvTip *proto.ConsensusValue
 
-			tip, err := b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
-			if err != nil { // context cancelled
-				if errors.Is(err, ErrTipAlreadyAhead) {
-					reply <- scpkit.InvalidValue
-					return
-				}
-				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+		var err error
+		dbTip, cvTip, err = b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
+		if err != nil { // context cancelled
+			if errors.Is(err, ErrTipAlreadyAhead) {
 				reply <- scpkit.InvalidValue
 				return
 			}
-			dbTip = tip
+			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+			reply <- scpkit.InvalidValue
+			return
 		}
 
 		must.Assert(ctx, dbTip.Height+1 == cv.Nomination.Block_height)
@@ -125,9 +126,21 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 			return
 		}
 
+		prevStamp, newStamp := protoutil.TimeFromTimepoint(cvTip.Timestamp), protoutil.TimeFromTimepoint(cv.Timestamp)
+		if !prevStamp.Before(newStamp) {
+			liblog.Infof("cannot validate, timestamp not increasing")
+			reply <- scpkit.InvalidValue
+			return
+		}
+		if !newStamp.Before(b.handler.Now()) {
+			liblog.Infof("cannot validate, timestamp in the future")
+			reply <- scpkit.InvalidValue
+			return
+		}
+
 		// Step 4: start validation
 
-		validatedTip, err := b.validate(vCtx, dbTip, cv)
+		validatedTip, err := b.validate(vCtx, *dbTip, cv)
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))

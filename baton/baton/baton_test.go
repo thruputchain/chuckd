@@ -192,6 +192,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		nominated := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
 		// kick off validation
+		rig.PassTime(tick)
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
@@ -202,6 +203,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 		<-validatedTheirs
 
+		rig.PassTime(tick)
 		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
 			rig.ExternalizedValue(
