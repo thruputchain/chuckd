@@ -180,7 +180,6 @@ func (x *DiskStorage) FindConsensusValuesAbove(ctx context.Context, above proto.
 	found := []proto.ConsensusValue{}
 	maxHeight := x.findConsensusValueMaxHeight(ctx)
 	for height := above + 1; height <= maxHeight; height++ {
-		height += 1
 		cv := x.FindConsensusValue(ctx, height)
 		if cv == nil {
 			continue

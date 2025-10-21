@@ -107,6 +107,73 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 	}
 }
 
+func TestFindConsensusValue(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	dir := t.TempDir()
+	cfg := Config{
+		Freq:             time.Hour,
+		MaxCatchupBlocks: 10,
+		MaxSCPSlots:      10,
+	}
+
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
+
+	cv := newConsensusValue(time.Unix(1700001000, 0).UTC(), 10)
+	st.PersistConsensusValue(ctx, cv)
+
+	got := st.FindConsensusValue(ctx, cv.Nomination.Block_height)
+	if got == nil {
+		t.Fatalf("FindConsensusValue returned nil for persisted height %d", cv.Nomination.Block_height)
+	}
+
+	if !reflect.DeepEqual(*got, cv) {
+		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, cv)
+	}
+
+	if missing := st.FindConsensusValue(ctx, cv.Nomination.Block_height+1); missing != nil {
+		t.Fatalf("expected nil for non-existent height, got %+v", missing)
+	}
+}
+
+func TestFindConsensusValuesAbove(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	dir := t.TempDir()
+	cfg := Config{
+		Freq:             time.Hour,
+		MaxCatchupBlocks: 10,
+		MaxSCPSlots:      10,
+	}
+
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
+
+	consensusValues := []proto.ConsensusValue{
+		newConsensusValue(time.Unix(1700002000, 0).UTC(), 5),
+		newConsensusValue(time.Unix(1700003000, 0).UTC(), 6),
+		newConsensusValue(time.Unix(1700004000, 0).UTC(), 8),
+	}
+	for _, cv := range consensusValues {
+		st.PersistConsensusValue(ctx, cv)
+	}
+
+	got := st.FindConsensusValuesAbove(ctx, 4)
+
+	if len(got) != len(consensusValues) {
+		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusValues), len(got))
+	}
+
+	for i, want := range consensusValues {
+		if !reflect.DeepEqual(got[i], want) {
+			t.Fatalf("consensus value mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
+		}
+	}
+}
+
 func newConsensusValue(ts time.Time, height int64) proto.ConsensusValue {
 	return proto.ConsensusValue{
 		Timestamp: protoutil.TimepointFromTime(ts),
