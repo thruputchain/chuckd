@@ -52,6 +52,7 @@ var (
 					testCfg,
 				)
 				opcfg := coordinator.OperationalConfig{
+					StorageDir:     benchStorageDir,
 					SchedAddr:      fmt.Sprintf("localhost:%d", benchSchedPort),
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
@@ -124,6 +125,7 @@ var (
 	benchNumIterations int
 	benchBytesPerPay   int
 	//
+	benchStorageDir    string
 	benchInAddress     string
 	benchOutAddress    string
 	benchWalletAddress string
@@ -155,6 +157,7 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	benchCmd.AddCommand(benchTestClusterCmd)
+	benchTestClusterCmd.Flags().StringVar(&benchStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
 	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")

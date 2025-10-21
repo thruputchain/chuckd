@@ -24,7 +24,8 @@ func TestReclaimCatchupBlocksRemovesOldest(t *testing.T) {
 		MaxSCPSlots:      10,
 	}
 
-	st := NewStorage(ctx, dir, cfg)
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
 
 	heights := []int64{101, 102, 103, 104}
 	for i, h := range heights {
@@ -87,7 +88,8 @@ func TestReclaimSCPEnvelopesRemovesOldestSlots(t *testing.T) {
 		MaxSCPSlots:      2,
 	}
 
-	st := NewStorage(ctx, dir, cfg)
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
 
 	slots := []int64{5, 6, 7}
 	for i, slot := range slots {

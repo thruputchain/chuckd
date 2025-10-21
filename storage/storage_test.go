@@ -24,7 +24,8 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		MaxSCPSlots:      10,
 	}
 
-	st := NewStorage(ctx, dir, cfg)
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
 
 	cv := newConsensusValue(time.Unix(1700000000, 0).UTC(), 42)
 	cb := proto.CatchupBlock{
@@ -60,7 +61,8 @@ func TestFindLatestConsensusValues(t *testing.T) {
 		MaxSCPSlots:      10,
 	}
 
-	st := NewStorage(ctx, dir, cfg)
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
 
 	base := time.Date(2024, 10, 18, 12, 0, 0, 0, time.UTC)
 	vals := []proto.ConsensusValue{
@@ -124,7 +126,8 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 		MaxSCPSlots:      10,
 	}
 
-	st := NewStorage(ctx, dir, cfg)
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
 
 	envs := []proto.SCPEnvelope{
 		newEnvelope(3, 0x01),

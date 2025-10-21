@@ -28,9 +28,23 @@ type DiskStorage struct {
 	//
 	catchupM xdrutil.XdrMarshaler
 	scpM     xdrutil.XdrMarshaler
+	//
+	ready chan struct{}
 }
 
-func NewStorage(ctx context.Context, dir string, cfg Config) *DiskStorage {
+func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
+	return &DiskStorage{
+		cfg:      cfg,
+		catchupM: xdrutil.NewXdrMarshaler(),
+		scpM:     xdrutil.NewXdrMarshaler(),
+		ready:    make(chan struct{}),
+	}
+}
+
+func (x *DiskStorage) Start(ctx context.Context, dir string) {
+	defer close(x.ready)
+
+	x.dir = dir
 
 	// obtain an advisory lock
 	err := os.MkdirAll(dir, 0o755)
@@ -40,20 +54,14 @@ func NewStorage(ctx context.Context, dir string, cfg Config) *DiskStorage {
 	_, err = flk.TryLock()
 	must.NoError(ctx, err)
 
-	x := &DiskStorage{
-		dir:      dir,
-		cfg:      cfg,
-		catchupM: xdrutil.NewXdrMarshaler(),
-		scpM:     xdrutil.NewXdrMarshaler(),
-	}
-
 	go x.reclaimLoop(ctx)
-	return x
 }
 
 // catchup blocks
 
 func (x *DiskStorage) AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+	<-x.ready
+
 	// lock ensures concurrent duplicate adds don't interfere
 	// no lock is necessary on reading or garbage collection
 	x.catchupLk.Lock()
@@ -78,6 +86,7 @@ func (x *DiskStorage) AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock
 }
 
 func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) (proto.CatchupBlock, error) {
+	<-x.ready
 
 	full := x.CatchupBlockFilepath(height)
 
@@ -98,6 +107,8 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 // consensus values
 
 func (x *DiskStorage) AddConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	<-x.ready
+
 	// lock ensures concurrent duplicate adds don't interfere
 	x.consensusLk.Lock()
 	defer x.consensusLk.Unlock()
@@ -124,6 +135,7 @@ func (x *DiskStorage) AddConsensusValue(ctx context.Context, cv proto.ConsensusV
 var errStopWalking = fmt.Errorf("stop reverse file walk")
 
 func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
+	<-x.ready
 
 	rootpath := x.ConsensusValuesDirpath()
 	err := os.MkdirAll(filepath.Dir(rootpath), 0o755)
@@ -166,6 +178,8 @@ func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]p
 // scp envelopes
 
 func (x *DiskStorage) AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+	<-x.ready
+
 	// lock ensures concurrent duplicate adds don't interfere
 	// note that no lock is necessary when reclaiming or reading
 	x.scpLk.Lock()
@@ -193,6 +207,7 @@ func (x *DiskStorage) AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)
 }
 
 func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
+	<-x.ready
 
 	found := []proto.SCPEnvelope{}
 

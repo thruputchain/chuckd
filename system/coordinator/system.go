@@ -20,6 +20,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/scp/scpd"
+	"github.com/groundhogchain/chuckd/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/chuckd/wallet"
@@ -42,6 +43,7 @@ type System struct {
 	Dogwood   *dogwood.DogwoodService
 	Multiplex *multiplex.Multiplex
 	//
+	Storage *storage.DiskStorage
 	Live    *LiveHandler
 	Baton   *baton.Baton
 	Catchup *catchup.CatchupService
@@ -108,6 +110,11 @@ func NewSystem(
 		s.signer,
 	)
 
+	s.Storage = storage.NewStorage(ctx, storage.Config{
+		Freq:             time.Duration(cfg.Storage_config.Reclaim_interval_msec) * time.Millisecond,
+		MaxCatchupBlocks: int(cfg.Storage_config.Max_catchup_blocks),
+		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
+	})
 	s.Live = NewLiveHandler(
 		s.signer,
 		libtime.RealTime{},
@@ -190,6 +197,7 @@ func NewSystem(
 //	 multiplex_receiver --> submitter, scp_control
 
 type OperationalConfig struct {
+	StorageDir     string
 	SchedAddr      string
 	InAddr         string
 	OutAddr        string
@@ -201,6 +209,8 @@ type OperationalConfig struct {
 }
 
 func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
+
+	s.Storage.Start(ctx, opcfg.StorageDir)
 
 	// intro to scheduler
 	schedConn, err := sched.DialSchedulerCoordClient(ctx, s.inside, opcfg.SchedAddr)

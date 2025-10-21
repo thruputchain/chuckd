@@ -66,6 +66,7 @@ func BenchTestClusterShellLocal(
 	--metrics :%d \
 		bench testcluster \
 			--tx-per-sec %d \
+			--storage-dir %s \
 			--out-addr %s \
 			--wallet-addr %s \
 			--scp-handle-addr %s \
@@ -73,7 +74,9 @@ func BenchTestClusterShellLocal(
 			--scp-is-validator true`,
 			runtime.GetLogLevel(),
 			untypedVID,
-			i, rand.Int63(), metricsBasePort+i, tps, quorumBinds[i], walletBinds[i],
+			i, rand.Int63(), metricsBasePort+i, tps,
+			fmt.Sprintf("./storage-%d", i),
+			quorumBinds[i], walletBinds[i],
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)

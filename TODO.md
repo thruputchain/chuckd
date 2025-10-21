@@ -1,6 +1,6 @@
 CONSENSUS VALUE
 
-- [ ] add storage to system
+- [x] add storage to system
   - [ ] persist scp envelopes
 - [ ] add storage access to baton handler
   - [ ] persist consensus values

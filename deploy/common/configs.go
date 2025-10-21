@@ -75,6 +75,11 @@ func MakeBaseConfig(
 			Multiplier_nom:   3,
 			Multiplier_denom: 2,
 		},
+		Storage_config: &proto.StorageConfig{
+			Reclaim_interval_msec: 5 * 60 * 1000, // 5 min
+			Max_catchup_blocks:    60 * 60 * 24,  // 1 day worth, assuming 1 block per second
+			Max_scp_slots:         60 * 60 * 24,  // 1 day worth, assuming 1 block per second
+		},
 	}
 }
 

@@ -39,6 +39,7 @@ var (
 					outside,
 				)
 				opcfg := coordinator.OperationalConfig{
+					StorageDir:     serverStorageDir,
 					SchedAddr:      serverSchedAddress,
 					InAddr:         serverInAddress,
 					OutAddr:        serverOutAddress,
@@ -76,6 +77,7 @@ var (
 )
 
 var (
+	serverStorageDir    string
 	serverSchedAddress  string
 	serverInAddress     string
 	serverOutAddress    string
@@ -93,6 +95,7 @@ func init() {
 	scpdPath, _ := exec.LookPath("scpd")
 
 	sysCmd.AddCommand(sysCoordinatorCmd)
+	sysCoordinatorCmd.Flags().StringVar(&serverStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
 	sysCoordinatorCmd.Flags().StringVar(&serverSchedAddress, "sched-addr", "localhost:7555", "address of scheduler")
 	sysCoordinatorCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
