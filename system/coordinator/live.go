@@ -17,6 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/repair"
 	"github.com/groundhogchain/chuckd/sched"
 	"github.com/groundhogchain/chuckd/scp/scpkit"
+	"github.com/groundhogchain/chuckd/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -33,6 +34,7 @@ type LiveHandler struct {
 	router router.Router
 	*repair.RepairAgent
 	dogwood *dogwood.DogwoodService
+	storage *storage.DiskStorage
 	scp     scpkit.SCPController
 	m       xdrutil.XdrMarshaler
 	//
@@ -51,6 +53,7 @@ func NewLiveHandler(
 	router router.Router,
 	repairAgent *repair.RepairAgent,
 	dogwood *dogwood.DogwoodService,
+	storage *storage.DiskStorage,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
@@ -61,6 +64,7 @@ func NewLiveHandler(
 		router:      router,
 		RepairAgent: repairAgent,
 		dogwood:     dogwood,
+		storage:     storage,
 		m:           xdrutil.NewXdrMarshaler(),
 		rand:        rand,
 		scpReady:    make(chan struct{}),
@@ -118,4 +122,12 @@ func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
 	liblog.Debugf("%s", event)
+}
+
+func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	x.storage.PersistConsensusValue(ctx, cv)
+}
+
+func (x *LiveHandler) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
+	return x.storage.FindLatestConsensusValues(ctx, n)
 }

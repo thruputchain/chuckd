@@ -33,7 +33,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		Signed_transactions: nil,
 	}
 
-	st.AddCatchupBlock(ctx, cb)
+	st.PersistCatchupBlock(ctx, cb)
 
 	got, err := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestFindLatestConsensusValues(t *testing.T) {
 	}
 
 	for _, cv := range vals {
-		st.AddConsensusValue(ctx, cv)
+		st.PersistConsensusValue(ctx, cv)
 	}
 
 	// Drop an unrelated file that should be ignored by the walker.
@@ -137,7 +137,7 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 	}
 
 	for _, env := range envs {
-		st.AddSCPEnvelope(ctx, env)
+		st.PersistSCPEnvelope(ctx, env)
 	}
 
 	got, err := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(3))

@@ -34,7 +34,7 @@ func TestReclaimCatchupBlocksRemovesOldest(t *testing.T) {
 			Consensus_value:     cv,
 			Signed_transactions: nil,
 		}
-		st.AddCatchupBlock(ctx, cb)
+		st.PersistCatchupBlock(ctx, cb)
 	}
 
 	files, err := ListCatchupFiles(st.CatchupBlocksDirpath())
@@ -94,7 +94,7 @@ func TestReclaimSCPEnvelopesRemovesOldestSlots(t *testing.T) {
 	slots := []int64{5, 6, 7}
 	for i, slot := range slots {
 		env := newEnvelope(slot, byte(0x20+i))
-		st.AddSCPEnvelope(ctx, env)
+		st.PersistSCPEnvelope(ctx, env)
 	}
 
 	slotdirs, err := ListSCPSlotDirs(st.SCPEnvelopesDirpath())

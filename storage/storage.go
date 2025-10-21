@@ -59,7 +59,7 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 
 // catchup blocks
 
-func (x *DiskStorage) AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
 	<-x.ready
 
 	// lock ensures concurrent duplicate adds don't interfere
@@ -106,7 +106,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
-func (x *DiskStorage) AddConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	<-x.ready
 
 	// lock ensures concurrent duplicate adds don't interfere
@@ -177,7 +177,7 @@ func (x *DiskStorage) FindLatestConsensusValues(ctx context.Context, n int) ([]p
 
 // scp envelopes
 
-func (x *DiskStorage) AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.ready
 
 	// lock ensures concurrent duplicate adds don't interfere

@@ -9,20 +9,18 @@ import (
 
 // XXX: interaction between storage and protocol upgrades?
 
-type Storage interface {
-	StorageReader
-	StorageWriter
-}
-
-type StorageWriter interface {
-	AddCatchupBlock(ctx context.Context, cb proto.CatchupBlock)     // index: slot
-	AddConsensusValue(ctx context.Context, cv proto.ConsensusValue) // index: slot
-	AddSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)      // index: slot, time, hash
-}
-
-type StorageReader interface {
+type CatchupBlockPersistence interface {
+	PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) // index: slot
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) (proto.CatchupBlock, error)
+}
+
+type ConsensusValuePersistence interface {
+	PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) // index: slot
 	FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error)
+}
+
+type SCPEnvelopePersistence interface {
+	PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) // index: slot, time, hash
 	FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error)
 }
 

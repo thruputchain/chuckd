@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/catchup"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/scp/scpkit"
+	"github.com/groundhogchain/chuckd/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
@@ -32,6 +33,8 @@ type Handler interface {
 	) ([]proto.SignedTransaction, error)
 
 	Emit(ctx context.Context, event any)
+
+	storage.ConsensusValuePersistence
 }
 
 type ID64 int64

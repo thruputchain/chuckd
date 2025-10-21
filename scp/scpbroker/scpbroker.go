@@ -25,7 +25,7 @@ func NewSCPBroker(
 }
 
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
-	x.storage.AddSCPEnvelope(ctx, env)
+	x.storage.PersistSCPEnvelope(ctx, env)
 	x.controller.ReceivedEnvelope(ctx, env)
 }
 

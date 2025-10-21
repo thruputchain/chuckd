@@ -38,6 +38,9 @@ type TestRig struct {
 	//
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
+	//
+	cvlk            sync.Mutex
+	consensusValues []proto.ConsensusValue
 }
 
 func NewTestRig(
@@ -152,4 +155,17 @@ func (h *TestRig) RepairMissingTxs(
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 	panic("not used")
+}
+
+func (h *TestRig) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	h.cvlk.Lock()
+	defer h.cvlk.Unlock()
+	h.consensusValues = append(h.consensusValues, cv)
+}
+
+func (h *TestRig) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
+	h.cvlk.Lock()
+	defer h.cvlk.Unlock()
+	m := len(h.consensusValues)
+	return h.consensusValues[max(0, m-n):m], nil
 }

@@ -124,6 +124,7 @@ func NewSystem(
 		s.Router,
 		s.RepairAgent,
 		s.Dogwood,
+		s.Storage,
 		runtime.NewRandFromRand(rand),
 	)
 
