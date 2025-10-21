@@ -25,7 +25,8 @@ type testDbSnapshot struct {
 	committed bool
 }
 
-func NewTestDb(tip proto.DbTip) *TestDb {
+func NewTestDb(ctx context.Context, tip proto.DbTip) *TestDb {
+	must.Assert(ctx, tip.Height > 0)
 	db := &TestDb{
 		m:  xdrutil.NewXdrMarshaler(),
 		id: map[proto.BlockID]*testDbSnapshot{},

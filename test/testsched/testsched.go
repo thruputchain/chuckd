@@ -34,7 +34,7 @@ func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip
 	return &TestScheduler{
 		m:       xdrutil.NewXdrMarshaler(),
 		signer:  signer,
-		db:      testdb.NewTestDb(tip),
+		db:      testdb.NewTestDb(ctx, tip),
 		ready:   make(chan struct{}),
 		mempool: testmempool.NewTestMempool(),
 		rand:    librand.New(),

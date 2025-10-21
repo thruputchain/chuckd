@@ -48,6 +48,7 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 func TestNominateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
+	baseHeight := rig.GetTip(ctx).Height
 
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
@@ -59,8 +60,8 @@ func TestNominateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                           // txs for stage 3
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(nominating_1.DbgConsensusValue).Bytes()) // trigger commit, trigger stage 3
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                                                   // txs for stage 3
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.DbgConsensusValue).Bytes()) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -79,6 +80,7 @@ func TestNominateCommit(t *testing.T) {
 func TestValidateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
+	baseHeight := rig.GetTip(ctx).Height
 
 	// stage 1: validate [1]
 	block := rig.GenNomination(ctx, 2)
@@ -108,7 +110,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes())
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes())
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -119,6 +121,7 @@ func TestValidateCommit(t *testing.T) {
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
+	baseHeight := rig.GetTip(ctx).Height
 
 	block1 := rig.GenNomination(ctx, 1)
 	block2 := rig.GenNominationOntoBlock(ctx, 1, block1)
@@ -136,12 +139,12 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
-	rig.ExternalizedValue(ctx, 2, testMarshaler.MarshalXdr(&block2.ConsensusValue).Bytes())
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+2), testMarshaler.MarshalXdr(&block2.ConsensusValue).Bytes())
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
-	if committed.Height != 1 {
-		t.Errorf("expecting committed height 1")
+	if committed.Height != baseHeight+1 {
+		t.Errorf("expecting committed height")
 	}
 }
 
@@ -149,18 +152,19 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
+	baseHeight := rig.GetTip(ctx).Height
 
 	block1 := rig.GenNomination(ctx, 1)
 	rig.StageCatchup(block1.Catchup)
 
 	baton.Start(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.ExternalizedValue(ctx, 1, testMarshaler.MarshalXdr(&block1.ConsensusValue).Bytes())
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(&block1.ConsensusValue).Bytes())
 	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
-	if committed.Height != 1 {
+	if committed.Height != baseHeight+1 {
 		t.Errorf("expecting committed height 1")
 	}
 
@@ -169,12 +173,12 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 func TestAlternatingNominateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
-	maxHeight := proto.BlockHeight(15)
+	numRounds := 15
 
 	baton.Start(ctx)
 
-	lastCommitted := testutil.TipHandle(rig.getTip(ctx))
-	for height := proto.BlockHeight(1); height < maxHeight; height++ {
+	lastCommitted := testutil.TipHandle(rig.GetTip(ctx))
+	for round := 0; round < numRounds; round++ {
 
 		theirBlock := rig.GenNominationOnto(ctx, 1, lastCommitted)
 
@@ -191,19 +195,27 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
-			proto.SCPSlotIndex(height),
+			proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
 			testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
 		)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 		<-validatedTheirs
 
-		if height%2 == 1 { // nominate [our], validate [their], committ [our]
+		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(nominated.DbgConsensusValue).Bytes())
+			rig.ExternalizedValue(
+				ctx,
+				proto.SCPSlotIndex(nominated.DbgConsensusValue.Nomination.Block_height),
+				testMarshaler.MarshalXdr(nominated.DbgConsensusValue).Bytes(),
+			)
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
-			rig.ExternalizedValue(ctx, proto.SCPSlotIndex(height), testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes())
+			rig.ExternalizedValue(
+				ctx,
+				proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
+				testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
+			)
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 		lastCommitted.Hash, lastCommitted.Height = committed.Hash, committed.Height

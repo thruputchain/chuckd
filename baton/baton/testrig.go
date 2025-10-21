@@ -71,7 +71,7 @@ func NewTestRig(
 		nominateResponse: make(chan bool, 1),
 	}
 	h.TestCoord = testcoord.NewTestCoord()
-	h.TestScheduler = testsched.NewTestScheduler(ctx, signer.Public_info, proto.DbTip{})
+	h.TestScheduler = testsched.NewTestScheduler(ctx, signer.Public_info, proto.DbTip{Height: 1})
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
@@ -79,18 +79,18 @@ func NewTestRig(
 	return h
 }
 
-func (h *TestRig) getTip(ctx context.Context) proto.DbTip {
+func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 	r, err := h.TestScheduler.Schedcoord_get_tip(ctx)
 	must.NoError(ctx, err)
 	return *r.Db_tip()
 }
 
 func (h *TestRig) RestoreDb(ctx context.Context) (proto.DbTip, error) {
-	return h.getTip(ctx), nil
+	return h.GetTip(ctx), nil
 }
 
 func (h *TestRig) GenNomination(ctx context.Context, ntxs int) *testutil.TestBlock {
-	return h.GenNominationOntoTip(ctx, ntxs, h.getTip(ctx))
+	return h.GenNominationOntoTip(ctx, ntxs, h.GetTip(ctx))
 }
 
 func (h *TestRig) Bind(b *Baton) {

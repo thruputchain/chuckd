@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/storage"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -23,7 +24,7 @@ func NewBaton(
 		handler:          h,
 		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
 		maxCatchupHeight: int(cfg.Max_catchup_height),
-		scp:              make(chan struct{}),
+		ready:            make(chan struct{}),
 		catchupRequests:  map[batonkit.ID64]catchupRequest{},
 		validated:        map[proto.ConsensusValueHash]validated{},
 		cvM:              xdrutil.NewXdrMarshaler(),
@@ -41,7 +42,7 @@ type Baton struct {
 	handler          batonkit.Handler
 	heartbeat        time.Duration
 	maxCatchupHeight int
-	scp              chan struct{}
+	ready            chan struct{}
 	cond             *sync.Cond
 	lk               sync.Mutex
 
@@ -50,6 +51,7 @@ type Baton struct {
 	nominating      *nominating
 	nominated       *nominated
 	tip             proto.DbTip
+	tipCV           proto.ConsensusValue
 	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlocks                    // received catchup blocks
 	externalized    []*proto.ConsensusValue
@@ -84,6 +86,7 @@ func (b *Baton) Kick() {
 
 func (b *Baton) Start(ctx context.Context) {
 	go b.start(ctx)
+	<-b.ready
 }
 
 func (b *Baton) start(ctx context.Context) {
@@ -94,11 +97,26 @@ func (b *Baton) start(ctx context.Context) {
 	var err error
 	b.tip, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
+	must.Assertf(ctx, b.tip.Height > 0, "db tip height 0; missing genesis block")
 
-	liblog.Infof("baton db restored")
+	// genesis block has height 1, and no corresponding consensus value
+	if b.tip.Height > 1 {
+		tipCV := b.handler.FindConsensusValue(ctx, b.tip.Height)
+		must.Assert(ctx, tipCV != nil)
+		must.Assert(ctx, tipCV.Nomination.Block_height == b.tip.Height)
+		b.tipCV = *tipCV
+	}
+
+	// load known externalizations above db tip
+	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tip.Height)
+	for _, cv := range higherCV {
+		b.externalized = append(b.externalized, &cv)
+	}
+
+	liblog.Infof("baton db restored at height %d", b.tip.Height)
 
 	// release lock on scp events
-	close(b.scp)
+	close(b.ready)
 
 	// wake up every so often for the purpose of
 	// triggering nomination which would capture any new txs that have been submitted to the mempool.

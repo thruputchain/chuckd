@@ -21,7 +21,7 @@ type scpHandler struct {
 }
 
 func (x scpHandler) CombineCandidates(ctx context.Context, slot scpkit.Slot, values []scpkit.Value) scpkit.Value {
-	<-x.baton.scp
+	<-x.baton.ready
 
 	if len(values) == 0 {
 		return nil
@@ -40,7 +40,7 @@ func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpkit.Slo
 }
 
 func (x scpHandler) ValidateValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value, nomination bool) (level scpkit.ValidationLevel) {
-	<-x.baton.scp
+	<-x.baton.ready
 
 	kind := "ballot"
 	if nomination {
@@ -149,12 +149,12 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 }
 
 func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
-	<-x.baton.scp
+	<-x.baton.ready
 	return &value
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
-	<-x.baton.scp
+	<-x.baton.ready
 
 	var cv proto.ConsensusValue
 	if err := xdrutil.UnmarshalXdr(&cv, value); err != nil {
