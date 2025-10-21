@@ -2,8 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -34,18 +32,18 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 
 	st.PersistCatchupBlock(ctx, cb)
 
-	got, err := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
-	if err != nil {
-		t.Fatalf("FindCatchupBlock returned error: %v", err)
+	got := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
+	if got == nil {
+		t.Fatalf("FindCatchupBlock returned no result")
 	}
 
-	if !reflect.DeepEqual(got, cb) {
+	if !reflect.DeepEqual(*got, cb) {
 		t.Fatalf("FindCatchupBlock mismatch:\n got: %+v\nwant: %+v", got, cb)
 	}
 
-	_, err = st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
-	if !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected os.ErrNotExist for missing height, got %v", err)
+	found := st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
+	if found != nil {
+		t.Fatalf("expected missing block, got some")
 	}
 }
 
@@ -74,10 +72,7 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 		st.PersistSCPEnvelope(ctx, env)
 	}
 
-	got, err := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(3))
-	if err != nil {
-		t.Fatalf("FindSCPEnvelopesSinceSlot returned error: %v", err)
-	}
+	got := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(3))
 
 	if len(got) != 3 {
 		t.Fatalf("expected 3 envelopes (slots 3 and 4), got %d", len(got))
@@ -90,18 +85,12 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 		t.Fatalf("expected envelopes for slot 4 after first gap, got slots %d and %d", got[1].Statement.Slot_index, got[2].Statement.Slot_index)
 	}
 
-	afterGap, err := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(6))
-	if err != nil {
-		t.Fatalf("FindSCPEnvelopesSinceSlot (slot 6) returned error: %v", err)
-	}
+	afterGap := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(6))
 	if len(afterGap) != 1 || afterGap[0].Statement.Slot_index != proto.SCPSlotIndex(6) {
 		t.Fatalf("expected single envelope at slot 6, got %+v", afterGap)
 	}
 
-	none, err := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(10))
-	if err != nil {
-		t.Fatalf("FindSCPEnvelopesSinceSlot (slot 10) returned error: %v", err)
-	}
+	none := st.FindSCPEnvelopesSinceSlot(ctx, proto.SCPSlotIndex(10))
 	if len(none) != 0 {
 		t.Fatalf("expected no envelopes starting from slot 10, got %d", len(none))
 	}
@@ -161,7 +150,7 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		st.PersistConsensusValue(ctx, cv)
 	}
 
-	got := st.FindConsensusValuesAbove(ctx, 4)
+	got := FindConsensusValuesAbove(ctx, st, 4)
 
 	if len(got) != len(consensusValues) {
 		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusValues), len(got))

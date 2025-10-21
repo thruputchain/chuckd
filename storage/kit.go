@@ -8,22 +8,37 @@ import (
 )
 
 // XXX: interaction between storage and protocol upgrades?
-// XXX: remove error return values
 
 type CatchupBlockPersistence interface {
 	PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
-	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) (proto.CatchupBlock, error)
+	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock
 }
 
 type ConsensusValuePersistence interface {
 	PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue)
 	FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
-	FindConsensusValuesAbove(ctx context.Context, above proto.BlockHeight) []proto.ConsensusValue
+	FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue
+}
+
+func FindConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) []proto.ConsensusValue {
+	found := []proto.ConsensusValue{}
+	highest := x.FindHighestConsensusValue(ctx)
+	if highest == nil {
+		return nil
+	}
+	for height := above + 1; height <= highest.Nomination.Block_height; height++ {
+		cv := x.FindConsensusValue(ctx, height)
+		if cv == nil {
+			continue
+		}
+		found = append(found, *cv)
+	}
+	return found
 }
 
 type SCPEnvelopePersistence interface {
 	PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)
-	FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error)
+	FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
 }
 
 type Config struct {

@@ -128,6 +128,10 @@ func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	x.storage.PersistConsensusValue(ctx, cv)
 }
 
-func (x *LiveHandler) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
-	return x.storage.FindLatestConsensusValues(ctx, n)
+func (x *LiveHandler) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
+	return x.storage.FindConsensusValue(ctx, height)
+}
+
+func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
+	return x.storage.FindHighestConsensusValue(ctx)
 }

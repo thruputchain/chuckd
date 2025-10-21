@@ -84,23 +84,22 @@ func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupB
 	must.NoError(ctx, err)
 }
 
-func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) (proto.CatchupBlock, error) {
+func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
 	<-x.ready
 
 	full := x.CatchupBlockFilepath(height)
 
 	bytes, err := os.ReadFile(full)
-	if err != nil {
-		return proto.CatchupBlock{}, err
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
 	}
+	must.NoError(ctx, err)
 
 	cb := &proto.CatchupBlock{}
 	err = xdrutil.UnmarshalXdr(cb, bytes)
-	if err != nil {
-		return proto.CatchupBlock{}, err
-	}
+	must.NoError(ctx, err)
 
-	return *cb, nil
+	return cb
 }
 
 // consensus values
@@ -136,9 +135,10 @@ func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.Block
 	full := x.ConsensusValueFilepath(height)
 
 	bytes, err := os.ReadFile(full)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
+	must.NoError(ctx, err)
 
 	cv := &proto.ConsensusValue{}
 	err = xdrutil.UnmarshalXdr(cv, bytes)
@@ -147,9 +147,11 @@ func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.Block
 	return cv
 }
 
-func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.BlockHeight {
-	<-x.ready
+func (x *DiskStorage) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
+	return x.FindConsensusValue(ctx, x.findConsensusValueMaxHeight(ctx))
+}
 
+func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.BlockHeight {
 	rootpath := x.ConsensusValuesDirpath()
 	err := os.MkdirAll(filepath.Dir(rootpath), 0o755)
 	must.NoError(ctx, err)
@@ -175,19 +177,6 @@ func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.Blo
 }
 
 var errStopWalking = fmt.Errorf("stop reverse file walk")
-
-func (x *DiskStorage) FindConsensusValuesAbove(ctx context.Context, above proto.BlockHeight) []proto.ConsensusValue {
-	found := []proto.ConsensusValue{}
-	maxHeight := x.findConsensusValueMaxHeight(ctx)
-	for height := above + 1; height <= maxHeight; height++ {
-		cv := x.FindConsensusValue(ctx, height)
-		if cv == nil {
-			continue
-		}
-		found = append(found, *cv)
-	}
-	return found
-}
 
 // scp envelopes
 
@@ -220,7 +209,7 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 
 }
 
-func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
+func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
 	<-x.ready
 
 	found := []proto.SCPEnvelope{}
@@ -247,5 +236,5 @@ func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.
 		}
 	}
 
-	return found, nil
+	return found
 }

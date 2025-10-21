@@ -29,6 +29,6 @@ func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 	x.controller.ReceivedEnvelope(ctx, env)
 }
 
-func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
+func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotIndex) []proto.SCPEnvelope {
 	return x.storage.FindSCPEnvelopesSinceSlot(ctx, since)
 }

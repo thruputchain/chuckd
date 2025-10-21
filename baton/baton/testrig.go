@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"math/rand"
+	"slices"
 	"sync"
 	"time"
 
@@ -163,9 +164,34 @@ func (h *TestRig) PersistConsensusValue(ctx context.Context, cv proto.ConsensusV
 	h.consensusValues = append(h.consensusValues, cv)
 }
 
-func (h *TestRig) FindLatestConsensusValues(ctx context.Context, n int) ([]proto.ConsensusValue, error) {
+func (h *TestRig) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
 	h.cvlk.Lock()
 	defer h.cvlk.Unlock()
-	m := len(h.consensusValues)
-	return h.consensusValues[max(0, m-n):m], nil
+	i, found := slices.BinarySearchFunc(
+		h.consensusValues,
+		height,
+		func(e proto.ConsensusValue, t proto.BlockHeight) int {
+			switch {
+			case e.Nomination.Block_height < t:
+				return -1
+			case e.Nomination.Block_height > t:
+				return 1
+			default:
+				return 0
+			}
+		},
+	)
+	if !found {
+		return nil
+	}
+	return &h.consensusValues[i]
+}
+
+func (h *TestRig) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
+	h.cvlk.Lock()
+	defer h.cvlk.Unlock()
+	if len(h.consensusValues) == 0 {
+		return nil
+	}
+	return &h.consensusValues[len(h.consensusValues)-1]
 }
