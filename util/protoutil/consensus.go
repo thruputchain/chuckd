@@ -12,3 +12,10 @@ func HashCV(m xdrutil.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusVal
 	defer bb.Recycle()
 	return sha256.Sum256(bb.Bytes())
 }
+
+func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
+	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
+		return false
+	}
+	return true
+}

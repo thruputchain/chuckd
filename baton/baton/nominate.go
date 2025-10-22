@@ -13,9 +13,9 @@ import (
 )
 
 type nominating struct {
-	OntoDb proto.DbTip
-	OntoCV proto.ConsensusValue
-	Cancel context.CancelFunc
+	OntoDb  proto.DbTip
+	OntoExt externalized
+	Cancel  context.CancelFunc
 }
 
 type nominated struct {
@@ -43,11 +43,11 @@ func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating
 
 func (b *Baton) nominate(
 	ctx context.Context,
-	tipDb proto.DbTip,
-	tipCV proto.ConsensusValue,
+	ontoDb proto.DbTip,
+	ontoExt externalized,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
-	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, tipDb)
+	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
 	// we cannot continue if nomination fails
 	must.NoError(ctx, err)
 	must.Assert(ctx, schedNomResult.Outcome == proto.SchedulerNominationOK)
@@ -61,11 +61,11 @@ func (b *Baton) nominate(
 		Timestamp:    protoutil.TimepointFromTime(b.handler.Now()),
 		Nomination:   *nom,
 		Upgrades:     nil, // XXX: placeholder for upgrades
-		Prev_cv_hash: protoutil.HashCV(b.cvM, &tipCV),
+		Prev_cv_hash: ontoExt.ConsensusValueHash(),
 	}
 
 	b.handler.Emit(ctx, batonkit.EventNominating{
-		Onto:   tipDb,
+		Onto:   ontoDb,
 		NumTx:  len(nom.Transaction_hashes),
 		Height: nom.Block_height,
 		Hash:   nom.Block_hash,
@@ -77,7 +77,7 @@ func (b *Baton) nominate(
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
 	if ok := b.handler.Nominate(ctx, scpkit.Slot(nom.Block_height), cv, &prevSummary); ok {
 		b.handler.Emit(ctx, batonkit.EventNominated{
-			Onto:   tipDb,
+			Onto:   ontoDb,
 			NumTx:  len(nom.Transaction_hashes),
 			Height: nom.Block_height,
 			Hash:   nom.Block_hash,
@@ -85,7 +85,7 @@ func (b *Baton) nominate(
 			DbgConsensusValue: cv,
 		})
 	} else {
-		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(tipDb))
+		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 	}
 
 	return cv, schedNom.Block_id, nil

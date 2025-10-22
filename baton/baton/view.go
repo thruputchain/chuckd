@@ -15,12 +15,12 @@ type View struct {
 	Reqs   [][]batonkit.ID64 // catchup requests already fired for this block
 }
 
-func (v *View) TipToNominateOn() (*proto.DbTip, *proto.ConsensusValue) {
+func (v *View) NominateOnto() (*proto.DbTip, *externalized) {
 	if len(v.Blocks) != 1 {
 		return nil, nil
 	}
 	db := v.Blocks[0].(ViewDbBlock)
-	return &db.TipDb, db.TipExt.ConsensusValue()
+	return &db.TipDb, &db.TipExt
 }
 
 func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {

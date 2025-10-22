@@ -62,17 +62,23 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpkit.Slot, value s
 	}
 
 	reply := make(chan scpkit.ValidationLevel, 1)
-	x.baton.validateValue(ctx, &cv, reply)
+	x.baton.validateConsensusValue(ctx, &cv, reply)
 	level = <-reply
 	return
 }
 
-func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpkit.ValidationLevel) {
+func (b *Baton) validateConsensusValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpkit.ValidationLevel) {
 
 	b.lock()
 	dbTipOnRequest := b.tipDb
 	alreadyValidated := b.getValidated(cv)
 	b.unlock()
+
+	if !protoutil.IsSaneConsensusValue(cv) {
+		liblog.Infof("cannot validate, nomination not sane")
+		reply <- scpkit.InvalidValue
+		return
+	}
 
 	if cv.Nomination.Block_height <= dbTipOnRequest.Height {
 		liblog.Infof("cannot validate, nomination below tip")
@@ -87,9 +93,9 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 
 	go func() {
 
-		// Step 1: cancel validation request if externalization arise
+		// arrange to cancel validation request if newer externalizations arise
 
-		// this context will be cancelled upon new externalizations or commits
+		// this context will be cancelled upon newer externalizations or commits
 		vCtx, vCtxCancel := context.WithCancel(ctx)
 		go func() {
 			// waiter is cancelled whenever validation completes or externalization occurs
@@ -98,7 +104,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		}()
 		defer vCtxCancel()
 
-		// Step 2: wait for the block below the validation request to be reached and committed
+		// wait for the block below the validation request to be reached and committed
 
 		var dbTip *proto.DbTip
 		var extTip *externalized
@@ -117,7 +123,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 
 		must.Assert(ctx, dbTip.Height+1 == cv.Nomination.Block_height)
 
-		// Step 3: sanity check nomination
+		// validate chaining with previous consensus
 
 		if cv.Nomination.Prev_block_hash != dbTip.Hash {
 			liblog.Infof("cannot validate, previous block mismatch, nomination %v vs ours %v",
@@ -135,7 +141,7 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 			return
 		}
 
-		// check timestamp
+		// validate timestamp
 
 		prevStamp := protoutil.TimeFromTimepoint(extTip.ConsensusValue().Timestamp)
 		newStamp := protoutil.TimeFromTimepoint(cv.Timestamp)
@@ -150,9 +156,9 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 			return
 		}
 
-		// Step 4: start validation
+		// validate proposal
 
-		validatedTip, err := b.validate(vCtx, *dbTip, cv)
+		validatedTip, err := b.validateProposal(vCtx, *dbTip, cv.Nomination)
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))

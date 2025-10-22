@@ -20,8 +20,6 @@ UPGRADES
 
 BACKLOG
 
-- [ ] verify that the hashes in nomination and catchup blocks match the contents of the block
-
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
 
