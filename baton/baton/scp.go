@@ -194,9 +194,10 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	x.baton.lock()
 	defer x.baton.unlock()
 
-	if isNewExternalization(ctx, x.baton.tip, &cv, x.baton.externalized) {
+	ext := x.baton.newExternalized(&cv)
+	if isNewExternalization(ctx, x.baton.tip, ext, x.baton.externalized) {
 		x.baton.handler.PersistConsensusValue(ctx, cv)
-		x.baton.externalized = append(x.baton.externalized, &cv)
+		x.baton.externalized = append(x.baton.externalized, ext)
 	}
 }
 
@@ -205,22 +206,21 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 func isNewExternalization(
 	ctx context.Context,
 	tip proto.DbTip,
-	ext *proto.ConsensusValue,
-	priorExts []*proto.ConsensusValue,
+	ext *externalized,
+	priorExts []*externalized,
 ) bool {
-	if ext.Nomination.Block_height <= tip.Height {
+	if ext.Height() <= tip.Height {
 		return false
 	}
 	if len(priorExts) == 0 {
 		return true // no prior externalizations
 	}
 	lastExt := priorExts[len(priorExts)-1]
-	if ext.Nomination.Block_height <= lastExt.Nomination.Block_height {
+	if ext.Height() <= lastExt.Height() {
 		return false
 	}
 	must.Assertf(ctx,
-		ext.Nomination.Block_height != lastExt.Nomination.Block_height+1 ||
-			ext.Nomination.Prev_block_hash == lastExt.Nomination.Block_hash,
+		ext.Height() != lastExt.Height()+1 || ext.PrevBlockHash() == lastExt.BlockHash(),
 		"scp externalization is invalid",
 	)
 	return true

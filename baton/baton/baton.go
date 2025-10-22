@@ -53,8 +53,8 @@ type Baton struct {
 	tip             proto.DbTip
 	tipCV           proto.ConsensusValue
 	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
-	catchupBlocks   catchupBlocks                    // received catchup blocks
-	externalized    []*proto.ConsensusValue
+	catchupBlocks   catchupBlockShells               // received catchup blocks
+	externalized    []*externalized
 	validated       map[proto.ConsensusValueHash]validated
 
 	// xdr marshalers
@@ -112,7 +112,7 @@ func (b *Baton) start(ctx context.Context) {
 	// load known externalizations above db tip
 	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tip.Height)
 	for _, cv := range higherCV {
-		b.externalized = append(b.externalized, &cv)
+		b.externalized = append(b.externalized, b.newExternalized(&cv))
 	}
 
 	liblog.Infof("baton db restored at height %d", b.tip.Height)
@@ -156,7 +156,7 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 	if len(b.externalized) == 0 {
 		return false
 	}
-	return b.externalized[len(b.externalized)-1].Nomination.Block_height >= height
+	return b.externalized[len(b.externalized)-1].Height() >= height
 }
 
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")

@@ -58,7 +58,11 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 
 	v := &View{Stamp: b.handler.Now()}
 
-	dbBlock := ViewDbBlock{Tip: b.tip, CV: b.tipCV}
+	dbBlock := ViewDbBlock{
+		Tip:    b.tip,
+		CV:     b.tipCV,
+		CVHash: b.hashCV(&b.tipCV),
+	}
 
 	// if there are no scp blocks, we are done
 	if len(b.externalized) == 0 {
@@ -67,14 +71,14 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		return v, nil
 	}
 
-	scpTopCV := b.externalized[len(b.externalized)-1]
-	scpTopHeight := scpTopCV.Nomination.Block_height
+	scpTopExt := b.externalized[len(b.externalized)-1]
+	scpTopHeight := scpTopExt.Height()
 	if scpTopHeight < dbBlock.Tip.Height {
 		return nil, ErrConsensusBelowDb
 	}
 	if scpTopHeight == dbBlock.Tip.Height {
-		if scpTopCV.Nomination.Block_hash == dbBlock.BlockHash() &&
-			b.hashCV(scpTopCV) == b.hashCV(&dbBlock.CV) { // XXX: don't recompute every time
+		if scpTopExt.BlockHash() == dbBlock.BlockHash() &&
+			scpTopExt.ConsensusValueHash() == b.hashCV(&dbBlock.CV) { // XXX: don't recompute every time
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -91,14 +95,14 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	v.Blocks[0] = dbBlock
 
 	scpPrevHeight := proto.BlockHeight(0)
-	for _, cv := range b.externalized {
+	for _, ext := range b.externalized {
 		// there can be gaps between scp blocks
-		must.Assertf(ctx, cv.Nomination.Block_height > scpPrevHeight, "externalization heights not increasing")
-		scpPrevHeight = cv.Nomination.Block_height
+		must.Assertf(ctx, ext.Height() > scpPrevHeight, "externalization heights not increasing")
+		scpPrevHeight = ext.Height()
 		//
-		v.Blocks[int(cv.Nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
-			ConsensusValue: cv,
-			Validated:      b.getValidated(cv),
+		v.Blocks[int(ext.Height())-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
+			Ext:       ext,
+			Validated: b.getValidated(ext.ConsensusValue()),
 		}
 	}
 
@@ -146,7 +150,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if u.Validated == nil {
 				if cb, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-					if b.hashCV(&cb.Block.Consensus_value) == b.hashCV(u.ConsensusValue) {
+					if cb.ConsensusValueHash() == u.ConsensusValueHash() {
 						u.Catchup = &cb
 						v.Blocks[i] = u
 					} else {
@@ -161,6 +165,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 	return nil
 }
 
+// chainBlocks verifies that each block does not disagree with the previous one, if available.
 // XXX: consensus value must include the hash of the previous consensus value to enable correct chaining here
 func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 	prev := v.Blocks[0]

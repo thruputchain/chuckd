@@ -11,41 +11,46 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type catchupBlocks []CatchupBlock
+type catchupBlockShells []CatchupBlockShell
 
-func (bs catchupBlocks) IsEmpty() bool {
+func (bs catchupBlockShells) IsEmpty() bool {
 	return len(bs) == 0
 }
 
-func (bs catchupBlocks) Find(h proto.BlockHeight) (CatchupBlock, bool) {
+func (bs catchupBlockShells) Find(h proto.BlockHeight) (CatchupBlockShell, bool) {
 	for _, cb := range bs {
 		if cb.BlockHeight() == h {
 			return cb, true
 		}
 	}
-	return CatchupBlock{}, false
+	return CatchupBlockShell{}, false
 }
 
-type CatchupBlock struct {
+type CatchupBlockShell struct {
 	Source proto.ValidatorID
 	Stamp  time.Time
 	Block  *proto.CatchupBlock
+	CVHash proto.ConsensusValueHash
 }
 
-func (b CatchupBlock) Provider() proto.ValidatorID {
+func (b CatchupBlockShell) Provider() proto.ValidatorID {
 	return b.Source
 }
 
-func (b CatchupBlock) BlockHeight() proto.BlockHeight {
+func (b CatchupBlockShell) BlockHeight() proto.BlockHeight {
 	return b.Block.Consensus_value.Nomination.Block_height
 }
 
-func (b CatchupBlock) BlockHash() proto.BlockHash {
+func (b CatchupBlockShell) BlockHash() proto.BlockHash {
 	return b.Block.Consensus_value.Nomination.Block_hash
 }
 
-func (b CatchupBlock) PrevBlockHash() proto.BlockHash {
+func (b CatchupBlockShell) PrevBlockHash() proto.BlockHash {
 	return b.Block.Consensus_value.Nomination.Prev_block_hash
+}
+
+func (b CatchupBlockShell) ConsensusValueHash() proto.ConsensusValueHash {
+	return b.CVHash
 }
 
 type catchupRequest struct {
@@ -55,7 +60,7 @@ type catchupRequest struct {
 
 // baton
 
-func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (CatchupBlock, bool) {
+func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (CatchupBlockShell, bool) {
 	return b.catchupBlocks.Find(h)
 }
 
@@ -90,7 +95,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 	go func(src proto.ValidatorPublicInfo, id batonkit.ID64, spans []Span) {
 
-		var result catchupBlocks
+		var result catchupBlockShells
 
 		defer func() {
 			b.lock()
@@ -138,11 +143,13 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
 			if protoutil.VerifyCatchupBlock(b.txM, &block) {
-				result = append(result, CatchupBlock{
-					Source: protoutil.PublicVID(src),
-					Stamp:  now,
-					Block:  &block,
-				})
+				result = append(result,
+					CatchupBlockShell{
+						Source: protoutil.PublicVID(src),
+						Stamp:  now,
+						Block:  &block,
+						CVHash: b.hashCV(&block.Consensus_value),
+					})
 			}
 		}
 
