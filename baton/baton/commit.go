@@ -60,16 +60,16 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 
 	// purge catchup blocks
-	var catchup catchupBlockShells
-	for _, cb := range b.catchupBlocks {
+	var catchup catchupArrivals
+	for _, cb := range b.catchupArrivals {
 		if cb.BlockHeight() > b.tipDb.Height {
 			catchup = append(catchup, cb)
 		}
 	}
-	b.catchupBlocks = catchup
+	b.catchupArrivals = catchup
 
 	// purge consensus blocks
-	var exts []*externalized
+	var exts []externalized
 	for _, p := range b.externalized {
 		if p.Height() > b.tipDb.Height {
 			exts = append(exts, p)

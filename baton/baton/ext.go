@@ -7,8 +7,8 @@ type externalized struct {
 	hash proto.ConsensusValueHash
 }
 
-func (b *Baton) newExternalized(cv *proto.ConsensusValue) *externalized {
-	return &externalized{
+func (b *Baton) newExternalized(cv *proto.ConsensusValue) externalized {
+	return externalized{
 		cv:   cv,
 		hash: b.hashCV(cv),
 	}

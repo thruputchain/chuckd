@@ -25,7 +25,7 @@ func NewBaton(
 		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
 		maxCatchupHeight: int(cfg.Max_catchup_height),
 		ready:            make(chan struct{}),
-		catchupRequests:  map[batonkit.ID64]catchupRequest{},
+		catchupWaiting:   map[batonkit.ID64]catchupRequest{},
 		validated:        map[proto.ConsensusValueHash]validated{},
 		cvM:              xdrutil.NewXdrMarshaler(),
 		txM:              xdrutil.NewXdrMarshaler(),
@@ -51,10 +51,10 @@ type Baton struct {
 	nominating      *nominating
 	nominated       *nominated
 	tipDb           proto.DbTip
-	tipExt          *externalized
-	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
-	catchupBlocks   catchupBlockShells               // received catchup blocks
-	externalized    []*externalized
+	tipExt          externalized
+	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
+	catchupArrivals catchupArrivals                  // received catchup blocks
+	externalized    []externalized
 	validated       map[proto.ConsensusValueHash]validated
 
 	// xdr marshalers

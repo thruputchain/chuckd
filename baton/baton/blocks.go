@@ -20,7 +20,7 @@ type ViewBlock interface {
 
 type ViewDbBlock struct {
 	TipDb  proto.DbTip
-	TipExt *externalized
+	TipExt externalized
 }
 
 func (x ViewDbBlock) BlockHash() proto.BlockHash     { return x.TipDb.Hash }
@@ -38,7 +38,7 @@ func (x ViewDbBlock) Icon() string                      { return "D" }
 
 type ViewCatchupBlock struct {
 	Linked    bool // all catchup blocks between db and first scp chain hashes correctly
-	Candidate CatchupBlockShell
+	Candidate CatchupArrival
 	Validated *proto.BlockID
 }
 
@@ -70,9 +70,9 @@ func (x ViewCatchupBlock) Icon() string {
 }
 
 type ViewExternalizedBlock struct {
-	Ext       *externalized
+	Ext       externalized
 	Validated *proto.BlockID
-	Catchup   *CatchupBlockShell
+	Catchup   *CatchupArrival
 }
 
 func (x ViewExternalizedBlock) BlockHash() proto.BlockHash {

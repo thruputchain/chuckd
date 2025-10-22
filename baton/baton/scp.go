@@ -206,8 +206,8 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 func isNewExternalization(
 	ctx context.Context,
 	tip proto.DbTip,
-	ext *externalized,
-	priorExts []*externalized,
+	ext externalized,
+	priorExts []externalized,
 ) bool {
 	if ext.Height() <= tip.Height {
 		return false
