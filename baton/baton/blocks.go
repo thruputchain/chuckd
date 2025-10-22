@@ -10,8 +10,9 @@ type ViewBlock interface {
 	BlockHeight() proto.BlockHeight
 	PrevBlockHash() proto.BlockHash
 	ConsensusValueHash() proto.ConsensusValueHash
+	PrevConsensusValueHash() proto.ConsensusValueHash
 	IsMissing() bool
-	IsSCP() bool
+	IsExt() bool
 	IsCatchup() bool
 	IsDb() bool
 	Committable() batonkit.Committable
@@ -29,8 +30,11 @@ func (x ViewDbBlock) PrevBlockHash() proto.BlockHash { panic("should not be call
 func (x ViewDbBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.TipExt.ConsensusValueHash()
 }
+func (x ViewDbBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
+	return x.TipExt.ConsensusValue().Prev_cv_hash
+}
 func (x ViewDbBlock) IsMissing() bool                   { return false }
-func (x ViewDbBlock) IsSCP() bool                       { return false }
+func (x ViewDbBlock) IsExt() bool                       { return false }
 func (x ViewDbBlock) IsCatchup() bool                   { return false }
 func (x ViewDbBlock) IsDb() bool                        { return true }
 func (x ViewDbBlock) Committable() batonkit.Committable { panic("should not be called") }
@@ -46,10 +50,13 @@ func (x ViewCatchupBlock) BlockHash() proto.BlockHash     { return x.Candidate.B
 func (x ViewCatchupBlock) BlockHeight() proto.BlockHeight { return x.Candidate.BlockHeight() }
 func (x ViewCatchupBlock) PrevBlockHash() proto.BlockHash { return x.Candidate.PrevBlockHash() }
 func (x ViewCatchupBlock) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.ConsensusValueHash()
+	return x.Candidate.ConsensusValueHash()
+}
+func (x ViewCatchupBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
+	return x.Candidate.ConsensusValue().Prev_cv_hash
 }
 func (x ViewCatchupBlock) IsMissing() bool { return false }
-func (x ViewCatchupBlock) IsSCP() bool     { return false }
+func (x ViewCatchupBlock) IsExt() bool     { return false }
 func (x ViewCatchupBlock) IsCatchup() bool { return true }
 func (x ViewCatchupBlock) IsDb() bool      { return false }
 func (x ViewCatchupBlock) Committable() batonkit.Committable {
@@ -57,7 +64,7 @@ func (x ViewCatchupBlock) Committable() batonkit.Committable {
 		return nil
 	}
 	return &batonkit.CommittableCatchup{
-		Catchup:   x.Candidate.Block,
+		Catchup:   x.Candidate.Block(),
 		Validated: x.Validated,
 	}
 }
@@ -87,8 +94,11 @@ func (x ViewExternalizedBlock) PrevBlockHash() proto.BlockHash {
 func (x ViewExternalizedBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.Ext.ConsensusValueHash()
 }
+func (x ViewExternalizedBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
+	return x.Ext.ConsensusValue().Prev_cv_hash
+}
 func (x ViewExternalizedBlock) IsMissing() bool { return false }
-func (x ViewExternalizedBlock) IsSCP() bool     { return true }
+func (x ViewExternalizedBlock) IsExt() bool     { return true }
 func (x ViewExternalizedBlock) IsCatchup() bool { return false }
 func (x ViewExternalizedBlock) IsDb() bool      { return false }
 func (x ViewExternalizedBlock) Committable() batonkit.Committable {
@@ -100,7 +110,7 @@ func (x ViewExternalizedBlock) Committable() batonkit.Committable {
 		}
 	case x.Catchup != nil:
 		return &batonkit.CommittableCatchup{
-			Catchup: x.Catchup.Block,
+			Catchup: x.Catchup.Block(),
 		}
 	}
 	return nil
@@ -113,13 +123,14 @@ type ViewMissing struct {
 	Height proto.BlockHeight
 }
 
-func (x ViewMissing) BlockHash() proto.BlockHash                   { panic("must not call") }
-func (x ViewMissing) BlockHeight() proto.BlockHeight               { return x.Height }
-func (x ViewMissing) PrevBlockHash() proto.BlockHash               { panic("must not call") }
-func (x ViewMissing) ConsensusValueHash() proto.ConsensusValueHash { panic("must not call") }
-func (x ViewMissing) IsMissing() bool                              { return true }
-func (x ViewMissing) IsSCP() bool                                  { return false }
-func (x ViewMissing) IsCatchup() bool                              { return false }
-func (x ViewMissing) IsDb() bool                                   { return false }
-func (x ViewMissing) Committable() batonkit.Committable            { return nil }
-func (x ViewMissing) Icon() string                                 { return "?" }
+func (x ViewMissing) BlockHash() proto.BlockHash                       { panic("must not call") }
+func (x ViewMissing) BlockHeight() proto.BlockHeight                   { return x.Height }
+func (x ViewMissing) PrevBlockHash() proto.BlockHash                   { panic("must not call") }
+func (x ViewMissing) ConsensusValueHash() proto.ConsensusValueHash     { panic("must not call") }
+func (x ViewMissing) PrevConsensusValueHash() proto.ConsensusValueHash { panic("must not call") }
+func (x ViewMissing) IsMissing() bool                                  { return true }
+func (x ViewMissing) IsExt() bool                                      { return false }
+func (x ViewMissing) IsCatchup() bool                                  { return false }
+func (x ViewMissing) IsDb() bool                                       { return false }
+func (x ViewMissing) Committable() batonkit.Committable                { return nil }
+func (x ViewMissing) Icon() string                                     { return "?" }

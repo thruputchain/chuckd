@@ -27,30 +27,38 @@ func (a catchupArrivals) Find(h proto.BlockHeight) (CatchupArrival, bool) {
 }
 
 type CatchupArrival struct {
-	Source proto.ValidatorID
-	Stamp  time.Time
-	Block  *proto.CatchupBlock
-	CVHash proto.ConsensusValueHash
+	source proto.ValidatorID
+	stamp  time.Time
+	block  *proto.CatchupBlock
+	cvhash proto.ConsensusValueHash
 }
 
 func (a CatchupArrival) Provider() proto.ValidatorID {
-	return a.Source
+	return a.source
+}
+
+func (a CatchupArrival) Block() *proto.CatchupBlock {
+	return a.block
 }
 
 func (a CatchupArrival) BlockHeight() proto.BlockHeight {
-	return a.Block.Consensus_value.Nomination.Block_height
+	return a.block.Consensus_value.Nomination.Block_height
 }
 
 func (a CatchupArrival) BlockHash() proto.BlockHash {
-	return a.Block.Consensus_value.Nomination.Block_hash
+	return a.block.Consensus_value.Nomination.Block_hash
 }
 
 func (a CatchupArrival) PrevBlockHash() proto.BlockHash {
-	return a.Block.Consensus_value.Nomination.Prev_block_hash
+	return a.block.Consensus_value.Nomination.Prev_block_hash
+}
+
+func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
+	return &a.block.Consensus_value
 }
 
 func (a CatchupArrival) ConsensusValueHash() proto.ConsensusValueHash {
-	return a.CVHash
+	return a.cvhash
 }
 
 type catchupRequest struct {
@@ -145,10 +153,10 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 			if protoutil.VerifyCatchupBlock(b.txM, &block) {
 				result = append(result,
 					CatchupArrival{
-						Source: protoutil.PublicVID(src),
-						Stamp:  now,
-						Block:  &block,
-						CVHash: b.hashCV(&block.Consensus_value),
+						source: protoutil.PublicVID(src),
+						stamp:  now,
+						block:  &block,
+						cvhash: b.hashCV(&block.Consensus_value),
 					})
 			}
 		}

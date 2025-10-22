@@ -17,9 +17,7 @@ CONSENSUS VALUE
 - [x] check hash of prev consensus value on validation
 - [x] check catchup block validity
   - [x] included txs match txs hashes in nomination
-
-- [ ] check correctness when chaining/linking catchup blocks in compilation
-
+- [x] check correctness when chaining catchup blocks in view compilation
 - [x] cache cv hash of externalized cvs
 - [x] cache cv hash of tip
 

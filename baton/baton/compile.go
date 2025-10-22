@@ -123,7 +123,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	}
 
 	// compute pending requests per block
-	if err := b.compileRequests(ctx, v); err != nil {
+	if err := b.compileCatchupRequests(ctx, v); err != nil {
 		return nil, err
 	}
 
@@ -135,11 +135,11 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 		height := v.indexHeight(i)
 		switch u := v.Blocks[i].(type) {
 		case nil:
-			if cb, ok := b.findCatchupBlockAtHeight(height); ok {
+			if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 				v.Blocks[i] = ViewCatchupBlock{
-					Candidate: cb,
+					Candidate: ca,
 					Linked:    false, // linked will be computed later
-					Validated: b.getValidated(&cb.Block.Consensus_value),
+					Validated: b.getValidated(ca.ConsensusValue()),
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}
@@ -147,10 +147,10 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 		case ViewExternalizedBlock:
 			// if the block has not been validated already, catchup can help
 			if u.Validated == nil {
-				if cb, ok := b.findCatchupBlockAtHeight(height); ok {
+				if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-					if cb.ConsensusValueHash() == u.ConsensusValueHash() {
-						u.Catchup = &cb
+					if ca.ConsensusValueHash() == u.ConsensusValueHash() {
+						u.Catchup = &ca
 						v.Blocks[i] = u
 					} else {
 						return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
@@ -165,31 +165,30 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 }
 
 // chainBlocks verifies that each block does not disagree with the previous one, if available.
-// XXX: consensus value must include the hash of the previous consensus value to enable correct chaining here
 func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 	prev := v.Blocks[0]
 	for i := 1; i < len(v.Blocks); i++ {
 		switch u := v.Blocks[i].(type) {
 		case ViewMissing:
 		case ViewCatchupBlock:
-			/* XXX: check previous consensus value hashes */
-			/* b.hashCV(XXX) != u.Candidate.Block.Consensus_value.Prev_cv_hash*/
-			if !prev.IsMissing() && (prev.BlockHash() != u.PrevBlockHash()) {
+			if !prev.IsMissing() &&
+				(prev.BlockHash() != u.PrevBlockHash() ||
+					prev.ConsensusValueHash() != u.PrevConsensusValueHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
 		case ViewExternalizedBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
-				if u.PrevBlockHash() != prev.BlockHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 				}
 			case prev.IsDb():
-				if u.PrevBlockHash() != prev.BlockHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
-			case prev.IsSCP():
-				if u.PrevBlockHash() != prev.BlockHash() {
+			case prev.IsExt():
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
 			default:
@@ -233,7 +232,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *View) error {
 	return nil
 }
 
-func (b *Baton) compileRequests(_ context.Context, v *View) error {
+func (b *Baton) compileCatchupRequests(_ context.Context, v *View) error {
 	v.Reqs = make([][]batonkit.ID64, len(v.Blocks))
 	for i := 1; i < len(v.Blocks); i++ {
 		height := v.Blocks[0].BlockHeight() + proto.BlockHeight(i)
