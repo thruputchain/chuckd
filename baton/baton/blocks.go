@@ -19,6 +19,7 @@ type ViewBlock interface {
 
 type ViewDbBlock struct {
 	Tip proto.DbTip
+	CV  proto.ConsensusValue
 }
 
 func (x ViewDbBlock) BlockHash() proto.BlockHash        { return x.Tip.Hash }

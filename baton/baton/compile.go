@@ -58,7 +58,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 
 	v := &View{Stamp: b.handler.Now()}
 
-	dbBlock := ViewDbBlock{Tip: b.tip}
+	dbBlock := ViewDbBlock{Tip: b.tip, CV: b.tipCV}
 
 	// if there are no scp blocks, we are done
 	if len(b.externalized) == 0 {

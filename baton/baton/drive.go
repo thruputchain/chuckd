@@ -62,7 +62,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 
 // driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started
 func (b *Baton) driveNominate(ctx context.Context, v *View) {
-	if tipToNominateOn := v.TipToNominateOn(); b.canNominate(tipToNominateOn, b.nominating, b.nominated) {
+	if tipToNominateOn, cvToNominateOn := v.TipToNominateOn(); b.canNominate(tipToNominateOn, b.nominating, b.nominated) {
 		// liblog.Debugf("baton nominating onto %v", tipToNominateOn)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
@@ -71,7 +71,8 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		}
 		nomCtx, nomCancel := context.WithCancel(ctx)
 		current := &nominating{
-			Onto: *tipToNominateOn,
+			OntoDb: *tipToNominateOn,
+			OntoCV: *cvToNominateOn,
 			Cancel: func() {
 				// liblog.Debugf("baton cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
 				nomCancel()
@@ -79,7 +80,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		}
 		b.nominating = current
 		go func() {
-			cv, blockID, err := b.nominate(nomCtx, *tipToNominateOn)
+			cv, blockID, err := b.nominate(nomCtx, *tipToNominateOn, *cvToNominateOn)
 			current.Cancel()
 
 			b.lock()

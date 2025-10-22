@@ -13,12 +13,16 @@ CONSENSUS VALUE
   - [x] not in the future
   - [x] monotonically increasing
 
-- [ ] add hash of prev consensus value in cv
+- [x] add hash of prev consensus value on nomination
+- [ ] check hash of prev consensus value on validation
+
+- [ ] check catchup block validity
+  - [ ] included txs match txs hashes in nomination
 
 ===========================
 
 - [ ] verify that catchup blocks (proposal+upgrades) include valid upgrades
-  - current block hash linking algorithm does not consider updates
+  - current block hash linking algorithm does not consider upgrades
   - consensus value must include the hash of the previous consensus value to enable correct chaining here
 
 - [ ] purpose of extract valid value?
