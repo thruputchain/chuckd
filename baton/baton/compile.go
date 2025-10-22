@@ -73,7 +73,8 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		return nil, ErrConsensusBelowDb
 	}
 	if scpTopHeight == dbBlock.Tip.Height {
-		if scpTopCV.Nomination.Block_hash == dbBlock.BlockHash() {
+		if scpTopCV.Nomination.Block_hash == dbBlock.BlockHash() &&
+			b.hashCV(scpTopCV) == b.hashCV(&dbBlock.CV) { // XXX: don't recompute every time
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -92,7 +93,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	scpPrevHeight := proto.BlockHeight(0)
 	for _, cv := range b.externalized {
 		// there can be gaps between scp blocks
-		must.Assertf(ctx, cv.Nomination.Block_height > scpPrevHeight, "scp nomination heights not increasing")
+		must.Assertf(ctx, cv.Nomination.Block_height > scpPrevHeight, "externalization heights not increasing")
 		scpPrevHeight = cv.Nomination.Block_height
 		//
 		v.Blocks[int(cv.Nomination.Block_height)-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
@@ -167,7 +168,9 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 		switch u := v.Blocks[i].(type) {
 		case ViewMissing:
 		case ViewCatchupBlock:
-			if !prev.IsMissing() && prev.BlockHash() != u.PrevBlockHash() {
+			/* XXX: check previous consensus value hashes */
+			/* b.hashCV(XXX) != u.Candidate.Block.Consensus_value.Prev_cv_hash*/
+			if !prev.IsMissing() && (prev.BlockHash() != u.PrevBlockHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
 		case ViewExternalizedBlock:

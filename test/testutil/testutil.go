@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/baton/batonkit"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -65,14 +66,28 @@ type TestBlock struct {
 type BlockHandle struct {
 	Hash   proto.BlockHash
 	Height proto.BlockHeight
+	CV     proto.ConsensusValue
 }
 
-func TipHandle(tip proto.DbTip) *BlockHandle {
-	return &BlockHandle{Hash: tip.Hash, Height: tip.Height}
+func BlockHandleFromTip(tipDb proto.DbTip, tipCV proto.ConsensusValue) *BlockHandle {
+	return &BlockHandle{Hash: tipDb.Hash, Height: tipDb.Height, CV: tipCV}
 }
 
-func (h *TestGen) GenNominationOntoTip(ctx context.Context, ntxs int, onto proto.DbTip) *TestBlock {
-	return h.GenNominationOnto(ctx, ntxs, TipHandle(onto))
+func BlockHandleFromCommittableBlock(cb *batonkit.CommittableBlock) *BlockHandle {
+	return &BlockHandle{
+		Hash:   cb.BlockHash(),
+		Height: cb.BlockHeight(),
+		CV:     *cb.AsConsensusValue(),
+	}
+}
+
+func (h *TestGen) GenNominationOntoTip(
+	ctx context.Context,
+	ntxs int,
+	ontoDb proto.DbTip,
+	ontoCV proto.ConsensusValue,
+) *TestBlock {
+	return h.GenNominationOnto(ctx, ntxs, BlockHandleFromTip(ontoDb, ontoCV))
 }
 
 func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
@@ -82,6 +97,7 @@ func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *Te
 		&BlockHandle{
 			Height: onto.ConsensusValue.Nomination.Block_height,
 			Hash:   onto.ConsensusValue.Nomination.Block_hash,
+			CV:     onto.ConsensusValue,
 		},
 	)
 }
@@ -112,7 +128,8 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 			Transaction_hashes:      hashes,
 			Transaction_nominations: ntxs,
 		},
-		Upgrades: nil, // XXX: upgrades not yet supported in test
+		Upgrades:     nil, // XXX: upgrades not yet supported in test
+		Prev_cv_hash: protoutil.HashCV(h.m, &onto.CV),
 	}
 	return &TestBlock{
 		ConsensusValue: cv,

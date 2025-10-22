@@ -120,11 +120,22 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		// Step 3: sanity check nomination
 
 		if cv.Nomination.Prev_block_hash != dbTip.Hash {
-			liblog.Infof("cannot validate, previous block %v != db tip %v",
-				form.Display(cv.Nomination.Prev_block_hash), form.Display(dbTip.Hash))
+			liblog.Infof("cannot validate, previous block mismatch, nomination %v vs ours %v",
+				form.Display(cv.Nomination.Prev_block_hash),
+				form.Display(dbTip.Hash))
 			reply <- scpkit.InvalidValue
 			return
 		}
+
+		if cv.Prev_cv_hash != protoutil.HashCV(b.cvM, cvTip) {
+			liblog.Infof("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
+				form.Display(cv.Prev_cv_hash),
+				form.Display(protoutil.HashCV(b.cvM, cvTip)))
+			reply <- scpkit.InvalidValue
+			return
+		}
+
+		// check timestamp
 
 		prevStamp, newStamp := protoutil.TimeFromTimepoint(cvTip.Timestamp), protoutil.TimeFromTimepoint(cv.Timestamp)
 		if !prevStamp.Before(newStamp) {

@@ -177,7 +177,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 	baton.Start(ctx)
 
-	lastCommitted := testutil.TipHandle(rig.GetTip(ctx))
+	lastCommitted := testutil.BlockHandleFromTip(rig.GetTipCV(ctx))
 	for round := 0; round < numRounds; round++ {
 
 		theirBlock := rig.GenNominationOnto(ctx, 1, lastCommitted)
@@ -220,7 +220,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 			)
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
-		lastCommitted.Hash, lastCommitted.Height = committed.Hash, committed.Height
+		lastCommitted = testutil.BlockHandleFromCommittableBlock(committed.DbgValidatable)
 
 		rig.PassTime(tick)
 	}

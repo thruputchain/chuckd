@@ -105,6 +105,8 @@ func (b *Baton) start(ctx context.Context) {
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tip.Height)
 		b.tipCV = *tipCV
+	} else {
+		b.tipCV = assumedConsensusValueAtHeight(b.tip.Height)
 	}
 
 	// load known externalizations above db tip
@@ -125,6 +127,10 @@ func (b *Baton) start(ctx context.Context) {
 		b.Kick()
 		b.handler.Sleep(b.heartbeat)
 	}
+}
+
+func assumedConsensusValueAtHeight(height proto.BlockHeight) proto.ConsensusValue {
+	return proto.ConsensusValue{Nomination: proto.Nomination{Block_height: height}}
 }
 
 func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHeight) {

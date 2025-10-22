@@ -14,10 +14,10 @@ CONSENSUS VALUE
   - [x] monotonically increasing
 
 - [x] add hash of prev consensus value on nomination
-- [ ] check hash of prev consensus value on validation
-
-- [ ] check catchup block validity
-  - [ ] included txs match txs hashes in nomination
+- [x] check hash of prev consensus value on validation
+- [x] check catchup block validity
+  - [x] included txs match txs hashes in nomination
+- [ ] check correctness when chaining/linking catchup blocks in compilation
 
 ===========================
 

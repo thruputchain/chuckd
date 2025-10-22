@@ -129,6 +129,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 			return
 		}
 
+		// verify the signature of the source
 		if !b.handler.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
 			liblog.Errorf("catchup with invalid signature")
 			return
@@ -136,11 +137,13 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
-			result = append(result, CatchupBlock{
-				Source: protoutil.PublicVID(src),
-				Stamp:  now,
-				Block:  &block,
-			})
+			if protoutil.VerifyCatchupBlock(b.txM, &block) {
+				result = append(result, CatchupBlock{
+					Source: protoutil.PublicVID(src),
+					Stamp:  now,
+					Block:  &block,
+				})
+			}
 		}
 
 	}(src[0], id, spans)
