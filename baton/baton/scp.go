@@ -101,10 +101,10 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 		// Step 2: wait for the block below the validation request to be reached and committed
 
 		var dbTip *proto.DbTip
-		var cvTip *proto.ConsensusValue
+		var extTip *externalized
 
 		var err error
-		dbTip, cvTip, err = b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
+		dbTip, extTip, err = b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
 		if err != nil { // context cancelled
 			if errors.Is(err, ErrTipAlreadyAhead) {
 				reply <- scpkit.InvalidValue
@@ -127,17 +127,18 @@ func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, rep
 			return
 		}
 
-		if cv.Prev_cv_hash != protoutil.HashCV(b.cvM, cvTip) {
+		if cv.Prev_cv_hash != extTip.ConsensusValueHash() {
 			liblog.Infof("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
 				form.Display(cv.Prev_cv_hash),
-				form.Display(protoutil.HashCV(b.cvM, cvTip)))
+				form.Display(extTip.ConsensusValueHash()))
 			reply <- scpkit.InvalidValue
 			return
 		}
 
 		// check timestamp
 
-		prevStamp, newStamp := protoutil.TimeFromTimepoint(cvTip.Timestamp), protoutil.TimeFromTimepoint(cv.Timestamp)
+		prevStamp := protoutil.TimeFromTimepoint(extTip.ConsensusValue().Timestamp)
+		newStamp := protoutil.TimeFromTimepoint(cv.Timestamp)
 		if !prevStamp.Before(newStamp) {
 			liblog.Infof("cannot validate, timestamp not increasing")
 			reply <- scpkit.InvalidValue
