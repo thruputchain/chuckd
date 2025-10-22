@@ -19,21 +19,22 @@ type ViewBlock interface {
 }
 
 type ViewDbBlock struct {
-	Tip    proto.DbTip
-	CV     proto.ConsensusValue
-	CVHash proto.ConsensusValueHash
+	TipDb  proto.DbTip
+	TipExt *externalized
 }
 
-func (x ViewDbBlock) BlockHash() proto.BlockHash                   { return x.Tip.Hash }
-func (x ViewDbBlock) BlockHeight() proto.BlockHeight               { return x.Tip.Height }
-func (x ViewDbBlock) PrevBlockHash() proto.BlockHash               { panic("should not be called") }
-func (x ViewDbBlock) ConsensusValueHash() proto.ConsensusValueHash { return x.CVHash }
-func (x ViewDbBlock) IsMissing() bool                              { return false }
-func (x ViewDbBlock) IsSCP() bool                                  { return false }
-func (x ViewDbBlock) IsCatchup() bool                              { return false }
-func (x ViewDbBlock) IsDb() bool                                   { return true }
-func (x ViewDbBlock) Committable() batonkit.Committable            { panic("should not be called") }
-func (x ViewDbBlock) Icon() string                                 { return "D" }
+func (x ViewDbBlock) BlockHash() proto.BlockHash     { return x.TipDb.Hash }
+func (x ViewDbBlock) BlockHeight() proto.BlockHeight { return x.TipDb.Height }
+func (x ViewDbBlock) PrevBlockHash() proto.BlockHash { panic("should not be called") }
+func (x ViewDbBlock) ConsensusValueHash() proto.ConsensusValueHash {
+	return x.TipExt.ConsensusValueHash()
+}
+func (x ViewDbBlock) IsMissing() bool                   { return false }
+func (x ViewDbBlock) IsSCP() bool                       { return false }
+func (x ViewDbBlock) IsCatchup() bool                   { return false }
+func (x ViewDbBlock) IsDb() bool                        { return true }
+func (x ViewDbBlock) Committable() batonkit.Committable { panic("should not be called") }
+func (x ViewDbBlock) Icon() string                      { return "D" }
 
 type ViewCatchupBlock struct {
 	Linked    bool // all catchup blocks between db and first scp chain hashes correctly

@@ -62,7 +62,7 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	// purge catchup blocks
 	var catchup catchupBlockShells
 	for _, cb := range b.catchupBlocks {
-		if cb.BlockHeight() > b.tip.Height {
+		if cb.BlockHeight() > b.tipDb.Height {
 			catchup = append(catchup, cb)
 		}
 	}
@@ -71,7 +71,7 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	// purge consensus blocks
 	var exts []*externalized
 	for _, p := range b.externalized {
-		if p.Height() > b.tip.Height {
+		if p.Height() > b.tipDb.Height {
 			exts = append(exts, p)
 		}
 	}
@@ -79,13 +79,13 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 
 	// purge validations
 	for h, p := range b.validated {
-		if p.Nomination.Block_height <= b.tip.Height {
+		if p.Nomination.Block_height <= b.tipDb.Height {
 			delete(b.validated, h)
 		}
 	}
 
 	// purge nominations
-	if b.nominated != nil && b.nominated.ConsensusValue.Nomination.Block_height <= b.tip.Height {
+	if b.nominated != nil && b.nominated.ConsensusValue.Nomination.Block_height <= b.tipDb.Height {
 		b.nominated = nil
 	}
 }

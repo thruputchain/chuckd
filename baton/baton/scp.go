@@ -70,7 +70,7 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpkit.Slot, value s
 func (b *Baton) validateValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpkit.ValidationLevel) {
 
 	b.lock()
-	dbTipOnRequest := b.tip
+	dbTipOnRequest := b.tipDb
 	alreadyValidated := b.getValidated(cv)
 	b.unlock()
 
@@ -195,7 +195,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	defer x.baton.unlock()
 
 	ext := x.baton.newExternalized(&cv)
-	if isNewExternalization(ctx, x.baton.tip, ext, x.baton.externalized) {
+	if isNewExternalization(ctx, x.baton.tipDb, ext, x.baton.externalized) {
 		x.baton.handler.PersistConsensusValue(ctx, cv)
 		x.baton.externalized = append(x.baton.externalized, ext)
 	}

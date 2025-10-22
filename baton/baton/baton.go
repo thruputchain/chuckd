@@ -50,8 +50,8 @@ type Baton struct {
 	committing      bool
 	nominating      *nominating
 	nominated       *nominated
-	tip             proto.DbTip
-	tipCV           proto.ConsensusValue
+	tipDb           proto.DbTip
+	tipExt          *externalized
 	catchupRequests map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupBlocks   catchupBlockShells               // received catchup blocks
 	externalized    []*externalized
@@ -95,27 +95,28 @@ func (b *Baton) start(ctx context.Context) {
 
 	// restore db
 	var err error
-	b.tip, err = b.handler.RestoreDb(ctx)
+	b.tipDb, err = b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
-	must.Assertf(ctx, b.tip.Height > 0, "db tip height 0; missing genesis block")
+	must.Assertf(ctx, b.tipDb.Height > 0, "db tip height 0; missing genesis block")
 
 	// genesis block has height 1, and no corresponding consensus value
-	if b.tip.Height > 1 {
-		tipCV := b.handler.FindConsensusValue(ctx, b.tip.Height)
+	if b.tipDb.Height > 1 {
+		tipCV := b.handler.FindConsensusValue(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
-		must.Assert(ctx, tipCV.Nomination.Block_height == b.tip.Height)
-		b.tipCV = *tipCV
+		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
+		b.tipExt = b.newExternalized(tipCV)
 	} else {
-		b.tipCV = assumedConsensusValueAtHeight(b.tip.Height)
+		acv := assumedConsensusValueAtHeight(b.tipDb.Height)
+		b.tipExt = b.newExternalized(&acv)
 	}
 
 	// load known externalizations above db tip
-	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tip.Height)
+	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tipDb.Height)
 	for _, cv := range higherCV {
 		b.externalized = append(b.externalized, b.newExternalized(&cv))
 	}
 
-	liblog.Infof("baton db restored at height %d", b.tip.Height)
+	liblog.Infof("baton db restored at height %d", b.tipDb.Height)
 
 	// release lock on scp events
 	close(b.ready)
@@ -150,7 +151,7 @@ func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHe
 }
 
 func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
-	if b.tip.Height >= height {
+	if b.tipDb.Height >= height {
 		return true
 	}
 	if len(b.externalized) == 0 {
@@ -170,10 +171,10 @@ func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (
 			return nil, nil, ctx.Err()
 		default:
 			switch {
-			case b.tip.Height > height:
+			case b.tipDb.Height > height:
 				return nil, nil, ErrTipAlreadyAhead
-			case b.tip.Height == height:
-				copyTip, copyTipCV := b.tip, b.tipCV
+			case b.tipDb.Height == height:
+				copyTip, copyTipCV := b.tipDb, *b.tipExt.ConsensusValue()
 				return &copyTip, &copyTipCV, nil
 			default:
 				b.cond.Wait()

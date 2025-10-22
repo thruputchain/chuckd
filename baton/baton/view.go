@@ -20,7 +20,7 @@ func (v *View) TipToNominateOn() (*proto.DbTip, *proto.ConsensusValue) {
 		return nil, nil
 	}
 	db := v.Blocks[0].(ViewDbBlock)
-	return &db.Tip, &db.CV
+	return &db.TipDb, db.TipExt.ConsensusValue()
 }
 
 func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {
@@ -40,7 +40,7 @@ func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {
 
 	return &batonkit.CommittableBlock{
 		Committable: committable,
-		Onto:        db.Tip,
+		Onto:        db.TipDb,
 	}
 }
 

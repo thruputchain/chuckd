@@ -44,15 +44,15 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			must.Assertf(ctx, b.committing, "race committing")
 			b.committing = false
 
-			if b.tip.Height+1 != cb.BlockHeight() {
+			if b.tipDb.Height+1 != cb.BlockHeight() {
 				panic("bug")
 			}
 
-			b.tip.Hash = cb.BlockHash()
-			b.tip.Height = cb.BlockHeight()
-			b.tip.Id = blockID
+			b.tipDb.Hash = cb.BlockHash()
+			b.tipDb.Height = cb.BlockHeight()
+			b.tipDb.Id = blockID
 
-			b.tipCV = *cb.AsConsensusValue()
+			b.tipExt = b.newExternalized(cb.AsConsensusValue())
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)

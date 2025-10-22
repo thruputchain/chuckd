@@ -59,9 +59,8 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	v := &View{Stamp: b.handler.Now()}
 
 	dbBlock := ViewDbBlock{
-		Tip:    b.tip,
-		CV:     b.tipCV,
-		CVHash: b.hashCV(&b.tipCV),
+		TipDb:  b.tipDb,
+		TipExt: b.tipExt,
 	}
 
 	// if there are no scp blocks, we are done
@@ -73,12 +72,12 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 
 	scpTopExt := b.externalized[len(b.externalized)-1]
 	scpTopHeight := scpTopExt.Height()
-	if scpTopHeight < dbBlock.Tip.Height {
+	if scpTopHeight < dbBlock.TipDb.Height {
 		return nil, ErrConsensusBelowDb
 	}
-	if scpTopHeight == dbBlock.Tip.Height {
+	if scpTopHeight == dbBlock.TipDb.Height {
 		if scpTopExt.BlockHash() == dbBlock.BlockHash() &&
-			scpTopExt.ConsensusValueHash() == b.hashCV(&dbBlock.CV) { // XXX: don't recompute every time
+			scpTopExt.ConsensusValueHash() == dbBlock.ConsensusValueHash() {
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -87,7 +86,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		}
 	}
 
-	n := int(scpTopHeight) + 1 - int(dbBlock.Tip.Height)
+	n := int(scpTopHeight) + 1 - int(dbBlock.TipDb.Height)
 	if n > b.getMaxCatchupHeight() {
 		return nil, ErrDbFarBehind
 	}
@@ -100,7 +99,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		must.Assertf(ctx, ext.Height() > scpPrevHeight, "externalization heights not increasing")
 		scpPrevHeight = ext.Height()
 		//
-		v.Blocks[int(ext.Height())-int(dbBlock.Tip.Height)] = ViewExternalizedBlock{
+		v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExternalizedBlock{
 			Ext:       ext,
 			Validated: b.getValidated(ext.ConsensusValue()),
 		}

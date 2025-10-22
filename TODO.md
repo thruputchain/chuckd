@@ -21,7 +21,7 @@ CONSENSUS VALUE
 - [ ] check correctness when chaining/linking catchup blocks in compilation
 
 - [x] cache cv hash of externalized cvs
-- [ ] cache cv hash of tip
+- [x] cache cv hash of tip
 
 ===========================
 
