@@ -12,7 +12,7 @@ CONSENSUS SCP VALUE SEPARATION
 
 - [ ] repair
   - [x] rpc for cv
-  - [ ] agent for cv
+  - [x] agent for cv
 
 - [ ] use ConsensusValueHash as SCPValue
 
