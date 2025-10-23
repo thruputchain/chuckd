@@ -20,7 +20,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/goccy/go-yaml v1.17.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/groundhogchain/protocol-go v0.0.0-20251006182514-3bb8feef6e06
+	github.com/groundhogchain/protocol-go v0.0.0-20251022030929-15579eb3d01b
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.1.2
