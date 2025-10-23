@@ -13,12 +13,13 @@ import (
 
 // scp msgs, proposed txsets,
 type Multiplex struct {
-	self                 proto.ValidatorID
-	m                    xdrutil.XdrMarshaler
-	dbgM                 xdrutil.XdrMarshaler
-	dogwood              *dogwood.DogwoodService
-	receivedSubmittedTxs chan submittedTxsFrom
-	receivedEnvelope     chan envelopeFrom
+	self                   proto.ValidatorID
+	m                      xdrutil.XdrMarshaler
+	dbgM                   xdrutil.XdrMarshaler
+	dogwood                *dogwood.DogwoodService
+	receivedSubmittedTxs   chan submittedTxsFrom
+	receivedConsensusValue chan consensusValueFrom
+	receivedEnvelope       chan envelopeFrom
 }
 
 type submittedTxsFrom struct {
@@ -31,14 +32,20 @@ type envelopeFrom struct {
 	*proto.SCPEnvelope
 }
 
+type consensusValueFrom struct {
+	From proto.ValidatorID
+	*proto.ConsensusValue
+}
+
 func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.DogwoodService) *Multiplex {
 	x := &Multiplex{
-		self:                 self,
-		m:                    xdrutil.NewXdrMarshaler(),
-		dbgM:                 xdrutil.NewXdrMarshaler(),
-		dogwood:              dogwood,
-		receivedSubmittedTxs: make(chan submittedTxsFrom),
-		receivedEnvelope:     make(chan envelopeFrom),
+		self:                   self,
+		m:                      xdrutil.NewXdrMarshaler(),
+		dbgM:                   xdrutil.NewXdrMarshaler(),
+		dogwood:                dogwood,
+		receivedSubmittedTxs:   make(chan submittedTxsFrom),
+		receivedConsensusValue: make(chan consensusValueFrom),
+		receivedEnvelope:       make(chan envelopeFrom),
 	}
 	go x.multiplex(ctx)
 	return x
@@ -60,6 +67,8 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 		switch xmsg.Type {
 		case proto.MultiplexMessageSubmittedTxs:
 			x.receivedSubmittedTxs <- submittedTxsFrom{From: fromID, SubmittedTransactions: xmsg.Submitted()}
+		case proto.MultiplexMessageConsensusValue:
+			x.receivedConsensusValue <- consensusValueFrom{From: fromID, ConsensusValue: xmsg.Consensus_value()}
 		case proto.MultiplexMessageSCP:
 			x.receivedEnvelope <- envelopeFrom{From: fromID, SCPEnvelope: xmsg.Envelope()}
 		default:
@@ -81,11 +90,20 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 	}
 }
 
-func (x *Multiplex) Disseminate(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	x.SendSubmittedTxs(ctx, submitted)
+func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusValue) error {
+	liblog.Debugf("%v multiplex sending consensus value, for slot %v",
+		protoutil.VIDString(x.self), cv.Nomination.Block_height)
+	var xmsg proto.MultiplexMessage
+	xmsg.Type = proto.MultiplexMessageConsensusValue
+	*xmsg.Consensus_value() = cv
+	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg).Bytes())
+	if err != nil {
+		liblog.Errorf("multiplex send consensus value: %v", err)
+	}
+	return nil
 }
 
-func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
+func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
 	liblog.Debugf("%v multiplex sending envelope: %v",
 		protoutil.VIDString(x.self),
 		protoutil.SCPEnvelopeShortString(env))
@@ -99,12 +117,30 @@ func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) err
 	return nil
 }
 
+func (x *Multiplex) Disseminate(ctx context.Context, submitted *proto.SubmittedTransactions) {
+	x.SendSubmittedTxs(ctx, submitted)
+}
+
+func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
+	return x.SendSCPEnvelope(ctx, env)
+}
+
 func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID, *proto.SubmittedTransactions) {
 	submittedTxsFrom := <-x.receivedSubmittedTxs
 	liblog.Debugf("%v multiplex received txs %d from %v",
 		protoutil.VIDString(x.self),
-		len(submittedTxsFrom.Transactions), protoutil.VIDString(submittedTxsFrom.From))
+		len(submittedTxsFrom.Transactions),
+		protoutil.VIDString(submittedTxsFrom.From))
 	return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions
+}
+
+func (x *Multiplex) ReceiveConsensusValue(ctx context.Context) (proto.ValidatorID, *proto.ConsensusValue) {
+	cvFrom := <-x.receivedConsensusValue
+	liblog.Debugf("%v multiplex received consensus value from %v, for slot %v",
+		protoutil.VIDString(x.self),
+		protoutil.VIDString(cvFrom.From),
+		cvFrom.ConsensusValue.Nomination.Block_height)
+	return cvFrom.From, cvFrom.ConsensusValue
 }
 
 func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *proto.SCPEnvelope) {
