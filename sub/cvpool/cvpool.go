@@ -55,6 +55,20 @@ func (cvp *ConsensusValuePool) purge() {
 	}
 }
 
+func (cvp *ConsensusValuePool) LookupConsensusValue(
+	ctx context.Context,
+	h proto.ConsensusValueHash,
+) *proto.ConsensusValue {
+	cvp.lk.Lock()
+	defer cvp.lk.Unlock()
+
+	if cv, ok := cvp.cv[h]; ok {
+		return &cv
+	} else {
+		return nil
+	}
+}
+
 var ErrHeightBelowBottom = fmt.Errorf("height below bottom")
 
 func (cvp *ConsensusValuePool) WaitForConsensusValue(
@@ -64,6 +78,7 @@ func (cvp *ConsensusValuePool) WaitForConsensusValue(
 ) (*proto.ConsensusValue, error) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
+
 	for {
 		select {
 		case <-ctx.Done():

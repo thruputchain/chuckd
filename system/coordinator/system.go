@@ -17,6 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/baton"
 	"github.com/groundhogchain/chuckd/sub/catchup"
+	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
 	"github.com/groundhogchain/chuckd/sub/sched"
@@ -50,6 +51,7 @@ type System struct {
 	Baton   *baton.Baton
 	Catchup *catchup.CatchupService
 	//
+	CVPool        *cvpool.ConsensusValuePool
 	RepairService *repairservice.RepairService
 	RepairAgent   *repairagent.RepairAgent
 	//
@@ -105,7 +107,8 @@ func NewSystem(
 
 	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
 
-	s.RepairService = repairservice.NewRepairService()
+	s.CVPool = cvpool.NewConsensusValuePool(ctx)
+	s.RepairService = repairservice.NewRepairService(s.CVPool)
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,

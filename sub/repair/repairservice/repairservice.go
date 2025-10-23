@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	proto "github.com/groundhogchain/protocol-go"
@@ -11,13 +12,17 @@ import (
 
 type RepairService struct {
 	conn        sched.SchedulerCoordConn
-	broker      *scpbroker.SCPBroker
+	broker      *scpbroker.SCPBroker       //XXX: use to repair missing scp envelopes
+	cvpool      *cvpool.ConsensusValuePool // use to repair missing consensus values
 	schedReady  chan struct{}
 	brokerReady chan struct{}
 }
 
-func NewRepairService() *RepairService {
+func NewRepairService(
+	cvpool *cvpool.ConsensusValuePool,
+) *RepairService {
 	return &RepairService{
+		cvpool:      cvpool,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
 	}
@@ -64,4 +69,13 @@ func (x *RepairService) Repair_missing_txs(
 	return proto.RepairedTransactions{
 		Transactions: txs,
 	}, nil
+}
+
+// XXX: needs dos protection
+func (x *RepairService) Repair_missing_cv(
+	ctx context.Context,
+	cvh proto.ConsensusValueHash,
+) (proto.OptConsensusValue, error) {
+
+	return x.cvpool.LookupConsensusValue(ctx, cvh), nil
 }

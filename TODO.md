@@ -5,13 +5,13 @@ CONSENSUS SCP VALUE SEPARATION
 
 - [ ] baton
   - [ ] notifies cvpool of new externalizations
-  - [ ] disseminates nominations after scp nominate approves them
+  - [ ] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
 
 - [ ] system
   - [ ] receive cvs into cvpool
 
 - [ ] repair
-  - [ ] rpc for cv
+  - [x] rpc for cv
   - [ ] agent for cv
 
 - [ ] use ConsensusValueHash as SCPValue
