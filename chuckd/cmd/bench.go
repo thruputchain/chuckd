@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"os/exec"
 
-	benchdogwood "github.com/groundhogchain/chuckd/bench/dogwood"
-	benchecho "github.com/groundhogchain/chuckd/bench/echo"
-	"github.com/groundhogchain/chuckd/bench/testcluster"
 	"github.com/groundhogchain/chuckd/chuckd/api"
 	"github.com/groundhogchain/chuckd/lib/libmetrics"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -14,6 +11,9 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
+	"github.com/groundhogchain/chuckd/system/coordinator_eval"
+	"github.com/groundhogchain/chuckd/system/dogwood_bench"
+	"github.com/groundhogchain/chuckd/system/echo_bench"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -39,11 +39,11 @@ var (
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				outside := libnet.Network(libnet.TCPNet{})
-				testCfg := testcluster.TestClusterConfig{
+				testCfg := coordinator_eval.TestClusterConfig{
 					TxsPerSec: benchTxPerSec,
 					SchedPort: benchSchedPort,
 				}
-				srv := testcluster.NewTestClusterSystem(
+				srv := coordinator_eval.NewTestClusterSystem(
 					ctx,
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
@@ -83,7 +83,7 @@ var (
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				must.Assertf(ctx, cfg.Dogwood_config != nil, "missing dogwood config section")
 				outside := libnet.Network(libnet.TCPNet{})
-				srv := benchdogwood.NewDogwoodBenchmark(
+				srv := dogwood_bench.NewDogwoodBenchmark(
 					ctx,
 					runtime.NewRandFromRoot(),
 					outside,
@@ -104,7 +104,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
 
-				srv := benchecho.NewEchoBench(
+				srv := echo_bench.NewEchoBench(
 					ctx,
 					libnet.TCPNet{},
 					benchDoSend,

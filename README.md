@@ -2,5 +2,4 @@
 
 ## Systems
 
-- [Loadgen](LOADGEN.md)
-- [Dogwood](DOGWOOD.md) broadcasting server
+- [Dogwood](doc/DOGWOOD.md) broadcasting server

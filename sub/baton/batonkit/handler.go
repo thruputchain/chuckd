@@ -1,0 +1,47 @@
+package batonkit
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/sub/catchup"
+	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	proto "github.com/groundhogchain/protocol-go"
+	"github.com/xdrpp/goxdr/xdr"
+)
+
+type Handler interface {
+	protoutil.Signatory
+	libtime.Time
+	GenerateID64(context.Context) ID64
+
+	Consensus
+	proto.SchedulerCoord1
+
+	RestoreDb(context.Context) (proto.DbTip, error)
+
+	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
+	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)
+
+	RepairMissingTxs(
+		ctx context.Context,
+		from proto.ValidatorPublicInfo,
+		missing proto.MissingTransactions,
+	) ([]proto.SignedTransaction, error)
+
+	Emit(ctx context.Context, event any)
+
+	storage.ConsensusValuePersistence
+}
+
+type ID64 int64
+
+func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }
+
+type Consensus interface {
+	Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool
+	StopNomination(ctx context.Context, slot scpkit.Slot)
+}
