@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/sub/catchup"
+	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -26,11 +27,7 @@ type Handler interface {
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)
 
-	RepairMissingTxs(
-		ctx context.Context,
-		from proto.ValidatorPublicInfo,
-		missing proto.MissingTransactions,
-	) ([]proto.SignedTransaction, error)
+	repairkit.RepairAgent
 
 	Emit(ctx context.Context, event any)
 

@@ -171,6 +171,14 @@ func (h *TestRig) RepairMissingTxs(
 	panic("not used")
 }
 
+func (h *TestRig) RepairMissingCV(
+	ctx context.Context,
+	from proto.ValidatorPublicInfo,
+	missing proto.ConsensusValueHash,
+) (*proto.ConsensusValue, error) {
+	panic("not used")
+}
+
 func (h *TestRig) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	h.cvlk.Lock()
 	defer h.cvlk.Unlock()
