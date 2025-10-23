@@ -9,7 +9,7 @@ CONSENSUS SCP VALUE SEPARATION
   - [ ] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
 
 - [ ] system
-  - [ ] receive cvs into cvpool
+  - [x] drive received cvs into cvpool
 
 - [ ] repair
   - [x] rpc for cv

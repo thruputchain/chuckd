@@ -283,7 +283,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 		}
 	}()
 
-	// drive disseminated txs into mempool
+	// drive received txs into mempool
 	go func() {
 		m := xdrutil.NewXdrMarshaler()
 		_ = m
@@ -301,6 +301,15 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 				proto.ValidatorID{}, // XXX: who vetted them is not known
 				submittedTxs.Transactions)
 			must.NoError(ctx, err)
+		}
+	}()
+
+	// drive received consensus values into cvpool
+	go func() {
+		for {
+			sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
+			_ = sender
+			s.CVPool.Received(ctx, *cv)
 		}
 	}()
 }
