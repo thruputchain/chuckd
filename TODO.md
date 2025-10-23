@@ -3,10 +3,20 @@
 
 CONSENSUS SCP VALUE SEPARATION
 
-- [ ] disseminate consensus values
-- [ ] receive cvs into a pool
-- [ ] repair missing cvs
+- [ ] baton
+  - [ ] notifies cvpool of new externalizations
+  - [ ] disseminates nominations after scp nominate approves them
+
+- [ ] system
+  - [ ] receive cvs into cvpool
+
+- [ ] repair
+  - [ ] rpc for cv
+  - [ ] agent for cv
+
 - [ ] use ConsensusValueHash as SCPValue
+
+- [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 
 UPGRADES
 

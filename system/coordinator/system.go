@@ -17,7 +17,8 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/baton"
 	"github.com/groundhogchain/chuckd/sub/catchup"
-	"github.com/groundhogchain/chuckd/sub/repair"
+	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
+	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
@@ -49,8 +50,8 @@ type System struct {
 	Baton   *baton.Baton
 	Catchup *catchup.CatchupService
 	//
-	RepairService *repair.RepairService
-	RepairAgent   *repair.RepairAgent
+	RepairService *repairservice.RepairService
+	RepairAgent   *repairagent.RepairAgent
 	//
 	WalletSubmitter *WalletSubmitter
 	//
@@ -104,8 +105,8 @@ func NewSystem(
 
 	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
 
-	s.RepairService = repair.NewRepairService()
-	s.RepairAgent = repair.NewRepairAgent(
+	s.RepairService = repairservice.NewRepairService()
+	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,
 		s.signer,

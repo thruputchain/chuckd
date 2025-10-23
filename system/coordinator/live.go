@@ -14,7 +14,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/catchup"
-	"github.com/groundhogchain/chuckd/sub/repair"
+	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
@@ -32,7 +32,7 @@ type LiveHandler struct {
 	outside libnet.Network
 	sched.SchedulerCoordConn
 	router router.Router
-	*repair.RepairAgent
+	*repairagent.RepairAgent
 	dogwood *dogwood.DogwoodService
 	storage *storage.DiskStorage
 	scp     scpkit.SCPController
@@ -51,7 +51,7 @@ func NewLiveHandler(
 	inside libnet.Network,
 	outside libnet.Network,
 	router router.Router,
-	repairAgent *repair.RepairAgent,
+	repairAgent *repairagent.RepairAgent,
 	dogwood *dogwood.DogwoodService,
 	storage *storage.DiskStorage,
 	rand *rand.Rand,

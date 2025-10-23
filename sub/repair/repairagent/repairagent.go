@@ -1,4 +1,4 @@
-package repair
+package repairagent
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -74,7 +75,7 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 
-	c, err := DialRepairClient(ctx, x.net, from.Address)
+	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
 	if err != nil {
 		return nil, err
 	}

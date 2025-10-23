@@ -1,4 +1,4 @@
-package repair
+package repairkit
 
 import (
 	"context"
