@@ -216,3 +216,5 @@ func (h *TestRig) FindHighestConsensusValue(ctx context.Context) *proto.Consensu
 	}
 	return &h.consensusValues[len(h.consensusValues)-1]
 }
+
+func (h *TestRig) Externalized(ctx context.Context, slot scpkit.Slot) {}

@@ -14,6 +14,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/catchup"
+	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -33,6 +34,7 @@ type LiveHandler struct {
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
+	cvpool  *cvpool.ConsensusValuePool
 	dogwood *dogwood.DogwoodService
 	storage *storage.DiskStorage
 	scp     scpkit.SCPController
@@ -52,6 +54,7 @@ func NewLiveHandler(
 	outside libnet.Network,
 	router router.Router,
 	repairAgent *repairagent.RepairAgent,
+	cvpool *cvpool.ConsensusValuePool,
 	dogwood *dogwood.DogwoodService,
 	storage *storage.DiskStorage,
 	rand *rand.Rand,
@@ -63,6 +66,7 @@ func NewLiveHandler(
 		outside:     outside,
 		router:      router,
 		RepairAgent: repairAgent,
+		cvpool:      cvpool,
 		dogwood:     dogwood,
 		storage:     storage,
 		m:           xdrutil.NewXdrMarshaler(),
@@ -134,4 +138,8 @@ func (x *LiveHandler) FindConsensusValue(ctx context.Context, height proto.Block
 
 func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
 	return x.storage.FindHighestConsensusValue(ctx)
+}
+
+func (x *LiveHandler) Externalized(ctx context.Context, slot scpkit.Slot) {
+	x.cvpool.Externalized(ctx, proto.BlockHeight(slot))
 }

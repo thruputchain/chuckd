@@ -4,16 +4,21 @@
 CONSENSUS SCP VALUE SEPARATION
 
 - [ ] baton
+  - [x] notifies cvpool of new externalizations
   - [ ] use ConsensusValueCue as SCPValue
-  - [ ] notifies cvpool of new externalizations
   - [ ] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
 
-- [ ] system
+- [x] system
   - [x] drive received cvs into cvpool
 
-- [ ] repair
+- [x] repair
   - [x] rpc for cv
   - [x] agent for cv
+
+- [ ] test
+  - [ ] unit test
+    - [ ] update to use cvcs and plant cvs
+  - [ ] run eval
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 

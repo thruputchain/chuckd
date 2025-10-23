@@ -127,6 +127,7 @@ func NewSystem(
 		outside,
 		s.Router,
 		s.RepairAgent,
+		s.CVPool,
 		s.Dogwood,
 		s.Storage,
 		runtime.NewRandFromRand(rand),

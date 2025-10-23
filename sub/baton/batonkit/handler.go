@@ -17,28 +17,30 @@ import (
 type Handler interface {
 	protoutil.Signatory
 	libtime.Time
-	GenerateID64(context.Context) ID64
-
-	Consensus
+	ConsensusController
+	ConsensusHandler
 	proto.SchedulerCoord1
+	repairkit.RepairAgent
+	storage.ConsensusValuePersistence
 
+	GenerateID64(context.Context) ID64
 	RestoreDb(context.Context) (proto.DbTip, error)
 
 	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
 	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)
 
-	repairkit.RepairAgent
-
 	Emit(ctx context.Context, event any)
-
-	storage.ConsensusValuePersistence
 }
 
 type ID64 int64
 
 func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }
 
-type Consensus interface {
+type ConsensusController interface {
 	Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool
 	StopNomination(ctx context.Context, slot scpkit.Slot)
+}
+
+type ConsensusHandler interface {
+	Externalized(ctx context.Context, slot scpkit.Slot)
 }
