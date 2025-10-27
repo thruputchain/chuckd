@@ -93,7 +93,18 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 			}
 
 			if err != nil {
-				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+				// scp rejects nominations when it is not our turn to nominate
+				if errors.Is(err, ErrNominationRejected) {
+					if !currentWasReplaced {
+						height := ontoDb.Height + 1
+						b.nominated = &nominated{
+							Time:     protoutil.TimeFromTimepoint(cv.Timestamp),
+							Rejected: &height,
+						}
+					}
+				} else {
+					must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+				}
 				return
 			}
 

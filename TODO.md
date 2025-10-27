@@ -6,7 +6,10 @@ CONSENSUS SCP VALUE SEPARATION
 - [ ] baton
   - [x] notifies cvpool of new externalizations
   - [ ] use ConsensusValueCue as SCPValue
-  - [ ] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
+    - [ ] nomination
+      - [x] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
+      - [ ] nominate returns error on rejection and this is handled in driver
+    - [ ] validation and externalization
 
 - [x] system
   - [x] drive received cvs into cvpool

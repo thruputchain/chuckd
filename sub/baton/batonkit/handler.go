@@ -23,6 +23,8 @@ type Handler interface {
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
 
+	DisseminateCV(context.Context, proto.ConsensusValue)
+
 	GenerateID64(context.Context) ID64
 	RestoreDb(context.Context) (proto.DbTip, error)
 

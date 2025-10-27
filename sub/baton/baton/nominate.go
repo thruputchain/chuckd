@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -20,7 +21,16 @@ type nominating struct {
 
 type nominated struct {
 	time.Time
-	ConsensusValue *proto.ConsensusValue
+	Rejected       *proto.BlockHeight    // set if scp rejected nomination
+	ConsensusValue *proto.ConsensusValue // set if scp accepted nomination
+}
+
+func (x *nominated) BlockHeight() proto.BlockHeight {
+	if x.Rejected != nil {
+		return *x.Rejected
+	} else {
+		return x.ConsensusValue.Nomination.Block_height
+	}
 }
 
 func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating, nominated *nominated) bool {
@@ -31,15 +41,17 @@ func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating
 	case nominating == nil && nominated == nil:
 		return true
 	case nominating == nil && nominated != nil:
-		return tipToNominateOn.Height+1 > nominated.ConsensusValue.Nomination.Block_height
+		return tipToNominateOn.Height+1 > nominated.BlockHeight()
 	case nominating != nil && nominated == nil:
 		return tipToNominateOn.Height > nominating.OntoDb.Height
 	case nominating != nil && nominated != nil:
 		return tipToNominateOn.Height > nominating.OntoDb.Height &&
-			tipToNominateOn.Height+1 > nominated.ConsensusValue.Nomination.Block_height
+			tipToNominateOn.Height+1 > nominated.BlockHeight()
 	}
 	panic("unreachable")
 }
+
+var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")
 
 func (b *Baton) nominate(
 	ctx context.Context,
@@ -64,6 +76,11 @@ func (b *Baton) nominate(
 		Prev_cv_hash: ontoExt.ConsensusValueHash(),
 	}
 
+	cvc := &proto.ConsensusValueCue{
+		Repair_fallback: b.handler.Signer(),
+		Cv_hash:         b.hashCV(cv),
+	}
+
 	b.handler.Emit(ctx, batonkit.EventNominating{
 		Onto:   ontoDb,
 		NumTx:  len(nom.Transaction_hashes),
@@ -75,7 +92,11 @@ func (b *Baton) nominate(
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
-	if ok := b.handler.Nominate(ctx, scpkit.Slot(nom.Block_height), cv, &prevSummary); ok {
+	if ok := b.handler.Nominate(ctx, scpkit.Slot(nom.Block_height), cvc, &prevSummary); ok {
+
+		// if nomination accepted, broadcast consensus value
+		b.handler.DisseminateCV(ctx, *cv)
+
 		b.handler.Emit(ctx, batonkit.EventNominated{
 			Onto:   ontoDb,
 			NumTx:  len(nom.Transaction_hashes),
@@ -84,11 +105,11 @@ func (b *Baton) nominate(
 			//
 			DbgConsensusValue: cv,
 		})
+		return cv, schedNom.Block_id, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
+		return nil, 0, ErrNominationRejected
 	}
-
-	return cv, schedNom.Block_id, nil
 }
 
 func (b *Baton) cancelNominatingNotAbove(_ context.Context, height proto.BlockHeight) {
