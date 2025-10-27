@@ -48,6 +48,15 @@ func (b *Baton) validateCueValue(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
+	// check if the value was already validated
+	b.lock()
+	alreadyValidated := b.getValidatedCVH(cvc.Cv_hash)
+	b.unlock()
+	if alreadyValidated != nil {
+		reply <- scpkit.FullyValidValue
+		return
+	}
+
 	// (abort condition) this context will be cancelled upon newer externalizations or commits
 	ctx, ctxCancel := context.WithCancel(ctx)
 	go func() {

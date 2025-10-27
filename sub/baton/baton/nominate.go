@@ -77,8 +77,8 @@ func (b *Baton) nominate(
 	}
 
 	cvc := &proto.ConsensusValueCue{
-		Repair_fallback: b.handler.Signer(),
-		Cv_hash:         b.hashCV(cv),
+		Proposer: b.handler.Signer(),
+		Cv_hash:  b.hashCV(cv),
 	}
 
 	b.handler.Emit(ctx, batonkit.EventNominating{

@@ -101,7 +101,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		//
 		v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExternalizedBlock{
 			Ext:       ext,
-			Validated: b.getValidated(ext.ConsensusValue()),
+			Validated: b.getValidatedCV(ext.ConsensusValue()),
 		}
 	}
 
@@ -139,7 +139,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 				v.Blocks[i] = ViewCatchupBlock{
 					Candidate: ca,
 					Linked:    false, // linked will be computed later
-					Validated: b.getValidated(ca.ConsensusValue()),
+					Validated: b.getValidatedCV(ca.ConsensusValue()),
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}

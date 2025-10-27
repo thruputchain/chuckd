@@ -13,8 +13,8 @@ CONSENSUS SCP VALUE SEPARATION
       - [x] impl DisseminateCV in test
     - [ ] validation
       - [x] add block height to cue? (no, use slot instead)
-      - [ ] add block hash to cue? (no, cache validated value hashes)
-      - [ ] cache validated cvs by hash
+      - [x] add block hash to cue? (no, cache validated value hashes)
+      - [x] cache validated cvs by hash
       - [x] add proposer to cue, and signature to enable slashing (no, signature can be made available from scp)
     - [ ] externalization
 

@@ -85,7 +85,7 @@ func (b *Baton) validateConsensusValue(
 
 	b.lock()
 	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidated(cv)
+	alreadyValidated := b.getValidatedCV(cv)
 	b.unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {

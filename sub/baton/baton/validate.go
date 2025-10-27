@@ -22,8 +22,12 @@ func (b *Baton) setValidated(cv *proto.ConsensusValue, blockID proto.BlockID) {
 	}
 }
 
-func (b *Baton) getValidated(cv *proto.ConsensusValue) *proto.BlockID {
-	v, ok := b.validated[b.hashCV(cv)]
+func (b *Baton) getValidatedCV(cv *proto.ConsensusValue) *proto.BlockID {
+	return b.getValidatedCVH(b.hashCV(cv))
+}
+
+func (b *Baton) getValidatedCVH(cvh proto.ConsensusValueHash) *proto.BlockID {
+	v, ok := b.validated[cvh]
 	if !ok {
 		return nil
 	}
