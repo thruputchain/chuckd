@@ -218,3 +218,6 @@ func (h *TestRig) FindHighestConsensusValue(ctx context.Context) *proto.Consensu
 }
 
 func (h *TestRig) Externalized(ctx context.Context, slot scpkit.Slot) {}
+
+// unit tests focus on a single node, so dissemination is not necessary
+func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {}
