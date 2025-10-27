@@ -2,7 +2,6 @@ package cvpool
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -25,6 +24,7 @@ func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
 		m:      xdrutil.NewXdrMarshaler(),
 	}
 	cvp.cond = sync.NewCond(&cvp.lk)
+	var _ CVPool = cvp
 	return cvp
 }
 
@@ -69,12 +69,9 @@ func (cvp *ConsensusValuePool) LookupConsensusValue(
 	}
 }
 
-var ErrHeightBelowBottom = fmt.Errorf("height below bottom")
-
 func (cvp *ConsensusValuePool) WaitForConsensusValue(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
-	height proto.BlockHeight,
 ) (*proto.ConsensusValue, error) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
@@ -84,9 +81,6 @@ func (cvp *ConsensusValuePool) WaitForConsensusValue(
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if height <= cvp.bottom {
-				return nil, ErrHeightBelowBottom
-			}
 			if cv, ok := cvp.cv[hash]; ok {
 				return &cv, nil
 			}

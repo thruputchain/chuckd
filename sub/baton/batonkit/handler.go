@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/sub/catchup"
+	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
@@ -22,6 +23,7 @@ type Handler interface {
 	proto.SchedulerCoord1
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
+	cvpool.CVPool
 
 	DisseminateCV(context.Context, proto.ConsensusValue)
 

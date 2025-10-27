@@ -11,7 +11,8 @@ CONSENSUS SCP VALUE SEPARATION
       - [x] nominate returns error on rejection and this is handled in driver
       - [x] impl DisseminateCV in live
       - [x] impl DisseminateCV in test
-    - [ ] validation and externalization
+    - [ ] validation
+    - [ ] externalization
 
 - [x] system
   - [x] drive received cvs into cvpool
