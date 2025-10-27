@@ -11,7 +11,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (x scpHandler) ValidateCueValue(
+func (x scpHandler) ValidateCue(
 	ctx context.Context,
 	slot scpkit.Slot,
 	value scpkit.Value,
@@ -36,12 +36,12 @@ func (x scpHandler) ValidateCueValue(
 	}
 
 	reply := make(chan scpkit.ValidationLevel, 1)
-	go x.baton.validateCueValue(ctx, slot, &cvc, reply)
+	go x.baton.validateCue(ctx, slot, &cvc, reply)
 	level = <-reply
 	return
 }
 
-func (b *Baton) validateCueValue(
+func (b *Baton) validateCue(
 	ctx context.Context,
 	slot scpkit.Slot,
 	cvc *proto.ConsensusValueCue,
@@ -80,7 +80,7 @@ func (b *Baton) validateCueValue(
 		return
 	}
 
-	b.validateConsensusValue(ctx, slot, cv, reply)
+	b.validateConsensus(ctx, slot, cv, reply)
 }
 
 func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {
