@@ -117,10 +117,6 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	return nil
 }
 
-func (x *Multiplex) Disseminate(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	x.SendSubmittedTxs(ctx, submitted)
-}
-
 func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
 	return x.SendSCPEnvelope(ctx, env)
 }

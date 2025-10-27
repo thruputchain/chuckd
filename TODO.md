@@ -8,7 +8,9 @@ CONSENSUS SCP VALUE SEPARATION
   - [ ] use ConsensusValueCue as SCPValue
     - [ ] nomination
       - [x] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
-      - [ ] nominate returns error on rejection and this is handled in driver
+      - [x] nominate returns error on rejection and this is handled in driver
+      - [x] impl DisseminateCV in live
+      - [ ] impl DisseminateCV in test
     - [ ] validation and externalization
 
 - [x] system

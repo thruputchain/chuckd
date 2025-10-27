@@ -128,7 +128,7 @@ func NewSystem(
 		s.Router,
 		s.RepairAgent,
 		s.CVPool,
-		s.Dogwood,
+		s.Multiplex,
 		s.Storage,
 		runtime.NewRandFromRand(rand),
 	)
@@ -262,7 +262,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 			s.time,
 			func(ctx context.Context, txs []proto.SignedTransaction) {
 				liblog.Debugf("disseminating %d vetted txs", len(txs))
-				s.Multiplex.Disseminate(ctx, &proto.SubmittedTransactions{Transactions: txs})
+				s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: txs})
 			},
 			int(s.cfg.Mempool_config.Submission_lot_size),
 			time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,

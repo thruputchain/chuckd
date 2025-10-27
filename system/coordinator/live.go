@@ -10,7 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/net/dogwood"
+	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/catchup"
@@ -34,11 +34,11 @@ type LiveHandler struct {
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
-	cvpool  *cvpool.ConsensusValuePool
-	dogwood *dogwood.DogwoodService
-	storage *storage.DiskStorage
-	scp     scpkit.SCPController
-	m       xdrutil.XdrMarshaler
+	cvpool    *cvpool.ConsensusValuePool
+	multiplex *multiplex.Multiplex
+	storage   *storage.DiskStorage
+	scp       scpkit.SCPController
+	m         xdrutil.XdrMarshaler
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -55,7 +55,7 @@ func NewLiveHandler(
 	router router.Router,
 	repairAgent *repairagent.RepairAgent,
 	cvpool *cvpool.ConsensusValuePool,
-	dogwood *dogwood.DogwoodService,
+	multiplex *multiplex.Multiplex,
 	storage *storage.DiskStorage,
 	rand *rand.Rand,
 ) *LiveHandler {
@@ -67,7 +67,7 @@ func NewLiveHandler(
 		router:      router,
 		RepairAgent: repairAgent,
 		cvpool:      cvpool,
-		dogwood:     dogwood,
+		multiplex:   multiplex,
 		storage:     storage,
 		m:           xdrutil.NewXdrMarshaler(),
 		rand:        rand,
@@ -142,4 +142,8 @@ func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.Cons
 
 func (x *LiveHandler) Externalized(ctx context.Context, slot scpkit.Slot) {
 	x.cvpool.Externalized(ctx, proto.BlockHeight(slot))
+}
+
+func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {
+	x.multiplex.SendConsensusValue(ctx, cv)
 }
