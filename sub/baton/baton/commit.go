@@ -84,6 +84,13 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 		}
 	}
 
+	// purge invalidations
+	for h, p := range b.invalidated {
+		if p.Nomination.Block_height <= b.tipDb.Height {
+			delete(b.invalidated, h)
+		}
+	}
+
 	// purge nominations
 	if b.nominated != nil && b.nominated.BlockHeight() <= b.tipDb.Height {
 		b.nominated = nil

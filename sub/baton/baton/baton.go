@@ -27,6 +27,7 @@ func NewBaton(
 		ready:            make(chan struct{}),
 		catchupWaiting:   map[batonkit.ID64]catchupRequest{},
 		validated:        map[proto.ConsensusValueHash]validated{},
+		invalidated:      map[proto.ConsensusValueHash]invalidated{},
 		cvM:              xdrutil.NewXdrMarshaler(),
 		txM:              xdrutil.NewXdrMarshaler(),
 		nomM:             xdrutil.NewXdrMarshaler(),
@@ -56,6 +57,7 @@ type Baton struct {
 	catchupArrivals catchupArrivals                  // received catchup blocks
 	externalized    []externalized
 	validated       map[proto.ConsensusValueHash]validated
+	invalidated     map[proto.ConsensusValueHash]invalidated
 
 	// xdr marshalers
 	cvM            xdrutil.XdrMarshaler // for marshalling ConsensusValue
@@ -68,6 +70,10 @@ type Baton struct {
 type validated struct {
 	*proto.ConsensusValue
 	proto.BlockID
+}
+
+type invalidated struct {
+	*proto.ConsensusValue
 }
 
 func (b *Baton) lock() {

@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -170,7 +171,25 @@ func (b *Baton) validateConsensusValue(
 
 	// validate proposal
 
+	// check if block previous invalidated to prevent expensive validation
+	b.lock()
+	alreadyInvalidated := b.isInvalidatedCV(cv)
+	b.unlock()
+	if alreadyInvalidated {
+		reply <- scpkit.InvalidValue
+		return
+	}
+
 	validatedTip, err := b.validateProposal(vCtx, *dbTip, cv.Nomination)
+	if errors.Is(err, batonkit.ErrNotValid) {
+		// cache invalidation to prevent dos
+		b.lock()
+		b.setInvalidated(cv)
+		b.unlock()
+
+		reply <- scpkit.InvalidValue
+		return
+	}
 	if err != nil {
 		// err can only ever be context cancelled or deadline exceeded.
 		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))

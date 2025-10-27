@@ -51,7 +51,13 @@ func (b *Baton) validateCueValue(
 	// check if the value was already validated
 	b.lock()
 	alreadyValidated := b.getValidatedCVH(cvc.Cv_hash)
+	alreadyInvalidated := b.isInvalidatedCVH(cvc.Cv_hash)
 	b.unlock()
+
+	if alreadyInvalidated {
+		reply <- scpkit.InvalidValue
+		return
+	}
 	if alreadyValidated != nil {
 		reply <- scpkit.FullyValidValue
 		return
