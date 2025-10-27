@@ -147,3 +147,17 @@ func (x *LiveHandler) Externalized(ctx context.Context, slot scpkit.Slot) {
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {
 	x.multiplex.SendConsensusValue(ctx, cv)
 }
+
+func (x *LiveHandler) LookupConsensusValue(
+	ctx context.Context,
+	hash proto.ConsensusValueHash,
+) *proto.ConsensusValue {
+	return x.cvpool.LookupConsensusValue(ctx, hash)
+}
+
+func (x *LiveHandler) WaitForConsensusValue(
+	ctx context.Context,
+	hash proto.ConsensusValueHash,
+) (*proto.ConsensusValue, error) {
+	return x.cvpool.WaitForConsensusValue(ctx, hash)
+}

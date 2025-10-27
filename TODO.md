@@ -16,6 +16,8 @@ CONSENSUS SCP VALUE SEPARATION
       - [x] add block hash to cue? (no, cache validated value hashes)
       - [x] cache validated cvs by hash
       - [x] add proposer to cue, and signature to enable slashing (no, signature can be made available from scp)
+      - [ ] plumb handler methods
+      - [ ] add invalidated cache? purge appropriately
     - [ ] externalization
 
 - [x] system

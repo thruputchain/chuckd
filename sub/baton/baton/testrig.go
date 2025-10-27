@@ -221,3 +221,17 @@ func (h *TestRig) Externalized(ctx context.Context, slot scpkit.Slot) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
 func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {}
+
+func (h *TestRig) LookupConsensusValue(
+	ctx context.Context,
+	hash proto.ConsensusValueHash,
+) *proto.ConsensusValue {
+	panic("XXX")
+}
+
+func (h *TestRig) WaitForConsensusValue(
+	ctx context.Context,
+	hash proto.ConsensusValueHash,
+) (*proto.ConsensusValue, error) {
+	panic("XXX")
+}
