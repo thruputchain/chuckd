@@ -62,13 +62,22 @@ func (x scpHandler) ValidateValue(ctx context.Context, slot scpkit.Slot, value s
 	}
 
 	reply := make(chan scpkit.ValidationLevel, 1)
-	go x.baton.validateConsensusValue(ctx, &cv, reply)
+	go x.baton.validateConsensusValue(ctx, slot, &cv, reply)
 	level = <-reply
 	return
 }
 
-func (b *Baton) validateConsensusValue(ctx context.Context, cv *proto.ConsensusValue, reply chan<- scpkit.ValidationLevel) {
+func (b *Baton) validateConsensusValue(
+	ctx context.Context,
+	slot scpkit.Slot,
+	cv *proto.ConsensusValue,
+	reply chan<- scpkit.ValidationLevel,
+) {
 
+	if cv.Nomination.Block_height != proto.BlockHeight(slot) {
+		reply <- scpkit.InvalidValue
+		return
+	}
 	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
 		reply <- scpkit.InvalidValue
 		return

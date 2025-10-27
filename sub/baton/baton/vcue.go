@@ -11,7 +11,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (x scpHandler) ValidateCueValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value, nomination bool) (level scpkit.ValidationLevel) {
+func (x scpHandler) ValidateCueValue(
+	ctx context.Context,
+	slot scpkit.Slot,
+	value scpkit.Value,
+	nomination bool,
+) (level scpkit.ValidationLevel) {
+
 	<-x.baton.ready
 
 	kind := "ballot"
@@ -30,18 +36,28 @@ func (x scpHandler) ValidateCueValue(ctx context.Context, slot scpkit.Slot, valu
 	}
 
 	reply := make(chan scpkit.ValidationLevel, 1)
-	go x.baton.validateCueValue(ctx, &cvc, reply)
+	go x.baton.validateCueValue(ctx, slot, &cvc, reply)
 	level = <-reply
 	return
 }
 
 func (b *Baton) validateCueValue(
 	ctx context.Context,
+	slot scpkit.Slot,
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	// XXX: how long should be wait before cancelling fetchCV
+	// (abort condition) this context will be cancelled upon newer externalizations or commits
+	ctx, ctxCancel := context.WithCancel(ctx)
+	go func() {
+		// waiter is cancelled whenever validation completes or externalization occurs
+		b.WaitExternalizedBeyond(ctx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
+		ctxCancel()
+	}()
+	defer ctxCancel()
+
+	// fetchCV will be aborted if externalization or commits beyond the nominated block height occur
 	cv, err := b.fetchCV(ctx, cvc)
 	if err != nil {
 		liblog.Infof("cannot validate, fetch consensus value (%v)", err)
@@ -49,7 +65,7 @@ func (b *Baton) validateCueValue(
 		return
 	}
 
-	b.validateConsensusValue(ctx, cv, reply)
+	b.validateConsensusValue(ctx, slot, cv, reply)
 }
 
 func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {
@@ -65,7 +81,7 @@ func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*pro
 	// try repairing the missing cv
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.RepairMissingCV(ctx, cvc.Repair_fallback, cvc.Cv_hash)
+		cv, err := b.handler.RepairMissingCV(ctx, cvc.Proposer, cvc.Cv_hash)
 		if err != nil {
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
