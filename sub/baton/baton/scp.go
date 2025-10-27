@@ -30,11 +30,11 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpkit.Slot, val
 }
 
 func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
-	return x.ValidateConsensus(ctx, slot, value, false)
+	return x.ValidateCue(ctx, slot, value, false)
 }
 
 func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
-	return x.ValidateConsensus(ctx, slot, value, true)
+	return x.ValidateCue(ctx, slot, value, true)
 }
 
 func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
