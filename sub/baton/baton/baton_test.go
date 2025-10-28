@@ -120,18 +120,20 @@ func TestValidateCommit(t *testing.T) {
 }
 
 // TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
+// The validator will request catchup twice, because the test catchup system returns one block at a time,
+// regardless of how many were requested.
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
 	baseHeight := rig.GetTip(ctx).Height
 
-	block1 := rig.GenNomination(ctx, 1)
-	block2 := rig.GenNominationOntoBlock(ctx, 1, block1)
+	block2 := rig.GenNomination(ctx, 1) // db is initialized at block height 1
+	block3 := rig.GenNominationOntoBlock(ctx, 1, block2)
 
-	rig.AddTxs(ctx, protoutil.Unpack(block2.Txs)...) // prevent catchup request for [2]
+	rig.AddTxs(ctx, protoutil.Unpack(block3.Txs)...) // prevent catchup request for [2]
 
-	rig.StageCatchup(block1.Catchup)
 	rig.StageCatchup(block2.Catchup)
+	rig.StageCatchup(block3.Catchup)
 
 	baton.Start(ctx)
 
@@ -141,11 +143,18 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
-	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+2), testMarshaler.MarshalXdr(&block2.ConsensusValue).Bytes())
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+2), testMarshaler.MarshalXdr(&block3.ConsensusValueCue).Bytes())
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
-	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
-	if committed.Height != baseHeight+1 {
+	committed2 := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed2.Height != baseHeight+1 {
+		t.Errorf("expecting committed height")
+	}
+
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
+	committed3 := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed3.Height != baseHeight+2 {
 		t.Errorf("expecting committed height")
 	}
 }
