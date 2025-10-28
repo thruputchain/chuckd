@@ -105,7 +105,10 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 				Validated: b.getValidatedCVH(ext.ConsensusValueHash()),
 			}
 		} else {
-			//XXX: integrate cue-only externalizations
+			extCue := ext.(externalizedCue)
+			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtCueBlock{
+				Ext: extCue,
+			}
 		}
 	}
 
@@ -161,6 +164,16 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 					}
 				}
 			}
+		case ViewExtCueBlock:
+			if ca, ok := b.findCatchupBlockAtHeight(height); ok {
+				// a catchup block in the same slot as an scp block can be linked immediately using the scp block
+				if ca.ConsensusValueHash() == u.ConsensusValueHash() {
+					u.Catchup = &ca
+					v.Blocks[i] = u
+				} else {
+					return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
+				}
+			}
 		default:
 			panic("unreachable")
 		}
@@ -180,7 +193,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 					prev.ConsensusValueHash() != u.PrevConsensusValueHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
-		case ViewExtConsensusBlock:
+		case ViewExtConsensusBlock, ViewExtCueBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
@@ -191,7 +204,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
-			case prev.IsExtConsensus():
+			case prev.IsExtConsensus() || prev.IsExtCue():
 				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
@@ -219,7 +232,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *View) error {
 				j := i // don't take a pointer to i, it changes
 				start = &j
 			}
-		case ViewExtConsensusBlock:
+		case ViewExtConsensusBlock, ViewExtCueBlock:
 			if start != nil { // this scp block tops a contiguous sequence of catchup blocks; mark them linked
 				for k := *start; k < i; k++ {
 					cb := v.Blocks[k].(ViewCatchupBlock)

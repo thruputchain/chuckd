@@ -106,7 +106,7 @@ func (x ViewExtConsensusBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.Ext.ConsensusValueHash()
 }
 func (x ViewExtConsensusBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
-	return x.Ext.ConsensusValue().Prev_cv_hash
+	return x.Ext.PrevConsensusValueHash()
 }
 func (x ViewExtConsensusBlock) IsMissing() bool      { return false }
 func (x ViewExtConsensusBlock) IsExtConsensus() bool { return true }
@@ -151,7 +151,7 @@ func (x ViewExtCueBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.Ext.ConsensusValueHash()
 }
 func (x ViewExtCueBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
-	panic("XXX")
+	return x.Ext.PrevConsensusValueHash()
 }
 func (x ViewExtCueBlock) IsMissing() bool      { return false }
 func (x ViewExtCueBlock) IsExtConsensus() bool { return false }

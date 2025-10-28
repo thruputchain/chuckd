@@ -3,9 +3,9 @@
 
 CONSENSUS SCP VALUE SEPARATION
 
-- [ ] baton
+- [x] baton
   - [x] notifies cvpool of new externalizations
-  - [ ] use ConsensusValueCue as SCPValue
+  - [x] use ConsensusValueCue as SCPValue
     - [x] nomination
       - [x] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
       - [x] nominate returns error on rejection and this is handled in driver
@@ -18,8 +18,7 @@ CONSENSUS SCP VALUE SEPARATION
       - [x] add proposer to cue, and signature to enable slashing (no, signature can be made available from scp)
       - [x] plumb handler methods
       - [x] add invalidated cache, purge appropriately
-    - [ ] externalization
-      - [x] add block hash to cue (verify it on validation)
+    - [x] externalization
 
 - [x] system
   - [x] drive received cvs into cvpool

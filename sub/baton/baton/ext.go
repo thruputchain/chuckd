@@ -4,6 +4,7 @@ import proto "github.com/groundhogchain/protocol-go"
 
 type externalized interface {
 	ConsensusValueHash() proto.ConsensusValueHash
+	PrevConsensusValueHash() proto.ConsensusValueHash
 	Height() proto.BlockHeight
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
@@ -29,6 +30,10 @@ func (x externalizedConsensus) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.hash
 }
 
+func (x externalizedConsensus) PrevConsensusValueHash() proto.ConsensusValueHash {
+	return x.cv.Prev_cv_hash
+}
+
 func (x externalizedConsensus) Height() proto.BlockHeight {
 	return x.cv.Nomination.Block_height
 }
@@ -48,6 +53,10 @@ type externalizedCue struct {
 
 func (x externalizedCue) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.cvc.Cv_hash
+}
+
+func (x externalizedCue) PrevConsensusValueHash() proto.ConsensusValueHash {
+	return x.cvc.Prev_cv_hash
 }
 
 func (x externalizedCue) Height() proto.BlockHeight {

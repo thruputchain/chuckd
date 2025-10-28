@@ -79,6 +79,7 @@ func (b *Baton) nominate(
 	cvc := &proto.ConsensusValueCue{
 		Proposer:        b.handler.Signer(),
 		Cv_hash:         b.hashCV(cv),
+		Prev_cv_hash:    ontoExt.ConsensusValueHash(),
 		Block_hash:      nom.Block_hash,
 		Prev_block_hash: nom.Prev_block_hash,
 	}
