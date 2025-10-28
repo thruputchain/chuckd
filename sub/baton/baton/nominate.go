@@ -90,7 +90,8 @@ func (b *Baton) nominate(
 		Height: nom.Block_height,
 		Hash:   nom.Block_hash,
 		//
-		DbgConsensusValue: cv,
+		DbgConsensusValue:    cv,
+		DbgConsensusValueCue: cvc,
 	})
 
 	// nominate to consensus
@@ -106,7 +107,8 @@ func (b *Baton) nominate(
 			Height: nom.Block_height,
 			Hash:   nom.Block_hash,
 			//
-			DbgConsensusValue: cv,
+			DbgConsensusValue:    cv,
+			DbgConsensusValueCue: cvc,
 		})
 		return cv, schedNom.Block_id, nil
 	} else {

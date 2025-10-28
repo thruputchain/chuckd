@@ -14,7 +14,8 @@ type EventNominating struct {
 	Height     proto.BlockHeight
 	Hash       proto.BlockHash
 	//
-	DbgConsensusValue *proto.ConsensusValue
+	DbgConsensusValue    *proto.ConsensusValue
+	DbgConsensusValueCue *proto.ConsensusValueCue
 }
 
 func (x EventNominating) String() string {
@@ -28,7 +29,8 @@ type EventNominated struct {
 	Height    proto.BlockHeight
 	Hash      proto.BlockHash
 	//
-	DbgConsensusValue *proto.ConsensusValue
+	DbgConsensusValue    *proto.ConsensusValue
+	DbgConsensusValueCue *proto.ConsensusValueCue
 }
 
 func (x EventNominated) String() string {

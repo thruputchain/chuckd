@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/catchup"
+	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/test/testcatchup"
 	"github.com/groundhogchain/chuckd/test/testcoord"
@@ -33,6 +34,7 @@ type TestRig struct {
 	*testsched.TestScheduler
 	*testcatchup.TestCatchupStaged
 	*TestSCP
+	cvpool *cvpool.ConsensusValuePool
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -67,6 +69,7 @@ func NewTestRig(
 		),
 		TestBus:          NewTestBus(),
 		TestTime:         time,
+		cvpool:           cvpool.NewConsensusValuePool(ctx),
 		nominateRequest:  make(chan nominateIn, 1),
 		nominateResponse: make(chan bool, 1),
 	}
@@ -226,12 +229,16 @@ func (h *TestRig) LookupConsensusValue(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) *proto.ConsensusValue {
-	panic("XXX")
+	return h.cvpool.LookupConsensusValue(ctx, hash)
 }
 
 func (h *TestRig) WaitForConsensusValue(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
-	panic("XXX")
+	return h.cvpool.WaitForConsensusValue(ctx, hash)
+}
+
+func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	h.cvpool.Add(ctx, cv)
 }

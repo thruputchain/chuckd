@@ -310,7 +310,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 		for {
 			sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
 			_ = sender
-			s.CVPool.Received(ctx, *cv)
+			s.CVPool.Add(ctx, *cv)
 		}
 	}()
 }
