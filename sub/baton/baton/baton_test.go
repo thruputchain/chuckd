@@ -208,10 +208,11 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		// kick off validation
 		rig.PassTime(tick)
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
+		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusValue)
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
 			proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
-			testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
+			testMarshaler.MarshalXdr(&theirBlock.ConsensusValueCue).Bytes(),
 		)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
@@ -220,17 +221,18 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.PassTime(tick)
 		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
+			rig.PlaceConsensusValue(ctx, *nominated.DbgConsensusValue)
 			rig.ExternalizedValue(
 				ctx,
 				proto.SCPSlotIndex(nominated.DbgConsensusValue.Nomination.Block_height),
-				testMarshaler.MarshalXdr(nominated.DbgConsensusValue).Bytes(),
+				testMarshaler.MarshalXdr(nominated.DbgConsensusValueCue).Bytes(),
 			)
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
 			rig.ExternalizedValue(
 				ctx,
 				proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
-				testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
+				testMarshaler.MarshalXdr(&theirBlock.ConsensusValueCue).Bytes(),
 			)
 		}
 		committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
