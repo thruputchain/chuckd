@@ -94,7 +94,7 @@ func isNewExternalization(
 		return false
 	}
 	must.Assertf(ctx,
-		ext.Height() != lastExt.Height()+1 || ext.PrevBlockHash() == lastExt.BlockHash(),
+		ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
 		"scp externalization is invalid",
 	)
 	return true
