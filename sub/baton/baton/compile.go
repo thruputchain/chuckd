@@ -100,7 +100,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		scpPrevHeight = ext.Height()
 		//
 		if extConsensus, ok := ext.(externalizedConsensus); ok {
-			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExternalizedBlock{
+			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtConsensusBlock{
 				Ext:       extConsensus,
 				Validated: b.getValidatedCVH(ext.ConsensusValueHash()),
 			}
@@ -148,7 +148,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}
 			}
-		case ViewExternalizedBlock:
+		case ViewExtConsensusBlock:
 			// if the block has not been validated already, catchup can help
 			if u.Validated == nil {
 				if ca, ok := b.findCatchupBlockAtHeight(height); ok {
@@ -180,7 +180,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 					prev.ConsensusValueHash() != u.PrevConsensusValueHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
-		case ViewExternalizedBlock:
+		case ViewExtConsensusBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
@@ -191,7 +191,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
-			case prev.IsExt():
+			case prev.IsExtConsensus():
 				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
@@ -219,7 +219,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *View) error {
 				j := i // don't take a pointer to i, it changes
 				start = &j
 			}
-		case ViewExternalizedBlock:
+		case ViewExtConsensusBlock:
 			if start != nil { // this scp block tops a contiguous sequence of catchup blocks; mark them linked
 				for k := *start; k < i; k++ {
 					cb := v.Blocks[k].(ViewCatchupBlock)
