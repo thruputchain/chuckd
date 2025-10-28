@@ -148,14 +148,14 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed2 := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed2.Height != baseHeight+1 {
-		t.Errorf("expecting committed height")
+		t.Errorf("unexpected committed height")
 	}
 
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed3 := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed3.Height != baseHeight+2 {
-		t.Errorf("expecting committed height")
+		t.Errorf("unexpected committed height")
 	}
 }
 
@@ -170,15 +170,18 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	baton.Start(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(&block1.ConsensusValue).Bytes())
+	rig.WaitNomination(ctx)
+	rig.SignalNomination(true)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
+
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(&block1.ConsensusValueCue).Bytes())
 	// catchup provisions the block
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.Height != baseHeight+1 {
-		t.Errorf("expecting committed height 1")
+		t.Errorf("unexpected committed height")
 	}
-
 }
 
 func TestAlternatingNominateCommit(t *testing.T) {
