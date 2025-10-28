@@ -91,6 +91,7 @@ func TestValidateCommit(t *testing.T) {
 
 	// consume nomination
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
+	rig.PlaceConsensusValue(ctx, block.ConsensusValue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -99,7 +100,7 @@ func TestValidateCommit(t *testing.T) {
 	vlevel := rig.ValidateNominationValue(
 		ctx,
 		proto.SCPSlotIndex(block.ConsensusValue.Nomination.Block_height),
-		testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes(),
+		testMarshaler.MarshalXdr(&block.ConsensusValueCue).Bytes(),
 	)
 	// validation is skipped, as the nomination is already cached
 	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -111,7 +112,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes())
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(&block.ConsensusValueCue).Bytes())
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
