@@ -15,7 +15,7 @@ type View struct {
 	Reqs   [][]batonkit.ID64 // catchup requests already fired for this block
 }
 
-func (v *View) NominateOnto() (*proto.DbTip, *externalized) {
+func (v *View) NominateOnto() (*proto.DbTip, *externalizedConsensus) {
 	if len(v.Blocks) != 1 {
 		return nil, nil
 	}

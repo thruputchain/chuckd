@@ -93,7 +93,7 @@ func (b *Baton) validateConsensus(
 	// (commence condition) wait for the block below the validation request to be reached and committed
 
 	var dbTip *proto.DbTip
-	var extTip *externalized
+	var extTip *externalizedConsensus
 
 	var err error
 	dbTip, extTip, err = b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)

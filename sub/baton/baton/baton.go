@@ -52,10 +52,10 @@ type Baton struct {
 	nominating      *nominating
 	nominated       *nominated
 	tipDb           proto.DbTip
-	tipExt          externalized
+	tipExt          externalizedConsensus
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupArrivals catchupArrivals                  // received catchup blocks
-	externalized    []externalized                   // externalizations with known consensus values
+	externalized    []externalizedConsensus          // externalizations with known consensus values
 	validated       map[proto.ConsensusValueHash]validated
 	invalidated     map[proto.ConsensusValueHash]invalidated
 
@@ -168,7 +168,7 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
-func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalized, error) {
+func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalizedConsensus, error) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {

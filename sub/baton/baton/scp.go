@@ -77,7 +77,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 // isNewExternalization checks that an externalization has not already been seen;
 // scp can produce duplicate externalizations.
-func (b *Baton) isNewExternalization(ctx context.Context, ext externalized) bool {
+func (b *Baton) isNewExternalization(ctx context.Context, ext externalizedConsensus) bool {
 	if ext.Height() <= b.tipDb.Height {
 		return false
 	}

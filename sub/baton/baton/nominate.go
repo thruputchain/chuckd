@@ -15,7 +15,7 @@ import (
 
 type nominating struct {
 	OntoDb  proto.DbTip
-	OntoExt externalized
+	OntoExt externalizedConsensus
 	Cancel  context.CancelFunc
 }
 
@@ -56,7 +56,7 @@ var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")
 func (b *Baton) nominate(
 	ctx context.Context,
 	ontoDb proto.DbTip,
-	ontoExt externalized,
+	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
 	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
@@ -77,9 +77,10 @@ func (b *Baton) nominate(
 	}
 
 	cvc := &proto.ConsensusValueCue{
-		Proposer:   b.handler.Signer(),
-		Cv_hash:    b.hashCV(cv),
-		Block_hash: nom.Block_hash,
+		Proposer:        b.handler.Signer(),
+		Cv_hash:         b.hashCV(cv),
+		Block_hash:      nom.Block_hash,
+		Prev_block_hash: nom.Prev_block_hash,
 	}
 
 	b.handler.Emit(ctx, batonkit.EventNominating{

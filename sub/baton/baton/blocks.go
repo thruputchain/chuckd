@@ -21,7 +21,7 @@ type ViewBlock interface {
 
 type ViewDbBlock struct {
 	TipDb  proto.DbTip
-	TipExt externalized
+	TipExt externalizedConsensus
 }
 
 func (x ViewDbBlock) BlockHash() proto.BlockHash     { return x.TipDb.Hash }
@@ -77,7 +77,7 @@ func (x ViewCatchupBlock) Icon() string {
 }
 
 type ViewExternalizedBlock struct {
-	Ext       externalized
+	Ext       externalizedConsensus
 	Validated *proto.BlockID
 	Catchup   *CatchupArrival
 }
