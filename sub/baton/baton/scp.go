@@ -69,7 +69,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	defer x.baton.unlock()
 
 	ext := x.baton.newExternalized(cv)
-	if isNewExternalization(ctx, x.baton.tipDb, ext, x.baton.externalized) {
+	if x.baton.isNewExternalization(ctx, ext) {
 		x.baton.handler.PersistConsensusValue(ctx, *cv)
 		x.baton.externalized = append(x.baton.externalized, ext)
 	}
@@ -77,19 +77,14 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 // isNewExternalization checks that an externalization has not already been seen;
 // scp can produce duplicate externalizations.
-func isNewExternalization(
-	ctx context.Context,
-	tip proto.DbTip,
-	ext externalized,
-	priorExts []externalized,
-) bool {
-	if ext.Height() <= tip.Height {
+func (b *Baton) isNewExternalization(ctx context.Context, ext externalized) bool {
+	if ext.Height() <= b.tipDb.Height {
 		return false
 	}
-	if len(priorExts) == 0 {
+	if len(b.externalized) == 0 {
 		return true // no prior externalizations
 	}
-	lastExt := priorExts[len(priorExts)-1]
+	lastExt := b.externalized[len(b.externalized)-1]
 	if ext.Height() <= lastExt.Height() {
 		return false
 	}
