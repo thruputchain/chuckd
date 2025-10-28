@@ -71,7 +71,7 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	b.catchupArrivals = catchup
 
 	// purge externalized consensus values
-	var exts []externalizedConsensus
+	var exts []externalized
 	for _, p := range b.externalized {
 		if p.Height() > b.tipDb.Height {
 			exts = append(exts, p)

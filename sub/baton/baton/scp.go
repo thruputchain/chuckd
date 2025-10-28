@@ -53,44 +53,69 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
-	// instead, XXX
 	cv := x.baton.handler.LookupConsensusValue(ctx, cvc.Cv_hash)
-	if cv == nil {
-		return
-	}
-
-	// check that SCP slot equals nomination's block height
-	if slot != proto.SCPSlotIndex(cv.Nomination.Block_height) {
-		liblog.Errorf("scp slot index does not equal proposed block height")
-		return
-	}
 
 	x.baton.lock()
 	defer x.baton.unlock()
 
-	ext := x.baton.newExternalized(cv)
-	if x.baton.isNewExternalization(ctx, ext) {
-		x.baton.handler.PersistConsensusValue(ctx, *cv)
-		x.baton.externalized = append(x.baton.externalized, ext)
+	if cv == nil {
+
+		extCue := externalizedCue{height: proto.BlockHeight(slot), cvc: &cvc}
+		x.baton.placeExternalization(ctx, extCue)
+
+	} else {
+
+		// check that SCP slot equals nomination's block height
+		if slot != proto.SCPSlotIndex(cv.Nomination.Block_height) {
+			liblog.Errorf("scp slot index does not equal proposed block height")
+			return
+		}
+
+		extConsensus := x.baton.newExternalized(cv)
+		if x.baton.placeExternalization(ctx, extConsensus) {
+			x.baton.handler.PersistConsensusValue(ctx, *cv)
+		}
+
 	}
 }
 
-// isNewExternalization checks that an externalization has not already been seen;
-// scp can produce duplicate externalizations.
-func (b *Baton) isNewExternalization(ctx context.Context, ext externalizedConsensus) bool {
+// placeExternalization returns true if ext has not been placed previously, and is not at or below db tip.
+// scp can produce duplicate externalizations, which will result in placeExternalization returning false.
+func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool {
 	if ext.Height() <= b.tipDb.Height {
 		return false
 	}
-	if len(b.externalized) == 0 {
-		return true // no prior externalizations
+	if len(b.externalized) == 0 { // no prior externalizations
+		b.externalized = append(b.externalized, ext)
+		return true
 	}
 	lastExt := b.externalized[len(b.externalized)-1]
 	if ext.Height() <= lastExt.Height() {
-		return false
+		// if the externalization is within the range of already seen externalizations,
+		// only place it if it upgrades an externalized cue to an externalized consensus value
+		if extConsensus, ok := ext.(externalizedConsensus); ok {
+			for i, priorExt := range b.externalized {
+				if priorExt.Height() == extConsensus.Height() {
+					if _, priorIsCue := priorExt.(externalizedCue); priorIsCue {
+						must.Assert(ctx, extConsensus.BlockHash() == priorExt.BlockHash())
+						must.Assert(ctx, extConsensus.PrevBlockHash() == priorExt.PrevBlockHash())
+						b.externalized[i] = extConsensus
+						return true
+					} else {
+						return false
+					}
+				}
+			}
+			panic("unreachable")
+		} else {
+			return false
+		}
+	} else {
+		must.Assertf(ctx,
+			ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
+			"scp externalization is invalid",
+		)
+		b.externalized = append(b.externalized, ext)
+		return true
 	}
-	must.Assertf(ctx,
-		ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
-		"scp externalization is invalid",
-	)
-	return true
 }

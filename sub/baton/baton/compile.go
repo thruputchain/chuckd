@@ -99,9 +99,13 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		must.Assertf(ctx, ext.Height() > scpPrevHeight, "externalization heights not increasing")
 		scpPrevHeight = ext.Height()
 		//
-		v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExternalizedBlock{
-			Ext:       ext,
-			Validated: b.getValidatedCVH(ext.ConsensusValueHash()),
+		if extConsensus, ok := ext.(externalizedConsensus); ok {
+			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExternalizedBlock{
+				Ext:       extConsensus,
+				Validated: b.getValidatedCVH(ext.ConsensusValueHash()),
+			}
+		} else {
+			//XXX: integrate cue-only externalizations
 		}
 	}
 
