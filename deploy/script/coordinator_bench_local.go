@@ -64,7 +64,7 @@ func BenchTestClusterShellLocal(
 	--instance quorum-%d \
 	--seed %d \
 	--metrics :%d \
-		bench testcluster \
+		bench coordinator \
 			--tx-per-sec %d \
 			--storage-dir %s \
 			--out-addr %s \

@@ -28,8 +28,7 @@ CONSENSUS SCP VALUE SEPARATION
   - [x] agent for cv
 
 - [ ] test
-  - [ ] unit test
-    - [ ] update to use cvcs and plant cvs
+  - [x] unit test
   - [ ] run eval
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)

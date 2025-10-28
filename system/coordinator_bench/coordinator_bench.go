@@ -1,4 +1,4 @@
-package coordinator_eval
+package coordinator_bench
 
 import (
 	"context"
@@ -18,37 +18,37 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type TestCluster struct {
+type CoordinatorBenchCluster struct {
 	signer    protoutil.Signatory
 	net       libnet.Network
-	cfg       TestClusterConfig
+	cfg       CoordinatorBenchConfig
 	sched     *testsched.TestScheduler
 	gen       *testutil.TestGen
 	submitter kit.SignedTxSubmitter
 }
 
-type TestClusterConfig struct {
+type CoordinatorBenchConfig struct {
 	TxsPerSec int64 // txs per sec, submitted by the test cluster driver to the submitter; can be 0
 	SchedPort int
 }
 
-func NewTestCluster(
+func NewCoordinatorBenchCluster(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
 	net libnet.Network,
 	validator proto.ValidatorPrivateInfo,
 	submitter kit.SignedTxSubmitter,
-	cfg TestClusterConfig,
+	cfg CoordinatorBenchConfig,
 	speed bool,
-) *TestCluster {
+) *CoordinatorBenchCluster {
 
 	sched := testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{})
 
 	userPriv, err := protoutil.GenerateIdentity(rand, "")
 	must.NoError(ctx, err)
 
-	return &TestCluster{
+	return &CoordinatorBenchCluster{
 		net:   net,
 		cfg:   cfg,
 		sched: sched,
@@ -63,11 +63,11 @@ func NewTestCluster(
 	}
 }
 
-func (x *TestCluster) SchedAddress() string {
+func (x *CoordinatorBenchCluster) SchedAddress() string {
 	return fmt.Sprintf("localhost:%d", x.cfg.SchedPort)
 }
 
-func (x *TestCluster) Start(ctx context.Context, coordAddr string) {
+func (x *CoordinatorBenchCluster) Start(ctx context.Context, coordAddr string) {
 
 	liblog.Infof("testcluster starting")
 	rpcutil.StartSerial(ctx, x.net, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
@@ -75,7 +75,7 @@ func (x *TestCluster) Start(ctx context.Context, coordAddr string) {
 	go x.pumpTxs(ctx)
 }
 
-func (x *TestCluster) pumpTxs(ctx context.Context) {
+func (x *CoordinatorBenchCluster) pumpTxs(ctx context.Context) {
 	liblog.Infof("testcluster pumping txs")
 	for {
 		time.Sleep(time.Millisecond * 500) // 1/2 of second resolution

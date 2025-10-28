@@ -11,7 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/chuckd/system/coordinator_eval"
+	"github.com/groundhogchain/chuckd/system/coordinator_bench"
 	"github.com/groundhogchain/chuckd/system/dogwood_bench"
 	"github.com/groundhogchain/chuckd/system/echo_bench"
 	"github.com/spf13/cobra"
@@ -27,23 +27,23 @@ var (
 	}
 
 	benchTestClusterCmd = &cobra.Command{
-		Use:   "testcluster",
-		Short: "start testcluster benchmark",
+		Use:   "coordinator",
+		Short: "start coordinator benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
-					attribute.String("cmd", "bench testcluster"),
+					attribute.String("cmd", "bench coordinator"),
 					attribute.Int64("txs_per_sec", benchTxPerSec),
 				)
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				outside := libnet.Network(libnet.TCPNet{})
-				testCfg := coordinator_eval.TestClusterConfig{
+				testCfg := coordinator_bench.CoordinatorBenchConfig{
 					TxsPerSec: benchTxPerSec,
 					SchedPort: benchSchedPort,
 				}
-				srv := coordinator_eval.NewTestClusterSystem(
+				srv := coordinator_bench.NewCoordinatorBenchSystem(
 					ctx,
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),

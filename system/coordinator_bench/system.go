@@ -1,4 +1,4 @@
-package coordinator_eval
+package coordinator_bench
 
 import (
 	"context"
@@ -14,26 +14,26 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type TestClusterSystem struct {
+type CoordinatorBenchSystem struct {
 	inside libnet.Network
 	*coordinator.System
-	*TestCluster
+	*CoordinatorBenchCluster
 }
 
-func NewTestClusterSystem(
+func NewCoordinatorBenchSystem(
 	ctx context.Context,
 	time libtime.Time,
 	rand *rand.Rand,
 	outside libnet.Network,
 	cfg proto.Config,
-	testCfg TestClusterConfig,
-) *TestClusterSystem {
+	testCfg CoordinatorBenchConfig,
+) *CoordinatorBenchSystem {
 	inside := testnet.NewTestNetwork()
 	s := coordinator.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
-	return &TestClusterSystem{
+	return &CoordinatorBenchSystem{
 		inside: inside,
 		System: s,
-		TestCluster: NewTestCluster(
+		CoordinatorBenchCluster: NewCoordinatorBenchCluster(
 			ctx,
 			time,
 			runtime.NewRandFromRand(rand),
@@ -46,8 +46,8 @@ func NewTestClusterSystem(
 	}
 }
 
-func (s *TestClusterSystem) Start(ctx context.Context, opcfg coordinator.OperationalConfig) {
-	s.TestCluster.Start(ctx, opcfg.InAddr) // start scheduler rpc, needed by coordinator system
+func (s *CoordinatorBenchSystem) Start(ctx context.Context, opcfg coordinator.OperationalConfig) {
+	s.CoordinatorBenchCluster.Start(ctx, opcfg.InAddr) // start scheduler rpc, needed by coordinator system
 	s.System.Start(ctx, opcfg)
 
 	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, s.inside, opcfg.InAddr)
@@ -55,6 +55,6 @@ func (s *TestClusterSystem) Start(ctx context.Context, opcfg coordinator.Operati
 	s.sched.SetCoordScheduler(coordSchedConn)
 }
 
-func (s *TestClusterSystem) Close() {
+func (s *CoordinatorBenchSystem) Close() {
 	s.System.Close()
 }
