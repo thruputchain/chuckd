@@ -19,6 +19,7 @@ CONSENSUS SCP VALUE SEPARATION
       - [x] plumb handler methods
       - [x] add invalidated cache, purge appropriately
     - [ ] externalization
+      - [x] add block hash to cue (verify it on validation)
 
 - [x] system
   - [x] drive received cvs into cvpool

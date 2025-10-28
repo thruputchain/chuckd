@@ -101,7 +101,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		//
 		v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExternalizedBlock{
 			Ext:       ext,
-			Validated: b.getValidatedCV(ext.ConsensusValue()),
+			Validated: b.getValidatedCVH(ext.ConsensusValueHash()),
 		}
 	}
 

@@ -80,6 +80,13 @@ func (b *Baton) validateCue(
 		return
 	}
 
+	// verify consensus value agrees with cue
+	if cvc.Block_hash != cv.Nomination.Block_hash {
+		liblog.Infof("cannot validate, consensus value disagrees with cue")
+		reply <- scpkit.InvalidValue
+		return
+	}
+
 	b.validateConsensus(ctx, slot, cv, reply)
 }
 
