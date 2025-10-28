@@ -39,7 +39,7 @@ func (cvp *ConsensusValuePool) Received(ctx context.Context, cv proto.ConsensusV
 	cvp.cv[h] = cv
 }
 
-func (cvp *ConsensusValuePool) Externalized(ctx context.Context, height proto.BlockHeight) {
+func (cvp *ConsensusValuePool) Committed(ctx context.Context, height proto.BlockHeight) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 

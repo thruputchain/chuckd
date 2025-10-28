@@ -46,6 +46,8 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
 
+	b.handler.Committed(ctx, cb.BlockHeight())
+
 	b.handler.Emit(ctx, batonkit.EventCommitted{
 		Onto:   cb.Onto,
 		Height: cb.BlockHeight(),
@@ -68,7 +70,7 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	}
 	b.catchupArrivals = catchup
 
-	// purge consensus blocks
+	// purge externalized consensus values
 	var exts []externalized
 	for _, p := range b.externalized {
 		if p.Height() > b.tipDb.Height {

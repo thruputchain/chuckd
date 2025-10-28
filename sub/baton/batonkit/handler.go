@@ -19,7 +19,7 @@ type Handler interface {
 	protoutil.Signatory
 	libtime.Time
 	ConsensusController
-	ConsensusHandler
+	BlockHandler
 	proto.SchedulerCoord1
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
@@ -45,6 +45,6 @@ type ConsensusController interface {
 	StopNomination(ctx context.Context, slot scpkit.Slot)
 }
 
-type ConsensusHandler interface {
-	Externalized(ctx context.Context, slot scpkit.Slot)
+type BlockHandler interface {
+	Committed(ctx context.Context, height proto.BlockHeight)
 }

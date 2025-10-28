@@ -140,8 +140,8 @@ func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.Cons
 	return x.storage.FindHighestConsensusValue(ctx)
 }
 
-func (x *LiveHandler) Externalized(ctx context.Context, slot scpkit.Slot) {
-	x.cvpool.Externalized(ctx, proto.BlockHeight(slot))
+func (x *LiveHandler) Committed(ctx context.Context, height proto.BlockHeight) {
+	x.cvpool.Committed(ctx, height)
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {

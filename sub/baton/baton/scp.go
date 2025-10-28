@@ -52,30 +52,26 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	}
 
 	// if we participated in this round, the cv shold be in our cv pool,
-	// otherwise it is too late to repair a missing cv value, so the only
-	// recourse is to request a catchup block for it
+	// otherwise it is too late to repair a missing cv value.
+	// instead, XXX
 	cv := x.baton.handler.LookupConsensusValue(ctx, cvc.Cv_hash)
-	if cv != nil {
+	if cv == nil {
+		return
+	}
 
-		// check that SCP slot equals nomination's block height
-		if slot != proto.SCPSlotIndex(cv.Nomination.Block_height) {
-			liblog.Errorf("scp slot index does not equal proposed block height")
-			return
-		}
+	// check that SCP slot equals nomination's block height
+	if slot != proto.SCPSlotIndex(cv.Nomination.Block_height) {
+		liblog.Errorf("scp slot index does not equal proposed block height")
+		return
+	}
 
-		x.baton.lock()
-		defer x.baton.unlock()
+	x.baton.lock()
+	defer x.baton.unlock()
 
-		ext := x.baton.newExternalized(cv)
-		if isNewExternalization(ctx, x.baton.tipDb, ext, x.baton.externalized) {
-			x.baton.handler.PersistConsensusValue(ctx, *cv)
-			x.baton.externalized = append(x.baton.externalized, ext)
-		}
-
-	} else {
-
-		// record orphan cue
-		panic("XXX")
+	ext := x.baton.newExternalized(cv)
+	if isNewExternalization(ctx, x.baton.tipDb, ext, x.baton.externalized) {
+		x.baton.handler.PersistConsensusValue(ctx, *cv)
+		x.baton.externalized = append(x.baton.externalized, ext)
 	}
 }
 

@@ -55,7 +55,7 @@ type Baton struct {
 	tipExt          externalized
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupArrivals catchupArrivals                  // received catchup blocks
-	externalized    []externalized
+	externalized    []externalized                   // externalizations with known consensus values
 	validated       map[proto.ConsensusValueHash]validated
 	invalidated     map[proto.ConsensusValueHash]invalidated
 
