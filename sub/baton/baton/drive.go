@@ -98,7 +98,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 					if !currentWasReplaced {
 						height := ontoDb.Height + 1
 						b.nominated = &nominated{
-							Time:     protoutil.TimeFromTimepoint(cv.Timestamp),
+							Time:     b.handler.Now(),
 							Rejected: &height,
 						}
 					}

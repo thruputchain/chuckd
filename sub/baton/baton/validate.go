@@ -77,6 +77,9 @@ func (b *Baton) validateProposal(
 	for {
 		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, nomination)
 		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return proto.DbTip{}, err
+			}
 			liblog.Infof("cannot validate, scheduler error (%v)", err)
 			panic("scheduler failed on validation")
 		}
