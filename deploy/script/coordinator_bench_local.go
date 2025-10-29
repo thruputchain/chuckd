@@ -80,6 +80,7 @@ func CoordinatorBenchShellLocal(
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)
+		fmt.Fprintf(&sh, "rm -rf %s\n", fmt.Sprintf("./storage-%d", i))
 		fmt.Fprintf(&sh, "nohup %s > validator-%s.log 2>&1 &\n", quorumCmd, untypedVID)
 		// fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > validator-%s.pid\n", untypedVID)
 	}
