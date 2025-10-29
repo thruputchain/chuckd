@@ -31,7 +31,17 @@ CONSENSUS SCP VALUE SEPARATION
   - [x] unit test
   - [ ] run eval
 
+- [ ] scp validation must support requests for the last committed (from our pov) slot
+  - [ ] purge
+    - [ ] consensus values
+    - [ ] validated
+    - [ ] invalidated
+    - [ ] externalized
+    - [ ] catchup arrivals
+
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
+
+SCP ENVELOPE ACTIVE REPAIR 
 
 UPGRADES
 
