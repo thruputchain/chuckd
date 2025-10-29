@@ -145,6 +145,7 @@ func (x *LiveHandler) Committed(ctx context.Context, height proto.BlockHeight) {
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {
+	x.cvpool.Add(ctx, cv)
 	x.multiplex.SendConsensusValue(ctx, cv)
 }
 
