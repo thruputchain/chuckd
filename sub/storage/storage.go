@@ -153,7 +153,7 @@ func (x *DiskStorage) FindHighestConsensusValue(ctx context.Context) *proto.Cons
 
 func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.BlockHeight {
 	rootpath := x.ConsensusValuesDirpath()
-	err := os.MkdirAll(filepath.Dir(rootpath), 0o755)
+	err := os.MkdirAll(rootpath, 0o755)
 	must.NoError(ctx, err)
 
 	var maxHeight int64
@@ -171,7 +171,7 @@ func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.Blo
 	}
 
 	err = WalkReverseDescendants(ctx, rootpath, visit)
-	must.Assert(ctx, err == nil || errors.Is(err, errStopWalking))
+	must.Assertf(ctx, err == nil || errors.Is(err, errStopWalking), "walk files in reverse: %v", err)
 
 	return maxHeight
 }
