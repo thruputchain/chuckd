@@ -148,8 +148,9 @@ func (h *TestRig) SignXdr(m xdrutil.XdrMarshaler, v xdr.XdrType) proto.Signature
 	return protoutil.SignXdr(m, h.signer.Secret_key, v)
 }
 
-func (h *TestRig) VerifyXdr(m xdrutil.XdrMarshaler, signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
-	return protoutil.VerifyXdr(m, signer, value, sig)
+func (h *TestRig) VerifyXdr(m xdrutil.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool {
+	panic("not used")
+	// return protoutil.VerifyXdr(m, h.signer.Public_info.Public_key, value, sig)
 }
 
 func (h *TestRig) GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo {
