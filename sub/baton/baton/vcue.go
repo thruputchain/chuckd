@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -47,6 +48,12 @@ func (b *Baton) validateCue(
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
+
+	liblog.Infof("validating block at height %d with block hash %s and consensus value hash %s",
+		slot,
+		form.Display(cvc.Block_hash),
+		form.Display(cvc.Cv_hash),
+	)
 
 	// check if the value was already validated
 	b.lock()

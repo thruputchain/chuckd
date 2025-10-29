@@ -114,8 +114,11 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 					ConsensusValue: cv,
 				}
 				b.setValidated(cv, blockID)
-				liblog.Infof("nominated block at height %d with hash %s",
-					cv.Nomination.Block_height, form.Display(cv.Nomination.Block_hash))
+				liblog.Infof("nominated block at height %d with block hash %s and consensus value hash %s",
+					cv.Nomination.Block_height,
+					form.Display(cv.Nomination.Block_hash),
+					form.Display(b.hashCV(cv)),
+				)
 			}
 		}()
 	}
