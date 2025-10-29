@@ -225,6 +225,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 
 	err = sched.Intro(ctx, schedConn, opcfg.InAddr)
 	must.NoError(ctx, err)
+	liblog.Infof("connected to scheduler at %v", opcfg.SchedAddr)
 
 	s.RepairService.SetSchedConn(schedConn)
 	s.Live.SetScheduler(schedConn)

@@ -43,7 +43,11 @@ func NewCoordinatorBenchCluster(
 	speed bool,
 ) *CoordinatorBenchCluster {
 
-	sched := testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{})
+	sched := testsched.NewTestScheduler(
+		ctx,
+		validator.Public_info,
+		proto.DbTip{Height: 1},
+	)
 
 	userPriv, err := protoutil.GenerateIdentity(rand, "")
 	must.NoError(ctx, err)

@@ -69,10 +69,12 @@ func (x *TestScheduler) AddTxs(ctx context.Context, txs ...*proto.SignedTransact
 }
 
 func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
-	<-x.ready // wait for x.coord != nil
+	go func() {
+		<-x.ready // wait for x.coord != nil
 
-	err := x.coord.Coordscheduler_notify_vetted(ctx, txs)
-	must.NoError(ctx, err)
+		err := x.coord.Coordscheduler_notify_vetted(ctx, txs)
+		must.NoError(ctx, err)
+	}()
 
 	x.mempool.AddTxs(txs)
 	return nil
