@@ -13,7 +13,7 @@ import (
 type Signatory interface {
 	Signer() proto.ValidatorPublicInfo
 	SignXdr(xdrutil.XdrMarshaler, xdr.XdrType) proto.Signature
-	VerifyXdr(m xdrutil.XdrMarshaler, signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool
+	VerifyXdr(m xdrutil.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool
 }
 
 type signer struct {
@@ -32,7 +32,7 @@ func (s *signer) SignXdr(m xdrutil.XdrMarshaler, value xdr.XdrType) proto.Signat
 	return SignXdr(m, s.priv.Secret_key, value)
 }
 
-func (s *signer) VerifyXdr(m xdrutil.XdrMarshaler, signer proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+func (s *signer) VerifyXdr(m xdrutil.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool {
 	return VerifyXdr(m, s.Signer().Public_key, value, sig)
 }
 

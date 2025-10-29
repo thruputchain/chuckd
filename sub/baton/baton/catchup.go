@@ -143,7 +143,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		}
 
 		// verify the signature of the source
-		if !b.handler.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
+		if !protoutil.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
 			liblog.Errorf("catchup with invalid signature")
 			return
 		}
