@@ -14,7 +14,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func BenchTestClusterShellLocal(
+func CoordinatorBenchShellLocal(
 	ctx context.Context,
 	rand *rand.Rand,
 	round time.Duration,

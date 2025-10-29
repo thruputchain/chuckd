@@ -43,12 +43,12 @@ var (
 	}
 
 	deployLocalBenchTestClusterCmd = &cobra.Command{
-		Use:   "local-bench-testcluster",
-		Short: "generate a local testcluster benchmark deploy shell script",
+		Use:   "local-coordinator-bench",
+		Short: "generate a local coordinator benchmark deploy shell script",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				fmt.Println(script.BenchTestClusterShellLocal(ctx, runtime.NewRandFromRoot(),
+				fmt.Println(script.CoordinatorBenchShellLocal(ctx, runtime.NewRandFromRoot(),
 					time.Second, deployNumVs, deployFanOut, deployTPS))
 			})
 		},
