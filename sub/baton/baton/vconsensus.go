@@ -105,8 +105,10 @@ func (b *Baton) validateConsensus(
 	}
 
 	// cache validated blocks
+	liblog.Debugf("caching validation for block %s and consensus %s",
+		form.Display(cv.Nomination.Block_hash),
+		form.Display(b.hashCV(cv)))
 	b.lock()
-	liblog.Debugf("caching validation for %s", form.Display(cv.Nomination.Block_hash))
 	b.setValidated(cv, validatedTip.Id)
 	b.unlock()
 
