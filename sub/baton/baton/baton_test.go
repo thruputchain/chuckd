@@ -77,6 +77,51 @@ func TestNominateCommit(t *testing.T) {
 
 }
 
+// TestValidateExternalized tests that nodes can validate already externalized values.
+func TestValidateExternalized(t *testing.T) {
+
+	ctx, rig, baton, tick := testSetup()
+	baseHeight := rig.GetTip(ctx).Height
+
+	// stage 1: nominate [1]
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
+	baton.Start(ctx)
+	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
+	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue)
+	rig.WaitNomination(ctx)
+	rig.SignalNomination(true)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
+	rig.PassTime(tick)
+
+	// stage 2: commit already validated [1]
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.DbgConsensusValueCue).Bytes()) // trigger commit, trigger stage 3
+	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
+	if committed.DbgValidatable.AlreadyValidated() == nil {
+		t.Fatalf("expecting commit of already validated block")
+	}
+
+	// consume next externalization
+	go func() {
+		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
+		rig.WaitNomination(ctx)
+		rig.SignalNomination(true)
+		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
+	}()
+
+	// request validation of already externalized block
+	vlevel := rig.ValidateNominationValue(
+		ctx,
+		proto.SCPSlotIndex(nominating_1.Height),
+		testMarshaler.MarshalXdr(nominating_1.DbgConsensusValueCue).Bytes(),
+	)
+	// validation is skipped, as the nomination is already cached
+	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
+	if <-vlevel != scpkit.FullyValidValue {
+		t.Fatalf("expecting fully valid level")
+	}
+}
+
 // TestValidateCommit tests committing of previously proposed and already validated blocks.
 func TestValidateCommit(t *testing.T) {
 

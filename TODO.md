@@ -29,7 +29,7 @@ CONSENSUS SCP VALUE SEPARATION
 
 - [ ] test
   - [x] unit test
-    - [ ] add unit test for validations below externalized
+    - [x] add unit test for validations below externalized
   - [ ] run eval
     - [ ] 3 nodes
     - [ ] 1 node

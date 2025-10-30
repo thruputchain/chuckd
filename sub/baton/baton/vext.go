@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	proto "github.com/groundhogchain/protocol-go"
@@ -14,6 +15,7 @@ func (b *Baton) validateExternalizedCue(
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
+	liblog.Debugf("validating cue for already externalized slot %d", slot)
 
 	cv := b.handler.FindConsensusValue(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cv != nil)
@@ -31,6 +33,7 @@ func (b *Baton) validateExternalizedConsensus(
 	cv *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
+	liblog.Debugf("validating consensus value for already externalized slot %d", slot)
 
 	cvx := b.handler.FindConsensusValue(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cvx != nil)
