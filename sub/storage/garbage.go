@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -22,7 +21,7 @@ func (x *DiskStorage) reclaimCatchupBlocks(ctx context.Context) {
 	catchupDir := x.CatchupBlocksDirpath()
 
 	// make sure the directory exists
-	err := os.MkdirAll(filepath.Dir(catchupDir), 0o755)
+	err := os.MkdirAll(catchupDir, 0o755)
 	must.NoError(ctx, err)
 
 	files, err := ListCatchupFiles(catchupDir)
