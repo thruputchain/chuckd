@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -16,7 +17,7 @@ func (b *Baton) drive(ctx context.Context) {
 	v := b.buildCleanView(ctx)
 
 	liblog.Debugf("view: %s", v.ShortString())
-	// liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	// commit next block, if one is available and no commit is in progress
 	b.driveCommit(ctx, v)
@@ -127,7 +128,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 // driveCatchup sends catchup requests, if needed
 func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
-		liblog.Debugf("requesting catchup")
+		liblog.Debugf("requesting catchup: %v", needed)
 		b.requestCatchup(ctx, needed)
 	}
 }

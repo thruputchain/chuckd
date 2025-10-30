@@ -41,6 +41,8 @@ CONSENSUS SCP VALUE SEPARATION
     - [x] 3 nodes, 2000 tps
   - [ ] 1 node, 2000 tps
 
+- [ ] cv might have to be disseminated (at least locally) before scp.Nominate is called, so that it is available locally for externalization
+
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 
 SCP ENVELOPE ACTIVE REPAIR 
