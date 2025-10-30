@@ -34,17 +34,12 @@ CONSENSUS SCP VALUE SEPARATION
     - [ ] 3 nodes
     - [ ] 1 node
 
-- [ ] must support validation requests for k slots behind the last committed (from our pov) slot
-  - [x] parameter k: how many blocks behind externalized to support for validation
-  - [ ] when cancelling context, respect k
-  - [ ] dont refuse validation below the tip
-  - [ ] purge
-    - [ ] consensus values
-    - [ ] validated
-    - [ ] invalidated
-    - [ ] externalized
-    - [ ] catchup arrivals
+- [ ] SUPPORT VALIDATING PAST EXTERNALIZATIONS
+  - [ ] if validation request is for an already externalized slot, validate based on saved externalizations
+  - [ ] when context is cancelled due to newer externalization, validation has to look at the externalized value and make a judgement based on that
+  - [ ] rename cvpool.Externalized to cvpool.ClearBelow
   - [ ] check if we can fix purge bottom in scp server to 1 below externalized; handler.rs:541
+
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 

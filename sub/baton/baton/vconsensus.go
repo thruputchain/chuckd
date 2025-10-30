@@ -10,36 +10,8 @@ import (
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
-
-func (x scpHandler) ValidateConsensus(ctx context.Context, slot scpkit.Slot, value scpkit.Value, nomination bool) (level scpkit.ValidationLevel) {
-	<-x.baton.ready
-
-	kind := "ballot"
-	if nomination {
-		kind = "nomination"
-	}
-	liblog.Infof("baton validate %s value for slot %d received", kind, slot)
-	defer func() {
-		liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpkit.ValidationLevelString(level))
-	}()
-
-	var cv proto.ConsensusValue
-	err := xdrutil.UnmarshalXdr(&cv, value)
-	if err != nil {
-		return scpkit.InvalidValue
-	}
-	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
-		return scpkit.InvalidValue
-	}
-
-	reply := make(chan scpkit.ValidationLevel, 1)
-	go x.baton.validateConsensus(ctx, slot, &cv, reply)
-	level = <-reply
-	return
-}
 
 func (b *Baton) validateConsensus(
 	ctx context.Context,
@@ -79,24 +51,13 @@ func (b *Baton) validateConsensus(
 		return
 	}
 
-	// arrange to cancel validation request if newer externalizations arise
-
-	// (abort condition) this context will be cancelled upon newer externalizations or commits
-	vCtx, vCtxCancel := context.WithCancel(ctx)
-	go func() {
-		// waiter is cancelled whenever validation completes or externalization occurs
-		b.WaitExternalizedBeyond(vCtx, cv.Nomination.Block_height) // cancel ctx if tip or ext moves
-		vCtxCancel()
-	}()
-	defer vCtxCancel()
-
 	// (commence condition) wait for the block below the validation request to be reached and committed
 
 	var dbTip *proto.DbTip
 	var extTip *externalizedConsensus
 
 	var err error
-	dbTip, extTip, err = b.WaitCommittedAt(vCtx, cv.Nomination.Block_height-1)
+	dbTip, extTip, err = b.WaitCommittedAt(ctx, cv.Nomination.Block_height-1)
 	if err != nil { // context cancelled
 		if errors.Is(err, ErrTipAlreadyAhead) {
 			reply <- scpkit.InvalidValue
@@ -153,7 +114,7 @@ func (b *Baton) validateConsensus(
 		return
 	}
 
-	validatedTip, err := b.validateProposal(vCtx, *dbTip, cv.Nomination)
+	validatedTip, err := b.validateProposal(ctx, *dbTip, cv.Nomination)
 	if errors.Is(err, batonkit.ErrNotValid) {
 		// cache invalidation to prevent dos
 		b.lock()

@@ -5,10 +5,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// VTL (Validation Tail Length) is the number of slots below and including the last externalized slot that
-// the node supports validation requests for.
-const VTL = 3
-
 func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	return protoutil.HashCV(b.cvM, cv)
 }
