@@ -76,13 +76,7 @@ func (b *Baton) nominate(
 		Prev_cv_hash: ontoExt.ConsensusValueHash(),
 	}
 
-	cvc := &proto.ConsensusValueCue{
-		Proposer:        b.handler.Signer(),
-		Cv_hash:         b.hashCV(cv),
-		Prev_cv_hash:    ontoExt.ConsensusValueHash(),
-		Block_hash:      nom.Block_hash,
-		Prev_block_hash: nom.Prev_block_hash,
-	}
+	cvc := b.cueFromConsensusValue(cv)
 
 	b.handler.Emit(ctx, batonkit.EventNominating{
 		Onto:   ontoDb,

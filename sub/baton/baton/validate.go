@@ -9,6 +9,11 @@ func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	return protoutil.HashCV(b.cvM, cv)
 }
 
+func (b *Baton) cueFromConsensusValue(cv *proto.ConsensusValue) *proto.ConsensusValueCue {
+	cvc := protoutil.CueFromConsensusValue(b.cvM, cv)
+	return &cvc
+}
+
 // validated cache
 
 func (b *Baton) setValidated(cv *proto.ConsensusValue, blockID proto.BlockID) {

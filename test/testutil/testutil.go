@@ -133,15 +133,9 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		Prev_cv_hash: protoutil.HashCV(h.m, &onto.CV),
 	}
 	return &TestBlock{
-		ConsensusValue: cv,
-		ConsensusValueCue: proto.ConsensusValueCue{
-			Proposer:        cv.Nomination.Proposer,
-			Cv_hash:         protoutil.HashCV(h.m, &cv),
-			Prev_cv_hash:    cv.Prev_cv_hash,
-			Block_hash:      cv.Nomination.Block_hash,
-			Prev_block_hash: cv.Nomination.Prev_block_hash,
-		},
-		Txs: txs,
+		ConsensusValue:    cv,
+		ConsensusValueCue: protoutil.CueFromConsensusValue(h.m, &cv),
+		Txs:               txs,
 		Catchup: proto.CatchupBlock{
 			Consensus_value:     cv,
 			Signed_transactions: txs,

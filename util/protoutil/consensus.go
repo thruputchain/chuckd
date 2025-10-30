@@ -19,3 +19,13 @@ func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
 	}
 	return true
 }
+
+func CueFromConsensusValue(m xdrutil.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueCue {
+	return proto.ConsensusValueCue{
+		Proposer:        cv.Nomination.Proposer,
+		Cv_hash:         HashCV(m, cv),
+		Prev_cv_hash:    cv.Prev_cv_hash,
+		Block_hash:      cv.Nomination.Block_hash,
+		Prev_block_hash: cv.Nomination.Prev_block_hash,
+	}
+}
