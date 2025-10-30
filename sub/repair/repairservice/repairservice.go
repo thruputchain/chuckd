@@ -77,5 +77,5 @@ func (x *RepairService) Repair_missing_cv(
 	cvh proto.ConsensusValueHash,
 ) (proto.OptConsensusValue, error) {
 
-	return x.cvpool.LookupConsensusValue(ctx, cvh), nil
+	return x.cvpool.ConsensusValuePoolLookup(ctx, cvh), nil
 }

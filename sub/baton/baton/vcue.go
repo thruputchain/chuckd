@@ -25,9 +25,9 @@ func (x scpHandler) ValidateCue(
 	if nomination {
 		kind = "nomination"
 	}
-	liblog.Infof("baton validate %s value for slot %d received", kind, slot)
+	liblog.Infof("validate value (%s) for slot %d requested", kind, slot)
 	defer func() {
-		liblog.Infof("baton validate %s value for slot %d completed with %v", kind, slot, scpkit.ValidationLevelString(level))
+		liblog.Infof("validate value (%s) for slot %d completed with %v", kind, slot, scpkit.ValidationLevelString(level))
 	}()
 
 	var cvc proto.ConsensusValueCue
@@ -85,7 +85,7 @@ func (b *Baton) validateCue(
 
 	// fetchCV will be aborted if externalization or commits beyond the nominated block height occur
 	// BLOCKING
-	cv, err := b.fetchCV(vCtx, cvc)
+	cv, err := b.fetchCV(vCtx, slot, cvc)
 	if err != nil {
 		must.Assert(ctx, errors.Is(err, context.Canceled))
 		b.validateExternalizedCue(ctx, slot, cvc, reply)
@@ -101,13 +101,15 @@ func (b *Baton) validateCue(
 	b.validateConsensus(vCtx, slot, cv, reply)
 }
 
-func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {
+func (b *Baton) fetchCV(ctx context.Context, slot scpkit.Slot, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {
 
 	// lookup in cvpool
-	cv := b.handler.LookupConsensusValue(ctx, cvc.Cv_hash)
+	cv := b.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)
 	if cv != nil {
 		return cv, nil
 	}
+
+	liblog.Debugf("repairing missing consensus value for slot %d", slot)
 
 	cvReturn := make(chan *proto.ConsensusValue, 2)
 
@@ -125,7 +127,7 @@ func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*pro
 	// try getting the cv from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.WaitForConsensusValue(ctx, cvc.Cv_hash)
+		cv, err := b.handler.ConsensusValuePoolWaitFor(ctx, cvc.Cv_hash)
 		if err != nil {
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
@@ -138,6 +140,7 @@ func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*pro
 		return nil, ctx.Err()
 	case cv, ok := <-cvReturn:
 		if ok {
+			b.handler.ConsensusValuePoolAdd(ctx, *cv)
 			return cv, nil
 		}
 		return nil, context.Canceled

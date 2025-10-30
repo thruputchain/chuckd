@@ -113,6 +113,7 @@ func NewSystem(
 		*cfg.Repair_config,
 		outside,
 		s.signer,
+		s.CVPool,
 	)
 
 	s.Storage = storage.NewStorage(ctx, storage.Config{
@@ -311,7 +312,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 		for {
 			sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
 			_ = sender
-			s.CVPool.Add(ctx, *cv)
+			s.CVPool.ConsensusValuePoolAdd(ctx, *cv)
 		}
 	}()
 }

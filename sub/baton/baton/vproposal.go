@@ -82,7 +82,7 @@ func (b *Baton) repairMissingTxs(
 	missing proto.MissingTransactions,
 ) error {
 
-	liblog.Debugf("baton repairing %d missing transactions", len(missing.Transaction_hashes))
+	liblog.Debugf("repairing %d missing transactions", len(missing.Transaction_hashes))
 
 	stxs, err := b.handler.RepairMissingTxs(ctx, proposer, missing)
 	if err != nil {

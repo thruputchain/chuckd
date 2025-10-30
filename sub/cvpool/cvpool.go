@@ -28,7 +28,7 @@ func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
 	return cvp
 }
 
-func (cvp *ConsensusValuePool) Add(ctx context.Context, cv proto.ConsensusValue) {
+func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(ctx context.Context, cv proto.ConsensusValue) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
@@ -55,7 +55,7 @@ func (cvp *ConsensusValuePool) purge() {
 	}
 }
 
-func (cvp *ConsensusValuePool) LookupConsensusValue(
+func (cvp *ConsensusValuePool) ConsensusValuePoolLookup(
 	ctx context.Context,
 	h proto.ConsensusValueHash,
 ) *proto.ConsensusValue {
@@ -69,7 +69,7 @@ func (cvp *ConsensusValuePool) LookupConsensusValue(
 	}
 }
 
-func (cvp *ConsensusValuePool) WaitForConsensusValue(
+func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
@@ -14,6 +15,7 @@ type RepairAgent struct {
 	backoffCfg netutil.BackoffConfig
 	net        libnet.AddressDialer
 	signatory  protoutil.Signatory
+	cvpool     *cvpool.ConsensusValuePool
 	txM        xdrutil.XdrMarshaler
 	cvM        xdrutil.XdrMarshaler
 }
@@ -22,6 +24,7 @@ func NewRepairAgent(
 	cfg proto.RepairConfig,
 	net libnet.AddressDialer,
 	signatory protoutil.Signatory,
+	cvpool *cvpool.ConsensusValuePool,
 ) *RepairAgent {
 	return &RepairAgent{
 		backoffCfg: netutil.BackoffConfig{
@@ -33,6 +36,7 @@ func NewRepairAgent(
 		},
 		net:       net,
 		signatory: signatory,
+		cvpool:    cvpool,
 		txM:       xdrutil.NewXdrMarshaler(),
 		cvM:       xdrutil.NewXdrMarshaler(),
 	}

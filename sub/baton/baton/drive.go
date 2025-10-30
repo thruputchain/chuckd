@@ -15,7 +15,7 @@ func (b *Baton) drive(ctx context.Context) {
 
 	v := b.buildCleanView(ctx)
 
-	liblog.Debugf("baton view: %s", v.ShortString())
+	liblog.Debugf("view: %s", v.ShortString())
 	// liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
 
 	// commit next block, if one is available and no commit is in progress
@@ -31,7 +31,7 @@ func (b *Baton) drive(ctx context.Context) {
 // driveCommit commits the next block, if one is available and no commit is in progress
 func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
-		liblog.Debugf("baton committing [height %v; hash %s]", cb.BlockHeight(), form.Display(cb.BlockHash()))
+		liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), form.Display(cb.BlockHash()))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
@@ -63,7 +63,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 // driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started
 func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	if ontoDb, ontoExt := v.NominateOnto(); b.canNominate(ontoDb, b.nominating, b.nominated) {
-		// liblog.Debugf("baton nominating onto %v", tipToNominateOn)
+		// liblog.Debugf("nominating onto %v", tipToNominateOn)
 		// cancel prior unfinished nominations
 		if b.nominating != nil {
 			b.nominating.Cancel()
@@ -74,7 +74,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 			OntoDb:  *ontoDb,
 			OntoExt: *ontoExt,
 			Cancel: func() {
-				// liblog.Debugf("baton cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
+				// liblog.Debugf("cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
 				nomCancel()
 			},
 		}
@@ -127,7 +127,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 // driveCatchup sends catchup requests, if needed
 func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
-		liblog.Debugf("baton requesting catchup")
+		liblog.Debugf("requesting catchup")
 		b.requestCatchup(ctx, needed)
 	}
 }

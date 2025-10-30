@@ -145,20 +145,27 @@ func (x *LiveHandler) Committed(ctx context.Context, height proto.BlockHeight) {
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {
-	x.cvpool.Add(ctx, cv)
+	x.cvpool.ConsensusValuePoolAdd(ctx, cv)
 	x.multiplex.SendConsensusValue(ctx, cv)
 }
 
-func (x *LiveHandler) LookupConsensusValue(
+func (x *LiveHandler) ConsensusValuePoolAdd(
+	ctx context.Context,
+	cv proto.ConsensusValue,
+) {
+	x.cvpool.ConsensusValuePoolAdd(ctx, cv)
+}
+
+func (x *LiveHandler) ConsensusValuePoolLookup(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) *proto.ConsensusValue {
-	return x.cvpool.LookupConsensusValue(ctx, hash)
+	return x.cvpool.ConsensusValuePoolLookup(ctx, hash)
 }
 
-func (x *LiveHandler) WaitForConsensusValue(
+func (x *LiveHandler) ConsensusValuePoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
-	return x.cvpool.WaitForConsensusValue(ctx, hash)
+	return x.cvpool.ConsensusValuePoolWaitFor(ctx, hash)
 }

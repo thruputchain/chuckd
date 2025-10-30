@@ -59,7 +59,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
-	cv := x.baton.handler.LookupConsensusValue(ctx, cvc.Cv_hash)
+	cv := x.baton.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)
 
 	x.baton.lock()
 	defer x.baton.unlock()

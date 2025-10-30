@@ -34,7 +34,7 @@ type TestRig struct {
 	*testsched.TestScheduler
 	*testcatchup.TestCatchupStaged
 	*TestSCP
-	cvpool *cvpool.ConsensusValuePool
+	*cvpool.ConsensusValuePool
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -67,11 +67,11 @@ func NewTestRig(
 			*signer,
 			user.Secret_key,
 		),
-		TestBus:          NewTestBus(),
-		TestTime:         time,
-		cvpool:           cvpool.NewConsensusValuePool(ctx),
-		nominateRequest:  make(chan nominateIn, 1),
-		nominateResponse: make(chan bool, 1),
+		TestBus:            NewTestBus(),
+		TestTime:           time,
+		ConsensusValuePool: cvpool.NewConsensusValuePool(ctx),
+		nominateRequest:    make(chan nominateIn, 1),
+		nominateResponse:   make(chan bool, 1),
 	}
 	h.TestCoord = testcoord.NewTestCoord()
 	h.TestScheduler = testsched.NewTestScheduler(
@@ -226,20 +226,6 @@ func (h *TestRig) Committed(ctx context.Context, height proto.BlockHeight) {}
 // unit tests focus on a single node, so dissemination is not necessary
 func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {}
 
-func (h *TestRig) LookupConsensusValue(
-	ctx context.Context,
-	hash proto.ConsensusValueHash,
-) *proto.ConsensusValue {
-	return h.cvpool.LookupConsensusValue(ctx, hash)
-}
-
-func (h *TestRig) WaitForConsensusValue(
-	ctx context.Context,
-	hash proto.ConsensusValueHash,
-) (*proto.ConsensusValue, error) {
-	return h.cvpool.WaitForConsensusValue(ctx, hash)
-}
-
 func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.cvpool.Add(ctx, cv)
+	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv)
 }

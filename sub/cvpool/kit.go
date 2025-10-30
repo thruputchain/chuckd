@@ -7,11 +7,15 @@ import (
 )
 
 type CVPool interface {
-	LookupConsensusValue(
+	ConsensusValuePoolAdd(
+		ctx context.Context,
+		cv proto.ConsensusValue,
+	)
+	ConsensusValuePoolLookup(
 		ctx context.Context,
 		hash proto.ConsensusValueHash,
 	) *proto.ConsensusValue
-	WaitForConsensusValue(
+	ConsensusValuePoolWaitFor(
 		ctx context.Context,
 		hash proto.ConsensusValueHash,
 	) (*proto.ConsensusValue, error)
