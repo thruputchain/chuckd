@@ -132,7 +132,7 @@ func (b *Baton) tryValidateConsensusFast(
 
 	b.lock()
 	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidatedCV(cv)
+	alreadyValidated := b.getValidatedBlockIDFromCV(cv)
 	b.unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {

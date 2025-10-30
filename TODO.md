@@ -37,7 +37,7 @@ CONSENSUS SCP VALUE SEPARATION
 - [ ] SUPPORT VALIDATING PAST EXTERNALIZATIONS
   - [x] if validation request is for an already externalized slot, validate based on saved externalizations
   - [x] when context is cancelled due to newer externalization, validation has to look at the externalized value and make a judgement based on that
-  - [ ] validated and invalidated structures should save the cue to enable checking the whole cue value for correctness (see XXX)
+  - [x] validated and invalidated structures should save the cue to enable checking the whole cue value for correctness
   - [ ] rename cvpool.Externalized to cvpool.ClearBelow
   - [ ] check if we can fix purge bottom in scp server to 1 below externalized; handler.rs:541
 

@@ -57,7 +57,7 @@ func (b *Baton) validateCue(
 
 	// check if the value was already validated
 	b.lock()
-	alreadyValidated := b.getValidatedCVH(cvc.Cv_hash)
+	alreadyValidated := b.getValidatedConsensusFromCVH(cvc.Cv_hash)
 	alreadyInvalidated := b.isInvalidatedCVH(cvc.Cv_hash)
 	b.unlock()
 
@@ -66,8 +66,11 @@ func (b *Baton) validateCue(
 		return
 	}
 	if alreadyValidated != nil {
-		// XXX: check that the other values in the cue are correct
-		reply <- scpkit.FullyValidValue
+		if b.ConsensusValueAgreesWithCue(alreadyValidated, cvc) {
+			reply <- scpkit.FullyValidValue
+		} else {
+			reply <- scpkit.InvalidValue
+		}
 		return
 	}
 
