@@ -125,7 +125,7 @@ func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
-	liblog.Debugf("%s", event)
+	liblog.Infof("%s", event)
 }
 
 func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {

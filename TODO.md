@@ -37,8 +37,9 @@ CONSENSUS SCP VALUE SEPARATION
   - [x] unit test
     - [x] add unit test for validations below externalized
 - [ ] eval
-  - [ ] 3 nodes
-  - [ ] 1 node
+  - [x] 3 nodes
+    - [x] 3 nodes, 2000 tps
+  - [ ] 1 node, 2000 tps
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 
