@@ -29,15 +29,22 @@ CONSENSUS SCP VALUE SEPARATION
 
 - [ ] test
   - [x] unit test
+    - [ ] add unit test for validations below externalized
   - [ ] run eval
+    - [ ] 3 nodes
+    - [ ] 1 node
 
-- [ ] scp validation must support requests for the last committed (from our pov) slot
+- [ ] must support validation requests for k slots behind the last committed (from our pov) slot
+  - [x] parameter k: how many blocks behind externalized to support for validation
+  - [ ] when cancelling context, respect k
+  - [ ] dont refuse validation below the tip
   - [ ] purge
     - [ ] consensus values
     - [ ] validated
     - [ ] invalidated
     - [ ] externalized
     - [ ] catchup arrivals
+  - [ ] check if we can fix purge bottom in scp server to 1 below externalized; handler.rs:541
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 
