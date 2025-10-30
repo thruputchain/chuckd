@@ -1,5 +1,6 @@
 - [ ] purpose of extract valid value?
 - [ ] purpose of MaybeValid?
+- [ ] ask stellar folks how they deal with messages coming after an externalization
 
 CONSENSUS SCP VALUE SEPARATION
 
@@ -27,19 +28,17 @@ CONSENSUS SCP VALUE SEPARATION
   - [x] rpc for cv
   - [x] agent for cv
 
-- [ ] test
-  - [x] unit test
-    - [x] add unit test for validations below externalized
-  - [ ] run eval
-    - [ ] 3 nodes
-    - [ ] 1 node
-
-- [ ] SUPPORT VALIDATING PAST EXTERNALIZATIONS
+- [x] SUPPORT VALIDATING PAST EXTERNALIZATIONS
   - [x] if validation request is for an already externalized slot, validate based on saved externalizations
   - [x] when context is cancelled due to newer externalization, validation has to look at the externalized value and make a judgement based on that
   - [x] validated and invalidated structures should save the cue to enable checking the whole cue value for correctness
-  - [ ] check if we can fix purge bottom in scp server to 1 below externalized; handler.rs:541
 
+- [x] test
+  - [x] unit test
+    - [x] add unit test for validations below externalized
+- [ ] eval
+  - [ ] 3 nodes
+  - [ ] 1 node
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 

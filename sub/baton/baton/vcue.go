@@ -133,9 +133,13 @@ func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*pro
 		cvReturn <- cv
 	}()
 
-	cv, ok := <-cvReturn
-	if ok {
-		return cv, nil
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case cv, ok := <-cvReturn:
+		if ok {
+			return cv, nil
+		}
+		return nil, context.Canceled
 	}
-	return nil, context.Canceled
 }
