@@ -66,38 +66,36 @@ func (b *Baton) validateCue(
 		return
 	}
 	if alreadyValidated != nil {
+		// XXX: check that the other values in the cue are correct
 		reply <- scpkit.FullyValidValue
 		return
 	}
 
 	// (abort condition) this context will be cancelled upon newer externalizations or commits
-	ctx, ctxCancel := context.WithCancel(ctx)
+	vCtx, vCtxCancel := context.WithCancel(ctx)
 	go func() {
 		// waiter is cancelled whenever validation completes or externalization occurs
-		b.WaitExternalizedBeyond(ctx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
-		ctxCancel()
+		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
+		vCtxCancel()
 	}()
-	defer ctxCancel()
+	defer vCtxCancel()
 
 	// fetchCV will be aborted if externalization or commits beyond the nominated block height occur
-	cv, err := b.fetchCV(ctx, cvc)
+	// BLOCKING
+	cv, err := b.fetchCV(vCtx, cvc)
 	if err != nil {
-		liblog.Infof("cannot validate, fetch consensus value (%v)", err)
-		reply <- scpkit.InvalidValue
+		must.Assert(ctx, errors.Is(err, context.Canceled))
+		b.validateExternalizedCue(ctx, slot, cvc, reply)
 		return
 	}
 
-	// verify consensus value agrees with cue
-	if cvc.Block_hash != cv.Nomination.Block_hash ||
-		cvc.Prev_block_hash != cv.Nomination.Prev_block_hash ||
-		cvc.Prev_cv_hash != cv.Prev_cv_hash {
-
+	if !b.ConsensusValueAgreesWithCue(cv, cvc) {
 		liblog.Infof("cannot validate, consensus value disagrees with cue")
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	b.validateConsensus(ctx, slot, cv, reply)
+	b.validateConsensus(vCtx, slot, cv, reply)
 }
 
 func (b *Baton) fetchCV(ctx context.Context, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {

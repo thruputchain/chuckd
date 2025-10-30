@@ -20,34 +20,7 @@ func (b *Baton) validateConsensus(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	if cv.Nomination.Block_height != proto.BlockHeight(slot) {
-		reply <- scpkit.InvalidValue
-		return
-	}
-	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
-		reply <- scpkit.InvalidValue
-		return
-	}
-
-	b.lock()
-	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidatedCV(cv)
-	b.unlock()
-
-	if !protoutil.IsSaneConsensusValue(cv) {
-		liblog.Infof("cannot validate, nomination not sane")
-		reply <- scpkit.InvalidValue
-		return
-	}
-
-	if cv.Nomination.Block_height <= dbTipOnRequest.Height {
-		liblog.Infof("cannot validate, nomination below tip")
-		reply <- scpkit.InvalidValue
-		return
-	}
-
-	if alreadyValidated != nil {
-		reply <- scpkit.FullyValidValue
+	if b.tryValidateConsensusFast(ctx, slot, cv, reply) {
 		return
 	}
 
@@ -59,12 +32,11 @@ func (b *Baton) validateConsensus(
 	var err error
 	dbTip, extTip, err = b.WaitCommittedAt(ctx, cv.Nomination.Block_height-1)
 	if err != nil { // context cancelled
-		if errors.Is(err, ErrTipAlreadyAhead) {
-			reply <- scpkit.InvalidValue
-			return
-		}
-		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-		reply <- scpkit.InvalidValue
+		must.Assert(ctx,
+			errors.Is(err, ErrTipAlreadyAhead) || // from WaitCommittedAt
+				errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded), // from WaitExternalizedBeyond
+		)
+		b.validateExternalizedConsensus(ctx, slot, cv, reply)
 		return
 	}
 
@@ -127,10 +99,8 @@ func (b *Baton) validateConsensus(
 	if err != nil {
 		// err can only ever be context cancelled or deadline exceeded.
 		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-		// it occurs only if scp has externalized newer blocks and thus
-		// the validation request is not relevant any longer.
-		// in this case, returning invalid value does not violate scp honest semantics.
-		reply <- scpkit.InvalidValue
+		// it occurs only if scp has externalized newer blocks
+		b.validateExternalizedConsensus(ctx, slot, cv, reply)
 		return
 	}
 
@@ -141,4 +111,45 @@ func (b *Baton) validateConsensus(
 	b.unlock()
 
 	reply <- scpkit.FullyValidValue
+}
+
+// tryValidateConsensusFast returns true if it was able to make a judgement and send a reply.
+func (b *Baton) tryValidateConsensusFast(
+	ctx context.Context,
+	slot scpkit.Slot,
+	cv *proto.ConsensusValue,
+	reply chan<- scpkit.ValidationLevel,
+) bool {
+
+	if cv.Nomination.Block_height != proto.BlockHeight(slot) {
+		reply <- scpkit.InvalidValue
+		return true
+	}
+	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
+		reply <- scpkit.InvalidValue
+		return true
+	}
+
+	b.lock()
+	dbTipOnRequest := b.tipDb
+	alreadyValidated := b.getValidatedCV(cv)
+	b.unlock()
+
+	if !protoutil.IsSaneConsensusValue(cv) {
+		liblog.Infof("cannot validate, nomination not sane")
+		reply <- scpkit.InvalidValue
+		return true
+	}
+
+	if cv.Nomination.Block_height <= dbTipOnRequest.Height {
+		b.validateExternalizedConsensus(ctx, slot, cv, reply)
+		return true
+	}
+
+	if alreadyValidated != nil {
+		reply <- scpkit.FullyValidValue
+		return true
+	}
+
+	return false
 }
