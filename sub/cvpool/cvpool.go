@@ -39,7 +39,7 @@ func (cvp *ConsensusValuePool) Add(ctx context.Context, cv proto.ConsensusValue)
 	cvp.cv[h] = cv
 }
 
-func (cvp *ConsensusValuePool) Committed(ctx context.Context, height proto.BlockHeight) {
+func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.BlockHeight) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
