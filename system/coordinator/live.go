@@ -17,6 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/sched"
+	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -34,11 +35,12 @@ type LiveHandler struct {
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
-	cvpool    *cvpool.ConsensusValuePool
-	multiplex *multiplex.Multiplex
-	storage   *storage.DiskStorage
-	scp       scpkit.SCPController
-	m         xdrutil.XdrMarshaler
+	cvpool        *cvpool.ConsensusValuePool
+	multiplex     *multiplex.Multiplex
+	storage       *storage.DiskStorage
+	scpBroker     *scpbroker.SCPBroker
+	scpController scpkit.SCPController
+	m             xdrutil.XdrMarshaler
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -57,6 +59,7 @@ func NewLiveHandler(
 	cvpool *cvpool.ConsensusValuePool,
 	multiplex *multiplex.Multiplex,
 	storage *storage.DiskStorage,
+	scpBroker *scpbroker.SCPBroker,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
@@ -77,7 +80,7 @@ func NewLiveHandler(
 }
 
 func (x *LiveHandler) SetSCP(scp scpkit.SCPController) {
-	x.scp = scp
+	x.scpController = scp
 	close(x.scpReady)
 }
 
@@ -100,12 +103,12 @@ func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.DbTip, error) {
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.scpReady
-	return x.scp.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
+	return x.scpController.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
 }
 
 func (x *LiveHandler) StopNomination(ctx context.Context, slot scpkit.Slot) {
 	<-x.scpReady
-	x.scp.StopNomination(ctx, slot)
+	x.scpController.StopNomination(ctx, slot)
 }
 
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
@@ -168,4 +171,8 @@ func (x *LiveHandler) ConsensusValuePoolWaitFor(
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
 	return x.cvpool.ConsensusValuePoolWaitFor(ctx, hash)
+}
+
+func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
+	x.scpBroker.BackfeedSCPEnvelopes(ctx, since)
 }

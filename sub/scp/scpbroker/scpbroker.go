@@ -5,9 +5,14 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
+	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	proto "github.com/groundhogchain/protocol-go"
 )
+
+type SCPBackfeed interface {
+	BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot)
+}
 
 type SCPBroker struct {
 	storage         *storage.DiskStorage
@@ -43,4 +48,8 @@ func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 // RepairEnvelopes retrieves past scp envelopes from persistence.
 func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotIndex) []proto.SCPEnvelope {
 	return x.storage.FindSCPEnvelopesSinceSlot(ctx, since)
+}
+
+func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
+	panic("XXX")
 }

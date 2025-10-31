@@ -134,6 +134,7 @@ func NewSystem(
 		s.CVPool,
 		s.Multiplex,
 		s.Storage,
+		s.SCPBroker,
 		runtime.NewRandFromRand(rand),
 	)
 

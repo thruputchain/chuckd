@@ -229,3 +229,5 @@ func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {}
 func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv)
 }
+
+func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {}

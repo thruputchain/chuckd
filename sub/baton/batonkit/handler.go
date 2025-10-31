@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
+	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -24,6 +25,7 @@ type Handler interface {
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
 	cvpool.CVPool
+	scpbroker.SCPBackfeed
 
 	DisseminateCV(context.Context, proto.ConsensusValue)
 
