@@ -2,6 +2,7 @@ package scpd
 
 import (
 	"context"
+	"errors"
 	"net"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -42,7 +43,12 @@ func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnve
 
 func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
 	r, err := cc.Scp_control_nominate(ctx, slot, value, prev)
-	must.NoError(ctx, err)
+	if err != nil {
+		// the context can be cancelled if an externalization occurs during the call to Scp_control_nominate.
+		// in this case, we return false (meaning nomination rejected).
+		must.Assert(ctx, errors.Is(err, context.Canceled))
+		return false
+	}
 	return r
 }
 
