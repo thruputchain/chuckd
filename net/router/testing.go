@@ -45,6 +45,10 @@ func (x *TestRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
 	return n.V.Address, nil
 }
 
+func (x *TestRouter) ChooseSCPProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+	panic("not used")
+}
+
 func (x *TestRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	panic("not used")
 }

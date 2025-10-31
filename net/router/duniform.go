@@ -43,6 +43,18 @@ func (x *dynamicUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, er
 	return v.Address, nil
 }
 
+func (x *dynamicUniformRouter) ChooseSCPProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
+	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self
+	if len(vs) > 0 {
+		r := rand.New(rand.NewSource(seed))
+		r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
+		return vs[:1]
+	} else {
+		return nil
+	}
+}
+
 func (x *dynamicUniformRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
 	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self

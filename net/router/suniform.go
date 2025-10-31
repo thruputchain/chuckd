@@ -49,6 +49,18 @@ func (x *staticUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, err
 	return "", fmt.Errorf("validator not found")
 }
 
+func (x *staticUniformRouter) ChooseSCPProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
+	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
+	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self
+	if len(vs) > 0 {
+		r := rand.New(rand.NewSource(seed))
+		r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
+		return vs[:1]
+	} else {
+		return nil
+	}
+}
+
 func (x *staticUniformRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := append([]ValidatorPublicInfo{x.self}, x.validators...)
 	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self

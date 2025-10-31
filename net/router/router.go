@@ -11,6 +11,7 @@ type ValidatorID = proto.ValidatorID
 type ValidatorPublicInfo = proto.ValidatorPublicInfo
 
 type Router interface {
+	ChooseSCPProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 	ChooseCatchupProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 	Self() ValidatorPublicInfo
 	BuildDogwoodTree(ValidatorID) *dogwoodutil.LinkedTreeNode
