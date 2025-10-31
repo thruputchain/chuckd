@@ -95,6 +95,10 @@ func (b *Baton) nominate(
 	// to fix this, we populate the cv in the local pool optimistically.
 	b.handler.ConsensusValuePoolAdd(ctx, *cv)
 
+	// similarly, save the validated nomination (needed for commit) in the event that
+	// an externalization occurs before the call to scp nominate returns.
+	b.setValidated(cv, schedNom.Block_id)
+
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
 	if ok := b.handler.Nominate(ctx, scpkit.Slot(nom.Block_height), cvc, &prevSummary); ok {
