@@ -56,7 +56,7 @@ func NewDogwoodService(
 	routeTTUse := time.Millisecond * time.Duration(cfg.Route_max_latency_msec)
 
 	x.nav = NewNavigator(
-		ctx, time_, librand.NewFromRand(rand), x.router,
+		ctx, time_, librand.NewRandFrom(rand), x.router,
 		routeTTLive, routeTTUse, int(cfg.Route_count),
 	)
 
@@ -77,14 +77,14 @@ func NewDogwoodService(
 	)
 
 	x.streamSender = NewStreamSender(
-		ctx, librand.NewFromRand(rand), discovery, x.nav, x.caller,
+		ctx, librand.NewRandFrom(rand), discovery, x.nav, x.caller,
 		int(cfg.Stream_sender_worker_count),
 	)
 
 	x.xReceiver = NewTransmissionReceiver(ctx, cfg, time_, x.nav, x.streamReceiver)
 
 	x.xSender = NewTransmissionSender(
-		ctx, cfg, x.nav, x.streamSender, librand.NewFromRand(rand),
+		ctx, cfg, x.nav, x.streamSender, librand.NewRandFrom(rand),
 	)
 
 	x.mplex = NewMultiplex(ctx, x.router, x.xSender, x.xReceiver, x.nav)

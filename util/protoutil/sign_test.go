@@ -12,7 +12,7 @@ import (
 
 func BenchmarkSign(b *testing.B) {
 	ctx := context.Background()
-	priv := MustGenerateIdentity(ctx, librand.New(), "")
+	priv := MustGenerateIdentity(ctx, librand.NewRand(), "")
 	msg := make([]byte, 300e3)
 	for b.Loop() {
 		SignBytes(priv.Secret_key, msg)
@@ -21,7 +21,7 @@ func BenchmarkSign(b *testing.B) {
 
 func TestSign(t *testing.T) {
 	ctx := context.Background()
-	priv := MustGenerateIdentity(ctx, librand.New(), "")
+	priv := MustGenerateIdentity(ctx, librand.NewRand(), "")
 	msg := make([]byte, 300e3)
 	thru := libstat.Counter{}
 	for i := 0; i < 10000; i++ {
@@ -33,7 +33,7 @@ func TestSign(t *testing.T) {
 
 func TestSignVerify(t *testing.T) {
 	ctx := context.Background()
-	priv := MustGenerateIdentity(ctx, librand.New(), "")
+	priv := MustGenerateIdentity(ctx, librand.NewRand(), "")
 	msg := make([]byte, 300e3)
 	signature := SignBytes(priv.Secret_key, msg)
 	ok := VerifyBytes(priv.Public_info.Public_key, msg, (*signature.Ed25519())[:])

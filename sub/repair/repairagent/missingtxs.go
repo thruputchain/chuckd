@@ -21,7 +21,7 @@ func (x *RepairAgent) RepairMissingTxs(
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 
-	backoff := netutil.NewBackoff(x.backoffCfg, librand.New())
+	backoff := netutil.NewBackoff(x.backoffCfg, librand.NewRand())
 
 attempting:
 	for {

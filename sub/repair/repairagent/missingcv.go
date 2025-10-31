@@ -21,7 +21,7 @@ func (x *RepairAgent) RepairMissingCV(
 	missing proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
 
-	backoff := netutil.NewBackoff(x.backoffCfg, librand.New())
+	backoff := netutil.NewBackoff(x.backoffCfg, librand.NewRand())
 
 attempting:
 	for {

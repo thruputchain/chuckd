@@ -19,5 +19,5 @@ func TestDogwoodLocalScript(t *testing.T) {
 		BenchPort:     4000,
 	}
 
-	fmt.Println(def.LocalScript(ctx, librand.New(), "chuckd", 3))
+	fmt.Println(def.LocalScript(ctx, librand.NewRand(), "chuckd", 3))
 }

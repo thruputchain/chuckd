@@ -15,7 +15,7 @@ func TestEncDec(t *testing.T) {
 
 		// gen random payload
 		pay := make([]byte, v.NBytes)
-		r := librand.New()
+		r := librand.NewRand()
 		if _, err := r.Read(pay); err != nil {
 			panic(err)
 		}

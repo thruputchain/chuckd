@@ -13,7 +13,7 @@ import (
 func TestBasicDogwood(t *testing.T) {
 
 	ctx := context.Background()
-	rr := librand.New()
+	rr := librand.NewRand()
 
 	// generate validator identities
 	nv := 7

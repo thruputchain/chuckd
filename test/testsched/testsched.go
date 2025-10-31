@@ -37,7 +37,7 @@ func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip
 		db:      testdb.NewTestDb(ctx, tip),
 		ready:   make(chan struct{}),
 		mempool: testmempool.NewTestMempool(),
-		rand:    librand.New(),
+		rand:    librand.NewRand(),
 	}
 }
 

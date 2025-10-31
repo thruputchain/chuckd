@@ -119,6 +119,7 @@ func NewSystem(
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,
+		runtime.NewRandFromRand(rand),
 		s.signer,
 		s.Router,
 		s.CVPool,

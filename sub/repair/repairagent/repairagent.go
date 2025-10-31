@@ -1,9 +1,11 @@
 package repairagent
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/util/netutil"
@@ -15,6 +17,7 @@ import (
 type RepairAgent struct {
 	backoffCfg netutil.BackoffConfig
 	net        libnet.AddressDialer
+	rand       *librand.SyncRand
 	signatory  protoutil.Signatory
 	router     router.Router
 	cvpool     *cvpool.ConsensusValuePool
@@ -25,6 +28,7 @@ type RepairAgent struct {
 func NewRepairAgent(
 	cfg proto.RepairConfig,
 	net libnet.AddressDialer,
+	rand *rand.Rand,
 	signatory protoutil.Signatory,
 	router router.Router,
 	cvpool *cvpool.ConsensusValuePool,
@@ -38,6 +42,7 @@ func NewRepairAgent(
 			JitterType: netutil.EqualJitter,
 		},
 		net:       net,
+		rand:      librand.NewSyncRandWrapping(rand),
 		signatory: signatory,
 		router:    router,
 		cvpool:    cvpool,

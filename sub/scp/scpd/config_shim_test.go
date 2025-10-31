@@ -13,7 +13,7 @@ import (
 
 func TestConfigPrinting(t *testing.T) {
 	ctx := context.Background()
-	rand := librand.New()
+	rand := librand.NewRand()
 	nv := 3
 	vs := make([]proto.ValidatorPrivateInfo, nv)
 	ks := make([]proto.ValidatorPublicInfo, nv)

@@ -10,9 +10,10 @@ import (
 func (x *RepairAgent) RepairMissingSCP(
 	ctx context.Context,
 	since scpkit.Slot,
-) (*proto.ConsensusValue, error) {
+) (proto.SCPEnvelopes, error) {
 
-	// XXX: sample source from discovery service
+	// XXX: sample source from router service
+	// x.router.ChooseSCPProviders(ctx, XXX)
 
 	panic("XXX")
 

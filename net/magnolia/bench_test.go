@@ -34,7 +34,7 @@ func newBenchEncDec(
 ) *benchEncDec {
 
 	pay := make([]byte, nPayBytes)
-	r := librand.New()
+	r := librand.NewRand()
 	if _, err := r.Read(pay); err != nil {
 		panic(err)
 	}
