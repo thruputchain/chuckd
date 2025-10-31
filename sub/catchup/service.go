@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cockroachdb/pebble"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
@@ -18,12 +17,11 @@ import (
 )
 
 type CatchupService struct {
-	signer  protoutil.Signatory
-	time    libtime.Time
-	net     libnet.Network
-	ttl     time.Duration // ttl of cached catchup blocks
-	age     proto.BlockHeight
-	shallow *pebble.DB // shallow cache
+	signer protoutil.Signatory
+	time   libtime.Time
+	net    libnet.Network
+	ttl    time.Duration // ttl of cached catchup blocks
+	age    proto.BlockHeight
 	//
 	lk      sync.Mutex
 	highest proto.BlockHeight

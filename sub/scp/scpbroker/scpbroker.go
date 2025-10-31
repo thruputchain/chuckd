@@ -51,5 +51,11 @@ func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotInde
 }
 
 func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
-	panic("XXX")
+	go x.fulfillBackfeed(ctx, since)
+}
+
+func (x *SCPBroker) fulfillBackfeed(ctx context.Context, since scpkit.Slot) {
+
+	// XXX: use repair agent to fetch some envelopes
+
 }

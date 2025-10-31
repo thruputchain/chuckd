@@ -26,14 +26,12 @@ type Handler interface {
 	storage.ConsensusValuePersistence
 	cvpool.CVPool
 	scpbroker.SCPBackfeed
+	catchup.CatchupAgent
 
 	DisseminateCV(context.Context, proto.ConsensusValue)
 
 	GenerateID64(context.Context) ID64
 	RestoreDb(context.Context) (proto.DbTip, error)
-
-	GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo
-	DialCatchup(context.Context, proto.ValidatorPublicInfo) (catchup.CatchupConn, error)
 
 	Emit(ctx context.Context, event any)
 }

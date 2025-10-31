@@ -101,6 +101,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 		spans:     spans,
 	}
 
+	// XXX: move this into a catchup agent
 	go func(src proto.ValidatorPublicInfo, id batonkit.ID64, spans []Span) {
 
 		var result catchupArrivals

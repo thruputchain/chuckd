@@ -120,6 +120,7 @@ func NewSystem(
 		*cfg.Repair_config,
 		outside,
 		s.signer,
+		s.Router,
 		s.CVPool,
 	)
 	s.SCPBroker = scpbroker.NewSCPBroker(ctx, s.Storage, s.RepairAgent)
