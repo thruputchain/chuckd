@@ -36,12 +36,10 @@ CONSENSUS SCP VALUE SEPARATION
 - [x] test
   - [x] unit test
     - [x] add unit test for validations below externalized
-- [ ] eval
+- [x] eval
   - [x] 3 nodes
     - [x] 3 nodes, 2000 tps
-  - [ ] 1 node, 2000 tps
-
-- [ ] cv might have to be disseminated (at least locally) before scp.Nominate is called, so that it is available locally for externalization
+  - [x] 1 node, 2000 tps
 
 - [ ] scp validate exposes SCPNodeID (so repair knows where to look)
 
@@ -56,6 +54,8 @@ UPGRADES
 - [ ] extract valid value strips unrecognizable upgrades?
 - [ ] NOTE that baton.validated caches block validations, but on the upgrade validations
 - [ ] interaction between storage and protocol upgrades???
+
+CATCHUP BLOCK PERSISTENCE
 
 BACKLOG
 
