@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
@@ -88,11 +89,20 @@ func (b *Baton) nominate(
 		DbgConsensusValueCue: cvc,
 	})
 
+	// in a single-node setup, the externalization resulting from calling scp.nominate (handler.Nominate below)
+	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
+	// not be able to externalize the value (and look for catchup when no other nodes exist).
+	// to fix this, we populate the cv in the local pool optimistically.
+	b.handler.ConsensusValuePoolAdd(ctx, *cv)
+
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}
 	if ok := b.handler.Nominate(ctx, scpkit.Slot(nom.Block_height), cvc, &prevSummary); ok {
 
 		// if nomination accepted, broadcast consensus value
+		liblog.Debugf("disseminating consensus value for slot %d with hash %s",
+			nom.Block_height,
+			form.Display(cvc.Cv_hash))
 		b.handler.DisseminateCV(ctx, *cv)
 
 		b.handler.Emit(ctx, batonkit.EventNominated{
