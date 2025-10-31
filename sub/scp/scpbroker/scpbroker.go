@@ -3,6 +3,7 @@ package scpbroker
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -51,11 +52,19 @@ func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotInde
 }
 
 func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
-	go x.fulfillBackfeed(ctx, since)
+	go x.fulfillBackfeed(context.WithoutCancel(ctx), since)
 }
 
 func (x *SCPBroker) fulfillBackfeed(ctx context.Context, since scpkit.Slot) {
 
-	// XXX: use repair agent to fetch some envelopes
+	// XXX: this needs a timeout
+	envs, err := x.repair.RepairMissingSCP(ctx, since)
+	if err != nil {
+		liblog.Errorf("tried to repair missing scp envelopes: %v", err)
+		return
+	}
 
+	for _, env := range envs {
+		x.ReceivedEnvelope(ctx, env)
+	}
 }
