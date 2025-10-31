@@ -63,6 +63,7 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, since scpkit.Slot) {
 		liblog.Errorf("tried to repair missing scp envelopes: %v", err)
 		return
 	}
+	liblog.Infof("no scp envelopes to backfeed")
 
 	for _, env := range envs {
 		x.ReceivedEnvelope(ctx, env)

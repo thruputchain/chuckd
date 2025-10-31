@@ -17,6 +17,14 @@ type Counter struct {
 	count int
 }
 
+func NewCounterFromSamples(samples []float64) *Counter {
+	c := &Counter{}
+	for _, s := range samples {
+		c.Add(s)
+	}
+	return c
+}
+
 func (x *Counter) Add(v float64) int {
 	x.lk.Lock()
 	defer x.lk.Unlock()
