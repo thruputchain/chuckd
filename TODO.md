@@ -4,7 +4,7 @@
 
 SCP ENVELOPE ACTIVE REPAIR 
 
-- [ ] persist envelopes as they arrive (already done?)
+- [x] persist envelopes as they arrive (already done?)
 - [x] repair rpc: get envelopes since a slot
 - [ ] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
 

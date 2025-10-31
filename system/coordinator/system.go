@@ -46,10 +46,11 @@ type System struct {
 	Dogwood   *dogwood.DogwoodService
 	Multiplex *multiplex.Multiplex
 	//
-	Storage *storage.DiskStorage
-	Live    *LiveHandler
-	Baton   *baton.Baton
-	Catchup *catchup.CatchupService
+	Storage   *storage.DiskStorage
+	SCPBroker *scpbroker.SCPBroker
+	Live      *LiveHandler
+	Baton     *baton.Baton
+	Catchup   *catchup.CatchupService
 	//
 	CVPool        *cvpool.ConsensusValuePool
 	RepairService *repairservice.RepairService
@@ -114,13 +115,14 @@ func NewSystem(
 		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
 	})
 
-	s.RepairService = repairservice.NewRepairService(s.CVPool, s.Storage)
+	s.RepairService = repairservice.NewRepairService(s.CVPool)
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,
 		s.signer,
 		s.CVPool,
 	)
+	s.SCPBroker = scpbroker.NewSCPBroker(ctx, s.Storage, s.RepairAgent)
 
 	s.Live = NewLiveHandler(
 		s.signer,
@@ -278,12 +280,12 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	}()
 
 	// drive received envelopes into scp_control
-	scpBroker := scpbroker.NewSCPBroker(ctx, s.Storage, scpController)
-	s.RepairService.SetSCPBroker(scpBroker)
+	s.SCPBroker.SetSCPController(scpController)
+	s.RepairService.SetSCPBroker(s.SCPBroker)
 	go func() {
 		for {
 			_, env := s.Multiplex.ReceiveEnvelope(ctx)
-			scpBroker.ReceivedEnvelope(ctx, *env)
+			s.SCPBroker.ReceivedEnvelope(ctx, *env)
 		}
 	}()
 

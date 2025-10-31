@@ -3,29 +3,39 @@ package scpbroker
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type SCPBroker struct {
-	storage    *storage.DiskStorage
-	controller *scpd.SCPController
+	storage         *storage.DiskStorage
+	repair          *repairagent.RepairAgent
+	controller      *scpd.SCPController
+	controllerReady chan struct{}
 }
 
 func NewSCPBroker(
 	ctx context.Context,
 	storage *storage.DiskStorage,
-	controller *scpd.SCPController,
+	repair *repairagent.RepairAgent,
 ) *SCPBroker {
 	return &SCPBroker{
-		storage:    storage,
-		controller: controller,
+		storage:         storage,
+		repair:          repair,
+		controllerReady: make(chan struct{}),
 	}
+}
+
+func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
+	x.controller = controller
+	close(x.controllerReady)
 }
 
 // ReceivedEnvelope persists received scp envelopes, and then releases them to scp.
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+	<-x.controllerReady
 	x.storage.PersistSCPEnvelope(ctx, env)
 	x.controller.ReceivedEnvelope(ctx, env)
 }

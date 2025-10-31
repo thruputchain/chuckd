@@ -3,30 +3,28 @@ package repairservice
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
-	"github.com/groundhogchain/chuckd/sub/storage"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type RepairService struct {
 	conn        sched.SchedulerCoordConn
-	broker      *scpbroker.SCPBroker       //XXX: use to repair missing scp envelopes
+	scpBroker   *scpbroker.SCPBroker       //XXX: use to repair missing scp envelopes
 	cvpool      *cvpool.ConsensusValuePool // use to repair missing consensus values
-	storage     *storage.DiskStorage
 	schedReady  chan struct{}
 	brokerReady chan struct{}
 }
 
 func NewRepairService(
 	cvpool *cvpool.ConsensusValuePool,
-	storage *storage.DiskStorage,
 ) *RepairService {
 	return &RepairService{
 		cvpool:      cvpool,
-		storage:     storage,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
 	}
@@ -38,7 +36,7 @@ func (x *RepairService) SetSchedConn(conn sched.SchedulerCoordConn) {
 }
 
 func (x *RepairService) SetSCPBroker(broker *scpbroker.SCPBroker) {
-	x.broker = broker
+	x.scpBroker = broker
 	close(x.brokerReady)
 }
 
@@ -51,6 +49,8 @@ func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
 ) (proto.RepairedTransactions, error) {
+	liblog.Debugf("repair missing transactions request, count %d", len(env.Missing_transactions.Transaction_hashes))
+
 	<-x.schedReady // wait for x.conn != nil
 
 	// XXX: verify env.Missing_transactions.Block_hash is our nomination, and
@@ -81,6 +81,7 @@ func (x *RepairService) Repair_missing_cv(
 	cvh proto.ConsensusValueHash,
 ) (proto.OptConsensusValue, error) {
 
+	liblog.Debugf("repair missing consensus value request, cv hash %s", form.Display(cvh))
 	return x.cvpool.ConsensusValuePoolLookup(ctx, cvh), nil
 }
 
@@ -89,6 +90,8 @@ func (x *RepairService) Repair_missing_scp_envelopes(
 	ctx context.Context,
 	since proto.SCPSlotIndex,
 ) (proto.SCPEnvelopes, error) {
+	<-x.brokerReady
 
-	return x.storage.FindSCPEnvelopesSinceSlot(ctx, since), nil
+	liblog.Debugf("repair missing scp envelopes request, since slot %d", since)
+	return x.scpBroker.RepairEnvelopes(ctx, since), nil
 }
