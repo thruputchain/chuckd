@@ -2,48 +2,11 @@
 - [ ] purpose of MaybeValid?
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 
-CONSENSUS SCP VALUE SEPARATION
-
-- [x] baton
-  - [x] notifies cvpool of new externalizations
-  - [x] use ConsensusValueCue as SCPValue
-    - [x] nomination
-      - [x] send nomination to cvpool and disseminates nominations _after_ scp nominate approves them
-      - [x] nominate returns error on rejection and this is handled in driver
-      - [x] impl DisseminateCV in live
-      - [x] impl DisseminateCV in test
-    - [x] validation
-      - [x] add block height to cue? (no, use slot instead)
-      - [x] add block hash to cue? (no, cache validated value hashes)
-      - [x] cache validated cvs by hash
-      - [x] add proposer to cue, and signature to enable slashing (no, signature can be made available from scp)
-      - [x] plumb handler methods
-      - [x] add invalidated cache, purge appropriately
-    - [x] externalization
-
-- [x] system
-  - [x] drive received cvs into cvpool
-
-- [x] repair
-  - [x] rpc for cv
-  - [x] agent for cv
-
-- [x] SUPPORT VALIDATING PAST EXTERNALIZATIONS
-  - [x] if validation request is for an already externalized slot, validate based on saved externalizations
-  - [x] when context is cancelled due to newer externalization, validation has to look at the externalized value and make a judgement based on that
-  - [x] validated and invalidated structures should save the cue to enable checking the whole cue value for correctness
-
-- [x] test
-  - [x] unit test
-    - [x] add unit test for validations below externalized
-- [x] eval
-  - [x] 3 nodes
-    - [x] 3 nodes, 2000 tps
-  - [x] 1 node, 2000 tps
-
-- [ ] scp validate exposes SCPNodeID (so repair knows where to look)
-
 SCP ENVELOPE ACTIVE REPAIR 
+
+- [ ] persist envelopes as they arrive (already done?)
+- [x] repair rpc: get envelopes since a slot
+- [ ] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
 
 UPGRADES
 

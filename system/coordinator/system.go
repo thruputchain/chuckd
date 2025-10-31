@@ -108,7 +108,13 @@ func NewSystem(
 	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
 
 	s.CVPool = cvpool.NewConsensusValuePool(ctx)
-	s.RepairService = repairservice.NewRepairService(s.CVPool)
+	s.Storage = storage.NewStorage(ctx, storage.Config{
+		Freq:             time.Duration(cfg.Storage_config.Reclaim_interval_msec) * time.Millisecond,
+		MaxCatchupBlocks: int(cfg.Storage_config.Max_catchup_blocks),
+		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
+	})
+
+	s.RepairService = repairservice.NewRepairService(s.CVPool, s.Storage)
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,
@@ -116,11 +122,6 @@ func NewSystem(
 		s.CVPool,
 	)
 
-	s.Storage = storage.NewStorage(ctx, storage.Config{
-		Freq:             time.Duration(cfg.Storage_config.Reclaim_interval_msec) * time.Millisecond,
-		MaxCatchupBlocks: int(cfg.Storage_config.Max_catchup_blocks),
-		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
-	})
 	s.Live = NewLiveHandler(
 		s.signer,
 		libtime.RealTime{},
