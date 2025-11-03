@@ -54,6 +54,7 @@ func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotInde
 }
 
 func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
+	// XXX: backfill only if we are not a single-node quorum
 	go x.fulfillBackfeed(context.WithoutCancel(ctx), since)
 }
 

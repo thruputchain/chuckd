@@ -23,6 +23,10 @@ func (x *TestDiscovery) SelfID() proto.ValidatorID {
 	return protoutil.PublicVID(x.vs[x.selfIndex].Public_info)
 }
 
+func (x *TestDiscovery) OurQuorumSet() proto.SCPQuorumSet {
+	panic("not used here")
+}
+
 func (x *TestDiscovery) SecretKey() proto.ValidatorSecretKey {
 	return x.vs[x.selfIndex].Secret_key
 }

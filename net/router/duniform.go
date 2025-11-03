@@ -35,6 +35,10 @@ func (x *dynamicUniformRouter) Self() proto.ValidatorPublicInfo {
 	return x.discovery.Self()
 }
 
+func (x *dynamicUniformRouter) OurQuorumSet() proto.SCPQuorumSet {
+	return x.discovery.OurQuorumSet()
+}
+
 func (x *dynamicUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
 	v, found := x.discovery.LookupValidator(vid)
 	if !found {

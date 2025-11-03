@@ -37,6 +37,10 @@ func (x *staticUniformRouter) Self() proto.ValidatorPublicInfo {
 	return x.self
 }
 
+func (x *staticUniformRouter) OurQuorumSet() proto.SCPQuorumSet {
+	panic("not used here")
+}
+
 func (x *staticUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
 	if vid == protoutil.PublicVID(x.self) {
 		return x.self.Address, nil

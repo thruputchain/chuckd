@@ -37,6 +37,10 @@ func (x *TestRouter) Self() proto.ValidatorPublicInfo {
 	return x.self
 }
 
+func (x *TestRouter) OurQuorumSet() proto.SCPQuorumSet {
+	panic("not used here")
+}
+
 func (x *TestRouter) ResolveAddress(vid proto.ValidatorID) (string, error) {
 	n, ok := x.trees[TestTreeKey{vid}]
 	if !ok {

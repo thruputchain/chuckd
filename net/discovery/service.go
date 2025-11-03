@@ -16,6 +16,7 @@ import (
 
 type Discovery interface {
 	SelfID() proto.ValidatorID
+	OurQuorumSet() proto.SCPQuorumSet
 	SecretKey() proto.ValidatorSecretKey
 	LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
 	LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
@@ -82,6 +83,10 @@ func NewDiscoveryService(
 
 func (svc *DiscoveryService) Start(ctx context.Context, address string) {
 	rpcutil.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
+}
+
+func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {
+	return s.ourQSet
 }
 
 func (s *DiscoveryService) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {

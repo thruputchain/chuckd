@@ -14,6 +14,7 @@ type Router interface {
 	ChooseSCPProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 	ChooseCatchupProviders(ctx context.Context, seed int64) []ValidatorPublicInfo
 	Self() ValidatorPublicInfo
+	OurQuorumSet() proto.SCPQuorumSet
 	BuildDogwoodTree(ValidatorID) *dogwoodutil.LinkedTreeNode
 	ResolveAddress(ValidatorID) (string, error)
 }
