@@ -9,7 +9,7 @@ SCP ENVELOPE ACTIVE REPAIR
 - [x] implement scpbroker backfeed
   - [x] impl repair agent repair missing scp
     - [x] impl router choose scp providers
-- [ ] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
+- [x] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
 
 UPGRADES
 
@@ -22,6 +22,8 @@ UPGRADES
 - [ ] interaction between storage and protocol upgrades???
 
 CATCHUP BLOCK PERSISTENCE
+
+UPDATE QUORUM SET
 
 BACKLOG
 

@@ -139,9 +139,14 @@ func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 }
 
 func (b *Baton) driveLiveness(ctx context.Context) {
-	elapsed := b.sinceLastExternalization()
-	if elapsed == nil || *elapsed >= b.patience {
-		liblog.Debugf("requesting backfeed")
-		b.handler.BackfeedSCPEnvelopes(ctx, scpkit.Slot(b.tipDb.Height))
+	now := b.handler.Now()
+	sinceExt := b.sinceLastExternalization(now)
+	sinceBackfeed := b.sinceLastBackfeed(now)
+	if sinceExt < b.patience || sinceBackfeed < b.patience {
+		return
 	}
+
+	liblog.Debugf("requesting backfeed")
+	b.noteBackfeed()
+	b.handler.BackfeedSCPEnvelopes(ctx, scpkit.Slot(b.tipDb.Height))
 }

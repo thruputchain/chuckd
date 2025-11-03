@@ -41,6 +41,7 @@ type TestRig struct {
 	//
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
+	backfeed         chan struct{}
 	//
 	cvlk            sync.Mutex
 	consensusValues []proto.ConsensusValue
@@ -72,6 +73,7 @@ func NewTestRig(
 		ConsensusValuePool: cvpool.NewConsensusValuePool(ctx),
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
+		backfeed:           make(chan struct{}),
 	}
 	h.TestCoord = testcoord.NewTestCoord()
 	h.TestScheduler = testsched.NewTestScheduler(
@@ -230,4 +232,10 @@ func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusVal
 	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv)
 }
 
-func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {}
+func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
+	h.backfeed <- struct{}{}
+}
+
+func (h *TestRig) WaitBackfeed(ctx context.Context) {
+	<-h.backfeed
+}

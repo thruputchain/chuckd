@@ -14,12 +14,12 @@ type liveness struct {
 	lastBackfeed        time.Time // updated by drive loop
 }
 
-func (b *Baton) sinceLastExternalization() *time.Duration {
-	if b.liveness.lastExternalization.IsZero() {
-		return nil
-	}
-	elapsed := b.handler.Now().Sub(b.liveness.lastExternalization)
-	return &elapsed
+func (b *Baton) sinceLastExternalization(now time.Time) time.Duration {
+	return now.Sub(b.liveness.lastExternalization)
+}
+
+func (b *Baton) sinceLastBackfeed(now time.Time) time.Duration {
+	return now.Sub(b.liveness.lastBackfeed)
 }
 
 func (b *Baton) noteStarted() {
@@ -32,4 +32,8 @@ func (b *Baton) noteExternalized(_ scpkit.Slot) {
 
 func (b *Baton) noteCommitted(_ proto.BlockHeight) {
 	b.liveness.lastCommit = b.handler.Now()
+}
+
+func (b *Baton) noteBackfeed() {
+	b.liveness.lastBackfeed = b.handler.Now()
 }

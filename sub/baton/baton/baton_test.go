@@ -54,12 +54,14 @@ func TestNominateCommit(t *testing.T) {
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 	rig.PassTime(tick)
+	rig.WaitBackfeed(ctx)
 
 	// stage 2: commit already validated [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                                                      // txs for stage 3
@@ -87,12 +89,14 @@ func TestValidateExternalized(t *testing.T) {
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
 	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 	rig.PassTime(tick)
+	rig.WaitBackfeed(ctx)
 
 	// stage 2: commit already validated [1]
 	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.DbgConsensusValueCue).Bytes()) // trigger commit, trigger stage 3
@@ -135,6 +139,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.PassTime(tick) // ensure nomination time is before validation time
 
 	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
 
 	// consume nomination
 	nomination := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
@@ -157,6 +162,7 @@ func TestValidateCommit(t *testing.T) {
 	}
 	liblog.Debugf("STAGE 1: validation succeeded")
 	rig.PassTime(tick)
+	rig.WaitBackfeed(ctx)
 
 	// stage 2: commit already validated [1]
 	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nomination.DbgConsensusValueCue).Bytes())
@@ -183,6 +189,7 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	rig.StageCatchup(block3.Catchup)
 
 	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
 
 	// consume nomination
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
@@ -216,6 +223,7 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 	rig.StageCatchup(block1.Catchup)
 
 	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
@@ -237,6 +245,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 	numRounds := 15
 
 	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
 
 	lastCommitted := testutil.BlockHandleFromTip(rig.GetTipCV(ctx))
 	for round := 0; round < numRounds; round++ {
@@ -254,6 +263,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 
 		// kick off validation
 		rig.PassTime(tick)
+		rig.WaitBackfeed(ctx)
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
 		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusValue)
 		validatedTheirs := rig.ValidateNominationValue(
@@ -266,6 +276,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		<-validatedTheirs
 
 		rig.PassTime(tick)
+		rig.WaitBackfeed(ctx)
 		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
 			rig.PlaceConsensusValue(ctx, *nominated.DbgConsensusValue)
@@ -286,6 +297,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		lastCommitted = testutil.BlockHandleFromCommittableBlock(committed.DbgValidatable)
 
 		rig.PassTime(tick)
+		rig.WaitBackfeed(ctx)
 	}
 
 }
