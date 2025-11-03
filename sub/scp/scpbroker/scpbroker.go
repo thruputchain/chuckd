@@ -54,7 +54,6 @@ func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotInde
 }
 
 func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
-	// XXX: backfill only if we are not a single-node quorum
 	go x.fulfillBackfeed(context.WithoutCancel(ctx), since)
 }
 
@@ -66,9 +65,13 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, since scpkit.Slot) {
 		liblog.Errorf("tried to repair missing scp envelopes: %v", err)
 		return
 	}
-	liblog.Infof("no scp envelopes to backfeed")
 
-	for _, env := range envs {
+	if len(envs) == 0 {
+		liblog.Infof("no scp envelopes to backfeed")
+	}
+
+	for i, env := range envs {
+		liblog.Debugf("backfilling envelope %d of %d", i+1, len(envs))
 		x.ReceivedEnvelope(ctx, env)
 	}
 }

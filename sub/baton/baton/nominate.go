@@ -97,7 +97,9 @@ func (b *Baton) nominate(
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
+	b.lock()
 	b.setValidated(cv, schedNom.Block_id)
+	b.unlock()
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nom.Prev_block_hash}

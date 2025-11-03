@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
@@ -27,6 +28,9 @@ func (b *Baton) drive(ctx context.Context) {
 
 	// send catchup requests
 	b.driveCatchup(ctx, v)
+
+	// send repair requests for scp envelopes if necessary
+	b.driveLiveness(ctx)
 }
 
 // driveCommit commits the next block, if one is available and no commit is in progress
@@ -54,6 +58,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			b.tipDb.Id = blockID
 
 			b.tipExt = b.newExternalized(cb.AsConsensusValue())
+			b.noteCommitted(cb.BlockHeight())
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)
@@ -130,5 +135,13 @@ func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
 		liblog.Debugf("requesting catchup: %v", needed)
 		b.requestCatchup(ctx, needed)
+	}
+}
+
+func (b *Baton) driveLiveness(ctx context.Context) {
+	elapsed := b.sinceLastExternalization()
+	if elapsed == nil || *elapsed >= b.patience {
+		liblog.Debugf("requesting backfeed")
+		b.handler.BackfeedSCPEnvelopes(ctx, scpkit.Slot(b.tipDb.Height))
 	}
 }

@@ -23,6 +23,7 @@ func NewBaton(
 		ctx:              ctx,
 		handler:          h,
 		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
+		patience:         time.Millisecond * time.Duration(cfg.Patience_msec),
 		maxCatchupHeight: int(cfg.Max_catchup_height),
 		ready:            make(chan struct{}),
 		catchupWaiting:   map[batonkit.ID64]catchupRequest{},
@@ -33,7 +34,6 @@ func NewBaton(
 		nomM:             xdrutil.NewXdrMarshaler(),
 		catchupReqM:      xdrutil.NewXdrMarshaler(),
 		catchupResultM:   xdrutil.NewXdrMarshaler(),
-		monitor:          NewMonitor(h),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
@@ -43,12 +43,13 @@ type Baton struct {
 	ctx              context.Context // ctx for drive
 	handler          batonkit.Handler
 	heartbeat        time.Duration
+	patience         time.Duration // if no externalization seen for this duration, request a backfeed
 	maxCatchupHeight int
 	ready            chan struct{}
 	cond             *sync.Cond
 	lk               sync.Mutex
 
-	// state
+	// state, read/write under lk
 	committing      bool
 	nominating      *nominating
 	nominated       *nominated
@@ -59,6 +60,7 @@ type Baton struct {
 	externalized    []externalized                   // known externalizations
 	validated       map[proto.ConsensusValueHash]validated
 	invalidated     map[proto.ConsensusValueHash]invalidated
+	liveness        liveness
 
 	// xdr marshalers
 	cvM            xdrutil.XdrMarshaler // for marshalling ConsensusValue
@@ -66,8 +68,6 @@ type Baton struct {
 	nomM           xdrutil.XdrMarshaler
 	catchupReqM    xdrutil.XdrMarshaler
 	catchupResultM xdrutil.XdrMarshaler
-
-	monitor *Monitor
 }
 
 type validated struct {
@@ -130,12 +130,16 @@ func (b *Baton) start(ctx context.Context) {
 	// release lock on scp events
 	close(b.ready)
 
+	b.lock()
+	b.noteStarted()
+	b.unlock()
+
 	// wake up every so often for the purpose of
 	// triggering nomination which would capture any new txs that have been submitted to the mempool.
 	// rationale: waking up the baton every time a tx is added to the mempool would be too expensive.
 	for {
-		b.Kick()
 		b.handler.Sleep(b.heartbeat)
+		b.Kick()
 	}
 }
 

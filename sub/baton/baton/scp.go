@@ -52,8 +52,6 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 		return
 	}
 
-	x.baton.monitor.Externalized(int64(slot))
-
 	liblog.Infof("received externalization for slot %d with block hash %s and consensus value hash %s",
 		slot,
 		form.Display(cvc.Block_hash),
@@ -65,6 +63,8 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	x.baton.lock()
 	defer x.baton.unlock()
+
+	x.baton.noteExternalized(slot)
 
 	if cv == nil {
 

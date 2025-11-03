@@ -10,8 +10,6 @@ SCP ENVELOPE ACTIVE REPAIR
   - [x] impl repair agent repair missing scp
     - [x] impl router choose scp providers
 - [ ] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
-  - [ ] router returns our quorum set
-  - [ ] baton monitors typical round completion time
 
 UPGRADES
 

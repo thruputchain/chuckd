@@ -46,7 +46,6 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
 
-	b.monitor.Committed(cb.BlockHeight())
 	b.handler.Committed(ctx, cb.BlockHeight())
 
 	b.handler.Emit(ctx, batonkit.EventCommitted{
