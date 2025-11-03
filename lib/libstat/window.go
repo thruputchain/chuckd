@@ -3,6 +3,8 @@ package libstat
 import (
 	"sync"
 	"time"
+
+	"github.com/groundhogchain/chuckd/lib/libtime"
 )
 
 type RingBuffer[T any] struct {
@@ -32,23 +34,33 @@ func (x *RingBuffer[T]) Expose() []T {
 
 type MovingWindowDurationCounter struct {
 	lk      sync.Mutex
+	time    libtime.Time
 	last    time.Time
 	samples *RingBuffer[time.Duration]
 }
 
-func NewMovingWindowDurationCounter(n int) *MovingWindowDurationCounter {
-	return &MovingWindowDurationCounter{samples: NewRingBuffer[time.Duration](n)}
+func NewMovingWindowDurationCounter(t libtime.Time, n int) *MovingWindowDurationCounter {
+	return &MovingWindowDurationCounter{
+		time:    t,
+		samples: NewRingBuffer[time.Duration](n),
+	}
 }
 
-var zeroTime time.Time
+func (x *MovingWindowDurationCounter) SinceLast() *time.Duration {
+	if x.last.IsZero() {
+		return nil
+	}
+	elapsed := x.time.Now().Sub(x.last)
+	return &elapsed
+}
 
 func (x *MovingWindowDurationCounter) Tick() {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	if x.last.Equal(zeroTime) {
-		x.last = time.Now()
+	if x.last.IsZero() {
+		x.last = x.time.Now()
 	} else {
-		x.samples.Add(time.Since(x.last))
+		x.samples.Add(x.time.Now().Sub(x.last))
 	}
 }
 

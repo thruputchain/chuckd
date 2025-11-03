@@ -33,6 +33,7 @@ func NewBaton(
 		nomM:             xdrutil.NewXdrMarshaler(),
 		catchupReqM:      xdrutil.NewXdrMarshaler(),
 		catchupResultM:   xdrutil.NewXdrMarshaler(),
+		monitor:          NewMonitor(h),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
@@ -65,6 +66,8 @@ type Baton struct {
 	nomM           xdrutil.XdrMarshaler
 	catchupReqM    xdrutil.XdrMarshaler
 	catchupResultM xdrutil.XdrMarshaler
+
+	monitor *Monitor
 }
 
 type validated struct {

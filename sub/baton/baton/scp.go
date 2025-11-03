@@ -48,9 +48,11 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	var cvc proto.ConsensusValueCue
 	if err := xdrutil.UnmarshalXdr(&cvc, value); err != nil {
-		liblog.Errorf("scp externalized value for slot %d which cannot be decoded", slot)
+		liblog.Fatalf("scp externalized value for slot %d which cannot be decoded", slot)
 		return
 	}
+
+	x.baton.monitor.Externalized(int64(slot))
 
 	liblog.Infof("received externalization for slot %d with block hash %s and consensus value hash %s",
 		slot,

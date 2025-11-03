@@ -42,6 +42,8 @@ func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 // ReceivedEnvelope persists received scp envelopes, and then releases them to scp.
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
+	//XXX: filter out envelopes not from our fba
+	//XXX: record time of last reception
 	x.storage.PersistSCPEnvelope(ctx, env)
 	x.controller.ReceivedEnvelope(ctx, env)
 }
