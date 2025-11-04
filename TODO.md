@@ -1,19 +1,12 @@
+MISC
+
 - [ ] purpose of extract valid value?
 - [ ] purpose of MaybeValid?
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 
-SCP ENVELOPE ACTIVE REPAIR 
+CI
 
-- [x] persist envelopes as they arrive (already done?)
-- [x] repair rpc: get envelopes since a slot
-- [x] implement scpbroker backfeed
-  - [x] impl repair agent repair missing scp
-    - [x] impl router choose scp providers
-- [x] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
-
-- [x] Request only for currently open slot (top of ext)
-- [x] Keep high watermark at scpd
-- [x] Only send one slot of msgs
+BENCHMARKS
 
 UPGRADES
 
