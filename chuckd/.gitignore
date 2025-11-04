@@ -1,3 +1,5 @@
 chuckd
 *.log
 *.json
+?.sh
+storage-?
