@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -16,6 +17,7 @@ type SCPBackfeed interface {
 }
 
 type SCPBroker struct {
+	router          router.Router
 	storage         *storage.DiskStorage
 	repair          *repairagent.RepairAgent
 	controller      *scpd.SCPController
@@ -24,10 +26,12 @@ type SCPBroker struct {
 
 func NewSCPBroker(
 	ctx context.Context,
+	router router.Router,
 	storage *storage.DiskStorage,
 	repair *repairagent.RepairAgent,
 ) *SCPBroker {
 	return &SCPBroker{
+		router:          router,
 		storage:         storage,
 		repair:          repair,
 		controllerReady: make(chan struct{}),
@@ -42,9 +46,8 @@ func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 // ReceivedEnvelope persists received scp envelopes, and then releases them to scp.
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
-	//XXX: dos prevention: filter out envelopes not from our fba
+
 	x.storage.PersistSCPEnvelope(ctx, env)
-	//XXX: don't submit envelopes pertaining to already externalized slots? racing with broker->scp->baton???
 	x.controller.ReceivedEnvelope(ctx, env)
 }
 
@@ -53,14 +56,14 @@ func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotInde
 	return x.storage.FindSCPEnvelopesForSlot(ctx, since)
 }
 
-func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
-	go x.fulfillBackfeed(context.WithoutCancel(ctx), since)
+func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, slot scpkit.Slot) {
+	go x.fulfillBackfeed(context.WithoutCancel(ctx), slot)
 }
 
-func (x *SCPBroker) fulfillBackfeed(ctx context.Context, since scpkit.Slot) {
+func (x *SCPBroker) fulfillBackfeed(ctx context.Context, slot scpkit.Slot) {
 
 	// XXX: this needs a timeout
-	envs, err := x.repair.RepairMissingSCP(ctx, since)
+	envs, err := x.repair.RepairMissingSCP(ctx, slot)
 	if err != nil {
 		liblog.Errorf("tried to repair missing scp envelopes: %v", err)
 		return
@@ -72,6 +75,9 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, since scpkit.Slot) {
 
 	for i, env := range envs {
 		liblog.Debugf("backfilling envelope %d of %d", i+1, len(envs))
-		x.ReceivedEnvelope(ctx, env)
+		// dont replay envelopes other than the requested slot
+		if env.Statement.Slot_index == slot {
+			x.ReceivedEnvelope(ctx, env)
+		}
 	}
 }

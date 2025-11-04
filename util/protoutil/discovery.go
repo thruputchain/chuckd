@@ -8,6 +8,21 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func IsNodeInQuorumSet(node proto.SCPNodeID, qset proto.SCPQuorumSet) bool {
+	q := NodeToValidatorID(node)
+	for _, n := range qset.Validators {
+		if NodeToValidatorID(n) == q {
+			return true
+		}
+	}
+	for _, inner := range qset.Inner_sets {
+		if IsNodeInQuorumSet(node, inner) {
+			return true
+		}
+	}
+	return false
+}
+
 func MakeSignedQuorumSetSnapshot(
 	m xdrutil.XdrMarshaler,
 	privInfo proto.ValidatorPrivateInfo,

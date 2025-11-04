@@ -124,7 +124,7 @@ func NewSystem(
 		s.Router,
 		s.CVPool,
 	)
-	s.SCPBroker = scpbroker.NewSCPBroker(ctx, s.Storage, s.RepairAgent)
+	s.SCPBroker = scpbroker.NewSCPBroker(ctx, s.Router, s.Storage, s.RepairAgent)
 
 	s.Live = NewLiveHandler(
 		s.signer,

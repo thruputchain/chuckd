@@ -88,10 +88,10 @@ func (x *RepairService) Repair_missing_cv(
 // XXX: dos protection
 func (x *RepairService) Repair_missing_scp_envelopes(
 	ctx context.Context,
-	since proto.SCPSlotIndex,
+	slot proto.SCPSlotIndex,
 ) (proto.SCPEnvelopes, error) {
 	<-x.brokerReady
 
-	liblog.Debugf("repair missing scp envelopes request, since slot %d", since)
-	return x.scpBroker.RepairEnvelopes(ctx, since), nil
+	liblog.Debugf("repair missing scp envelopes request, for slot %d", slot)
+	return x.scpBroker.RepairEnvelopes(ctx, slot), nil
 }
