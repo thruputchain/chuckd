@@ -42,9 +42,9 @@ func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 // ReceivedEnvelope persists received scp envelopes, and then releases them to scp.
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
-	//XXX: filter out envelopes not from our fba
-	//XXX: record time of last reception
+	//XXX: dos prevention: filter out envelopes not from our fba
 	x.storage.PersistSCPEnvelope(ctx, env)
+	//XXX: don't submit envelopes pertaining to already externalized slots? racing with broker->scp->baton???
 	x.controller.ReceivedEnvelope(ctx, env)
 }
 

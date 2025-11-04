@@ -72,6 +72,7 @@ func NewLiveHandler(
 		cvpool:      cvpool,
 		multiplex:   multiplex,
 		storage:     storage,
+		scpBroker:   scpBroker,
 		m:           xdrutil.NewXdrMarshaler(),
 		rand:        rand,
 		scpReady:    make(chan struct{}),
@@ -128,7 +129,7 @@ func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {
-	liblog.Infof("%s", event)
+	liblog.Infof("%v", event)
 }
 
 func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
