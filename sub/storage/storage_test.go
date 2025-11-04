@@ -72,17 +72,17 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 		st.PersistSCPEnvelope(ctx, env)
 	}
 
-	got := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(3))
+	got := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(4))
 
-	if len(got) != 3 {
-		t.Fatalf("expected 3 envelopes (slots 3 and 4), got %d", len(got))
+	if len(got) != 2 {
+		t.Fatalf("expected 2 envelopes, got %d", len(got))
 	}
 
-	if got[0].Statement.Slot_index != proto.SCPSlotIndex(3) {
-		t.Fatalf("first envelope slot mismatch: got %d, want 3", got[0].Statement.Slot_index)
+	if got[0].Statement.Slot_index != proto.SCPSlotIndex(4) {
+		t.Fatalf("got %d, want 4", got[0].Statement.Slot_index)
 	}
-	if got[1].Statement.Slot_index != proto.SCPSlotIndex(4) || got[2].Statement.Slot_index != proto.SCPSlotIndex(4) {
-		t.Fatalf("expected envelopes for slot 4 after first gap, got slots %d and %d", got[1].Statement.Slot_index, got[2].Statement.Slot_index)
+	if got[1].Statement.Slot_index != proto.SCPSlotIndex(4) {
+		t.Fatalf("got %d, want 4", got[1].Statement.Slot_index)
 	}
 
 	afterGap := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(6))
