@@ -11,6 +11,11 @@ SCP ENVELOPE ACTIVE REPAIR
     - [x] impl router choose scp providers
 - [x] baton notifies when it hasn't seen scp envelopes for longer than a typical round duration
 
+- [x] Request only for currently open slot (top of ext)
+- [x] Keep high watermark at scpd
+- [ ] Only send one slot of msgs
+- [ ] What if responder thinks a higher slot is active 
+
 UPGRADES
 
 - [ ] verify that catchup blocks (proposal+upgrades) include valid upgrades

@@ -15,6 +15,10 @@ type View struct {
 	Reqs   [][]batonkit.ID64 // catchup requests already fired for this block
 }
 
+func (v *View) HighestExternalizedOrCommitted() proto.BlockHeight {
+	return v.Blocks[len(v.Blocks)-1].BlockHeight()
+}
+
 func (v *View) NominateOnto() (*proto.DbTip, *externalizedConsensus) {
 	if len(v.Blocks) != 1 {
 		return nil, nil

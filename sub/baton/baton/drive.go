@@ -30,7 +30,7 @@ func (b *Baton) drive(ctx context.Context) {
 	b.driveCatchup(ctx, v)
 
 	// send repair requests for scp envelopes if necessary
-	b.driveLiveness(ctx)
+	b.driveLiveness(ctx, v)
 }
 
 // driveCommit commits the next block, if one is available and no commit is in progress
@@ -138,7 +138,7 @@ func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	}
 }
 
-func (b *Baton) driveLiveness(ctx context.Context) {
+func (b *Baton) driveLiveness(ctx context.Context, v *View) {
 	now := b.handler.Now()
 	sinceExt := b.sinceLastExternalization(now)
 	sinceBackfeed := b.sinceLastBackfeed(now)
@@ -148,5 +148,5 @@ func (b *Baton) driveLiveness(ctx context.Context) {
 
 	liblog.Debugf("requesting backfeed")
 	b.noteBackfeed()
-	b.handler.BackfeedSCPEnvelopes(ctx, scpkit.Slot(b.tipDb.Height))
+	b.handler.BackfeedSCPEnvelopes(ctx, scpkit.Slot(v.HighestExternalizedOrCommitted()+1))
 }
