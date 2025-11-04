@@ -48,17 +48,25 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
-				fmt.Println(script.CoordinatorBenchShellLocal(ctx, runtime.NewRandFromRoot(),
-					time.Second, deployNumVs, deployFanOut, deployTPS))
+				fmt.Println(
+					script.CoordinatorBenchShellLocal(
+						ctx,
+						runtime.NewRandFromRoot(),
+						time.Millisecond*time.Duration(deployRoundMsec),
+						deployNumVs,
+						deployFanOut,
+						deployTPS,
+					))
 			})
 		},
 	}
 )
 
 var (
-	deployFanOut int
-	deployNumVs  int
-	deployTPS    int
+	deployFanOut    int
+	deployNumVs     int
+	deployTPS       int
+	deployRoundMsec int
 )
 
 func init() {
@@ -77,4 +85,5 @@ func init() {
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tx-per-sec", 1e3, "transactions per second")
+	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 }

@@ -14,7 +14,6 @@ SCP ENVELOPE ACTIVE REPAIR
 - [x] Request only for currently open slot (top of ext)
 - [x] Keep high watermark at scpd
 - [x] Only send one slot of msgs
-- [ ] What if responder thinks a higher slot is active 
 
 UPGRADES
 
