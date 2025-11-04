@@ -209,31 +209,28 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 
 }
 
-func (x *DiskStorage) FindSCPEnvelopesSinceSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
+func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
 	<-x.ready
 
 	found := []proto.SCPEnvelope{}
 
-	for {
-		slotpath := x.SCPEnvelopeSlotpath(slot)
-		slot += 1
+	slotpath := x.SCPEnvelopeSlotpath(slot)
 
-		envpaths, err := ListScpFiles(slotpath)
-		if err != nil {
-			break
-		}
+	envpaths, err := ListScpFiles(slotpath)
+	if err != nil {
+		return nil
+	}
 
-		for _, envpath := range envpaths {
-			env := proto.SCPEnvelope{}
+	for _, envpath := range envpaths {
+		env := proto.SCPEnvelope{}
 
-			bytes, err := os.ReadFile(envpath)
-			must.NoError(ctx, err)
+		bytes, err := os.ReadFile(envpath)
+		must.NoError(ctx, err)
 
-			xdrutil.UnmarshalXdr(&env, bytes)
-			must.NoError(ctx, err)
+		xdrutil.UnmarshalXdr(&env, bytes)
+		must.NoError(ctx, err)
 
-			found = append(found, env)
-		}
+		found = append(found, env)
 	}
 
 	return found
