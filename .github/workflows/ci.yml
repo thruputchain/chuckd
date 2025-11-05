@@ -9,6 +9,10 @@ on:
 jobs:
     build-test:
         runs-on: self-hosted
+        env:
+            GOPRIVATE: github.com/groundhogchain/*
+            GONOSUMDB: github.com/groundhogchain/*
+            GONOPROXY: github.com/groundhogchain/*
         steps:
             - name: Clean up .gitconfig
               run: |
@@ -19,6 +23,10 @@ jobs:
               with:
                   ssh-private-key: |
                       ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+
+            - name: Configure Git to use SSH for GitHub
+              run: |
+                  git config --global url."git@github.com:".insteadOf "https://github.com/"
 
             - name: Checkout repository
               uses: actions/checkout@v4
