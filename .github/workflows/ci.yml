@@ -24,15 +24,15 @@ jobs:
                   ssh-private-key: |
                       ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
 
-            - name: Configure Git to use SSH for GitHub
-              run: |
-                  git config --global url."git@github.com:".insteadOf "https://github.com/"
-
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
                   fetch-depth: 1
                   token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Configure Git to use SSH for GitHub
+              run: |
+                  git config --global url."git@github.com:".insteadOf "https://github.com/"
 
             - name: Set up Go
               uses: actions/setup-go@v5
