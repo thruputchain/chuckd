@@ -53,8 +53,10 @@ func (def BenchDogwoodExecDef) HostScripts(
 ) []string {
 
 	suffix := make([]string, len(host))
+	id := make([]string, len(host))
 	for i := range host {
-		suffix[i] = fmt.Sprintf("> dogwood-bench-host:%s-id:%d.log 2>&1 &", host[i], i)
+		suffix[i] = ""
+		id[i] = fmt.Sprintf("host=%s-node=%d", host[i], i)
 	}
 	return def.ExecScripts(ctx, rand, "chuckd", host, false, suffix)
 }
@@ -137,7 +139,7 @@ func benchDogwoodHostScript(
 
 	const format = `
 #!/bin/sh
-# chmod +x dogwood-bench-id:{{ .NodeIndex }}-host:{{ .Host }}.sh
+# chmod +x dogwood-bench-{{ .Name }}.sh
 
 set -xe
 
@@ -162,12 +164,15 @@ echo "benchmark working directory $(pwd)"
 	--num-iterations {{ .Def.NumIterations }} \
 	{{ .Suffix }} 2> {{ .LogName }} | tee {{ .ReportName }}
 `
+
+	name := fmt.Sprintf("host=%s,seq=%d", host, index)
 	return textutil.Apply(ctx, format, textutil.M{
 		"LogLevel":         "info",
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
+		"Name":             name,
 		"Host":             host,
-		"ConfigName":       "dogwood-bench-config-" + host + ".json",
+		"ConfigName":       "dogwood-bench-config-" + name + ".json",
 		"ConfigJSON":       xdrutil.MustXdrToJsonString(&cfg),
 		"NodeIndex":        index,
 		"Seed":             rand.Int63(),
@@ -176,11 +181,11 @@ echo "benchmark working directory $(pwd)"
 		"BenchPort":        def.BenchPort + stagger,
 		"Stagger":          stagger,
 		"Suffix":           cmdSuffix,
-		"CPUProfileName":   "dogwood-bench-cpu-" + host + ".prof",
-		"MemProfileName":   "dogwood-bench-mem-" + host + ".prof",
-		"BlockProfileName": "dogwood-bench-block-" + host + ".prof",
-		"TraceProfileName": "dogwood-bench-trace-" + host + ".prof",
-		"LogName":          "dogwood-bench-" + host + ".log",
-		"ReportName":       "dogwood-bench-" + host + ".report",
+		"CPUProfileName":   "dogwood-bench-cpu-" + name + ".prof",
+		"MemProfileName":   "dogwood-bench-mem-" + name + ".prof",
+		"BlockProfileName": "dogwood-bench-block-" + name + ".prof",
+		"TraceProfileName": "dogwood-bench-trace-" + name + ".prof",
+		"LogName":          "dogwood-bench-" + name + ".log",
+		"ReportName":       "dogwood-bench-" + name + ".report",
 	})
 }

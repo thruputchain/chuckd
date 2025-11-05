@@ -29,7 +29,7 @@ func TestDogwoodScriptTwoHogs(t *testing.T) {
 		MetricsPort:   2222,
 		BenchPort:     4000,
 	}
-	for _, s := range def.HostScripts(ctx, librand.NewRand(), "chuckd", "hog7", "hog8") {
+	for _, s := range def.HostScripts(ctx, librand.NewRand(), "$1", "hog7", "hog8") {
 		fmt.Println(s)
 	}
 }
