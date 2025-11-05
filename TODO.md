@@ -1,6 +1,5 @@
 MISC
 
-- [ ] purpose of extract valid value?
 - [ ] purpose of MaybeValid?
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 

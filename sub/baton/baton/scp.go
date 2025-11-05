@@ -38,9 +38,17 @@ func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpkit.Slo
 	return x.ValidateCue(ctx, slot, value, true)
 }
 
+// During nomination, if a value is considered invalid (by ValidateNominationValue), scp calls ExtractValidValue to
+// give the application a chance to propose a derivative value that is valid. Stellar uses this call to strip invalid
+// upgrade proposals from an otherwise valid value.
+// If ExtractValidValue is not used, it must return nil!
+// Returning non-nil asserts that the returned value is valid.
+// In particular, returning the value passed to ExtractValidValue is a security vulnerability, because
+// scp calls ExtractValidValue only after ValidateNominationValue returned false on that value, and so
+// returning that value is essentially asserting validity on a value that is definitely not valid.
 func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
 	<-x.baton.ready
-	return &value
+	return nil
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
