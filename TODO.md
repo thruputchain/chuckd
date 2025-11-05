@@ -3,9 +3,11 @@ MISC
 - [ ] purpose of MaybeValid?
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 
-CI
-
 BENCHMARKS
+- [ ] dogwood_bench
+- [ ] coordinator_bench
+  - [ ] fetch and compile scpd (place commit dependence in file inside repo)
+  - [ ] impl termination condition for coordinator_bench
 
 UPGRADES
 

@@ -13,6 +13,7 @@ import (
 )
 
 type BenchDogwoodExecDef struct {
+	TreeFanOut    uint32
 	BytesPerPay   int
 	NumIterations int
 	//
@@ -37,11 +38,25 @@ func (def BenchDogwoodExecDef) LocalScript(
 	suffix := make([]string, numHost)
 	for i := range host {
 		host[i] = "localhost"
-		suffix[i] = fmt.Sprintf("> bench-dogwood-%d.log 2>&1 &", i)
+		suffix[i] = fmt.Sprintf("> dogwood-bench-%d.log 2>&1 &", i)
 	}
 	scripts := def.ExecScripts(ctx, rand, "chuckd", host, true, suffix)
 
 	return strings.Join(scripts, "\n")
+}
+
+func (def BenchDogwoodExecDef) HostScripts(
+	ctx context.Context,
+	rand *rand.Rand,
+	chuckdPath string,
+	host ...string,
+) []string {
+
+	suffix := make([]string, len(host))
+	for i := range host {
+		suffix[i] = fmt.Sprintf("> dogwood-bench-host:%s-id:%d.log 2>&1 &", host[i], i)
+	}
+	return def.ExecScripts(ctx, rand, "chuckd", host, false, suffix)
 }
 
 func (def BenchDogwoodExecDef) ExecScripts(
@@ -69,11 +84,11 @@ func (def BenchDogwoodExecDef) ExecScripts(
 	base := proto.Config{
 		Validator_config: nil,
 		Router_config: &proto.RouterConfig{
-			Tree_fan_out: 5,
+			Tree_fan_out: def.TreeFanOut,
 		},
 		Scp_config: &proto.SCPConfig{},
 		Dogwood_config: &proto.DogwoodConfig{
-			Route_count:             7,
+			Route_count:             17,
 			Route_time_to_live_msec: 60e3, // 1 minute
 			Route_max_latency_msec:  1e3,  // 1 sec
 			//
@@ -122,6 +137,8 @@ func benchDogwoodHostScript(
 
 	const format = `
 #!/bin/sh
+# chmod +x dogwood-bench-id:{{ .NodeIndex }}-host:{{ .Host }}.sh
+
 set -xe
 
 cat > {{ .ConfigName }} << EOF
@@ -149,7 +166,8 @@ echo "benchmark working directory $(pwd)"
 		"LogLevel":         "info",
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
-		"ConfigName":       "bench-dogwood-config-" + host + ".json",
+		"Host":             host,
+		"ConfigName":       "dogwood-bench-config-" + host + ".json",
 		"ConfigJSON":       xdrutil.MustXdrToJsonString(&cfg),
 		"NodeIndex":        index,
 		"Seed":             rand.Int63(),
@@ -158,11 +176,11 @@ echo "benchmark working directory $(pwd)"
 		"BenchPort":        def.BenchPort + stagger,
 		"Stagger":          stagger,
 		"Suffix":           cmdSuffix,
-		"CPUProfileName":   "bench-dogwood-cpu-" + host + ".prof",
-		"MemProfileName":   "bench-dogwood-mem-" + host + ".prof",
-		"BlockProfileName": "bench-dogwood-block-" + host + ".prof",
-		"TraceProfileName": "bench-dogwood-trace-" + host + ".prof",
-		"LogName":          "bench-dogwood-" + host + ".log",
-		"ReportName":       "bench-dogwood-" + host + ".report",
+		"CPUProfileName":   "dogwood-bench-cpu-" + host + ".prof",
+		"MemProfileName":   "dogwood-bench-mem-" + host + ".prof",
+		"BlockProfileName": "dogwood-bench-block-" + host + ".prof",
+		"TraceProfileName": "dogwood-bench-trace-" + host + ".prof",
+		"LogName":          "dogwood-bench-" + host + ".log",
+		"ReportName":       "dogwood-bench-" + host + ".report",
 	})
 }
