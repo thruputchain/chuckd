@@ -56,7 +56,7 @@ jobs:
 
             - name: Run benchmark
               run: |
-                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog7.sh ./chuckd/chuckd
+                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog7.sh ./chuckd-ci
 
     bench_node_2_of_2:
         runs-on: hog8
@@ -108,4 +108,4 @@ jobs:
 
             - name: Run benchmark
               run: |
-                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog8.sh ./chuckd/chuckd
+                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog8.sh ./chuckd-ci
