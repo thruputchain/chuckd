@@ -9,18 +9,18 @@ cat > dogwood-bench-config-host=hog7,seq=0.json << EOF
     "validator_config": {
         "private_info": {
             "public_info": {
-                "public_key": "e727a1ae362cdc6a2142114f5cfaa26332100688a929d04c260628c2f68697e6",
+                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
                 "address": "hog7:4000"
             },
-            "secret_key": "2ec3a8f18ce1b7d8602f517c3029e729192cbe62a9f32ffe870ef627d5aecabee727a1ae362cdc6a2142114f5cfaa26332100688a929d04c260628c2f68697e6"
+            "secret_key": "6ddfd88d90ef5d5e499b0b39364e9fddb94f6abf96735e684cfde237f4ae97cfe94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
         },
         "known_validators": [
             {
-                "public_key": "e727a1ae362cdc6a2142114f5cfaa26332100688a929d04c260628c2f68697e6",
+                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
                 "address": "hog7:4000"
             },
             {
-                "public_key": "8235ce8df3e2d8d6ab7a5cefb277a731db9f8213e13de0cdd7cef6b77943c203",
+                "public_key": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c",
                 "address": "hog8:4000"
             }
         ]
@@ -60,11 +60,11 @@ cat > dogwood-bench-config-host=hog7,seq=0.json << EOF
             "validators": [
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "e727a1ae362cdc6a2142114f5cfaa26332100688a929d04c260628c2f68697e6"
+                    "ed25519": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
                 },
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "8235ce8df3e2d8d6ab7a5cefb277a731db9f8213e13de0cdd7cef6b77943c203"
+                    "ed25519": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c"
                 }
             ],
             "inner_sets": [
@@ -79,14 +79,17 @@ EOF
 
 echo "benchmark working directory $(pwd)"
 
-perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults chuckd -l info --config dogwood-bench-config-host=hog7,seq=0.json \
+perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults \
+	$1 \
+	-l info \
+	--config dogwood-bench-config-host=hog7,seq=0.json \
 	 \
 	 \
 	 \
 	 \
 	 \
 	--instance node-0 \
-	--seed 233861746498809834 \
+	--seed 8411425272792254308 \
 	--metrics :2222 \
 	bench dogwood \
 	--addr :4000 \

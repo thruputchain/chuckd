@@ -58,7 +58,7 @@ func (def BenchDogwoodExecDef) HostScripts(
 		suffix[i] = ""
 		id[i] = fmt.Sprintf("host=%s-node=%d", host[i], i)
 	}
-	return def.ExecScripts(ctx, rand, "chuckd", host, false, suffix)
+	return def.ExecScripts(ctx, rand, "$1", host, false, suffix)
 }
 
 func (def BenchDogwoodExecDef) ExecScripts(
@@ -149,7 +149,10 @@ EOF
 
 echo "benchmark working directory $(pwd)"
 
-{{ .Prefix }} {{ .ChuckdPath }} -l {{ .LogLevel }} --config {{ .ConfigName }} \
+{{ .Prefix }} \
+	{{ .ChuckdPath }} \
+	-l {{ .LogLevel }} \
+	--config {{ .ConfigName }} \
 	{{ if .Def.Stack }}--stack {{ end }} \
 	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \
 	{{ if .Def.MemProfile }}--mem {{ .MemProfileName }} {{ end }} \

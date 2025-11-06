@@ -13,8 +13,9 @@ jobs:
             GONOSUMDB: github.com/groundhogchain/*
             GONOPROXY: github.com/groundhogchain/*
         steps:
-            - name: Clean up .gitconfig
+            - name: Clean up working directory and .gitconfig
               run: |
+                  rm -rf *
                   echo "Cleaning up .gitconfig"
                   rm -f /home/hogci/.gitconfig
 
@@ -55,7 +56,7 @@ jobs:
 
             - name: Run benchmark
               run: |
-                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog7.sh $PWD/chuckd/chuckd
+                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog7.sh ./chuckd/chuckd
 
     bench_node_2_of_2:
         runs-on: hog8
@@ -64,8 +65,9 @@ jobs:
             GONOSUMDB: github.com/groundhogchain/*
             GONOPROXY: github.com/groundhogchain/*
         steps:
-            - name: Clean up .gitconfig
+            - name: Clean up working directory and .gitconfig
               run: |
+                  rm -rf *
                   echo "Cleaning up .gitconfig"
                   rm -f /home/hogci/.gitconfig
 
@@ -106,4 +108,4 @@ jobs:
 
             - name: Run benchmark
               run: |
-                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog8.sh $PWD/chuckd/chuckd
+                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog8.sh ./chuckd/chuckd
