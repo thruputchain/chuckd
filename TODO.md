@@ -10,12 +10,15 @@ BENCHMARKS
     - [x] simplify report output
     - [x] graph
     - [x] save in metrics repo
-  - [ ] benches for different message sizes, node counts
-  - [ ] why `dogwood dropping partial incomplete transmission` before counterparties online
+  - [x] benches for different message sizes, node counts
+  - [ ] fix deadlock/race in ci
 
 - [ ] coordinator_bench
   - [ ] fetch and compile scpd (place commit dependence in file inside repo)
   - [ ] impl termination condition for coordinator_bench
+
+- [ ] why `dogwood dropping partial incomplete transmission` before counterparties online
+
 
 UPGRADES
 
