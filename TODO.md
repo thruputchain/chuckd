@@ -4,7 +4,13 @@ MISC
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 
 BENCHMARKS
+
 - [ ] dogwood_bench
+  - [ ] collect report
+    - [ ] graph
+    - [ ] save in metrics repo
+  - [ ] why `dogwood dropping partial incomplete transmission` before counterparties online
+
 - [ ] coordinator_bench
   - [ ] fetch and compile scpd (place commit dependence in file inside repo)
   - [ ] impl termination condition for coordinator_bench

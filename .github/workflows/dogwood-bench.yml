@@ -23,6 +23,7 @@ jobs:
               with:
                   ssh-private-key: |
                       ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+                      ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
 
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -75,6 +76,7 @@ jobs:
               with:
                   ssh-private-key: |
                       ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+                      ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
 
             - name: Checkout repository
               uses: actions/checkout@v4
