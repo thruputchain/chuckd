@@ -82,8 +82,6 @@ cat > dogwood-bench-config-host=hog8,seq=1.json << EOF
 }
 EOF
 
-echo "benchmark working directory $(pwd)"
-
 perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults \
 	$1 \
 	-l info \

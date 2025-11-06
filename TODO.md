@@ -7,9 +7,11 @@ BENCHMARKS
 
 - [ ] dogwood_bench
   - [ ] collect report
+    - [x] simplify report output
     - [ ] graph
-    - [ ] save in metrics repo
+    - [x] save in metrics repo
   - [ ] why `dogwood dropping partial incomplete transmission` before counterparties online
+  - [ ] benches for different message sizes, node counts, xxx
 
 - [ ] coordinator_bench
   - [ ] fetch and compile scpd (place commit dependence in file inside repo)

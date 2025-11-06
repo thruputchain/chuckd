@@ -59,8 +59,6 @@ func benchEchoHostScript(
 #!/bin/sh
 set -xe
 
-echo "benchmark working directory $(pwd)"
-
 {{ .Prefix }} {{ .ChuckdPath }} -l {{ .LogLevel }} \
 	{{ if .Def.Stack }}--stack {{ end }} \
 	{{ if .Def.CPUProfile }}--cpu {{ .CPUProfileName }} {{ end }} \

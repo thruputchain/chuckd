@@ -168,8 +168,6 @@ cat > {{ .ConfigName }} << EOF
 {{.ConfigJSON}}
 EOF
 
-echo "benchmark working directory $(pwd)"
-
 {{ .Prefix }} \
 	{{ .ChuckdPath }} \
 	-l {{ .LogLevel }} \

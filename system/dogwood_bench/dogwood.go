@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 
@@ -232,6 +233,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 
 	// report
 
+	receptionRate := float64(transmissionsReceived) / float64(bench.numIterations*(numNodes-1))
 	report := DogwoodBenchmarkReport{
 		NumPayBytes:   bench.numPayBytes,
 		NumIterations: bench.numIterations,
@@ -242,12 +244,19 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		StatsEnd:          bench.dogwood.Stats(),
 		SendThroughput:    bytesSent.Stats(),
 		ReceiveThroughput: bytesReceived.Stats(),
-		ReceptionRate:     float64(transmissionsReceived) / float64(bench.numIterations*(numNodes-1)),
+		ReceptionRate:     receptionRate,
 	}
 
-	fmt.Println(form.Display(report))
-	fmt.Println()
-	fmt.Println(form.Display(report.Summarize()))
+	fmt.Fprintln(os.Stderr, form.Display(report))
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, form.Display(report.Summarize()))
+
+	// rx speed GB/sec, tx speed GB/sec, drop rate %
+	fmt.Printf("%f, %f, %f",
+		bytesReceived.SpeedPerSec()/1e9,
+		bytesSent.SpeedPerSec()/1e9,
+		100*(1-receptionRate),
+	)
 }
 
 func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
