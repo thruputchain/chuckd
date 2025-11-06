@@ -26,6 +26,7 @@ type DogwoodBenchmark struct {
 	numPayBytes   int
 	numIterations int
 	cfg           proto.Config
+	net           libnet.Network
 	discovery     discovery.Discovery
 	dogwood       *dogwood.DogwoodService
 	wg            sync.WaitGroup
@@ -111,6 +112,7 @@ func NewDogwoodBenchmark(
 		numPayBytes:   numPayBytes,
 		numIterations: numIterations,
 		cfg:           cfg,
+		net:           net,
 		discovery:     discovery,
 		dogwood:       dw,
 	}
@@ -125,6 +127,11 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 	// start broadcast service
 	bench.dogwood.StartStandalone(ctx, address, "", 3*time.Second)
 	bench.dogwood.WaitReady(ctx)
+
+	// hold the experiment until all nodes are online
+	liblog.Infof("waiting for counterparties to come online ...")
+	WaitDogwoodCounterpartiesReady(ctx, bench.net, bench.cfg.Validator_config.Known_validators)
+	liblog.Infof("all counterparties are online, starting benchmark")
 
 	zeroPayload := make([]byte, bench.numPayBytes)
 
@@ -253,4 +260,44 @@ func (bench *DogwoodBenchmark) Start(ctx context.Context, address string) {
 
 func (bench *DogwoodBenchmark) Wait() {
 	bench.wg.Wait()
+}
+
+func WaitDogwoodCounterpartiesReady(ctx context.Context, dialer libnet.AddressDialer, vs []proto.ValidatorPublicInfo) {
+	var wg sync.WaitGroup
+	for _, v := range vs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			WaitDogwoodCounterpartyReady(ctx, dialer, v)
+		}()
+	}
+	wg.Wait()
+}
+
+func WaitDogwoodCounterpartyReady(ctx context.Context, dialer libnet.AddressDialer, v proto.ValidatorPublicInfo) error {
+	for i := 0; ; i++ {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			if i > 0 {
+				time.Sleep(time.Second)
+			}
+			err := pingDowgwood(ctx, dialer, v.Address)
+			if err != nil {
+				liblog.Errorf("pinging dogwood service at %s failed (%v)", v.Address, err)
+				continue
+			}
+			return nil
+		}
+	}
+}
+
+func pingDowgwood(ctx context.Context, dialer libnet.AddressDialer, address string) error {
+	c, err := dogwood.DialDogwoodClient(ctx, dialer, address)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	return c.Dogwood_null(ctx)
 }
