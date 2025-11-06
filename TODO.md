@@ -6,12 +6,12 @@ MISC
 BENCHMARKS
 
 - [ ] dogwood_bench
-  - [ ] collect report
+  - [x] collect report
     - [x] simplify report output
-    - [ ] graph
+    - [x] graph
     - [x] save in metrics repo
+  - [ ] benches for different message sizes, node counts
   - [ ] why `dogwood dropping partial incomplete transmission` before counterparties online
-  - [ ] benches for different message sizes, node counts, xxx
 
 - [ ] coordinator_bench
   - [ ] fetch and compile scpd (place commit dependence in file inside repo)

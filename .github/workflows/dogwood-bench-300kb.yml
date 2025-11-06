@@ -1,4 +1,4 @@
-name: Dogwood benchmark
+name: Dogwood benchmark 300KB
 
 on:
     push:
