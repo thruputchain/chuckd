@@ -1,6 +1,11 @@
 #!/bin/sh
 # chmod +x dogwood-bench-host=hog8,seq=1.sh
 
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <chuckd_path>"
+  exit 1
+fi
+
 set -xe
 
 cat > dogwood-bench-config-host=hog8,seq=1.json << EOF

@@ -40,7 +40,7 @@ func (def BenchDogwoodExecDef) LocalScript(
 		host[i] = "localhost"
 		suffix[i] = fmt.Sprintf("> dogwood-bench-%d.log 2>&1 &", i)
 	}
-	scripts := def.ExecScripts(ctx, rand, "chuckd", host, true, suffix)
+	scripts := def.ExecScripts(ctx, rand, "", "chuckd", host, true, suffix)
 
 	return strings.Join(scripts, "\n")
 }
@@ -58,12 +58,19 @@ func (def BenchDogwoodExecDef) HostScripts(
 		suffix[i] = ""
 		id[i] = fmt.Sprintf("host=%s-node=%d", host[i], i)
 	}
-	return def.ExecScripts(ctx, rand, "$1", host, false, suffix)
+	preamble := `
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <chuckd_path>"
+  exit 1
+fi
+`
+	return def.ExecScripts(ctx, rand, preamble, "$1", host, false, suffix)
 }
 
 func (def BenchDogwoodExecDef) ExecScripts(
 	ctx context.Context,
 	rand *rand.Rand,
+	preamble string, // script preamble
 	chuckdPath string,
 	hosts []string,
 	staggerPorts bool,
@@ -120,7 +127,18 @@ func (def BenchDogwoodExecDef) ExecScripts(
 		if staggerPorts {
 			stagger = i
 		}
-		scripts[i] = benchDogwoodHostScript(ctx, rand, def, i, hosts[i], cfg, chuckdPath, stagger, cmdSuffix[i])
+		scripts[i] = benchDogwoodHostScript(
+			ctx,
+			rand,
+			def,
+			preamble,
+			i,
+			hosts[i],
+			cfg,
+			chuckdPath,
+			stagger,
+			cmdSuffix[i],
+		)
 	}
 	return scripts
 }
@@ -129,6 +147,7 @@ func benchDogwoodHostScript(
 	ctx context.Context,
 	rand *rand.Rand,
 	def BenchDogwoodExecDef,
+	preamble string,
 	index int,
 	host string,
 	cfg proto.Config,
@@ -142,6 +161,8 @@ func benchDogwoodHostScript(
 # chmod +x dogwood-bench-{{ .Name }}.sh
 
 set -xe
+
+{{ .Preamble }}
 
 cat > {{ .ConfigName }} << EOF
 {{.ConfigJSON}}
@@ -170,6 +191,7 @@ echo "benchmark working directory $(pwd)"
 
 	name := fmt.Sprintf("host=%s,seq=%d", host, index)
 	return textutil.Apply(ctx, format, textutil.M{
+		"Preamble":         preamble,
 		"LogLevel":         "info",
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,

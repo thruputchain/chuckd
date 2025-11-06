@@ -55,9 +55,21 @@ jobs:
               run: |
                   go build -o ./chuckd-ci ./chuckd
 
+            # benchmark + metrics capture
+
+            - name: clone metrics history
+              run: ./scripts/clone_metrics_history.sh
+
             - name: Run benchmark
               run: |
-                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog7.sh ./chuckd-ci
+                  source ./scripts/git_info.sh
+                  ./metrics_history/scripts/make_metric_file.sh dogwood-300k-node_1_of_2 $GIT_branch $GIT_commit $GIT_commit_time
+                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog7.sh ./chuckd-ci > \
+                        ./metrics_history/metrics/dogwood-300k-node_1_of_2/$GIT_branch/${GIT_commit_time}_$GIT_commit
+              shell: bash
+
+            - name: commit metrics
+              run: ./scripts/commit_metrics.sh
 
     bench_node_2_of_2:
         runs-on: hog8
@@ -108,6 +120,18 @@ jobs:
               run: |
                   go build -o ./chuckd-ci ./chuckd
 
+            # benchmark + metrics capture
+
+            - name: clone metrics history
+              run: ./scripts/clone_metrics_history.sh
+
             - name: Run benchmark
               run: |
-                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog8.sh ./chuckd-ci
+                  source ./scripts/git_info.sh
+                  ./metrics_history/scripts/make_metric_file.sh dogwood-300k-node_2_of_2 $GIT_branch $GIT_commit $GIT_commit_time
+                  ./scripts/dogwood_bench/hosts\=2\,pay\=300k/dogwood_bench.hog8.sh ./chuckd-ci > \
+                        ./metrics_history/metrics/dogwood-300k-node_2_of_2/$GIT_branch/${GIT_commit_time}_$GIT_commit
+              shell: bash
+
+            - name: commit metrics
+              run: ./scripts/commit_metrics.sh
