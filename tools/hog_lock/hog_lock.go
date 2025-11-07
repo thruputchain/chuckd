@@ -16,7 +16,7 @@ func main() {
 	flag.Parse()
 
 	if *holder == "" || *hostsStr == "" {
-		fmt.Fprintln(os.Stderr, "Usage: ./prog --holder=<name> --hosts=host1,host2,host3")
+		fmt.Fprintln(os.Stderr, "Usage: hog_lock --holder=name --hosts=host1,host2,host3")
 		return
 	}
 

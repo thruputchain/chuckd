@@ -11,12 +11,17 @@ func HogLock(ctx context.Context, holder string, host string) error {
 
 	scriptFmt := `
 set -euo pipefail
+
 lock_dir=/run/user/$(id -u $(whoami))/lock
 lock_file="$lock_dir/holder"
+
 while ! mkdir -p "$lock_dir" 2>/dev/null; do
   sleep 0.1
 done
+
 echo %q > "$lock_file"
+
+echo "lock acquired: $lock_dir"
 exit 0
 `
 	script := fmt.Sprintf(scriptFmt, holder)
