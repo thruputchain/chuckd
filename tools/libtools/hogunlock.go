@@ -47,9 +47,6 @@ exit 0
 
 func HogUnlockMany(ctx context.Context, holder string, hosts []string) error {
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	sort.Strings(hosts)
 
 	ech := make(chan error, len(hosts))
@@ -59,12 +56,12 @@ func HogUnlockMany(ctx context.Context, holder string, hosts []string) error {
 		}(host)
 	}
 
+	var someErr error
 	for i := 0; i < len(hosts); i++ {
 		if err := <-ech; err != nil {
-			cancel()
-			return err
+			someErr = err
 		}
 	}
 
-	return nil
+	return someErr
 }
