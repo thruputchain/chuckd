@@ -3,7 +3,6 @@ package libtools
 import (
 	"bytes"
 	"context"
-	"io"
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -14,7 +13,7 @@ func SshExec(
 	ctx context.Context,
 	host string,
 	script string,
-) (io.Reader, io.Reader, func() error) {
+) (*bytes.Buffer, *bytes.Buffer, func() error) {
 
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
@@ -41,7 +40,7 @@ func SshExecBlock(
 	ctx context.Context,
 	host string,
 	script string,
-) (io.Reader, io.Reader, error) {
+) (string, string, error) {
 	stdout, stderr, wait := SshExec(ctx, host, script)
-	return stdout, stderr, wait()
+	return stdout.String(), stderr.String(), wait()
 }
