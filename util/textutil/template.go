@@ -10,9 +10,9 @@ import (
 
 type M map[string]any
 
-func Apply(ctx context.Context, templateStr string, values map[string]interface{}) string {
+func Apply(ctx context.Context, tmplStr string, values map[string]interface{}) string {
 
-	tmpl, err := template.New("").Parse(templateStr)
+	tmpl, err := template.New("").Parse(tmplStr)
 	must.NoError(ctx, err)
 
 	var buf bytes.Buffer

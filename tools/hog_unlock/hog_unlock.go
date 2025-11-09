@@ -27,7 +27,7 @@ func main() {
 
 	fmt.Fprintf(os.Stdout, "releasing locks for %s on %v\n", *holder, hosts)
 	ctx := context.Background()
-	err := libtools.HogUnlockMany(ctx, *holder, hosts)
+	err := libtools.AsyncHogLock.UnlockMany(ctx, *holder, hosts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to release locks for %s on %v: %v\n", *holder, hosts, err)
 		os.Exit(1)

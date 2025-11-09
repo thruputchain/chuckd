@@ -3,17 +3,20 @@ package libtools
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/util/textutil"
 )
 
 func SshExec(
 	ctx context.Context,
 	host string,
 	script string,
-) (*bytes.Buffer, *bytes.Buffer, func() error) {
+) (*bytes.Buffer, func() error) {
 
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
@@ -27,20 +30,26 @@ func SshExec(
 		"RUST_LOG=" + runtime.GetLogLevel(),
 	}
 	cmd.Stdin = bytes.NewBufferString(script)
-	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
-	cmd.Stdout, cmd.Stderr = stdout, stderr
+	out := &bytes.Buffer{}
+	cmd.Stdout = textutil.NewPrefixWriter(out, "[out] ")
+	cmd.Stderr = textutil.NewPrefixWriter(out, "[err] ")
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	return stdout, stderr, func() error { return cmd.Wait() }
+	return out, func() error { return cmd.Wait() }
 }
 
 func SshExecBlock(
 	ctx context.Context,
 	host string,
 	script string,
-) (string, string, error) {
-	stdout, stderr, wait := SshExec(ctx, host, script)
-	return stdout.String(), stderr.String(), wait()
+) (string, error) {
+	out, wait := SshExec(ctx, host, script)
+	err := wait()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ssh_exec_block error (%v):\n", err)
+		fmt.Fprintln(os.Stderr, out)
+	}
+	return out.String(), err
 }
