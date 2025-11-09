@@ -2,34 +2,44 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/groundhogchain/chuckd/tools/libtools"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	holder := flag.String("holder", "", "unique name of the lock holder (e.g. random or ci workflow id)")
-	hostsStr := flag.String("hosts", "", "comma-separated list of hosts (e.g. hog6,hog7)")
-	flag.Parse()
+	cmd := &cli.Command{
+		Name:  "hog_wait_lock",
+		Usage: "wait for locks to be acquired",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "j",
+				Usage:    "job id",
+				Required: true,
+			},
+			&cli.StringSliceFlag{
+				Name:  "host",
+				Usage: "host to lock (repeatable)",
+			},
+		},
+		Action: func(ctx context.Context, c *cli.Command) error {
+			jobID := c.String("j")
+			hosts := c.StringSlice("host")
 
-	if *holder == "" || *hostsStr == "" {
-		fmt.Fprintln(os.Stderr, "Usage: hog_lock --holder=name --hosts=host1,host2,host3")
-		return
+			for i := range hosts {
+				hosts[i] = strings.TrimSpace(hosts[i])
+			}
+
+			fmt.Fprintf(os.Stdout, "waiting for locks for %s on %v\n", jobID, hosts)
+			return libtools.SyncHogLock.WaitLockMany(ctx, jobID, hosts)
+		},
 	}
 
-	hosts := strings.Split(*hostsStr, ",")
-	for i := range hosts {
-		hosts[i] = strings.TrimSpace(hosts[i])
-	}
-
-	fmt.Fprintf(os.Stdout, "acquiring locks for %s on %v\n", *holder, hosts)
-	ctx := context.Background()
-	err := libtools.SyncHogLock.WaitLockMany(ctx, *holder, hosts)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "hog_hold_lock: error holding locks for %s on %v: %v\n", *holder, hosts, err)
-		os.Exit(1)
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		log.Fatal(err)
 	}
 }

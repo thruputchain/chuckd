@@ -1,54 +1,73 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
-	"strings"
+
+	"github.com/groundhogchain/chuckd/tools/libtools"
+	"github.com/urfave/cli/v3"
 )
 
-type FilePair struct {
-	From string
-	To   string
+type CopyPair struct {
+	In  string
+	Out string
 }
 
 func main() {
-	id := ""
-	var fromArgs, toArgs []string
+	cmd := &cli.Command{
+		Name:  "hog_copy",
+		Usage: "copy stuff between hogs / paths",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "j",
+				Usage:    "job id",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "from",
+				Usage:    "from host",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "to",
+				Usage:    "to host",
+				Required: true,
+			},
+			&cli.StringSliceFlag{
+				Name:  "in",
+				Usage: "input host/path (repeatable)",
+			},
+			&cli.StringSliceFlag{
+				Name:  "out",
+				Usage: "output host/path (repeatable, matches --in)",
+			},
+		},
+		Action: func(ctx context.Context, c *cli.Command) error {
+			jobID := c.String("j")
+			from := c.String("from")
+			to := c.String("to")
+			ins := c.StringSlice("in")
+			outs := c.StringSlice("out")
 
-	args := os.Args[1:]
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		switch {
-		case strings.HasPrefix(arg, "--id="):
-			id = strings.TrimPrefix(arg, "--id=")
+			if len(ins) != len(outs) {
+				return fmt.Errorf("number of --in (%d) must match number of --out (%d)", len(ins), len(outs))
+			}
 
-		case strings.HasPrefix(arg, "--from="):
-			fromArgs = append(fromArgs, strings.TrimPrefix(arg, "--from="))
+			var specs []CopyPair
+			for i := range ins {
+				specs = append(specs, CopyPair{
+					In:  ins[i],
+					Out: outs[i],
+				})
+			}
 
-		case strings.HasPrefix(arg, "--to="):
-			toArgs = append(toArgs, strings.TrimPrefix(arg, "--to="))
-
-		default:
-			fmt.Fprintf(os.Stderr, "unknown argument: %s\n", arg)
-			os.Exit(1)
-		}
+			return libtools.HogCopy(ctx, jobID, from, to, ins, outs)
+		},
 	}
 
-	if len(fromArgs) != len(toArgs) {
-		fmt.Fprintf(os.Stderr, "mismatched number of --from and --to arguments\n")
-		os.Exit(1)
-	}
-
-	pairs := make([]FilePair, len(fromArgs))
-	for i := range fromArgs {
-		pairs[i] = FilePair{
-			From: fromArgs[i],
-			To:   toArgs[i],
-		}
-	}
-
-	fmt.Printf("ID: %s\n", id)
-	for i, p := range pairs {
-		fmt.Printf("Pair %d: from %s → to %s\n", i+1, p.From, p.To)
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		log.Fatal(err)
 	}
 }
