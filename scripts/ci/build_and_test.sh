@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euox pipefail
 
 GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*

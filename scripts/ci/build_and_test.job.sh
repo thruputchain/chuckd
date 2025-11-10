@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euox pipefail
 
 # SCRIPTS_CI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # SCRIPTS_DIR="$(dirname "$SCRIPTS_CI_DIR")"
