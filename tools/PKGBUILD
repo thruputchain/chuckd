@@ -1,0 +1,27 @@
+# build and install with `makepkg -si`
+
+pkgname=hogtools
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Groundhog cluster tools (hog_hold_lock, hog_wait_lock, hog_exec, hog_copy)"
+arch=('x86_64')
+url="https://github.com/groundhogchain/chuckd"
+license=('xxx')
+depends=('glibc')
+makedepends=('go' 'git')
+source=("git+ssh://git@github.com/groundhogchain/chuckd.git")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/chuckd"
+  for t in "${_tools[@]}"; do
+    go build -o "$t" "./tools/$t"
+  done
+}
+
+package() {
+  cd "$srcdir/chuckd"
+  for t in "${_tools[@]}"; do
+    install -Dm755 "$t" "$pkgdir/usr/bin/$t"
+  done
+}
