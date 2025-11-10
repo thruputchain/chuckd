@@ -9,7 +9,7 @@ hog_hold_lock —j=id --host=hog1 --host=hog2 &
 hog_wait_lock —j=id --host=hog1 --host=hog2
 
 # execute the script on stdin on hog1 in the directory of job id
-hog_exec —j=id —host=hog1 <EOF
+hog_exec —j=id —host=hog1 <<EOF
   ...
 EOF
 

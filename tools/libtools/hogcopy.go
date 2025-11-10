@@ -26,7 +26,8 @@ func HogCopy(
 	jdir := JobDir(jid)
 
 	var w bytes.Buffer
-	for i := range from {
+	for i := range out {
+		fmt.Fprintf(&w, "set -ex\n")
 		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n",
 			path.Join(jdir, in[i]),
 			to,
