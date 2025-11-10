@@ -10,11 +10,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-type CopyPair struct {
-	In  string
-	Out string
-}
-
 func main() {
 	cmd := &cli.Command{
 		Name:  "hog_copy",
@@ -53,14 +48,6 @@ func main() {
 
 			if len(ins) != len(outs) {
 				return fmt.Errorf("number of --in (%d) must match number of --out (%d)", len(ins), len(outs))
-			}
-
-			var specs []CopyPair
-			for i := range ins {
-				specs = append(specs, CopyPair{
-					In:  ins[i],
-					Out: outs[i],
-				})
 			}
 
 			return libtools.HogCopy(ctx, jobID, from, to, ins, outs)

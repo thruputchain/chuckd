@@ -1,0 +1,49 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-test:
+        runs-on: self-hosted
+        env:
+            GOPRIVATE: github.com/groundhogchain/*
+            GONOSUMDB: github.com/groundhogchain/*
+            GONOPROXY: github.com/groundhogchain/*
+        steps:
+            - name: Clean up .gitconfig
+              run: |
+                  echo "Cleaning up .gitconfig"
+                  rm -f /home/hogci/.gitconfig
+
+            - uses: webfactory/ssh-agent@v0.9.1
+              with:
+                  ssh-private-key: |
+                      ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 1
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Configure Git to use SSH for GitHub
+              run: |
+                  git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+
+            - name: Run hog job
+              run: ./scripts/ci/build_and_test.job.sh --j=${{ github.workflow }}-${{ github.run_id }}
+
+            - name: Upload coverage artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage
+                  path: coverage.out
