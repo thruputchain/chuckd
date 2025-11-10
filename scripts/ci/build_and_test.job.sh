@@ -13,11 +13,7 @@ hog_hold_lock --j=id --host=$host &
 hog_wait_lock --j=id --host=$host
 
 # build on $host
-hog_exec --j=$job --host=$host <<EOF
-rm -rf *
-EOF
-
 hog_exec --j=$job --host=$host < ./build_and_test.sh
 
 # copy output artifacts here
-hog_copy_from --j=$job --from=$host --in=coverage.out --out=coverage.out
+hog_copy_from --j=$job --from=$host --in=chuckd/coverage.out --out=coverage.out
