@@ -34,6 +34,6 @@ func HogCopy(
 		)
 	}
 
-	_, err := SshExecBlock(ctx, from, w.String())
+	_, _, err := SshExecBlock(ctx, from, w.String())
 	return err
 }

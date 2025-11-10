@@ -56,7 +56,7 @@ done
 	script := textutil.Apply(ctx, scriptTmpl, textutil.M{
 		"Holder": holder,
 	})
-	_, err := SshExecBlock(ctx, host, script)
+	_, _, err := SshExecBlock(ctx, host, script)
 	return err
 }
 
@@ -103,7 +103,7 @@ done
 	script := textutil.Apply(ctx, scriptTmpl, textutil.M{
 		"Holder": holder,
 	})
-	_, err := SshExecBlock(ctx, host, script)
+	_, _, err := SshExecBlock(ctx, host, script)
 	return err
 }
 

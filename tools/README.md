@@ -13,10 +13,10 @@ hog_exec —j=id —host=hog1 <EOF
   ...
 EOF
 
-# 
+# copy path1 and path3 from the job id directory on hog1 to
+# path2 and path4 in the job id directory on hog2
 hog_copy —j=id \
   —in=hog1 —out=hog2 \
-  —in=filepath1 —out=filepath1 \
-  —in=filepath2 —out=filepath2
-
+  —in=path1 —out=path2 \
+  —in=path3 —out=path4
 ```

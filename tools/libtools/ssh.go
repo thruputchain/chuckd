@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -16,7 +17,7 @@ func SshExec(
 	ctx context.Context,
 	host string,
 	script string,
-) (*bytes.Buffer, func() error) {
+) (*bytes.Buffer, *bytes.Buffer, func() error) {
 
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
@@ -30,26 +31,29 @@ func SshExec(
 		"RUST_LOG=" + runtime.GetLogLevel(),
 	}
 	cmd.Stdin = bytes.NewBufferString(script)
-	out := &bytes.Buffer{}
-	cmd.Stdout = textutil.NewPrefixWriter(out, "[out] ")
-	cmd.Stderr = textutil.NewPrefixWriter(out, "[err] ")
+
+	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
+	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
+	stderr := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, errbuf), "[err] ")
+
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	return out, func() error { return cmd.Wait() }
+	return outbuf, errbuf, func() error { return cmd.Wait() }
 }
 
 func SshExecBlock(
 	ctx context.Context,
 	host string,
 	script string,
-) (string, error) {
-	out, wait := SshExec(ctx, host, script)
+) (string, string, error) {
+	outb, errb, wait := SshExec(ctx, host, script)
 	err := wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ssh_exec_block error (%v):\n", err)
-		fmt.Fprintln(os.Stderr, out)
 	}
-	return out.String(), err
+	return outb.String(), errb.String(), err
 }
