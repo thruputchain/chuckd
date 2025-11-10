@@ -18,6 +18,14 @@ func SshExec(
 	host string,
 	script string,
 ) (*bytes.Buffer, *bytes.Buffer, func() error) {
+	return SshExecReader(ctx, host, bytes.NewBufferString(script))
+}
+
+func SshExecReader(
+	ctx context.Context,
+	host string,
+	script io.Reader,
+) (*bytes.Buffer, *bytes.Buffer, func() error) {
 
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
@@ -30,7 +38,7 @@ func SshExec(
 		"RUST_BACKTRACE=1",
 		"RUST_LOG=" + runtime.GetLogLevel(),
 	}
-	cmd.Stdin = bytes.NewBufferString(script)
+	cmd.Stdin = script
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
@@ -51,6 +59,19 @@ func SshExecBlock(
 	script string,
 ) (string, string, error) {
 	outb, errb, wait := SshExec(ctx, host, script)
+	err := wait()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ssh_exec_block error (%v):\n", err)
+	}
+	return outb.String(), errb.String(), err
+}
+
+func SshExecReaderBlock(
+	ctx context.Context,
+	host string,
+	script io.Reader,
+) (string, string, error) {
+	outb, errb, wait := SshExecReader(ctx, host, script)
 	err := wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ssh_exec_block error (%v):\n", err)

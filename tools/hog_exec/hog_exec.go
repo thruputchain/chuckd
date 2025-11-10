@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/tools/libtools"
 	"github.com/urfave/cli/v3"
 )
@@ -31,12 +29,8 @@ func main() {
 			job := c.String("j")
 			host := c.String("host")
 
-			buf, err := io.ReadAll(os.Stdin)
-			must.NoError(ctx, err)
-			script := string(buf)
-
 			fmt.Fprintf(os.Stdout, "executing for %s on %v\n", job, host)
-			_, _, err = libtools.HogExec(ctx, job, host, script)
+			_, _, err := libtools.HogExecReader(ctx, job, host, os.Stdin)
 			return err
 		},
 	}
