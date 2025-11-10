@@ -20,7 +20,7 @@ lock_dir=/run/user/$(id -u $(whoami))/lock
 lock_file="$lock_dir/lock"
 holder_file="$lock_dir/holder"
 
-mkdir -p -- "$dir"
+mkdir -p -- "$lock_dir"
 
 # Open the lock file on fd 9 and take an exclusive lock.
 # We don't store data in the lock file; it's just for locking.
@@ -30,6 +30,7 @@ flock -x 9
 stage_file="$(mktemp "${lock_dir}/holder.staging.XXXXXX")"
 
 cleanup() {
+  rm -f -- "$holder_file" 2>/dev/null || true
   rm -f -- "$stage_file" 2>/dev/null || true
   # Close fd 9 (this also releases the lock if we're still running)
   exec 9>&- 2>/dev/null || true
@@ -44,7 +45,7 @@ if command -v fsync >/dev/null 2>&1; then
   fsync "$stage_file" || true
 fi
 
-mv -f -- "$stage_file" "$data_file"
+mv -f -- "$stage_file" "$holder_file"
 
 echo "acquired lock on $lock_file for {{ .Holder }}, as pid: $$"
 echo "hanging forever; kill this process to release the lock."

@@ -3,10 +3,10 @@
 ```sh
 
 # acquire and hold locks hog1 and hog2 until killed
-hog_hold_lock —j=id --hosts=hog1,hog2 &
+hog_hold_lock —j=id --host=hog1 --host=hog2 &
 
 # wait until locks hog1 and hog2 are acquired
-hog_wait_lock —j=id --hosts=hog1,hog2
+hog_wait_lock —j=id --host=hog1 --host=hog2
 
 # execute the script on stdin on hog1 in the directory of job id
 hog_exec —j=id —host=hog1 <EOF
