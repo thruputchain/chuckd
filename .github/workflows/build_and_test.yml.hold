@@ -1,0 +1,26 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-test:
+        runs-on: self-hosted
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 1
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Run hog job
+              run: ./scripts/ci/build_and_test.job.sh --j=${{ github.workflow }}-${{ github.run_id }}
+
+            - name: Upload coverage artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage
+                  path: coverage.out

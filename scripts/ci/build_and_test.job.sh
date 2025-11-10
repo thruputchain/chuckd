@@ -8,11 +8,12 @@ source flag_job.sh
 parse_flag_j "$@"
 
 # lock machines
-hog_hold_lock --j=id --host=hog6 &
-hog_wait_lock --j=id --host=hog6
+host=hog6
+hog_hold_lock --j=id --host=$host &
+hog_wait_lock --j=id --host=$host
 
-# build on hog6
-hog_exec --j=$JOB --host=hog6 < build_and_test.sh
+# build on $host
+hog_exec --j=$job --host=$host < build_and_test.sh
 
 # copy output artifacts here
-hog_copy_from --j=$JOB --from=hog6 --in=coverage.out --out=coverage.out
+hog_copy_from --j=$job --from=$host --in=coverage.out --out=coverage.out
