@@ -12,7 +12,7 @@ hog_hold_lock --j=$job --host=$host &
 hog_wait_lock --j=$job --host=$host
 
 # build on $host
-hog_exec --j=$job --host=$host < "$SCRIPT_DIR"/build.sh
+hog_exec --j=$job --host=$host < "$SCRIPT_DIR"/clone_and_build.sh
 hog_exec --j=$job --host=$host < "$SCRIPT_DIR"/test.sh
 
 # copy output artifacts here
