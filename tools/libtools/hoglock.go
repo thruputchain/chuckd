@@ -16,7 +16,7 @@ func (x SyncLock) HoldLock(ctx context.Context, holder string, host string) erro
 	scriptTmpl := `
 set -euo pipefail
 
-lock_dir=/run/hoglock/lock
+lock_dir=/run/hoglock
 lock_file="$lock_dir/lock"
 holder_file="$lock_dir/holder"
 
@@ -82,7 +82,7 @@ set -euo pipefail
 
 expected={{ printf "%q" .Holder }}
 
-lock_dir=/run/hoglock/lock
+lock_dir=/run/hoglock
 holder_file="$lock_dir/holder"
 
 while true; do
