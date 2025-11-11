@@ -32,6 +32,6 @@ build() {
 package() {
   cd "$srcdir/chuckd"
   for t in "${_tools[@]}"; do
-    install -Dm755 "$t" "$pkgdir/usr/bin/$t"
+    install -Dm755 "$t" "$pkgdir/usr/local/bin/$t"
   done
 }
