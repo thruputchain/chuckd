@@ -16,7 +16,7 @@ func (x SyncLock) HoldLock(ctx context.Context, holder string, host string) erro
 	scriptTmpl := `
 set -euo pipefail
 
-lock_dir=/run/user/$(id -u $(whoami))/lock
+lock_dir=/run/hoglock/lock
 lock_file="$lock_dir/lock"
 holder_file="$lock_dir/holder"
 
@@ -64,21 +64,15 @@ done
 
 func (x SyncLock) HoldLockMany(ctx context.Context, holder string, hosts []string) error {
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	sort.Strings(hosts)
 
-	ech := make(chan error, len(hosts))
 	for _, host := range hosts {
-		go func(host string) {
-			ech <- x.HoldLock(ctx, holder, host)
-		}(host)
+		err := x.HoldLock(ctx, holder, host)
+		if err != nil {
+			return err
+		}
 	}
-
-	err := <-ech
-	cancel()
-	return err
+	return nil
 }
 
 func (x SyncLock) WaitLock(ctx context.Context, holder string, host string) error {
@@ -88,7 +82,7 @@ set -euo pipefail
 
 expected={{ printf "%q" .Holder }}
 
-lock_dir=/run/user/$(id -u $(whoami))/lock
+lock_dir=/run/hoglock/lock
 holder_file="$lock_dir/holder"
 
 while true; do

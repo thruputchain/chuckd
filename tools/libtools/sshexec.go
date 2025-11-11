@@ -38,7 +38,7 @@ func SshExecReader(
 		"RUST_BACKTRACE=1",
 		"RUST_LOG=" + runtime.GetLogLevel(),
 	}
-	cmd.Stdin = script
+	cmd.Stdin = io.MultiReader(bytes.NewBufferString("trap 'kill 0' EXIT\n\n"), script)
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
