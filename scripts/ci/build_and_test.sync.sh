@@ -4,7 +4,7 @@ set -euox pipefail
 SCRIPTS_CI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # SCRIPTS_DIR="$(dirname "$SCRIPTS_CI_DIR")"
 
-source flag_job.sh
+source "$SCRIPTS_CI_DIR"/flag_job.sh
 parse_flag_j "$@"
 
 # lock machines
