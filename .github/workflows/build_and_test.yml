@@ -26,7 +26,7 @@ jobs:
                   token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Run hog job
-              run: ./scripts/ci/build_and_test.sync.sh --j=${{ github.workflow }}-${{ github.run_id }}
+              run: ./scripts/ci/build_and_test.sync.sh --j="build-and-test-${{ github.run_id }}"
 
             - name: Upload coverage artifact
               uses: actions/upload-artifact@v4
