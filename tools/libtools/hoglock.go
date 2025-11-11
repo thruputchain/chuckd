@@ -29,14 +29,6 @@ flock -x 9
 
 stage_file="$(mktemp "${lock_dir}/holder.staging.XXXXXX")"
 
-cleanup() {
-  rm -f -- "$holder_file" 2>/dev/null || true
-  rm -f -- "$stage_file" 2>/dev/null || true
-  # Close fd 9 (this also releases the lock if we're still running)
-  exec 9>&- 2>/dev/null || true
-}
-trap cleanup EXIT
-
 # Write the new content into the temp file
 umask 022
 printf '%s\n' {{ printf "%q" .Holder }} >"$stage_file"
