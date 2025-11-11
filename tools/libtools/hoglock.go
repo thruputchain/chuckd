@@ -38,6 +38,7 @@ cleanup() {
 trap cleanup EXIT
 
 # Write the new content into the temp file
+umask 022
 printf '%s\n' {{ printf "%q" .Holder }} >"$stage_file"
 
 # (Optional) best-effort sync
