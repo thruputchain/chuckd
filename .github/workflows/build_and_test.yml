@@ -8,10 +8,11 @@ on:
 
 jobs:
     build-test:
-        runs-on: self-hosted
+        runs-on: hog6
         steps:
             - name: Clean up .gitconfig
               run: |
+                  echo "Running on $(hostname)"
                   echo "Cleaning up .gitconfig"
                   rm -f /home/hogci/.gitconfig
             - uses: webfactory/ssh-agent@v0.9.1
