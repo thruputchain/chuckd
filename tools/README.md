@@ -26,4 +26,4 @@ hog_copy --j=id \
 - log into `hog12`
 - copy `PKGBUILD` to `/tmp/hogtools` and `cd` there
 - run `makepkg -si` (this installs in `/usr/local/bin`)
-- run `sudo -D ~dm/ansible_hog ansible-playbook misc-config.yml` to populate to all machines
+- run `cd ~dm/ansible_hog` then `sudo ansible-playbook misc-config.yml` to populate to all machines
