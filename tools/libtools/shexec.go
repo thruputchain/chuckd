@@ -9,7 +9,6 @@ import (
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
 
@@ -20,6 +19,7 @@ func Exec(
 	return ExecReader(ctx, bytes.NewBufferString(script))
 }
 
+// XXX: if the ctx is cancelled, kill the process
 func ExecReader(
 	ctx context.Context,
 	script io.Reader,
@@ -31,11 +31,12 @@ func ExecReader(
 	bashOpts := []string{"-s"}
 
 	cmd := exec.Command(bashPath, bashOpts...)
-	cmd.Env = []string{
-		"RUST_BACKTRACE=1",
-		"RUST_LOG=" + runtime.GetLogLevel(),
-	}
-	cmd.Stdin = io.MultiReader(bytes.NewBufferString("trap 'kill 0' EXIT\n\n"), script)
+	cmd.Env = []string{}
+	cmd.Stdin = io.MultiReader(
+		bytes.NewBufferString("trap 'kill 0' EXIT\n(\n"),
+		script,
+		bytes.NewBufferString("\n)\n"),
+	)
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
@@ -47,7 +48,21 @@ func ExecReader(
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	return outbuf, errbuf, func() error { return cmd.Wait() }
+	waitCh := make(chan error, 1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			err := cmd.Process.Kill()
+			must.NoError(ctx, err)
+		case <-waitCh:
+		}
+	}()
+
+	return outbuf, errbuf, func() error {
+		err := cmd.Wait()
+		waitCh <- err
+		return cmd.Wait()
+	}
 }
 
 func ExecBlock(

@@ -11,6 +11,7 @@ type SyncLock struct{}
 
 var SyncHogLock SyncLock
 
+// when ctx is cancelled, the lock is released
 func (x SyncLock) HoldLock(ctx context.Context, holder string, host string) error {
 
 	scriptTmpl := `
@@ -58,6 +59,7 @@ func (x SyncLock) HoldLockMany(ctx context.Context, holder string, hosts []strin
 
 	sort.Strings(hosts)
 
+	// XXX: one lock should be tried only after the other succeeds
 	for _, host := range hosts {
 		err := x.HoldLock(ctx, holder, host)
 		if err != nil {

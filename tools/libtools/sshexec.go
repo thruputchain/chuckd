@@ -9,7 +9,6 @@ import (
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
 
@@ -21,6 +20,7 @@ func SshExec(
 	return SshExecReader(ctx, host, bytes.NewBufferString(script))
 }
 
+// if ctx is cancelled, the process will be killed
 func SshExecReader(
 	ctx context.Context,
 	host string,
@@ -34,11 +34,12 @@ func SshExecReader(
 	sshOpts = append(sshOpts, host, `bash -s`)
 
 	cmd := exec.Command(sshPath, sshOpts...)
-	cmd.Env = []string{
-		"RUST_BACKTRACE=1",
-		"RUST_LOG=" + runtime.GetLogLevel(),
-	}
-	cmd.Stdin = io.MultiReader(bytes.NewBufferString("trap 'kill 0' EXIT\n\n"), script)
+	cmd.Env = []string{}
+	cmd.Stdin = io.MultiReader(
+		bytes.NewBufferString("trap 'kill 0' EXIT\n(\n"),
+		script,
+		bytes.NewBufferString("\n)\n"),
+	)
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
@@ -50,7 +51,21 @@ func SshExecReader(
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	return outbuf, errbuf, func() error { return cmd.Wait() }
+	waitCh := make(chan error, 1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			err := cmd.Process.Kill()
+			must.NoError(ctx, err)
+		case <-waitCh:
+		}
+	}()
+
+	return outbuf, errbuf, func() error {
+		err := cmd.Wait()
+		waitCh <- err
+		return err
+	}
 }
 
 func SshExecBlock(
