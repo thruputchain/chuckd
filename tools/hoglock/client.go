@@ -2,42 +2,56 @@ package hoglock
 
 import (
 	"context"
-	"net"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/chuckd/lib/must"
 	proto "github.com/groundhogchain/protocol-go"
-	"github.com/xdrpp/goxdr/rpc"
 )
 
-type HogLockConn interface {
-	proto.HogLock1
-	Close()
+type Client struct {
+	Net     libnet.Network
+	Address string
 }
 
-type HogLockClient struct {
-	proto.HogLock1_Client
-	driver *rpc.Driver
+func (c *Client) AcquireLocks(ctx context.Context, o ...proto.LockObject) *Lease {
+	conn, err := DialHogLockClient(ctx, c.Net, c.Address)
+	must.NoError(ctx, err)
+
+	h, err := conn.Hoglock_lock(ctx, o)
+	must.NoError(ctx, err)
+
+	return makeLease(ctx, conn, h)
 }
 
-func DialHogLockClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*HogLockClient, error) {
-	sock, err := dialer.DialAddress(ctx, addr)
-	if err != nil {
-		return nil, err
+type Lease struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	conn   *HogLockClient
+	lease  proto.LockLease
+}
+
+func makeLease(ctx context.Context, conn *HogLockClient, h proto.LockLease) *Lease {
+	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	x := &Lease{ctx: ctx, cancel: cancel, conn: conn, lease: h}
+	go x.renew(ctx)
+	return x
+}
+
+func (x *Lease) renew(ctx context.Context) {
+	for {
+		time.Sleep(LeaseRenewInterval)
+		select {
+		case <-ctx.Done():
+			x.conn.Close()
+			return
+		default:
+		}
+		err := x.conn.Hoglock_renew(ctx, x.lease)
+		must.NoError(ctx, err)
 	}
-	return NewHogLockClient(ctx, sock), nil
 }
 
-func NewHogLockClient(ctx context.Context, sock net.Conn) *HogLockClient {
-	driver := rpcutil.NewDriverSerial(ctx, sock)
-	go driver.Go()
-
-	return &HogLockClient{
-		HogLock1_Client: proto.HogLock1_Client{Send: driver, Ctx: ctx},
-		driver:          driver,
-	}
-}
-
-func (cc *HogLockClient) Close() {
-	cc.driver.Close()
+func (x *Lease) Unlock() {
+	x.cancel()
 }
