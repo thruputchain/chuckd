@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -30,7 +32,12 @@ func NewService() *Service {
 	return x
 }
 
-func (x *Service) Start(ctx context.Context) {
+func (x *Service) Start(ctx context.Context, n libnet.Network, address string) {
+	go x.start(ctx)
+	rpcutil.StartSerial(ctx, n, address, proto.HogLock1_Server{Srv: x})
+}
+
+func (x *Service) start(ctx context.Context) {
 	go func() {
 		for {
 			time.Sleep(LeaseTTL)

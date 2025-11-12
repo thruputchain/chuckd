@@ -13,8 +13,7 @@ source=("git+ssh://git@github.com/groundhogchain/chuckd.git")
 sha256sums=('SKIP')
 
 _tools=(
-  hog_hold_lock
-  hog_wait_lock
+  hog_lockd
   hog_exec
   hog_copy
   hog_copy_from
