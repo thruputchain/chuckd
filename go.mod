@@ -16,12 +16,14 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/goccy/go-yaml v1.17.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/groundhogchain/protocol-go v0.0.0-20251103230631-7a3d286c9264
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/prometheus/client_golang v1.22.0
+	github.com/urfave/cli/v3 v3.6.0
 	github.com/xdrpp/goxdr v0.0.0-20251105052510-fe323ae733fc
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
 	go.opentelemetry.io/otel/metric v1.35.0
@@ -65,7 +67,6 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/urfave/cli/v3 v3.6.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
