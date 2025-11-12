@@ -4,15 +4,13 @@ import (
 	"context"
 	"sort"
 
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
 
-type SyncLock struct{}
-
-var SyncHogLock SyncLock
-
-// when ctx is cancelled, the lock is released
-func (x SyncLock) HoldLock(ctx context.Context, holder string, host string) error {
+// HoldLock acquires a lock on host and holds it until the ctx is cancelled.
+// It does not return, unless ctx is cancelled or an error occurs.
+func HoldLock(ctx context.Context, holder string, host string) {
 
 	scriptTmpl := `
 set -euo pipefail
@@ -52,24 +50,10 @@ done
 		"Holder": holder,
 	})
 	_, _, err := SshExecBlock(ctx, host, script)
-	return err
+	must.NoError(ctx, err)
 }
 
-func (x SyncLock) HoldLockMany(ctx context.Context, holder string, hosts []string) error {
-
-	sort.Strings(hosts)
-
-	// XXX: one lock should be tried only after the other succeeds
-	for _, host := range hosts {
-		err := x.HoldLock(ctx, holder, host)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (x SyncLock) WaitLock(ctx context.Context, holder string, host string) error {
+func WaitLock(ctx context.Context, holder string, host string) {
 
 	scriptTmpl := `
 set -euo pipefail
@@ -94,29 +78,19 @@ done
 		"Holder": holder,
 	})
 	_, _, err := SshExecBlock(ctx, host, script)
-	return err
+	must.NoError(ctx, err)
 }
 
-func (x SyncLock) WaitLockMany(ctx context.Context, holder string, hosts []string) error {
+func AcquireLock(ctx context.Context, holder string, host string) {
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	go HoldLock(ctx, holder, host)
+	WaitLock(ctx, holder, host)
+}
+
+func AcquireLockMany(ctx context.Context, holder string, hosts []string) {
 
 	sort.Strings(hosts)
-
-	ech := make(chan error, len(hosts))
 	for _, host := range hosts {
-		go func(host string) {
-			ech <- x.WaitLock(ctx, holder, host)
-		}(host)
+		AcquireLock(ctx, holder, host)
 	}
-
-	for i := 0; i < len(hosts); i++ {
-		if err := <-ech; err != nil {
-			cancel()
-			return err
-		}
-	}
-
-	return nil
 }
