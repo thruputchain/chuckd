@@ -7,19 +7,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
 
-func Exec(
-	ctx context.Context,
-	script string,
-) (*bytes.Buffer, *bytes.Buffer, func() error) {
-	return ExecReader(ctx, bytes.NewBufferString(script))
-}
-
-// XXX: if the ctx is cancelled, kill the process
+// if ctx is cancelled, the process will be killed
 func ExecReader(
 	ctx context.Context,
 	script io.Reader,
@@ -45,17 +39,20 @@ func ExecReader(
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
 	waitCh := make(chan error, 1)
+	ck.register(cmd.Process.Pid)
 	go func() {
 		select {
 		case <-ctx.Done():
-			err := cmd.Process.Kill()
-			must.NoError(ctx, err)
 		case <-waitCh:
 		}
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		ck.unregister(cmd.Process.Pid)
 	}()
 
 	return outbuf, errbuf, func() error {
@@ -63,6 +60,13 @@ func ExecReader(
 		waitCh <- err
 		return cmd.Wait()
 	}
+}
+
+func Exec(
+	ctx context.Context,
+	script string,
+) (*bytes.Buffer, *bytes.Buffer, func() error) {
+	return ExecReader(ctx, bytes.NewBufferString(script))
 }
 
 func ExecBlock(

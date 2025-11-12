@@ -7,18 +7,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
-
-func SshExec(
-	ctx context.Context,
-	host string,
-	script string,
-) (*bytes.Buffer, *bytes.Buffer, func() error) {
-	return SshExecReader(ctx, host, bytes.NewBufferString(script))
-}
 
 // if ctx is cancelled, the process will be killed
 func SshExecReader(
@@ -48,17 +41,20 @@ func SshExecReader(
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
 	waitCh := make(chan error, 1)
+	ck.register(cmd.Process.Pid)
 	go func() {
 		select {
 		case <-ctx.Done():
-			err := cmd.Process.Kill()
-			must.NoError(ctx, err)
 		case <-waitCh:
 		}
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		ck.unregister(cmd.Process.Pid)
 	}()
 
 	return outbuf, errbuf, func() error {
@@ -66,6 +62,14 @@ func SshExecReader(
 		waitCh <- err
 		return err
 	}
+}
+
+func SshExec(
+	ctx context.Context,
+	host string,
+	script string,
+) (*bytes.Buffer, *bytes.Buffer, func() error) {
+	return SshExecReader(ctx, host, bytes.NewBufferString(script))
 }
 
 func SshExecBlock(
