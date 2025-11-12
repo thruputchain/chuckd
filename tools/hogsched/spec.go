@@ -6,10 +6,28 @@ import (
 	"io"
 
 	"github.com/BurntSushi/toml"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 type Spec struct {
-	Jobs []Job `toml:"jobs"`
+	Name string `toml:"name"`
+	Jobs []Job  `toml:"jobs"`
+}
+
+func (x Spec) HostObjects() proto.LockObjects {
+	r := make(proto.LockObjects, len(x.Jobs))
+	for i := range x.Jobs {
+		r[i] = x.Jobs[i].Host
+	}
+	return r
+}
+
+func (x Spec) Scripts() []string {
+	r := make([]string, len(x.Jobs))
+	for i := range x.Jobs {
+		r[i] = x.Jobs[i].Script
+	}
+	return r
 }
 
 type Job struct {
@@ -31,6 +49,10 @@ func Parse(r io.Reader) (*Spec, error) {
 }
 
 func validate(spec *Spec) error {
+	if spec.Name == "" {
+		return errors.New("missing workflow name")
+	}
+
 	if len(spec.Jobs) == 0 {
 		return errors.New("no [[jobs]] entries found")
 	}

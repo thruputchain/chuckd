@@ -10,12 +10,12 @@ import (
 )
 
 type Client struct {
-	Net     libnet.Network
-	Address string
+	Net          libnet.Network
+	LockdAddress string
 }
 
-func (c *Client) AcquireLocks(ctx context.Context, o ...proto.LockObject) *Lease {
-	conn, err := DialHogLockClient(ctx, c.Net, c.Address)
+func (c *Client) AcquireLocks(ctx context.Context, o proto.LockObjects) *Lease {
+	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)
 
 	h, err := conn.Hoglock_lock(ctx, o)
