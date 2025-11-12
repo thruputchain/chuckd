@@ -5,12 +5,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/tools/hoglock"
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
+	liblog.LogLevel(zerolog.DebugLevel)
+
 	cmd := &cli.Command{
 		Name:  "hog_lockd",
 		Usage: "hog cluster synchronization daemon",

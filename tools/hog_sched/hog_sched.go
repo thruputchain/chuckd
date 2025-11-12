@@ -8,12 +8,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/tools/hogsched"
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
+	liblog.LogLevel(zerolog.DebugLevel)
+
 	app := &cli.Command{
 		Name:      "hog_sched",
 		Usage:     "Schedule jobs defined in a spec file",
