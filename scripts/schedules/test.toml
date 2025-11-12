@@ -1,0 +1,15 @@
+name = "test_sched"
+
+[[jobs]]
+name = "job_1"
+host = "hog6"
+script = """
+echo job_1
+"""
+
+[[jobs]]
+name = "job_2"
+host = "hog7"
+script = """
+echo job_2
+"""

@@ -35,8 +35,10 @@ func SshExecReader(
 	)
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
-	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
-	stderr := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, errbuf), "[err] ")
+	out_prefix := fmt.Sprintf("[%s:out] ", host)
+	err_prefix := fmt.Sprintf("[%s:err] ", host)
+	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), out_prefix)
+	stderr := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, errbuf), err_prefix)
 
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
