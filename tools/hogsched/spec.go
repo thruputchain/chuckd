@@ -23,11 +23,6 @@ type Job struct {
 	FileOut []string          `toml:"file_out"`
 }
 
-type Env struct {
-	Name  string `toml:"name"`
-	Value string `toml:"value"`
-}
-
 func (x Spec) HostObjects() proto.LockObjects {
 	r := make(proto.LockObjects, len(x.Jobs))
 	for i := range x.Jobs {
