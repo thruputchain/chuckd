@@ -82,7 +82,7 @@ func SshExecBlock(
 	outb, errb, wait := SshExec(ctx, host, script)
 	err := wait()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ssh_exec_block error (%v):\n", err)
+		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
 	}
 	return outb.String(), errb.String(), err
 }
@@ -95,7 +95,7 @@ func SshExecReaderBlock(
 	outb, errb, wait := SshExecReader(ctx, host, script)
 	err := wait()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ssh_exec_block error (%v):\n", err)
+		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
 	}
 	return outb.String(), errb.String(), err
 }

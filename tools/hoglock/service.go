@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"slices"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -20,13 +22,18 @@ type Service struct {
 	lk      sync.Mutex
 	cond    *sync.Cond
 	objects map[proto.LockObject]proto.LockLease
-	leases  map[proto.LockLease]time.Time
+	leases  map[proto.LockLease]*lease
+}
+
+type lease struct {
+	renewed time.Time
+	objects proto.LockObjects
 }
 
 func NewService() *Service {
 	x := &Service{
 		objects: map[proto.LockObject]proto.LockLease{},
-		leases:  map[proto.LockLease]time.Time{},
+		leases:  map[proto.LockLease]*lease{},
 	}
 	x.cond = sync.NewCond(&x.lk)
 	return x
@@ -34,7 +41,8 @@ func NewService() *Service {
 
 func (x *Service) Start(ctx context.Context, n libnet.Network, address string) {
 	go x.start(ctx)
-	rpcutil.StartSerial(ctx, n, address, proto.HogLock1_Server{Srv: x})
+	l := rpcutil.StartSerial(ctx, n, address, proto.HogLock1_Server{Srv: x})
+	liblog.Infof("hog_lockd is listening on %v", l.Addr().String())
 }
 
 func (x *Service) start(ctx context.Context) {
@@ -55,6 +63,7 @@ func (x *Service) acquireLock(_ context.Context, h proto.LockLease, o proto.Lock
 			x.cond.Wait()
 		} else {
 			x.objects[o] = h
+			return
 		}
 	}
 }
@@ -64,20 +73,24 @@ func (x *Service) expireLeases(ctx context.Context) {
 	defer x.lk.Unlock()
 	defer x.cond.Broadcast()
 	now := time.Now()
-	for h, lastRenewed := range x.leases {
-		if now.Sub(lastRenewed) > LeaseTTL {
+	for h, lease := range x.leases {
+		if now.Sub(lease.renewed) > LeaseTTL {
 			x.releaseLease(ctx, h)
 		}
 	}
 }
 
 func (x *Service) releaseLease(_ context.Context, h proto.LockLease) {
-	for o, oh := range x.objects {
-		if h == oh {
-			delete(x.objects, o)
-		}
-	}
+	liblog.Infof("expiring lease %v", h)
+	lease := x.leases[h]
 	delete(x.leases, h)
+
+	slices.Reverse(lease.objects)
+	liblog.Infof("releasing locks %v, while expiring lease %v", lease.objects, h)
+
+	for _, o := range lease.objects {
+		delete(x.objects, o)
+	}
 }
 
 // --- rpc ---
@@ -86,12 +99,22 @@ func (x *Service) Hoglock_null(context.Context) error {
 	return nil
 }
 
-func (x *Service) Hoglock_lock(ctx context.Context, o proto.LockObjects) (proto.LockLease, error) {
+func (x *Service) Hoglock_lock(ctx context.Context, o proto.LockObjects) (h proto.LockLease, err error) {
+
+	liblog.Infof("hoglock_lock %v", o)
+	defer func() {
+		if err != nil {
+			liblog.Errorf("hoglock_lock for %v not acquired (%v)", o, err)
+		} else {
+			liblog.Infof("hoglock_lock for %v acquired under lease %v", o, h)
+		}
+	}()
+
 	if len(o) == 0 {
 		return "", nil
 	}
 
-	h := randomHandle()
+	h = randomHandle()
 	sort.Strings(o)
 	for _, o := range o {
 		x.acquireLock(ctx, h, o)
@@ -99,23 +122,28 @@ func (x *Service) Hoglock_lock(ctx context.Context, o proto.LockObjects) (proto.
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	x.leases[h] = time.Now()
+
+	x.leases[h] = &lease{renewed: time.Now(), objects: o}
 
 	return h, nil
 }
 
 func (x *Service) Hoglock_renew(ctx context.Context, h proto.LockLease) error {
+	liblog.Infof("hoglock_renew %v", h)
+
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	_, known := x.leases[h]
+	lease, known := x.leases[h]
 	if !known {
 		return nil
 	}
-	x.leases[h] = time.Now()
+	lease.renewed = time.Now()
 	return nil
 }
 
 func (x *Service) Hoglock_check(ctx context.Context, h proto.LockLease) (bool, error) {
+	liblog.Infof("hoglock_check %v", h)
+
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	_, active := x.leases[h]

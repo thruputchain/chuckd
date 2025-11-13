@@ -7,32 +7,45 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/tools/hoglock"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	liblog.LogLevel(zerolog.DebugLevel)
-
 	cmd := &cli.Command{
 		Name:  "hog_lockd",
 		Usage: "hog cluster synchronization daemon",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "address",
-				Value:    ":60006",
-				Required: true,
-				Usage:    "bind address",
+				Name:  "level",
+				Value: "info",
+				Usage: "log level",
+			},
+			&cli.StringFlag{
+				Name:  "address",
+				Value: ":60006",
+				// Required: true,
+				Usage: "bind address",
 			},
 			&cli.StringSliceFlag{
-				Name:  "hosts",
+				Name:  "host",
 				Usage: "available hosts (repeatable)",
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
+			level := c.String("level")
 			addr := c.String("address")
-			_ = c.StringSlice("hosts")
+			_ = c.StringSlice("host")
+
+			// log level
+			zlevel, err := zerolog.ParseLevel(level)
+			if err != nil {
+				log.Fatal(err)
+			}
+			liblog.LogLevel(zlevel)
+			libruntime.StackTraceInterrupt()
 
 			hoglock.NewService().Start(ctx, libnet.TCPNet{}, addr)
 			select {}
