@@ -22,11 +22,10 @@ jobs:
                       ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
                       ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
 
+            - uses: actions/checkout@v4
+
             - name: Run hog schedule
               run: |
-                  rm -rf chuckd
-                  git clone --depth 1 git@github.com:groundhogchain/chuckd.git
-
                   hog_sched \
                     --i="github-${{ github.run_id }}" \
                     --key=git_commit --value=${{ github.sha }} \
