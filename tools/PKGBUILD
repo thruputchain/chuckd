@@ -15,7 +15,6 @@ sha256sums=('SKIP')
 _tools=(
   hog_lockd
   hog_sched
-  hog_par
 )
 
 # Automatically derive pkgver from git commit info
