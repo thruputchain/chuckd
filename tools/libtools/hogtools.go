@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/groundhogchain/chuckd/lib/liblog"
 )
 
 type DotHogtools struct {
@@ -17,18 +18,21 @@ type DotHogtools struct {
 func FindDotHogtools(ctx context.Context) (*DotHogtools, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
+		liblog.Errorf("finding home dir (%v)", err)
 		return nil, fmt.Errorf("get home dir: %w", err)
 	}
 	path := filepath.Join(home, ".hogtools")
 
 	f, err := os.Open(path)
 	if err != nil {
+		liblog.Errorf("opening %s (%v)", path, err)
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	defer f.Close()
 
 	var cfg DotHogtools
 	if _, err := toml.NewDecoder(f).Decode(&cfg); err != nil {
+		liblog.Errorf("parsing %s (%v)", path, err)
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 

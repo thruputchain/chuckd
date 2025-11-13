@@ -32,7 +32,7 @@ func ExecReader(
 	fmt.Fprintln(&prefix, `set -euom pipefail`)
 	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
 	for name, value := range env {
-		fmt.Fprintf(&prefix, `export %s=%q\n`, name, value)
+		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 	fmt.Fprintln(&prefix, `(`)
 

@@ -34,11 +34,13 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `set -euom pipefail`)
 	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
 	for name, value := range env {
-		fmt.Fprintf(&prefix, `export %s=%q\n`, name, value)
+		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 	fmt.Fprintln(&prefix, `(`)
 
-	cmd.Stdin = io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n"))
+	stdin := io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n"))
+
+	cmd.Stdin = stdin
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	out_prefix := fmt.Sprintf("[%s:out] ", host)

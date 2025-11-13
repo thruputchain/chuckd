@@ -24,6 +24,7 @@ func main() {
 
 	ctx := context.Background()
 	dot := libtools.DeriveDotHogtools(ctx)
+	fmt.Println("DOT", dot)
 	app := &cli.Command{
 		Name:      "hog_sched",
 		Usage:     "Schedule jobs",
@@ -80,6 +81,9 @@ func main() {
 			liblog.LogLevel(zlevel)
 			libruntime.StackTraceInterrupt()
 
+			liblog.Infof("lockd=%v job_dir=%v", lockdAddress, jobDir)
+
+			// spec argument
 			if c.Args().Len() < 1 {
 				_ = cli.ShowRootCommandHelp(c) // show usage for convenience
 				return errors.New("missing required <schedule_file> argument")

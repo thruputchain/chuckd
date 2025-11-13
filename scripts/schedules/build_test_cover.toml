@@ -6,6 +6,7 @@ host = "hog6"
 script = """
 
 set -x
+echo GIT commit $GIT_COMMIT
 
 GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*

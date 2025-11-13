@@ -65,7 +65,7 @@ func (x Spec) Envs(inject map[string]string) []map[string]string {
 
 func cloneMap(src map[string]string) map[string]string {
 	if src == nil {
-		return nil
+		return map[string]string{}
 	}
 	dst := make(map[string]string, len(src))
 	for k, v := range src {
