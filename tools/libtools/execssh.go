@@ -28,7 +28,7 @@ func SshExecReader(
 	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
-	cmd.Env = []string{}
+	cmd.Env = nil // []string{}
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euom pipefail`)
