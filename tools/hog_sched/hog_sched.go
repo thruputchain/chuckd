@@ -76,7 +76,7 @@ func main() {
 			sched := hogsched.Config{
 				Net:          libnet.TCPNet{},
 				LockdAddress: lockdAddress,
-				RunDir:       runDir,
+				JobDir:       runDir,
 			}
 
 			return sched.Schedule(ctx, *spec)

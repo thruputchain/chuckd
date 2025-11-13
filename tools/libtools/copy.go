@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"path"
 
 	"github.com/groundhogchain/chuckd/lib/must"
 )
 
-func HogCopy(
+func Copy(
 	ctx context.Context,
-	jid string, // job id
 	from string, // from host
 	to string, // to host
 	in []string, // source paths (files or dirs)
@@ -23,25 +21,17 @@ func HogCopy(
 		return nil
 	}
 
-	jdir := JobDir(jid)
-
 	var w bytes.Buffer
 	for i := range out {
-		fmt.Fprintf(&w, "set -ex\n")
-		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n",
-			path.Join(jdir, in[i]),
-			to,
-			path.Join(jdir, out[i]),
-		)
+		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n", in[i], to, out[i])
 	}
 
 	_, _, err := SshExecBlock(ctx, from, w.String())
 	return err
 }
 
-func HogCopyFrom(
+func CopyFrom(
 	ctx context.Context,
-	jid string, // job id
 	from string, // from host
 	in []string, // source paths (files or dirs)
 	out []string, // destination paths
@@ -52,25 +42,17 @@ func HogCopyFrom(
 		return nil
 	}
 
-	jdir := JobDir(jid)
-
 	var w bytes.Buffer
 	for i := range out {
-		fmt.Fprintf(&w, "set -ex\n")
-		fmt.Fprintf(&w, "rsync --mkpath -r %s:%q %q\n",
-			from,
-			path.Join(jdir, in[i]),
-			path.Join(".", out[i]),
-		)
+		fmt.Fprintf(&w, "rsync --mkpath -r %s:%q %q\n", from, in[i], out[i])
 	}
 
 	_, _, err := ExecBlock(ctx, w.String())
 	return err
 }
 
-func HogCopyTo(
+func CopyTo(
 	ctx context.Context,
-	jid string, // job id
 	to string, // from host
 	in []string, // source paths (files or dirs)
 	out []string, // destination paths
@@ -81,16 +63,9 @@ func HogCopyTo(
 		return nil
 	}
 
-	jdir := JobDir(jid)
-
 	var w bytes.Buffer
 	for i := range out {
-		fmt.Fprintf(&w, "set -ex\n")
-		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n",
-			path.Join(".", in[i]),
-			to,
-			path.Join(jdir, out[i]),
-		)
+		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n", in[i], to, out[i])
 	}
 
 	_, _, err := ExecBlock(ctx, w.String())
