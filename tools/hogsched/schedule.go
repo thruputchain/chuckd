@@ -2,10 +2,12 @@ package hogsched
 
 import (
 	"context"
+	"os/user"
 	"path"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/tools/hoglock"
 	"github.com/groundhogchain/chuckd/tools/libtools"
 )
@@ -40,12 +42,15 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec) error {
 	}
 
 	// executing scripts in parallel
-	scripts := spec.ScriptsWithJobDir(x.JobDir)
+	user, err := user.Current()
+	must.NoError(ctx, err)
+
+	scripts := spec.ScriptsWithJobDir(x.JobDir, user.Username)
 	inject := map[string]string{
 		"HOG_XID": xid,
 	}
 	envs := spec.Envs(inject)
-	err := libtools.SshExecPar(ctx, hosts, scripts, envs)
+	err = libtools.SshExecPar(ctx, hosts, scripts, envs)
 	if err != nil {
 		return err
 	}

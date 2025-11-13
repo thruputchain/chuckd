@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	proto "github.com/groundhogchain/protocol-go"
@@ -31,13 +32,14 @@ func (x Spec) HostObjects() proto.LockObjects {
 	return r
 }
 
-func (x Spec) ScriptsWithJobDir(jd string) []string {
+func (x Spec) ScriptsWithJobDir(jobDir string, user string) []string {
+	jobDir = filepath.Clean(jobDir) + "-" + user
 	prefix := fmt.Sprintf(`
 mkdir -p %q
 cd %q
 rm -rf *
 (
-`, jd, jd)
+`, jobDir, jobDir)
 	suffix := `
 )
 `
