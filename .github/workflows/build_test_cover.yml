@@ -10,6 +10,10 @@ jobs:
     build-test:
         runs-on: self-hosted
         steps:
+            - name: Add /usr/local/bin to PATH
+              run: echo "/usr/local/bin" >> $GITHUB_PATH
+              shell: bash
+
             - name: Run hog schedule
               run: |
                   export SSH_AUTH_SOCK="$HOME/.ssh/ssh_auth_sock"
@@ -20,7 +24,6 @@ jobs:
 
                   git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
-                  echo $(which hog_sched)
                   hog_sched \
                     --i="github-${{ github.run_id }}" \
                     --key=git_commit --value=${{ github.sha }}
