@@ -24,7 +24,6 @@ func main() {
 
 	ctx := context.Background()
 	dot := libtools.DeriveDotHogtools(ctx)
-	fmt.Println("DOT", dot)
 	app := &cli.Command{
 		Name:      "hog_sched",
 		Usage:     "Schedule jobs",

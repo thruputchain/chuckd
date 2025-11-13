@@ -10,10 +10,6 @@ jobs:
     build-test:
         runs-on: self-hosted
         steps:
-            # - name: Add /usr/local/bin to PATH
-            #   run: echo "/usr/local/bin" >> $GITHUB_PATH
-            #   shell: bash
-
             - name: Clean up .gitconfig
               run: |
                   echo "Cleaning up .gitconfig"
@@ -31,11 +27,9 @@ jobs:
                   rm -rf chuckd
                   git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
-                  echo $(which hog_sched)
-                  echo $PATH
                   hog_sched \
                     --i="github-${{ github.run_id }}" \
-                    --key=git_commit --value=${{ github.sha }}
+                    --key=git_commit --value=${{ github.sha }} \
                     ./scripts/schedules/build_test_cover.toml
 
             - name: Upload coverage artifact
