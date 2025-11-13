@@ -11,6 +11,8 @@ GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*
 GONOPROXY=github.com/groundhogchain/*
 
+ssh-add -l
+
 git config --global url."git@github.com:".insteadOf "https://github.com/"
 git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 cd chuckd
