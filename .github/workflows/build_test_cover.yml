@@ -24,6 +24,8 @@ jobs:
 
                   git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
+                  echo $(which hog_sched)
+                  echo $PATH
                   hog_sched \
                     --i="github-${{ github.run_id }}" \
                     --key=git_commit --value=${{ github.sha }}
