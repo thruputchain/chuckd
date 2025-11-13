@@ -21,8 +21,8 @@ func main() {
 
 	app := &cli.Command{
 		Name:      "hog_sched",
-		Usage:     "Schedule jobs defined in a spec file",
-		ArgsUsage: "<spec_file>",
+		Usage:     "Schedule jobs",
+		ArgsUsage: "<schedule_file>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "level",
@@ -56,7 +56,7 @@ func main() {
 
 			if c.Args().Len() < 1 {
 				_ = cli.ShowRootCommandHelp(c) // show usage for convenience
-				return errors.New("missing required <spec_file> argument")
+				return errors.New("missing required <schedule_file> argument")
 			}
 			specFile := c.Args().Get(0)
 

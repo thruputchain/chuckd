@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-func ExecPar(
+func ShExecPar(
 	ctx context.Context,
 	script []string,
 ) error {

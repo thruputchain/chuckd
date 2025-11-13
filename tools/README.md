@@ -17,5 +17,5 @@ Make sure the running user has ssh credentials for access to github repos on all
 ```sh
 export HOG_LOCKD="hog12:60006"
 export HOG_RUNDIR="/tmp/hogjob"
-hog_sched workflow.toml
+hog_sched schedule.toml
 ```

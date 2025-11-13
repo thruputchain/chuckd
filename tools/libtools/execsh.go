@@ -22,12 +22,17 @@ func ExecReader(
 	bashPath, err := exec.LookPath("bash")
 	must.NoError(ctx, err)
 
-	bashOpts := []string{"-s"}
+	bashOpts := []string{bashPath, "-s"}
 
-	cmd := exec.Command(bashPath, bashOpts...)
+	cmd := exec.CommandContext(ctx, "setsid", bashOpts...)
 	cmd.Env = []string{}
 	cmd.Stdin = io.MultiReader(
-		bytes.NewBufferString("trap 'kill 0' EXIT\n(\n"),
+		bytes.NewBufferString(`
+set -euo pipefail
+set -m
+trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT
+(
+`),
 		script,
 		bytes.NewBufferString("\n)\n"),
 	)

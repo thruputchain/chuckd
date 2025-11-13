@@ -24,12 +24,17 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`}
-	sshOpts = append(sshOpts, host, `bash -s`)
+	sshOpts = append(sshOpts, host, `bash`, `-s`) //XXX: setsid
 
-	cmd := exec.Command(sshPath, sshOpts...)
+	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = []string{}
 	cmd.Stdin = io.MultiReader(
-		bytes.NewBufferString("trap 'kill 0' EXIT\n(\n"),
+		bytes.NewBufferString(`
+set -euo pipefail
+set -m
+trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT
+(
+`),
 		script,
 		bytes.NewBufferString("\n)\n"),
 	)

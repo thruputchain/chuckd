@@ -4,12 +4,18 @@ name = "test_sched"
 name = "job_1"
 host = "hog6"
 script = """
-echo job_1
+set -x
+echo job_1 before sleep
+sleep 3
+echo job_1 after sleep
 """
 
 [[jobs]]
 name = "job_2"
 host = "hog7"
 script = """
-echo job_2
+set -x
+echo job_2 before sleep
+sleep 5
+echo job_2 after sleep
 """
