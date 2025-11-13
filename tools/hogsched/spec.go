@@ -14,6 +14,20 @@ type Spec struct {
 	Jobs []Job  `toml:"jobs"`
 }
 
+type Job struct {
+	Name    string            `toml:"name"`
+	Host    string            `toml:"host"`
+	Script  string            `toml:"script"`
+	Env     map[string]string `toml:"env"`
+	FileIn  []string          `toml:"file_in"`
+	FileOut []string          `toml:"file_out"`
+}
+
+type Env struct {
+	Name  string `toml:"name"`
+	Value string `toml:"value"`
+}
+
 func (x Spec) HostObjects() proto.LockObjects {
 	r := make(proto.LockObjects, len(x.Jobs))
 	for i := range x.Jobs {
@@ -22,26 +36,42 @@ func (x Spec) HostObjects() proto.LockObjects {
 	return r
 }
 
-func (x Spec) Scripts() []string {
+func (x Spec) ScriptsWithJobDir(jd string) []string {
+	prefix := fmt.Sprintf(`
+mkdir -p %q
+cd %q
+(
+`, jd, jd)
+	suffix := `
+)
+`
 	r := make([]string, len(x.Jobs))
 	for i := range x.Jobs {
-		r[i] = x.Jobs[i].Script
+		r[i] = prefix + x.Jobs[i].Script + suffix
 	}
 	return r
 }
 
-type Job struct {
-	Name    string   `toml:"name"`
-	Host    string   `toml:"host"`
-	Script  string   `toml:"script"`
-	Env     []Env    `toml:"env"`
-	FileIn  []string `toml:"file_in"`
-	FileOut []string `toml:"file_out"`
+func (x Spec) Envs(inject map[string]string) []map[string]string {
+	r := make([]map[string]string, len(x.Jobs))
+	for i, job := range x.Jobs {
+		r[i] = cloneMap(job.Env)
+		for n, v := range inject {
+			r[i][n] = v
+		}
+	}
+	return r
 }
 
-type Env struct {
-	Name  string `toml:"name"`
-	Value string `toml:"value"`
+func cloneMap(src map[string]string) map[string]string {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]string, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
 
 func Parse(r io.Reader) (*Spec, error) {

@@ -26,7 +26,7 @@ func Copy(
 		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n", in[i], to, out[i])
 	}
 
-	_, _, err := SshExecBlock(ctx, from, w.String())
+	_, _, err := SshExecBlock(ctx, from, w.String(), nil)
 	return err
 }
 
@@ -47,7 +47,7 @@ func CopyFrom(
 		fmt.Fprintf(&w, "rsync --mkpath -r %s:%q %q\n", from, in[i], out[i])
 	}
 
-	_, _, err := ExecBlock(ctx, w.String())
+	_, _, err := ExecBlock(ctx, w.String(), nil)
 	return err
 }
 
@@ -68,6 +68,6 @@ func CopyTo(
 		fmt.Fprintf(&w, "rsync --mkpath -r %q %s:%q\n", in[i], to, out[i])
 	}
 
-	_, _, err := ExecBlock(ctx, w.String())
+	_, _, err := ExecBlock(ctx, w.String(), nil)
 	return err
 }

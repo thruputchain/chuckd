@@ -22,7 +22,7 @@ func main() {
 			lines, err := ReadLines(os.Stdin)
 			must.NoError(ctx, err)
 
-			return libtools.ShExecPar(ctx, lines)
+			return libtools.ShExecPar(ctx, lines, nil)
 		},
 	}
 

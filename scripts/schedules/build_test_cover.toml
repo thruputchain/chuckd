@@ -5,8 +5,7 @@ name = "build_test_cover"
 host = "hog6"
 script = """
 
-#!/usr/bin/env bash
-set -euox pipefail
+set -x
 
 GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*
@@ -21,5 +20,11 @@ cd chuckd
 go build ./...
 go test ./... -covermode=atomic -coverprofile=coverage.out
 go tool cover -func=coverage.out
+mv coverage.out ../
 
 """
+file_in = []
+file_out = ["coverage.out"]
+
+[[jobs.env]]
+GIT_COMMIT = "${{ github.sha }}"

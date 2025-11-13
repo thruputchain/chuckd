@@ -30,6 +30,11 @@ func main() {
 				Usage: "log level",
 			},
 			&cli.StringFlag{
+				Name:     "i",
+				Required: true,
+				Usage:    "instance id",
+			},
+			&cli.StringFlag{
 				Name:  "lockd",
 				Usage: "address of hog lock daemon (also read from HOG_LOCKD)",
 				Value: os.Getenv("HOG_LOCKD"),
@@ -37,11 +42,12 @@ func main() {
 			&cli.StringFlag{
 				Name:  "rundir",
 				Usage: "run directory for jobs",
-				Value: os.Getenv("HOG_RUNDIR"),
+				Value: os.Getenv("HOG_JOBDIR"),
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 
+			xid := c.String("i")
 			level := c.String("level")
 			lockdAddress := c.String("lockd")
 			runDir := c.String("rundir")
@@ -73,13 +79,13 @@ func main() {
 				return err
 			}
 
-			sched := hogsched.Config{
+			sched := hogsched.Scheduler{
 				Net:          libnet.TCPNet{},
 				LockdAddress: lockdAddress,
 				JobDir:       runDir,
 			}
 
-			return sched.Schedule(ctx, *spec)
+			return sched.Schedule(ctx, xid, *spec)
 		},
 	}
 

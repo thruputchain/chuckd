@@ -17,6 +17,7 @@ import (
 func ExecReader(
 	ctx context.Context,
 	script io.Reader,
+	env map[string]string,
 ) (*bytes.Buffer, *bytes.Buffer, func() error) {
 
 	bashPath, err := exec.LookPath("bash")
@@ -26,16 +27,16 @@ func ExecReader(
 
 	cmd := exec.CommandContext(ctx, bashPath, bashOpts...)
 	cmd.Env = []string{}
-	cmd.Stdin = io.MultiReader(
-		bytes.NewBufferString(`
-set -euo pipefail
-set -m
-trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT
-(
-`),
-		script,
-		bytes.NewBufferString("\n)\n"),
-	)
+
+	var prefix bytes.Buffer
+	fmt.Fprintln(&prefix, `set -euom pipefail`)
+	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	for name, value := range env {
+		fmt.Fprintf(&prefix, `export %s=%q\n`, name, value)
+	}
+	fmt.Fprintln(&prefix, `(`)
+
+	cmd.Stdin = io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n"))
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	stdout := textutil.NewPrefixWriter(io.MultiWriter(os.Stdout, outbuf), "[out] ")
@@ -70,15 +71,17 @@ trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT
 func Exec(
 	ctx context.Context,
 	script string,
+	env map[string]string,
 ) (*bytes.Buffer, *bytes.Buffer, func() error) {
-	return ExecReader(ctx, bytes.NewBufferString(script))
+	return ExecReader(ctx, bytes.NewBufferString(script), env)
 }
 
 func ExecBlock(
 	ctx context.Context,
 	script string,
+	env map[string]string,
 ) (string, string, error) {
-	outb, errb, wait := Exec(ctx, script)
+	outb, errb, wait := Exec(ctx, script, env)
 	err := wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "exec_block error (%v):\n", err)
@@ -89,8 +92,9 @@ func ExecBlock(
 func ExecReaderBlock(
 	ctx context.Context,
 	script io.Reader,
+	env map[string]string,
 ) (string, string, error) {
-	outb, errb, wait := ExecReader(ctx, script)
+	outb, errb, wait := ExecReader(ctx, script, env)
 	err := wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "exec_block error (%v):\n", err)

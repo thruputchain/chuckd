@@ -18,6 +18,7 @@ func SshExecReader(
 	ctx context.Context,
 	host string,
 	script io.Reader,
+	env map[string]string,
 ) (*bytes.Buffer, *bytes.Buffer, func() error) {
 
 	sshPath, err := exec.LookPath("ssh")
@@ -28,16 +29,16 @@ func SshExecReader(
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = []string{}
-	cmd.Stdin = io.MultiReader(
-		bytes.NewBufferString(`
-set -euo pipefail
-set -m
-trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT
-(
-`),
-		script,
-		bytes.NewBufferString("\n)\n"),
-	)
+
+	var prefix bytes.Buffer
+	fmt.Fprintln(&prefix, `set -euom pipefail`)
+	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	for name, value := range env {
+		fmt.Fprintf(&prefix, `export %s=%q\n`, name, value)
+	}
+	fmt.Fprintln(&prefix, `(`)
+
+	cmd.Stdin = io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n"))
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	out_prefix := fmt.Sprintf("[%s:out] ", host)
@@ -75,16 +76,18 @@ func SshExec(
 	ctx context.Context,
 	host string,
 	script string,
+	env map[string]string,
 ) (*bytes.Buffer, *bytes.Buffer, func() error) {
-	return SshExecReader(ctx, host, bytes.NewBufferString(script))
+	return SshExecReader(ctx, host, bytes.NewBufferString(script), env)
 }
 
 func SshExecBlock(
 	ctx context.Context,
 	host string,
 	script string,
+	env map[string]string,
 ) (string, string, error) {
-	outb, errb, wait := SshExec(ctx, host, script)
+	outb, errb, wait := SshExec(ctx, host, script, env)
 	err := wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
@@ -96,8 +99,9 @@ func SshExecReaderBlock(
 	ctx context.Context,
 	host string,
 	script io.Reader,
+	env map[string]string,
 ) (string, string, error) {
-	outb, errb, wait := SshExecReader(ctx, host, script)
+	outb, errb, wait := SshExecReader(ctx, host, script, env)
 	err := wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
