@@ -27,4 +27,4 @@ file_in = []
 file_out = ["coverage.out"]
 
 [[jobs.env]]
-GIT_COMMIT = "${{ github.sha }}"
+GIT_COMMIT = "{{ github.sha }}"

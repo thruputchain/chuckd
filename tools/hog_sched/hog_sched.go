@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/tools/hogsched"
+	"github.com/groundhogchain/chuckd/tools/libtools"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )
@@ -19,6 +20,8 @@ import (
 func main() {
 	liblog.LogLevel(zerolog.DebugLevel)
 
+	ctx := context.Background()
+	dot := libtools.DeriveDotHogtools(ctx)
 	app := &cli.Command{
 		Name:      "hog_sched",
 		Usage:     "Schedule jobs",
@@ -36,13 +39,13 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:  "lockd",
-				Usage: "address of hog lock daemon (also read from HOG_LOCKD)",
-				Value: os.Getenv("HOG_LOCKD"),
+				Usage: "address of hog lock daemon (overwrites HOG_LOCKD, which overwrites ~/.hogtools)",
+				Value: dot.Lockd,
 			},
 			&cli.StringFlag{
-				Name:  "rundir",
-				Usage: "run directory for jobs",
-				Value: os.Getenv("HOG_JOBDIR"),
+				Name:  "job-dir",
+				Usage: "run directory for jobs (overwrites HOG_JOB_DIR, which overwrites ~/.hogtools)",
+				Value: dot.JobDir,
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
@@ -50,7 +53,7 @@ func main() {
 			xid := c.String("i")
 			level := c.String("level")
 			lockdAddress := c.String("lockd")
-			runDir := c.String("rundir")
+			runDir := c.String("job-dir")
 
 			// log level
 			zlevel, err := zerolog.ParseLevel(level)

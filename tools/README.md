@@ -3,19 +3,25 @@
 ## TODO
 
 - [ ] .hogtools config (lockd address, job dir)
+- [ ] hog_sched replaces {{ label }} in toml files with flagged values
 
 ## Install and deploy on cluster 
 
-#### 1. Install `hog_lockd` and `hog_sched`
+#### 1. Install `hog_lockd` daemon and `hog_sched` scheduler
 
 - log into `hog12`
 - copy `PKGBUILD` to `/tmp/hogtools` and `cd` there
 - run `makepkg -si` (this installs in `/usr/local/bin`)
 - run `cd ~dm/ansible_hog` then `sudo ansible-playbook misc-config.yml` to populate to all machines
 
-#### 2. Deploy `hog_lockd` daemon
+#### 2. Deploy `hog_lockd` and configure `hog_sched`
 
-- place a `.hogtools` file in your home dir
+- place a `.hogtools` file in the home dir of the executing user (e.g. `hogci`):
+
+```toml
+lockd="hog12:60006"
+job_dir="/tmp/hogjob"
+```
 
 ## Usage
 
@@ -67,6 +73,6 @@ Make sure the running user has ssh credentials for access to github repos on all
 
 ```sh
 export HOG_LOCKD="hog12:60006"
-export HOG_JOBDIR="/tmp/hogjob"
+export HOG_JOB_DIR="/tmp/hogjob"
 hog_sched schedule.toml
 ```
