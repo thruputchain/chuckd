@@ -14,14 +14,15 @@ jobs:
               run: echo "/usr/local/bin" >> $GITHUB_PATH
               shell: bash
 
+            - uses: webfactory/ssh-agent@v0.9.1
+              with:
+                  ssh-private-key: |
+                      ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+                      ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+                      ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+
             - name: Run hog schedule
               run: |
-                  export SSH_AUTH_SOCK="$HOME/.ssh/ssh_auth_sock"
-                  eval "$(ssh-agent -s -a "$SSH_AUTH_SOCK")"
-                  echo ${{ secrets.CHUCKD_TO_CHUCKD_KEY }} | ssh-add -
-                  echo ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }} | ssh-add -
-                  echo ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }} | ssh-add -
-
                   git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
                   echo $(which hog_sched)
