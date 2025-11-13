@@ -23,7 +23,7 @@ jobs:
 
             - name: Run hog schedule
               run: |
-                  rm -rf *
+                  rm -rf chuckd
                   git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
                   echo $(which hog_sched)
