@@ -10,13 +10,20 @@ jobs:
     build-test:
         runs-on: self-hosted
         steps:
-            - name: Run hog job
+            - name: Run hog schedule
               run: |
-		        git clone --depth 1 git@github.com:groundhogchain/chuckd.git
-		        hog_sched \
-			   	--i="github-${{ github.run_id }}" \
-				--key=git_commit --value=${{ github.sha }}
-				./scripts/schedules/build_test_cover.toml
+                  export SSH_AUTH_SOCK="$HOME/.ssh/ssh_auth_sock"
+                  eval "$(ssh-agent -s -a "$SSH_AUTH_SOCK")"
+                  echo ${{ secrets.CHUCKD_TO_CHUCKD_KEY }} | ssh-add -
+                  echo ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }} | ssh-add -
+                  echo ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }} | ssh-add -
+
+                  git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+                  hog_sched \
+                    --i="github-${{ github.run_id }}" \
+                    --key=git_commit --value=${{ github.sha }}
+                    ./scripts/schedules/build_test_cover.toml
 
             - name: Upload coverage artifact
               uses: actions/upload-artifact@v4
