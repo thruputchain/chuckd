@@ -10,9 +10,9 @@ jobs:
     build-test:
         runs-on: self-hosted
         steps:
-            - name: Add /usr/local/bin to PATH
-              run: echo "/usr/local/bin" >> $GITHUB_PATH
-              shell: bash
+            # - name: Add /usr/local/bin to PATH
+            #   run: echo "/usr/local/bin" >> $GITHUB_PATH
+            #   shell: bash
 
             - uses: webfactory/ssh-agent@v0.9.1
               with:
@@ -23,6 +23,7 @@ jobs:
 
             - name: Run hog schedule
               run: |
+                  rm -rf *
                   git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
                   echo $(which hog_sched)
