@@ -16,9 +16,6 @@ _tools=(
   hog_lockd
   hog_sched
   hog_exec
-  hog_copy
-  hog_copy_from
-  hog_copy_to
   hog_par
 )
 

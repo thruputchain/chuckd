@@ -31,9 +31,17 @@ func (x Spec) Scripts() []string {
 }
 
 type Job struct {
-	Name   string `toml:"name"`
-	Host   string `toml:"host"`
-	Script string `toml:"script"`
+	Name    string   `toml:"name"`
+	Host    string   `toml:"host"`
+	Script  string   `toml:"script"`
+	Env     []Env    `toml:"env"`
+	FileIn  []string `toml:"file_in"`
+	FileOut []string `toml:"file_out"`
+}
+
+type Env struct {
+	Name  string `toml:"name"`
+	Value string `toml:"value"`
 }
 
 func Parse(r io.Reader) (*Spec, error) {

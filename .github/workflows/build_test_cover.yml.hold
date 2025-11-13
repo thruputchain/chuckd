@@ -1,0 +1,23 @@
+name: Build, test, cover
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-test:
+        runs-on: self-hosted
+        steps:
+            - name: Run hog job
+		    # XXX: hog_sched config for hog_lockd?
+              run: |
+		        git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+		        hog_sched --j=${{ github.run_id }}" ./scripts/schedules/build_test_cover.toml
+
+            - name: Upload coverage artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage
+                  path: coverage.out
