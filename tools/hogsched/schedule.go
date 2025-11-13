@@ -2,6 +2,7 @@ package hogsched
 
 import (
 	"context"
+	"fmt"
 	"path"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -44,6 +45,7 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec) error {
 		"HOG_XID": xid,
 	}
 	envs := spec.Envs(inject)
+	fmt.Println("ENV", envs)
 	err := libtools.SshExecPar(ctx, hosts, scripts, envs)
 	if err != nil {
 		return err
