@@ -40,6 +40,7 @@ func (x Spec) ScriptsWithJobDir(jd string) []string {
 	prefix := fmt.Sprintf(`
 mkdir -p %q
 cd %q
+rm -rf *
 (
 `, jd, jd)
 	suffix := `
