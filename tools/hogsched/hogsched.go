@@ -15,6 +15,7 @@ type Config struct {
 	RunDir       string
 }
 
+// XXX: rundir
 func (cfg Config) Schedule(ctx context.Context, spec Spec) error {
 
 	liblog.Infof("executing schedule %s", spec.Name)

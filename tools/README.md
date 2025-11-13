@@ -1,3 +1,9 @@
+## TODO
+
+- [ ] plumb github workflow id
+- [ ] set working directory
+- [ ] pass env variables
+- [ ] retrieve artifacts
 
 ## Install and deploy on hog cluster 
 

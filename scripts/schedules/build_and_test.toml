@@ -1,7 +1,7 @@
-name = "build_and_test"
+name = "build_test_cover"
 
 [[jobs]]
-name = "build_and_test"
+name = "build_test_cover"
 host = "hog6"
 script = """
 
@@ -13,11 +13,13 @@ GONOSUMDB=github.com/groundhogchain/*
 GONOPROXY=github.com/groundhogchain/*
 
 git config --global url."git@github.com:".insteadOf "https://github.com/"
-
 git clone --depth 1 git@github.com:groundhogchain/chuckd.git
-
 cd chuckd
 
+###
+
 go build ./...
+go test ./... -covermode=atomic -coverprofile=coverage.out
+go tool cover -func=coverage.out
 
 """
