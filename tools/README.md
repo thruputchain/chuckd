@@ -1,9 +1,5 @@
 # Hog scheduler
 
-## TODO
-
-- [ ] hog_sched replaces {{ label }} in toml files with flagged values
-
 ## Install and deploy on cluster 
 
 #### 1. Install `hog_lockd` daemon and `hog_sched` scheduler
@@ -24,7 +20,7 @@ job_dir="/tmp/hogjob"
 
 ## Usage
 
-Write a TOML spec for a multi-host execution, for instance `build_test_cover.toml` executes one job:
+Write a TOML spec for your experiment, for instance `build_test_cover.toml` executes one job:
 
 ```toml
 name = "build_test_cover"
@@ -56,22 +52,49 @@ file_in = []
 file_out = ["coverage.out"]
 
 [jobs.env]
-GIT_COMMIT = "${{ github.sha }}"
+GIT_COMMIT = "${{ .git_commit }}"
 ```
 
 Execute this spec by running:
 
 ```sh
-hog_sched -i=123xyz build_test_cover.toml
+hog_sched -i=123xyz --key=git_commit --value=abcd1234 build_test_cover.toml
 ```
+
 Flag `-i` is a required instance id.
+
+You can add as many jobs as you like. They must use different hosts. Execution won't start until all hosts are locked (i.e. no other execution can take them).
 
 ### Github CI with `hog_sched`
 
-Make sure the running user has ssh credentials for access to github repos on all machines.
+Make sure the running user (i.e. `hogci`) has ssh credentials for access to groundhog github repos on all machines.
 
-```sh
-export HOG_LOCKD="hog12:60006"
-export HOG_JOB_DIR="/tmp/hogjob"
-hog_sched schedule.toml
+Use a github workflow like this example:
+
+```yml
+name: Build, test, cover
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-test:
+        runs-on: self-hosted
+        steps:
+            - name: Run hog job
+              run: |
+		        git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+		        hog_sched \
+			   	--i="github-${{ github.run_id }}" \
+				--key=git_commit --value=${{ github.sha }}
+				./scripts/schedules/build_test_cover.toml
+
+            - name: Upload coverage artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage
+                  path: coverage.out
 ```

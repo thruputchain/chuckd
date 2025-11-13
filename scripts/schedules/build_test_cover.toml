@@ -6,8 +6,6 @@ host = "hog6"
 script = """
 
 set -x
-echo GIT_COMMIT=$GIT_COMMIT
-echo XID=$HOG_XID
 
 GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*
