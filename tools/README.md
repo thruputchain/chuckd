@@ -2,7 +2,6 @@
 
 ## TODO
 
-- [ ] .hogtools config (lockd address, job dir)
 - [ ] hog_sched replaces {{ label }} in toml files with flagged values
 
 ## Install and deploy on cluster 

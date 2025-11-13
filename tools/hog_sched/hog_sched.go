@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/tools/hogsched"
 	"github.com/groundhogchain/chuckd/tools/libtools"
+	"github.com/groundhogchain/chuckd/util/textutil"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )
@@ -47,13 +49,28 @@ func main() {
 				Usage: "run directory for jobs (overwrites HOG_JOB_DIR, which overwrites ~/.hogtools)",
 				Value: dot.JobDir,
 			},
+			&cli.StringSliceFlag{
+				Name:  "key",
+				Usage: "substitution key (repeated)",
+			},
+			&cli.StringSliceFlag{
+				Name:  "value",
+				Usage: "substitution value (repeated, must match key)",
+			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 
 			xid := c.String("i")
 			level := c.String("level")
 			lockdAddress := c.String("lockd")
-			runDir := c.String("job-dir")
+			jobDir := c.String("job-dir")
+			keys := c.StringSlice("key")
+			values := c.StringSlice("value")
+
+			// flag validation
+			if len(keys) != len(values) {
+				return errors.New("number of --key must match number of --value")
+			}
 
 			// log level
 			zlevel, err := zerolog.ParseLevel(level)
@@ -69,23 +86,32 @@ func main() {
 			}
 			specFile := c.Args().Get(0)
 
-			f, err := os.Open(specFile)
+			// read spec
+			specBody, err := os.ReadFile(specFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "open %s: %v\n", specFile, err)
+				fmt.Fprintf(os.Stderr, "reading %s: %v\n", specFile, err)
 				return err
 			}
-			defer f.Close()
 
-			spec, err := hogsched.Parse(f)
+			// rewrite spec with key/value substitutions
+			kv := map[string]any{}
+			for i := range keys {
+				kv[keys[i]] = values[i]
+			}
+			rewritten := textutil.Apply(ctx, string(specBody), kv)
+
+			// parse rewritten spec
+			spec, err := hogsched.Parse(bytes.NewBufferString(rewritten))
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "parse %s: %v\n", specFile, err)
 				return err
 			}
 
+			// schedule
 			sched := hogsched.Scheduler{
 				Net:          libnet.TCPNet{},
 				LockdAddress: lockdAddress,
-				JobDir:       runDir,
+				JobDir:       jobDir,
 			}
 
 			return sched.Schedule(ctx, xid, *spec)

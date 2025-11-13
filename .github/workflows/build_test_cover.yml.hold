@@ -14,7 +14,8 @@ jobs:
               run: |
 		        git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 		        hog_sched \
-			   	-i="github-${{ github.run_id }}" \
+			   	--i="github-${{ github.run_id }}" \
+				--key=git_commit --value=${{ github.sha }}
 				./scripts/schedules/build_test_cover.toml
 
             - name: Upload coverage artifact
