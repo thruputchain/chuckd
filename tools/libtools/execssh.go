@@ -24,7 +24,7 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`}
-	sshOpts = append(sshOpts, host, `bash`, `-s`) //XXX: setsid
+	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = []string{}

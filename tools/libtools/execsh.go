@@ -22,9 +22,9 @@ func ExecReader(
 	bashPath, err := exec.LookPath("bash")
 	must.NoError(ctx, err)
 
-	bashOpts := []string{bashPath, "-s"}
+	bashOpts := []string{"-s"}
 
-	cmd := exec.CommandContext(ctx, "setsid", bashOpts...)
+	cmd := exec.CommandContext(ctx, bashPath, bashOpts...)
 	cmd.Env = []string{}
 	cmd.Stdin = io.MultiReader(
 		bytes.NewBufferString(`

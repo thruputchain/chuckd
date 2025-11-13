@@ -6,7 +6,7 @@ host = "hog6"
 script = """
 set -x
 echo job_1 before sleep
-sleep 3
+sleep 1
 echo job_1 after sleep
 """
 
@@ -16,6 +16,6 @@ host = "hog7"
 script = """
 set -x
 echo job_2 before sleep
-sleep 5
+sleep 2
 echo job_2 after sleep
 """
