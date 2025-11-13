@@ -64,7 +64,7 @@ func ExecReader(
 	return outbuf, errbuf, func() error {
 		err := cmd.Wait()
 		waitCh <- err
-		return cmd.Wait()
+		return err
 	}
 }
 

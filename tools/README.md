@@ -55,7 +55,7 @@ mv coverage.out ../
 file_in = []
 file_out = ["coverage.out"]
 
-[[jobs.env]]
+[jobs.env]
 GIT_COMMIT = "${{ github.sha }}"
 ```
 
