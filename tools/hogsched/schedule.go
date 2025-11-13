@@ -39,12 +39,13 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec) error {
 		}
 	}
 
+	fmt.Printf("---------\nSPEC %#v\n------------", spec)
+
 	// executing scripts in parallel
 	scripts := spec.ScriptsWithJobDir(x.JobDir)
 	inject := map[string]string{
 		"HOG_XID": xid,
 	}
-	fmt.Println("SPEC", spec)
 	envs := spec.Envs(inject)
 	fmt.Println("ENV", envs)
 	err := libtools.SshExecPar(ctx, hosts, scripts, envs)
