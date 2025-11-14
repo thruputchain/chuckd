@@ -58,6 +58,5 @@ bench_script="$(
 
 """
 
-
 [jobs.env]
 GIT_COMMIT = "{{ .git_commit }}"

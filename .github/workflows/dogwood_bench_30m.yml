@@ -1,0 +1,36 @@
+name: Dogwood benchmark 30m
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-test:
+        runs-on: client
+        steps:
+            - name: Clean up .gitconfig
+              run: |
+                  echo "Cleaning up .gitconfig"
+                  rm -f /home/hogci/.gitconfig
+
+            - uses: webfactory/ssh-agent@v0.9.1
+              with:
+                  ssh-private-key: |
+                      ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+                      ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+                      ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+
+            - uses: actions/checkout@v4
+
+            - name: Run hog schedule
+              run: |
+                  set -x
+                  hog_fwd
+                  rm -rf chuckd
+                  git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
+                  hog_sched \
+                    --i="github-${{ github.run_id }}" \
+                    --key=git_commit --value=${{ github.sha }} \
+                    ./scripts/schedules/dogwood_bench_30m.toml
