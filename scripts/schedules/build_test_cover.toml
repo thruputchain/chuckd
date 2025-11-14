@@ -9,7 +9,7 @@ set -x
 git config --global protocol.version 2
 git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
-source ./scripts/setup_go.sh
+source ./chuckd/scripts/setup_go.sh
 
 cd chuckd
 go build ./...
