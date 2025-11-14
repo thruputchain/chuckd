@@ -1,0 +1,94 @@
+name = "dogwood_bench_300m"
+
+[[jobs]]
+name = "dogwood_bench_300m_1_of_3"
+host = "hog6"
+script = """
+
+set -x
+git config --global protocol.version 2
+git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+source ./chuckd/scripts/setup_go.sh
+
+root=$(pwd)
+cd chuckd/chuckd
+go build
+mv ./chuckd $root/chuckd.dogwood_bench
+cd $root
+
+bench_script="$(
+    sed \
+        -e "s/{--LABEL--}/300m/g" \
+        -e "s/{--HOST--}/${HOG_HOST}/g" \
+        -e "s/{--NODE--}/node-1-of-3/g" \
+        ./chuckd/scripts/templates/dogwood_bench.sh.tmpl
+    )"
+
+(eval $bench_script)
+
+"""
+
+[[jobs]]
+name = "dogwood_bench_300m_2_of_3"
+host = "hog7"
+script = """
+
+set -x
+git config --global protocol.version 2
+git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+source ./chuckd/scripts/setup_go.sh
+
+root=$(pwd)
+cd chuckd/chuckd
+go build
+mv ./chuckd $root/chuckd.dogwood_bench
+cd $root
+
+bench_script="$(
+    sed \
+        -e "s/{--LABEL--}/300m/g" \
+        -e "s/{--HOST--}/${HOG_HOST}/g" \
+        -e "s/{--NODE--}/node-2-of-3/g" \
+        ./chuckd/scripts/templates/dogwood_bench.sh.tmpl
+    )"
+
+(eval $bench_script)
+
+"""
+
+[jobs.env]
+GIT_COMMIT = "{{ .git_commit }}"
+
+[[jobs]]
+name = "dogwood_bench_300m_3_of_3"
+host = "hog8"
+script = """
+
+set -x
+git config --global protocol.version 2
+git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+source ./chuckd/scripts/setup_go.sh
+
+root=$(pwd)
+cd chuckd/chuckd
+go build
+mv ./chuckd $root/chuckd.dogwood_bench
+cd $root
+
+bench_script="$(
+    sed \
+        -e "s/{--LABEL--}/300m/g" \
+        -e "s/{--HOST--}/${HOG_HOST}/g" \
+        -e "s/{--NODE--}/node-3-of-3/g" \
+        ./chuckd/scripts/templates/dogwood_bench.sh.tmpl
+    )"
+
+(eval $bench_script)
+
+"""
+
+[jobs.env]
+GIT_COMMIT = "{{ .git_commit }}"
