@@ -9,10 +9,9 @@ set -x
 
 # configure go
 
-GOPRIVATE=github.com/groundhogchain/*
-GONOSUMDB=github.com/groundhogchain/*
-GONOPROXY=github.com/groundhogchain/*
-
+export GOPRIVATE=github.com/groundhogchain/*
+export GONOSUMDB=github.com/groundhogchain/*
+export GONOPROXY=github.com/groundhogchain/*
 export GOPATH=$(pwd)/go
 export PATH=$PATH:$GOPATH/bin
 
