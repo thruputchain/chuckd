@@ -76,8 +76,8 @@ Host key-%s.github.com
 
 	// clear .ssh
 	dotSsh := filepath.Join(home, ".ssh")
-	os.RemoveAll(dotSsh)
-	err = os.MkdirAll(dotSsh, 0700)
+	os.MkdirAll(dotSsh, 0700)
+	err = RemoveKeyFiles(dotSsh)
 	if err != nil {
 		return err
 	}
@@ -89,6 +89,31 @@ Host key-%s.github.com
 	)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// RemoveKeyFiles removes all files in dir whose names match "key-*".
+func RemoveKeyFiles(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("reading directory: %w", err)
+	}
+
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "key-") {
+			continue
+		}
+		if e.IsDir() {
+			continue
+		}
+
+		path := filepath.Join(dir, name)
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("removing %s: %w", path, err)
+		}
 	}
 
 	return nil
