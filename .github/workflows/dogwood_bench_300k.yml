@@ -8,7 +8,7 @@ on:
 
 jobs:
     build-test:
-        runs-on: hog7
+        runs-on: client
         steps:
             - name: Clean up .gitconfig
               run: |
