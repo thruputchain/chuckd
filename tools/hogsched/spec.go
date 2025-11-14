@@ -39,6 +39,7 @@ echo "creating job directory" %q
 mkdir -p %q
 cd %q
 echo "clearing job directory"
+chmod -R +w *
 rm -rf *
 echo "forwarding github urls through ssh-agent"
 hog_fwd
