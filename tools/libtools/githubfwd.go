@@ -66,14 +66,22 @@ Host key-%s.github.com
 	}
 
 	if gitconfig.Len() > 0 {
-		err := AppendToFile(filepath.Join(home, ".gitconfig"), gitconfig.String())
+		err = os.WriteFile(
+			filepath.Join(home, ".gitconfig"),
+			gitconfig.Bytes(),
+			0644,
+		)
 		if err != nil {
 			return err
 		}
 	}
 
 	if sshconfig.Len() > 0 {
-		err := AppendToFile(filepath.Join(home, ".ssh/config"), sshconfig.String())
+		err = os.WriteFile(
+			filepath.Join(home, ".ssh/config"),
+			sshconfig.Bytes(),
+			0644,
+		)
 		if err != nil {
 			return err
 		}
