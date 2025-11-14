@@ -14,6 +14,7 @@ GONOPROXY=github.com/groundhogchain/*
 
 ssh-add -L
 
+git config --global protocol.version 2
 git config --global url."git@github.com:".insteadOf "https://github.com/"
 git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
 cd chuckd
