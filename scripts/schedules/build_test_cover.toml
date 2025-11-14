@@ -20,6 +20,7 @@ cd chuckd
 
 ###
 
+rm -rf ~/go # clear go cache
 go build ./...
 go test ./... -covermode=atomic -coverprofile=coverage.out
 go tool cover -func=coverage.out
