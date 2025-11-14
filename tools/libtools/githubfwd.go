@@ -24,6 +24,14 @@ func ForwardSshForGit(ctx context.Context) error {
 	}
 	home = filepath.Clean(home)
 
+	// clear .ssh
+	dotSsh := filepath.Join(home, ".ssh")
+	os.MkdirAll(dotSsh, 0700)
+	err = RemoveKeyFiles(dotSsh)
+	if err != nil {
+		return err
+	}
+
 	keys, err := ListSSHAgentPublicKeys()
 	if err != nil {
 		return err
@@ -70,14 +78,6 @@ Host key-%s.github.com
 		gitconfig.Bytes(),
 		0644,
 	)
-	if err != nil {
-		return err
-	}
-
-	// clear .ssh
-	dotSsh := filepath.Join(home, ".ssh")
-	os.MkdirAll(dotSsh, 0700)
-	err = RemoveKeyFiles(dotSsh)
 	if err != nil {
 		return err
 	}

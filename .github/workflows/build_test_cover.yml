@@ -26,6 +26,7 @@ jobs:
 
             - name: Run hog schedule
               run: |
+                  set -x
                   hog_fwd
                   ssh-add -L
                   rm -rf chuckd
