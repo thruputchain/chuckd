@@ -39,6 +39,7 @@ func ForwardSshForGit(ctx context.Context) error {
 		}
 
 		hash := SHA256Hex(key)
+		liblog.Infof("adding key-%s for %s", hash, repo)
 
 		fmt.Fprintf(&gitconfig, `
 [url "git@key-%s.github.com:%s"]
