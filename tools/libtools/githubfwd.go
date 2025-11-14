@@ -65,26 +65,30 @@ Host key-%s.github.com
 		}
 	}
 
-	if gitconfig.Len() > 0 {
-		err = os.WriteFile(
-			filepath.Join(home, ".gitconfig"),
-			gitconfig.Bytes(),
-			0644,
-		)
-		if err != nil {
-			return err
-		}
+	err = os.WriteFile(
+		filepath.Join(home, ".gitconfig"),
+		gitconfig.Bytes(),
+		0644,
+	)
+	if err != nil {
+		return err
 	}
 
-	if sshconfig.Len() > 0 {
-		err = os.WriteFile(
-			filepath.Join(home, ".ssh/config"),
-			sshconfig.Bytes(),
-			0644,
-		)
-		if err != nil {
-			return err
-		}
+	// clear .ssh
+	dotSsh := filepath.Join(home, ".ssh")
+	os.RemoveAll(dotSsh)
+	err = os.MkdirAll(dotSsh, 0700)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(
+		filepath.Join(dotSsh, "config"),
+		sshconfig.Bytes(),
+		0644,
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil

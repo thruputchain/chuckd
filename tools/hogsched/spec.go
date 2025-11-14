@@ -38,6 +38,7 @@ func (x Spec) ScriptsWithJobDir(jobDir string, user string) []string {
 mkdir -p %q
 cd %q
 rm -rf *
+hog_fwd
 (
 `, jobDir, jobDir)
 	suffix := `

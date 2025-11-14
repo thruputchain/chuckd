@@ -1,7 +1,5 @@
 # Hog scheduler
 
-- [ ] insert `hog_fwd` in jobs automatically
-
 ## Install and deploy on cluster 
 
 #### 1. Install `hog_lockd` daemon and `hog_sched` scheduler
