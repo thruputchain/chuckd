@@ -16,6 +16,9 @@ GONOPROXY=github.com/groundhogchain/*
 export GOPATH=$(pwd)/go
 export PATH=$PATH:$GOPATH/bin
 
+echo "working environment"
+env
+
 # configure git
 
 git config --global protocol.version 2
