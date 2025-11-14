@@ -47,7 +47,8 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec) error {
 
 	scripts := spec.ScriptsWithJobDir(x.JobDir, user.Username)
 	inject := map[string]string{
-		"HOG_XID": xid,
+		"HOG_USER": user.Username,
+		"HOG_XID":  xid,
 	}
 	envs := spec.Envs(inject)
 	err = libtools.SshExecPar(ctx, hosts, scripts, envs)

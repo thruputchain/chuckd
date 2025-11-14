@@ -32,41 +32,15 @@ host = "hog6"
 script = """
 
 set -x
-
-# configure go
-
-export GOPRIVATE=github.com/groundhogchain/*
-export GONOSUMDB=github.com/groundhogchain/*
-export GONOPROXY=github.com/groundhogchain/*
-export GOPATH=$(pwd)/go
-export PATH=$PATH:$GOPATH/bin
-
-echo "working environment"
-env
-
-# configure git
-
 git config --global protocol.version 2
-# git config --global url."git@github.com:".insteadOf "https://github.com/"
-
-# clone
-
 git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 cd chuckd
 
-# build
+source ./scripts/setup_go.sh
 
 go build ./...
-
-# test
-
 go test ./... -covermode=atomic -coverprofile=coverage.out
-
-# cover
-
 go tool cover -func=coverage.out
-
-# export result
 
 mv coverage.out ../
 

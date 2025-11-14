@@ -62,6 +62,7 @@ func (x Spec) Envs(inject map[string]string) []map[string]string {
 		for n, v := range inject {
 			r[i][n] = v
 		}
+		r[i]["HOG_HOST"] = job.Host
 	}
 	return r
 }
