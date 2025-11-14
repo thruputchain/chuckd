@@ -34,9 +34,3 @@ jobs:
                     --i="github-${{ github.run_id }}" \
                     --key=git_commit --value=${{ github.sha }} \
                     ./scripts/schedules/dogwood_bench_300k.toml
-
-            - name: Upload coverage artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage
-                  path: coverage.out
