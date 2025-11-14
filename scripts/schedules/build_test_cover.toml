@@ -7,23 +7,39 @@ script = """
 
 set -x
 
+# configure go
+
 GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*
 GONOPROXY=github.com/groundhogchain/*
 
-ssh-add -L
+export GOPATH=$(pwd)/go
+export PATH=$PATH:$GOPATH/bin
+
+# configure git
 
 git config --global protocol.version 2
 git config --global url."git@github.com:".insteadOf "https://github.com/"
-git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+# clone
+
+git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 cd chuckd
 
-###
+# build
 
-rm -rf ~/go # clear go cache
 go build ./...
+
+# test
+
 go test ./... -covermode=atomic -coverprofile=coverage.out
+
+# cover
+
 go tool cover -func=coverage.out
+
+# export result
+
 mv coverage.out ../
 
 """
