@@ -35,12 +35,15 @@ func (x Spec) HostObjects() proto.LockObjects {
 func (x Spec) ScriptsWithJobDir(jobDir string, user string) []string {
 	jobDir = filepath.Clean(jobDir) + "-" + user
 	prefix := fmt.Sprintf(`
+echo "creating job directory" %q
 mkdir -p %q
 cd %q
+echo "clearing job directory"
 rm -rf *
+echo "forwarding github urls through ssh-agent"
 hog_fwd
 (
-`, jobDir, jobDir)
+`, jobDir, jobDir, jobDir)
 	suffix := `
 )
 `
