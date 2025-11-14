@@ -17,7 +17,7 @@ go build
 mv ./chuckd $root/chuckd.dogwood_bench
 cd $root
 
-bench_script="$(< \
+bench_script="$(\
     sed -e "s/{--LABEL--}/300k/g" \
         -e "s/{--HOST--}/${HOG_HOST}/g" \
         -e "s/{--NODE--}/node-1-of-2/g" \
@@ -44,7 +44,7 @@ go build
 mv ./chuckd $root/chuckd.dogwood_bench
 cd $root
 
-bench_script="$(< \
+bench_script="$(\
     sed -e "s/{--LABEL--}/300k/g" \
         -e "s/{--HOST--}/${HOG_HOST}/g" \
         -e "s/{--NODE--}/node-2-of-2/g" \
