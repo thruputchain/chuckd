@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
@@ -176,10 +175,18 @@ func ListSSHAgentPublicKeys() ([]string, error) {
 // ParseGitHubRepoFromSSHKeyLine extracts "org/repo" from lines like:
 // ssh-ed25519 AAAA... git@github.com:org/repo.git
 func ParseGitHubRepoFromSSHKeyLine(line string) (string, error) {
-	re := regexp.MustCompile(`git@github\.com:([\w.-]+/[\w.-]+)(?:\.git)?\b`)
-	m := re.FindStringSubmatch(line)
-	if len(m) < 2 {
-		return "", fmt.Errorf("no GitHub org/repo found in line: %q", line)
+	parts := strings.Split(strings.TrimSpace(line), " ")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("ssh key has more than three parts")
 	}
-	return m[1], nil
+	last := parts[2]
+	noSuffix, ok := strings.CutSuffix(last, ".git")
+	if !ok {
+		return "", fmt.Errorf("ssh key comment does not end in .git")
+	}
+	noPrefix, ok := strings.CutPrefix(noSuffix, "git@github.com:")
+	if !ok {
+		return "", fmt.Errorf("ssh key comment does not begin with git@github.com:")
+	}
+	return noPrefix, nil
 }
