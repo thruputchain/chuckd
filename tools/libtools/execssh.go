@@ -28,7 +28,7 @@ func SshExecReader(
 	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
-	cmd.Env = nil // []string{}
+	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euom pipefail`)

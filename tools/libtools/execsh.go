@@ -26,7 +26,7 @@ func ExecReader(
 	bashOpts := []string{"-s"}
 
 	cmd := exec.CommandContext(ctx, bashPath, bashOpts...)
-	cmd.Env = []string{}
+	cmd.Env = nil // nil ensures that bash inherits envs
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euom pipefail`)

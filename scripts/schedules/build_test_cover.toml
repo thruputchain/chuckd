@@ -11,8 +11,7 @@ GOPRIVATE=github.com/groundhogchain/*
 GONOSUMDB=github.com/groundhogchain/*
 GONOPROXY=github.com/groundhogchain/*
 
-echo SSH_AUTH_SOCK=$SSH_AUTH_SOCK
-ssh-add -l
+ssh-add -L
 
 git config --global url."git@github.com:".insteadOf "https://github.com/"
 git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
