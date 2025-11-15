@@ -107,5 +107,5 @@ perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses
 	bench dogwood \
 	--addr :4000 \
 	--bytes-per-pay 300000000 \
-	--num-iterations 1000 \
+	--num-iterations 500 \
 	 2> dogwood-bench-host=hog6,seq=0.log | tee dogwood-bench-host=hog6,seq=0.report

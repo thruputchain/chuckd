@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
-pushd > /dev/null
+pushd . > /dev/null
 cd ${SCRIPT_DIR}
 source git_info.sh
 popd > /dev/null
