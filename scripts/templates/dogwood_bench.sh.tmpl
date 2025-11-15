@@ -4,9 +4,7 @@ echo "cloning metrics history ..."
 
 echo "running benchmark ..."
 
-cd chuckd
-source ./scripts/git_info.sh
-cd ..
+source ./chuckd/scripts/git_info.sh
 
 # e.g. LABEL=300k, HOST=hog7, NODE=node-1-of-2
 METRIC_NAME="dogwood-{--LABEL--}-{--NODE--}"

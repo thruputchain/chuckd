@@ -1,3 +1,8 @@
+SCRIPT_DIR=$(dirname $(readlink -f "$0"))
+
+pushd .
+cd ${SCRIPT_DIR} # ensures we are inside the chuckd repo
+
 # Get current branch name
 if [[ -z ${GITHUB_HEAD_REF} ]]; then
   GIT_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -27,3 +32,5 @@ fi
 echo "Branch: $GIT_branch"
 echo "Commit: $GIT_commit"
 echo "Commit Timestamp: $GIT_commit_time"
+
+popd

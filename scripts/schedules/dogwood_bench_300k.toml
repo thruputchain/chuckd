@@ -5,7 +5,6 @@ name = "dogwood_bench_300k_1_of_2"
 host = "hog7"
 script = """
 
-set -x
 git config --global protocol.version 2
 git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
@@ -17,15 +16,11 @@ go build
 mv ./chuckd $root/chuckd.dogwood_bench
 cd $root
 
-bench_script="$(
-    sed \
-        -e "s/{--LABEL--}/300k/g" \
-        -e "s/{--HOST--}/${HOG_HOST}/g" \
-        -e "s/{--NODE--}/node-1-of-2/g" \
-        ./chuckd/scripts/templates/dogwood_bench.sh.tmpl
-    )"
-
-(eval $bench_script)
+sed \
+    -e "s/{--LABEL--}/300k/g" \
+    -e "s/{--HOST--}/${HOG_HOST}/g" \
+    -e "s/{--NODE--}/node-1-of-2/g" \
+    ./chuckd/scripts/templates/dogwood_bench.sh.tmpl | bash
 
 """
 
@@ -34,7 +29,6 @@ name = "dogwood_bench_300k_2_of_2"
 host = "hog8"
 script = """
 
-set -x
 git config --global protocol.version 2
 git clone --depth 1 git@github.com:groundhogchain/chuckd.git
 
@@ -46,15 +40,11 @@ go build
 mv ./chuckd $root/chuckd.dogwood_bench
 cd $root
 
-bench_script="$(
-    sed \
-        -e "s/{--LABEL--}/300k/g" \
-        -e "s/{--HOST--}/${HOG_HOST}/g" \
-        -e "s/{--NODE--}/node-2-of-2/g" \
-        ./chuckd/scripts/templates/dogwood_bench.sh.tmpl
-    )"
-
-(eval $bench_script)
+sed \
+    -e "s/{--LABEL--}/300k/g" \
+    -e "s/{--HOST--}/${HOG_HOST}/g" \
+    -e "s/{--NODE--}/node-2-of-2/g" \
+    ./chuckd/scripts/templates/dogwood_bench.sh.tmpl | bash
 
 """
 
