@@ -1,5 +1,7 @@
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 
+echo "obtaining git info for ${SCRIPT_DIR}"
+
 pushd .
 cd ${SCRIPT_DIR} # ensures we are inside the chuckd repo
 
