@@ -1,9 +1,4 @@
-SCRIPT_DIR=$(dirname $(readlink -f "$0"))
-
-echo "obtaining git info for ${SCRIPT_DIR}"
-
-pushd .
-cd ${SCRIPT_DIR} # ensures we are inside the chuckd repo
+echo "obtaining git info for $(pwd)"
 
 # Get current branch name
 if [[ -z ${GITHUB_HEAD_REF} ]]; then
@@ -34,5 +29,3 @@ fi
 echo "Branch: $GIT_branch"
 echo "Commit: $GIT_commit"
 echo "Commit Timestamp: $GIT_commit_time"
-
-popd

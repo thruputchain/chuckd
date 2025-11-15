@@ -2,7 +2,10 @@
 set -e
 
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
-source ${SCRIPT_DIR}/git_info.sh
+pushd > /dev/null
+cd ${SCRIPT_DIR}
+source git_info.sh
+popd > /dev/null
 
 # Push metrics_history/ to groundhogchain/metrics_history.git
 cd metrics_history/
