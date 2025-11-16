@@ -1,15 +1,20 @@
 # Hog scheduler
 
+A tool, called `hog_sched`, executes "schedules" on behalf of the user.
+A schedule specifies multiple jobs, given as shell scripts, to be executed
+each on a dedicated hog machine.
+
 ## How it works
 
-The scheduler consists of three binaries:
-- `hog_lockd`: lock server daemon,
-- `hog_sched`: schedule executor, and
-- `hog_fwd`: ssh forwarding utility for github deploy keys.
+The hog scheduler consists of three binaries:
+- `hog_lockd`: a lock server daemon,
+- `hog_sched`: the schedule executor, and
+- `hog_fwd`: a utility that recognizes github deploy keys among the current ssh agent keys and configures `git` and `ssh` to use them with their repective repos.
 
 The lock server is deployed on `hog12:60006` and is used by `hog_sched`.
 
-Users and github ci workflows invoke `hog_sched` (from any machine) to execute a program.
+Hog users (such as `hogci`) invoke `hog_sched` (from any machine) to execute a schedule.
+
 `hog_sched` expects to find a config file in `~/.hogtools`, containing the location of the lock server and the directory where jobs run:
 
 ```toml
@@ -17,26 +22,23 @@ lockd="hog12:60006"
 job_dir="/tmp/hogjob-hogci"
 ```
 
-#### 1. Install `hog_lockd` daemon, `hog_sched` scheduler, and `hog_fwd` github ssh forwarder
+## Installation
 
-On `hog12` run:
+To install the tools on all machines, on `hog12` run:
 
 ```sh
 ./scripts/rebuild_hogtools.sh
 ```
 
-#### 2. Deploy `hog_lockd` and configure `hog_sched`
+To populate all machines with a `.hogtools` config file, log as the desired user (on any machine) and run:
 
-- place a `.hogtools` file in the home dir of the executing user (e.g. `hogci`) on all machines:
-
-```toml
-lockd="hog12:60006"
-job_dir="/tmp/hogjob"
+```sh
+./scripts/populate_hogtools.sh
 ```
 
 ## Usage
 
-Write a TOML spec for your experiment, for instance `build_test_cover.toml` executes one job:
+Write a TOML spec for your schedule, for instance `build_test_cover.toml` executes one job:
 
 ```toml
 name = "build_test_cover"
@@ -67,21 +69,19 @@ file_out = ["coverage.out"]
 GIT_COMMIT = "{{ .git_commit }}"
 ```
 
-Execute this spec by running:
+Execute this schedule by running:
 
 ```sh
 hog_sched -i=123xyz --key=git_commit --value=abcd1234 build_test_cover.toml
 ```
 
-Flag `-i` is a required instance id.
+Flag `-i` is a required unique instance id.
 
-You can add as many jobs as you like. They must use different hosts. Execution won't start until all hosts are locked (i.e. no other execution can take them).
+You can add as many jobs as you like to a schedule. They must use different hosts. Execution won't start until all hosts are locked (i.e. no other schedule execution can use them).
 
-### Github CI with `hog_sched`
+## Github CI with `hog_sched`
 
-Make sure the running user (i.e. `hogci`) has ssh credentials for access to groundhog github repos on all machines.
-
-Use a github workflow like this example:
+Use a github workflow similar to this example:
 
 ```yml
 name: Build, test, cover
