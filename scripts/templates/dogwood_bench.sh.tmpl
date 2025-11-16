@@ -28,7 +28,7 @@ if [[ $capture_metrics == true ]]; then
 
 else
 
-    echo "running benchmark ..."
+    echo "running benchmark (without metric capture) ..."
 
     ./chuckd/scripts/dogwood_bench/{--LABEL--}/{--HOST--}.sh ./chuckd.dogwood_bench > /dev/null
 
