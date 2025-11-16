@@ -1,6 +1,21 @@
 # Hog scheduler
 
-## Install and deploy on cluster 
+## How it works
+
+The scheduler consists of three binaries:
+- `hog_lockd`: lock server daemon,
+- `hog_sched`: schedule executor, and
+- `hog_fwd`: ssh forwarding utility for github deploy keys.
+
+The lock server is deployed on `hog12:60006` and is used by `hog_sched`.
+
+Users and github ci workflows invoke `hog_sched` (from any machine) to execute a program.
+`hog_sched` expects to find a config file in `~/.hogtools`, containing the location of the lock server and the directory where jobs run:
+
+```toml
+lockd="hog12:60006"
+job_dir="/tmp/hogjob-hogci"
+```
 
 #### 1. Install `hog_lockd` daemon, `hog_sched` scheduler, and `hog_fwd` github ssh forwarder
 
@@ -97,9 +112,6 @@ jobs:
 
             - name: Run hog schedule
               run: |
-                  set -x
-                  hog_fwd
-                  ssh-add -L
                   rm -rf chuckd
                   git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
                   hog_sched \

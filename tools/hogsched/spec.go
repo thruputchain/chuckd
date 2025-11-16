@@ -33,7 +33,7 @@ func (x Spec) HostObjects() proto.LockObjects {
 }
 
 func (x Spec) ScriptsWithJobDir(jobDir string, user string) []string {
-	jobDir = filepath.Clean(jobDir) + "-" + user
+	jobDir = filepath.Clean(jobDir)
 	prefix := fmt.Sprintf(`
 echo "creating job directory" %q
 mkdir -p %q
