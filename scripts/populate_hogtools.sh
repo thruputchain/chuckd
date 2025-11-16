@@ -10,7 +10,5 @@ job_dir=\"/tmp/hogjob-$user\"
 
 for host in "${hosts[@]}"; do
   echo "Updating ~/.hogtools on $host..."
-  ssh "$host" <<EOF
-    echo -n \"$content\" > ~/.hogtools
-  EOF
+  ssh "$host" "echo -n \"$content\" > ~/.hogtools"
 done
