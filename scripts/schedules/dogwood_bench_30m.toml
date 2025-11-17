@@ -20,7 +20,7 @@ sed \
     -e "s/{--LABEL--}/30m/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-1-of-3/g" \
-    ./chuckd/scripts/templates/dogwood_bench.sh.tmpl | bash
+    ./chuckd/scripts/templates/dogwood_bench_with_metrics.sh | bash
 
 """
 
@@ -44,7 +44,7 @@ sed \
     -e "s/{--LABEL--}/30m/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-2-of-3/g" \
-    ./chuckd/scripts/templates/dogwood_bench.sh.tmpl | bash
+    ./chuckd/scripts/templates/dogwood_bench_with_metrics.sh | bash
 
 """
 
@@ -71,7 +71,7 @@ sed \
     -e "s/{--LABEL--}/30m/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-3-of-3/g" \
-    ./chuckd/scripts/templates/dogwood_bench.sh.tmpl | bash
+    ./chuckd/scripts/templates/dogwood_bench_with_metrics.sh | bash
 
 """
 

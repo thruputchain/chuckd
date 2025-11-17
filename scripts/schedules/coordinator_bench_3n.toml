@@ -24,4 +24,15 @@ cd $root
 
 # start benchmark
 
+# XXX: chuckd/scpd paths
+# XXX: termination condition
+# XXX: metric collection
+# XXX: metric graphing
+
+sed \
+    -e "s/{--LABEL--}/3n/g" \
+    -e "s/{--HOST--}/${HOG_HOST}/g" \
+    -e "s/{--NODE--}/node-1-of-3/g" \
+    ./chuckd/scripts/templates/coordinator_bench_with_metrics.sh | bash
+
 """

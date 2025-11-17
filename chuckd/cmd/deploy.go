@@ -71,8 +71,9 @@ var (
 )
 
 var (
+	deployNumVs int
+	//
 	deployFanOut    int
-	deployNumVs     int
 	deployTxsPerSec int
 	deployRoundMsec int
 	//
@@ -97,7 +98,6 @@ func init() {
 
 	deployCmd.AddCommand(deployCoordinatorBenchNetCmd)
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
-	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployTxsPerSec, "tx-per-sec", 1e3, "transactions per second")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 	//
