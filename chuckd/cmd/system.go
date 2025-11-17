@@ -33,6 +33,7 @@ var (
 				outside := libnet.Network(libnet.TCPNet{})
 				srv := coordinator.NewSystem(
 					ctx,
+					nil,
 					runtime.NewRandFromRoot(),
 					cfg,
 					inside,

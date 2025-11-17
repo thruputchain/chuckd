@@ -32,6 +32,7 @@ func CoordinatorBenchScripts(
 	round time.Duration,
 	fanOut int,
 	txsPerSec int,
+	numCommits int,
 ) []string {
 
 	nv := len(hosts)
@@ -54,6 +55,7 @@ func CoordinatorBenchScripts(
 			round,
 			fanOut,
 			txsPerSec,
+			numCommits,
 			vcfg,
 			hosts[i],
 			vaddrs[i],
@@ -73,6 +75,7 @@ func CoordinatorBenchScript(
 	round time.Duration,
 	fanOut int,
 	txsPerSec int,
+	numCommits int,
 	// node params
 	vcfg proto.Config,
 	host string,
@@ -105,6 +108,7 @@ func CoordinatorBenchScript(
 	--metrics :%d \
 		bench coordinator \
 			--tx-per-sec %d \
+			--num-commits %d \
 			--storage-dir %s \
 			--out-addr %s \
 			--wallet-addr %s \
@@ -118,6 +122,7 @@ func CoordinatorBenchScript(
 		rand.Int63(),
 		bcfg.MetricsPort,
 		txsPerSec,
+		numCommits,
 		storageDir,
 		vBind,
 		wBind,

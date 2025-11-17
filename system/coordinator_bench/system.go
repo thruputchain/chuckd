@@ -16,6 +16,7 @@ import (
 
 type CoordinatorBenchSystem struct {
 	inside libnet.Network
+	notify *coordinator.NotifyReceive
 	*coordinator.System
 	*CoordinatorBenchCluster
 }
@@ -29,9 +30,11 @@ func NewCoordinatorBenchSystem(
 	testCfg CoordinatorBenchConfig,
 ) *CoordinatorBenchSystem {
 	inside := testnet.NewTestNetwork()
-	s := coordinator.NewSystem(ctx, runtime.NewRandFromRand(rand), cfg, inside, outside)
+	notify := coordinator.NewNotifyReceive()
+	s := coordinator.NewSystem(ctx, notify, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &CoordinatorBenchSystem{
 		inside: inside,
+		notify: notify,
 		System: s,
 		CoordinatorBenchCluster: NewCoordinatorBenchCluster(
 			ctx,
@@ -46,13 +49,27 @@ func NewCoordinatorBenchSystem(
 	}
 }
 
-func (s *CoordinatorBenchSystem) Start(ctx context.Context, opcfg coordinator.OperationalConfig) {
+func (s *CoordinatorBenchSystem) Start(
+	ctx context.Context,
+	opcfg coordinator.OperationalConfig,
+	numCommits int, // stop after this many commits
+	ready chan<- struct{},
+) {
 	s.CoordinatorBenchCluster.Start(ctx, opcfg.InAddr) // start scheduler rpc, needed by coordinator system
 	s.System.Start(ctx, opcfg)
 
 	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, s.inside, opcfg.InAddr)
 	must.NoError(ctx, err)
 	s.sched.SetCoordScheduler(coordSchedConn)
+
+	// wait for numCommits and signal ready
+	go func() {
+		for i := 0; i < numCommits; i++ {
+			s.notify.ReceiveCommitted(ctx)
+		}
+		// XXX: print duration from start of experiment after trigger
+		close(ready)
+	}()
 }
 
 func (s *CoordinatorBenchSystem) Close() {

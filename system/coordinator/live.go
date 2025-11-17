@@ -28,6 +28,7 @@ import (
 
 // LiveHandler is an batonkit.Handler that connects a live system to the baton
 type LiveHandler struct {
+	notify Notify
 	protoutil.Signatory
 	libtime.Time
 	inside  libnet.Network
@@ -50,6 +51,7 @@ type LiveHandler struct {
 }
 
 func NewLiveHandler(
+	notify Notify,
 	signer protoutil.Signatory,
 	time libtime.Time,
 	inside libnet.Network,
@@ -63,6 +65,7 @@ func NewLiveHandler(
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
+		notify:      notify,
 		Signatory:   signer,
 		Time:        time,
 		inside:      inside,
@@ -146,6 +149,7 @@ func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.Cons
 
 func (x *LiveHandler) Committed(ctx context.Context, height proto.BlockHeight) {
 	x.cvpool.PurgeNotAbove(ctx, height)
+	x.notify.Committed(ctx, height)
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {

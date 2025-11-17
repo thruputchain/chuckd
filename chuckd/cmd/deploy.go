@@ -60,6 +60,7 @@ var (
 					time.Millisecond*time.Duration(deployRoundMsec),
 					deployFanOut,
 					deployTxsPerSec,
+					deployNumCommits,
 				)
 				for i, host := range deployHosts {
 					fmt.Printf("### launch-coordinator-bench-%s.sh\n", host)
@@ -73,9 +74,10 @@ var (
 var (
 	deployNumVs int
 	//
-	deployFanOut    int
-	deployTxsPerSec int
-	deployRoundMsec int
+	deployFanOut     int
+	deployTxsPerSec  int
+	deployNumCommits int
+	deployRoundMsec  int
 	//
 	deployHosts          []string
 	deployChuckdPath     string
@@ -99,6 +101,7 @@ func init() {
 	deployCmd.AddCommand(deployCoordinatorBenchNetCmd)
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployTxsPerSec, "tx-per-sec", 1e3, "transactions per second")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployNumCommits, "num-commits", 100, "stop after number of commits")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 	//
 	deployCoordinatorBenchNetCmd.Flags().StringSliceVar(&deployHosts, "hosts", []string{"hog6", "hog7", "hog8"}, "hosts")

@@ -26,7 +26,7 @@ var (
 		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
-	benchTestClusterCmd = &cobra.Command{
+	benchCoordinatorCmd = &cobra.Command{
 		Use:   "coordinator",
 		Short: "start coordinator benchmark",
 		Long:  ``,
@@ -62,8 +62,9 @@ var (
 					SCPControlAddr: benchSCPControlAddr,
 					IsValidator:    benchSCPIsValidator,
 				}
-				srv.Start(ctx, opcfg)
-				select {}
+				ready := make(chan struct{})
+				srv.Start(ctx, opcfg, benchNumCommits, ready)
+				<-ready
 			})
 		},
 	}
@@ -124,6 +125,7 @@ var (
 	benchServerAddress string
 	benchNumIterations int
 	benchBytesPerPay   int
+	benchNumCommits    int
 	//
 	benchStorageDir    string
 	benchInAddress     string
@@ -156,17 +158,18 @@ func init() {
 
 	scpdPath, _ := exec.LookPath("scpd")
 
-	benchCmd.AddCommand(benchTestClusterCmd)
-	benchTestClusterCmd.Flags().StringVar(&benchStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
-	benchTestClusterCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
-	benchTestClusterCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
-	benchTestClusterCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
-	benchTestClusterCmd.Flags().Int64Var(&benchTxPerSec, "tx-per-sec", 1e4, "transactions per second")
-	benchTestClusterCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
-	benchTestClusterCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
-	benchTestClusterCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
-	benchTestClusterCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
-	benchTestClusterCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
+	benchCmd.AddCommand(benchCoordinatorCmd)
+	benchCoordinatorCmd.Flags().StringVar(&benchStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
+	benchCoordinatorCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
+	benchCoordinatorCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
+	benchCoordinatorCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
+	benchCoordinatorCmd.Flags().Int64Var(&benchTxPerSec, "tx-per-sec", 1e4, "transactions per second")
+	benchCoordinatorCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
+	benchCoordinatorCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
+	benchCoordinatorCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
+	benchCoordinatorCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
+	benchCoordinatorCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
+	benchCoordinatorCmd.Flags().IntVar(&benchNumCommits, "num-commits", 100, "stop after number of commits")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")

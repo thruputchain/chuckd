@@ -66,6 +66,7 @@ type System struct {
 
 func NewSystem(
 	ctx context.Context,
+	notify Notify,
 	rand *rand.Rand,
 	cfg proto.Config,
 	inside libnet.Network,
@@ -75,6 +76,9 @@ func NewSystem(
 	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
 	liblog.Infof("initializing validator %v", protoutil.VIDString(vid))
 
+	if notify == nil {
+		notify = IgnoreNotify{}
+	}
 	s := &System{
 		cfg:     cfg,
 		time:    libtime.RealTime{},
@@ -127,6 +131,7 @@ func NewSystem(
 	s.SCPBroker = scpbroker.NewSCPBroker(ctx, s.Router, s.Storage, s.RepairAgent)
 
 	s.Live = NewLiveHandler(
+		notify,
 		s.signer,
 		libtime.RealTime{},
 		inside,
