@@ -1,44 +1,26 @@
 # Hog scheduler
 
-A tool, called `hog_sched`, executes "schedules" on behalf of the user.
-A schedule specifies multiple jobs, given as shell scripts, to be executed
-each on a dedicated hog machine.
+The "hog scheduler" is a tool for executing multi-host programs on the hog cluster.
+A program entails a collection of jobs each executing on a dedicated host in a clean directory.
 
-## How it works
+A program is defined in a single TOML file. It consists of a name and one or more job definitions.
+Each job is defined by:
+- a unique identifier
+- a host to run on
+- a shell script to run
+- a set of input files or directories, which will be copied from the executing environment to the job directory,
+- a set of output files or directories, which will be copied from the job directory back to the executing environment,
+- environment variables.
 
-The hog scheduler consists of three binaries:
-- `hog_lockd`: a lock server daemon,
-- `hog_sched`: the schedule executor, and
-- `hog_fwd`: a utility that recognizes github deploy keys among the current ssh agent keys and configures `git` and `ssh` to use them with their repective repos.
+Programs can be executed by any user on any machine. Program execution will not begin until all hosts in the job definitions have been locked exclusvely. Execution terminates with an error as soon as any job does. Otherwise programs terminate successfully. 
 
-The lock server is deployed on `hog12:60006` and is used by `hog_sched`.
+Any child subprocesses, except for detached ones, will be terminated whenever a job terminates for any reason.
 
-Hog users (such as `hogci`) invoke `hog_sched` (from any machine) to execute a schedule.
-
-`hog_sched` expects to find a config file in `~/.hogtools`, containing the location of the lock server and the directory where jobs run:
-
-```toml
-lockd="hog12:60006"
-job_dir="/tmp/hogjob-hogci"
-```
-
-## Installation
-
-To install the tools on all machines, on `hog12` run:
-
-```sh
-./scripts/rebuild_hogtools.sh
-```
-
-To populate all machines with a `.hogtools` config file, log as the desired user (on any machine) and run:
-
-```sh
-./scripts/populate_hogtools.sh
-```
+The job execution environment inherits the ssh-agent of the executing environment. Any ssh keys which are GitHub deploy keys are recognized, and git and ssh are configured to use the appropriate key when cloning.
 
 ## Usage
 
-Write a TOML spec for your schedule, for instance `build_test_cover.toml` executes one job:
+Programs are specified in a TOML file, like `build_test_cover.toml`, for example:
 
 ```toml
 name = "build_test_cover"
@@ -69,19 +51,19 @@ file_out = ["coverage.out"]
 GIT_COMMIT = "{{ .git_commit }}"
 ```
 
-Execute this schedule by running:
+To execute this program, the user would run:
 
 ```sh
 hog_sched -i=123xyz --key=git_commit --value=abcd1234 build_test_cover.toml
 ```
 
-Flag `-i` is a required unique instance id.
+Here, the flag `-i` is a required unique execution instance id.
+Any number of `--key`/`--value` flags can be passed to perform substitutions in the program spec.
+In this example, the substitution replaces the string `{{ .git_commit }}` in the spec.
 
-You can add as many jobs as you like to a schedule. They must use different hosts. Execution won't start until all hosts are locked (i.e. no other schedule execution can use them).
+## Github CI and the hog scheduler
 
-## Github CI with `hog_sched`
-
-Use a github workflow similar to this example:
+Write your CI workflows as scheduler programs and call them from a GitHub workflow as in this example:
 
 ```yml
 name: Build, test, cover
@@ -94,13 +76,18 @@ on:
 
 jobs:
     build-test:
-        runs-on: hog7
+        # pick a runs-on label that corresponds to any available machine.
+        # the machine that this workflow runs on is of no consequence,
+        # the hog scheduler program will run on the machines defined in its jobs definitions.
+        runs-on: self-hosted
         steps:
+            # clean up .gitconfig from the previous run of webfactory/ssh-agent
             - name: Clean up .gitconfig
               run: |
                   echo "Cleaning up .gitconfig"
                   rm -f /home/hogci/.gitconfig
 
+            # add all relevant GitHub deploy keys to the workflow
             - uses: webfactory/ssh-agent@v0.9.1
               with:
                   ssh-private-key: |
@@ -110,6 +97,7 @@ jobs:
 
             - uses: actions/checkout@v4
 
+            # execute one or more scheduler programs defined in your repo
             - name: Run hog schedule
               run: |
                   rm -rf chuckd
@@ -124,4 +112,37 @@ jobs:
               with:
                   name: coverage
                   path: coverage.out
+```
+
+
+## How it works
+
+The hog scheduler consists of three binaries:
+- `hog_lockd`: a lock server daemon,
+- `hog_sched`: the schedule executor command, and
+- `hog_fwd`: a utility that forwards git commands to the correct ssh agent key, when GitHub deploy keys are present.
+
+The lock server is deployed on `hog12:60006` and is used by `hog_sched`.
+
+Hog users invoke `hog_sched` from any machine (including non-cluster machines that have ssh access to the cluster) to execute a program.
+
+`hog_sched` expects to find a config file in `~/.hogtools` on the host where a job is executing, containing the location of the lock server and the directory where the job runs, e.g.
+
+```toml
+lockd="hog12:60006"
+job_dir="/tmp/hogjob-hogci"
+```
+
+## Installation
+
+To install the tools on all machines, on `hog12` run:
+
+```sh
+./scripts/rebuild_hogtools.sh
+```
+
+To populate all machines with a `.hogtools` config file, log as the desired user (on any machine) and run:
+
+```sh
+./scripts/populate_hogtools.sh
 ```
