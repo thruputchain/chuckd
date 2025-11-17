@@ -37,7 +37,13 @@ func ForwardSshForGit(ctx context.Context) error {
 	}
 
 	var gitconfig bytes.Buffer
+	fmt.Fprintf(&gitconfig, `
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/
+`)
+
 	var sshconfig bytes.Buffer
+
 	for _, key := range keys {
 		repo, err := ParseGitHubRepoFromSSHKeyLine(key)
 		if err != nil {
