@@ -5,17 +5,6 @@ MISC
 
 BENCHMARKS
 
-- [ ] dogwood_bench
-  - [x] collect report
-    - [x] simplify report output
-    - [x] graph
-    - [x] save in metrics repo
-  - [x] benches for different message sizes, node counts
-
-  - [ ] fix deadlock/race in ci
-    - [ ] remote runs use same working directory
-    - [ ] 
-
 - [ ] coordinator_bench
   - [ ] fetch and compile scpd (place commit dependence in file inside repo)
   - [ ] impl termination condition for coordinator_bench
