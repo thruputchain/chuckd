@@ -135,14 +135,20 @@ job_dir="/tmp/hogjob-hogci"
 
 ## Installation
 
-To install the tools on all machines, on `hog12` run:
+Install the tools on all machines, on `hog12` run:
 
 ```sh
 ./scripts/rebuild_hogtools.sh
 ```
 
-To populate all machines with a `.hogtools` config file, log as the desired user (on any machine) and run:
+Populate all machines with a `.hogtools` config file, log as the desired user (on any machine) and run:
 
 ```sh
 ./scripts/populate_hogtools.sh
+```
+
+Install `cargo` on all machines:
+
+```sh
+for host in "${hosts[@]}"; do ssh $host 'curl -sSf https://sh.rustup.rs | sh -s -- -y' ; done
 ```
