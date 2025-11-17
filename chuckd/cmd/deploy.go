@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/deploy/k8s"
 	"github.com/groundhogchain/chuckd/deploy/script"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
@@ -19,32 +18,9 @@ var (
 		Run:   func(cmd *cobra.Command, args []string) {},
 	}
 
-	deployK8sBenchDogwoodCmd = &cobra.Command{
-		Use:   "k8s-bench-dogwood",
-		Short: "generate a dogwood benchmark k8s config",
-		Long:  ``,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
-				fmt.Println(k8s.BenchDogwoodBlueprint(ctx, runtime.NewRandFromRoot(), deployNumVs, deployFanOut))
-			})
-		},
-	}
-
-	deployK8sBenchTestClusterCmd = &cobra.Command{
-		Use:   "k8s-bench-testcluster",
-		Short: "generate a testcluster benchmark k8s config",
-		Long:  ``,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
-				fmt.Println(k8s.BenchTestClusterBlueprint(ctx, runtime.NewRandFromRoot(),
-					time.Second, deployNumVs, deployFanOut, deployTPS))
-			})
-		},
-	}
-
-	deployLocalBenchTestClusterCmd = &cobra.Command{
-		Use:   "local-coordinator-bench",
-		Short: "generate a local coordinator benchmark deploy shell script",
+	deployCoordinatorBenchLocalCmd = &cobra.Command{
+		Use:   "coordinator-bench-local",
+		Short: "generate a local coordinator benchmark deploy script",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
@@ -55,8 +31,40 @@ var (
 						time.Millisecond*time.Duration(deployRoundMsec),
 						deployNumVs,
 						deployFanOut,
-						deployTPS,
+						deployTxsPerSec,
 					))
+			})
+		},
+	}
+
+	deployCoordinatorBenchNetCmd = &cobra.Command{
+		Use:   "coordinator-bench-net",
+		Short: "generate multi-node coordinator benchmark deploy scripts",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+				bcfg := script.CoordinatorBenchConfig{
+					ChuckdPath:     deployChuckdPath,
+					ScpdPath:       deployScpdPath,
+					ValidatorPort:  deployValidatorPort,
+					WalletPort:     deployWalletPort,
+					MetricsPort:    deployMetricsPort,
+					ScpHandlePort:  deployScpHandlePort,
+					ScpControlPort: deployScpControlPort,
+				}
+				scripts := script.CoordinatorBenchScripts(
+					ctx,
+					runtime.NewRandFromRoot(),
+					bcfg,
+					deployHosts,
+					time.Millisecond*time.Duration(deployRoundMsec),
+					deployFanOut,
+					deployTxsPerSec,
+				)
+				for i, host := range deployHosts {
+					fmt.Printf("### launch-coordinator-bench-%s.sh\n", host)
+					fmt.Println(scripts[i])
+				}
 			})
 		},
 	}
@@ -65,25 +73,40 @@ var (
 var (
 	deployFanOut    int
 	deployNumVs     int
-	deployTPS       int
+	deployTxsPerSec int
 	deployRoundMsec int
+	//
+	deployHosts          []string
+	deployChuckdPath     string
+	deployScpdPath       string
+	deployValidatorPort  int
+	deployWalletPort     int
+	deployMetricsPort    int
+	deployScpHandlePort  int
+	deployScpControlPort int
 )
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
-	deployCmd.AddCommand(deployK8sBenchDogwoodCmd)
-	deployK8sBenchDogwoodCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
-	deployK8sBenchDogwoodCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
+	deployCmd.AddCommand(deployCoordinatorBenchLocalCmd)
+	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
+	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
+	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployTxsPerSec, "tx-per-sec", 1e3, "transactions per second")
+	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 
-	deployCmd.AddCommand(deployK8sBenchTestClusterCmd)
-	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
-	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
-	deployK8sBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tx-per-sec", 1e3, "transactions per second")
-
-	deployCmd.AddCommand(deployLocalBenchTestClusterCmd)
-	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
-	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
-	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployTPS, "tx-per-sec", 1e3, "transactions per second")
-	deployLocalBenchTestClusterCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
+	deployCmd.AddCommand(deployCoordinatorBenchNetCmd)
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployTxsPerSec, "tx-per-sec", 1e3, "transactions per second")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
+	//
+	deployCoordinatorBenchNetCmd.Flags().StringSliceVar(&deployHosts, "hosts", []string{"hog6", "hog7", "hog8"}, "hosts")
+	deployCoordinatorBenchNetCmd.Flags().StringVar(&deployChuckdPath, "chuckd", "chuckd", "chuckd path")
+	deployCoordinatorBenchNetCmd.Flags().StringVar(&deployScpdPath, "scpd", "scpd", "scpd path")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployValidatorPort, "v-port", 50000, "validator port")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployWalletPort, "w-port", 40000, "wallet port")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployMetricsPort, "m-port", 2223, "metrics port")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployScpHandlePort, "scp-handle-port", 3300, "scp handle port")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployScpControlPort, "scp-control-port", 4400, "scp control port")
 }

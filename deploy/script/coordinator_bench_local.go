@@ -23,22 +23,22 @@ func CoordinatorBenchShellLocal(
 	tps int,
 ) string {
 
-	quorumPortStart := 50000
+	validatorPortStart := 50000
 	walletPortStart := 40000
 
-	quorumAddrs := make([]string, numVs)
-	quorumBinds := make([]string, numVs)
+	validatorAddrs := make([]string, numVs)
+	validatorBinds := make([]string, numVs)
 	walletBinds := make([]string, numVs)
-	for i := range quorumAddrs {
-		quorumAddrs[i] = fmt.Sprintf("127.0.0.1:%d", quorumPortStart+i)
-		quorumBinds[i] = fmt.Sprintf(":%d", quorumPortStart+i)
+	for i := range validatorAddrs {
+		validatorAddrs[i] = fmt.Sprintf("127.0.0.1:%d", validatorPortStart+i)
+		validatorBinds[i] = fmt.Sprintf(":%d", validatorPortStart+i)
 		walletBinds[i] = fmt.Sprintf(":%d", walletPortStart+i)
 	}
 
 	// gen quorum configs
 	baseCfg := common.MakeBaseConfig(round, int64(numVs), uint32(fanOut))
 	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
-	quorumCfgs, _ := common.GenQuorumConfigs(ctx, rand, baseCfg, quorumAddrs)
+	quorumCfgs, _ := common.GenQuorumConfigs(ctx, rand, baseCfg, validatorAddrs)
 
 	// start deploy script
 	var sh bytes.Buffer
@@ -47,7 +47,9 @@ func CoordinatorBenchShellLocal(
 
 	// write quorum configs
 	for _, qcfg := range quorumCfgs {
-		untypedVID := protoutil.VIDUntypedString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key))
+		untypedVID := protoutil.VIDUntypedString(
+			protoutil.VPublicKeyToID(
+				qcfg.Validator_config.Private_info.Public_info.Public_key))
 		fmt.Fprintf(&sh, "cat > config-%s.json << EOF\n", untypedVID)
 		fmt.Fprintln(&sh, xdrutil.MustXdrToJsonString(&qcfg))
 		fmt.Fprintln(&sh, "EOF")
@@ -58,8 +60,10 @@ func CoordinatorBenchShellLocal(
 	scpHandleBasePort := 3300
 	scpControlBasePort := 4400
 	for i, qcfg := range quorumCfgs {
-		untypedVID := protoutil.VIDUntypedString(protoutil.VPublicKeyToID(qcfg.Validator_config.Private_info.Public_info.Public_key))
-		quorumCmd := fmt.Sprintf(
+		untypedVID := protoutil.VIDUntypedString(
+			protoutil.VPublicKeyToID(
+				qcfg.Validator_config.Private_info.Public_info.Public_key))
+		validatorCmd := fmt.Sprintf(
 			`chuckd -l %s --stack --config config-%s.json \
 	--instance quorum-%d \
 	--seed %d \
@@ -76,12 +80,12 @@ func CoordinatorBenchShellLocal(
 			untypedVID,
 			i, rand.Int63(), metricsBasePort+i, tps,
 			fmt.Sprintf("./storage-%d", i),
-			quorumBinds[i], walletBinds[i],
+			validatorBinds[i], walletBinds[i],
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)
 		fmt.Fprintf(&sh, "rm -rf %s\n", fmt.Sprintf("./storage-%d", i))
-		fmt.Fprintf(&sh, "nohup %s > validator-%s.log 2>&1 &\n", quorumCmd, untypedVID)
+		fmt.Fprintf(&sh, "nohup %s > validator-%s.log 2>&1 &\n", validatorCmd, untypedVID)
 		// fmt.Fprintf(&sh, "Q_PID=$! echo $Q_PID > validator-%s.pid\n", untypedVID)
 	}
 
