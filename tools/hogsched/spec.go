@@ -1,12 +1,14 @@
 package hogsched
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/groundhogchain/chuckd/util/textutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -24,15 +26,75 @@ type Job struct {
 	FileOut []string          `toml:"file_out"`
 }
 
-func (x Spec) Hosts() proto.LockObjects {
+type RewrittenSpec struct {
+	Name string         `toml:"name"`
+	Jobs []RewrittenJob `toml:"jobs"`
+}
+
+type RewrittenJob struct {
+	Name    string            `toml:"name"`
+	Host    string            `toml:"host"`
+	Script  string            `toml:"script"`
+	Env     map[string]string `toml:"env"`
+	FileIn  []string          `toml:"file_in"`
+	FileOut []string          `toml:"file_out"`
+}
+
+func (x Spec) Rewrite(ctx context.Context, kv map[string]any) RewrittenSpec {
+	rw := RewrittenSpec{
+		Name: textutil.Apply(ctx, x.Name, kv),
+	}
+	kv["hog_workflow"] = rw.Name
+	for _, job := range x.Jobs {
+		rw.Jobs = append(rw.Jobs, job.Rewrite(ctx, kv)...)
+	}
+	delete(kv, "hog_workflow")
+	return rw
+}
+
+func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
+	rw := []RewrittenJob{}
+	kv["hog_host_count"] = len(x.Host)
+	for i, host := range x.Host {
+		kv["hog_host"] = host
+		kv["hog_host_index"] = i
+		//
+		rwEnv := map[string]string{}
+		for envKey, envValue := range x.Env {
+			rwEnv[textutil.Apply(ctx, envKey, kv)] = textutil.Apply(ctx, envValue, kv)
+		}
+		//
+		rwJob := RewrittenJob{
+			Name:    textutil.Apply(ctx, x.Name, kv),
+			Host:    textutil.Apply(ctx, host, kv),
+			Script:  textutil.Apply(ctx, x.Script, kv),
+			Env:     rwEnv,
+			FileIn:  make([]string, len(x.FileIn)),
+			FileOut: make([]string, len(x.FileOut)),
+		}
+		for i := range x.FileIn {
+			rwJob.FileIn[i] = textutil.Apply(ctx, x.FileIn[i], kv)
+		}
+		for i := range x.FileOut {
+			rwJob.FileOut[i] = textutil.Apply(ctx, x.FileOut[i], kv)
+		}
+		rw = append(rw, rwJob)
+	}
+	delete(kv, "hog_host_count")
+	delete(kv, "hog_host")
+	delete(kv, "hog_host_index")
+	return rw
+}
+
+func (x RewrittenSpec) Hosts() proto.LockObjects {
 	r := proto.LockObjects{}
 	for i := range x.Jobs {
-		r = append(r, x.Jobs[i].Host...)
+		r = append(r, x.Jobs[i].Host)
 	}
 	return r
 }
 
-func (x Spec) ScriptsWithJobDir(jobDir string, user string) []string {
+func (x RewrittenSpec) ScriptsWithJobDir(jobDir string, user string) []string {
 	jobDir = filepath.Clean(jobDir)
 	prefix := fmt.Sprintf(`
 echo "creating job directory" %q
@@ -50,25 +112,20 @@ hog_fwd
 `
 	r := []string{}
 	for _, job := range x.Jobs {
-		jobScript := prefix + job.Script + suffix
-		for range job.Host {
-			r = append(r, jobScript)
-		}
+		r = append(r, prefix+job.Script+suffix)
 	}
 	return r
 }
 
-func (x Spec) Envs(inject map[string]string) []map[string]string {
+func (x RewrittenSpec) Envs(inject map[string]string) []map[string]string {
 	envs := []map[string]string{}
 	for _, job := range x.Jobs {
-		for _, host := range job.Host {
-			env := cloneMap(job.Env)
-			for n, v := range inject {
-				env[n] = v
-			}
-			env["HOG_HOST"] = host
-			envs = append(envs, env)
+		env := cloneMap(job.Env)
+		for n, v := range inject {
+			env[n] = v
 		}
+		env["HOG_HOST"] = job.Host
+		envs = append(envs, env)
 	}
 	return envs
 }

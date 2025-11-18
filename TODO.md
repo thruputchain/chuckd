@@ -3,6 +3,10 @@ MISC
 - [ ] purpose of MaybeValid?
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 
+HOGSCHED
+
+- [ ] cleanup script (gets payload script exit code)
+
 OPEN
 
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`

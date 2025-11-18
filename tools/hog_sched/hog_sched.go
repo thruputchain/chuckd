@@ -14,7 +14,6 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/tools/hogsched"
 	"github.com/groundhogchain/chuckd/tools/libtools"
-	"github.com/groundhogchain/chuckd/util/textutil"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )
@@ -101,10 +100,9 @@ func main() {
 			for i := range keys {
 				kv[keys[i]] = values[i]
 			}
-			rewritten := textutil.Apply(ctx, string(specBody), kv)
 
 			// parse rewritten spec
-			spec, err := hogsched.Parse(bytes.NewBufferString(rewritten))
+			spec, err := hogsched.Parse(bytes.NewBuffer(specBody))
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "parse %s: %v\n", specFile, err)
 				return err
@@ -117,7 +115,7 @@ func main() {
 				JobDir:       jobDir,
 			}
 
-			return sched.Schedule(ctx, xid, *spec)
+			return sched.Schedule(ctx, xid, *spec, kv)
 		},
 	}
 
