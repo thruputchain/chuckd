@@ -10,6 +10,9 @@ func ShExecPar(
 	env []map[string]string,
 ) error {
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	ech := make(chan error, len(script))
 
 	for i, s := range script {
@@ -19,14 +22,13 @@ func ShExecPar(
 		}(s)
 	}
 
-	var r error
 	for range script {
 		err := <-ech
 		if err != nil {
-			r = err
+			return err
 		}
 	}
-	return r
+	return nil
 }
 
 func SshExecPar(
@@ -35,6 +37,9 @@ func SshExecPar(
 	script []string,
 	env []map[string]string,
 ) error {
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	ech := make(chan error, len(script))
 
@@ -45,12 +50,11 @@ func SshExecPar(
 		}()
 	}
 
-	var r error
 	for range script {
 		err := <-ech
 		if err != nil {
-			r = err
+			return err
 		}
 	}
-	return r
+	return nil
 }
