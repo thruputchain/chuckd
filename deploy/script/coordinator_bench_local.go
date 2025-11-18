@@ -57,6 +57,7 @@ func CoordinatorBenchShellLocal(
 
 	// start quorum
 	metricsBasePort := 2223
+	debugBasePort := 5500
 	scpHandleBasePort := 3300
 	scpControlBasePort := 4400
 	for i, qcfg := range quorumCfgs {
@@ -69,6 +70,7 @@ func CoordinatorBenchShellLocal(
 	--seed %d \
 	--metrics :%d \
 		bench coordinator \
+			--debug-port %d \
 			--tx-per-sec %d \
 			--storage-dir %s \
 			--out-addr %s \
@@ -78,9 +80,14 @@ func CoordinatorBenchShellLocal(
 			--scp-is-validator true`,
 			runtime.GetLogLevel(),
 			untypedVID,
-			i, rand.Int63(), metricsBasePort+i, tps,
+			i,
+			rand.Int63(),
+			metricsBasePort+i,
+			debugBasePort+i,
+			tps,
 			fmt.Sprintf("./storage-%d", i),
-			validatorBinds[i], walletBinds[i],
+			validatorBinds[i],
+			walletBinds[i],
 			fmt.Sprintf("127.0.0.1:%d", scpHandleBasePort+i),
 			fmt.Sprintf("127.0.0.1:%d", scpControlBasePort+i),
 		)

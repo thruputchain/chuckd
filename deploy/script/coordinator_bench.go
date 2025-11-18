@@ -20,6 +20,7 @@ type CoordinatorBenchConfig struct {
 	ValidatorPort  int // 50000
 	WalletPort     int // 40000
 	MetricsPort    int // 2223
+	DebugPort      int // 5500
 	ScpHandlePort  int // 3300
 	ScpControlPort int // 4400
 }
@@ -107,6 +108,7 @@ func CoordinatorBenchScript(
 	--seed %d \
 	--metrics :%d \
 		bench coordinator \
+			--debug-port %d \
 			--tx-per-sec %d \
 			--num-commits %d \
 			--storage-dir %s \
@@ -121,6 +123,7 @@ func CoordinatorBenchScript(
 		untypedVID,
 		rand.Int63(),
 		bcfg.MetricsPort,
+		bcfg.DebugPort,
 		txsPerSec,
 		numCommits,
 		storageDir,

@@ -185,6 +185,10 @@ func NewSystem(
 	return s
 }
 
+func (s *System) Config() proto.Config {
+	return s.cfg
+}
+
 // System dependencies:
 //	[] means delayed set after init
 //
@@ -218,6 +222,7 @@ func NewSystem(
 type OperationalConfig struct {
 	StorageDir     string
 	SchedAddr      string
+	DebugPort      int // used by coordinator bench only
 	InAddr         string
 	OutAddr        string
 	WalletAddr     string

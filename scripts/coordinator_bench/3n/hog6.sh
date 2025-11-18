@@ -117,6 +117,7 @@ chuckd -l info --stack --config config-hog6.json \
 	--seed 7704454085476916988 \
 	--metrics :2223 \
 		bench coordinator \
+            --debug-port 5500 \
 			--tx-per-sec 1000 \
 			--storage-dir ./validator-storage-hog6 \
 			--out-addr :50000 \

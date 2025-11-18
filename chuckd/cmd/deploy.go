@@ -49,6 +49,7 @@ var (
 					ValidatorPort:  deployValidatorPort,
 					WalletPort:     deployWalletPort,
 					MetricsPort:    deployMetricsPort,
+					DebugPort:      deployDebugPort,
 					ScpHandlePort:  deployScpHandlePort,
 					ScpControlPort: deployScpControlPort,
 				}
@@ -85,6 +86,7 @@ var (
 	deployValidatorPort  int
 	deployWalletPort     int
 	deployMetricsPort    int
+	deployDebugPort      int
 	deployScpHandlePort  int
 	deployScpControlPort int
 )
@@ -110,6 +112,7 @@ func init() {
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployValidatorPort, "v-port", 50000, "validator port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployWalletPort, "w-port", 40000, "wallet port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployMetricsPort, "m-port", 2223, "metrics port")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployDebugPort, "d-port", 5500, "debug port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployScpHandlePort, "scp-handle-port", 3300, "scp handle port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployScpControlPort, "scp-control-port", 4400, "scp control port")
 }

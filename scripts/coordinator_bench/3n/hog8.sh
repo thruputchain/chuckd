@@ -117,6 +117,7 @@ chuckd -l info --stack --config config-hog8.json \
 	--seed 4090419587568630594 \
 	--metrics :2223 \
 		bench coordinator \
+            --debug-port 5500 \
 			--tx-per-sec 1000 \
 			--storage-dir ./validator-storage-hog8 \
 			--out-addr :50000 \

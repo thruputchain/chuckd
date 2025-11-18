@@ -42,6 +42,7 @@ var (
 				opcfg := coordinator.OperationalConfig{
 					StorageDir:     serverStorageDir,
 					SchedAddr:      serverSchedAddress,
+					DebugPort:      0, // not used by coordinator system
 					InAddr:         serverInAddress,
 					OutAddr:        serverOutAddress,
 					WalletAddr:     serverWalletAddress,

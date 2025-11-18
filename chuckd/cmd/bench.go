@@ -54,6 +54,7 @@ var (
 				opcfg := coordinator.OperationalConfig{
 					StorageDir:     benchStorageDir,
 					SchedAddr:      fmt.Sprintf("localhost:%d", benchSchedPort),
+					DebugPort:      benchDebugPort,
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
 					WalletAddr:     benchWalletAddress,
@@ -139,6 +140,7 @@ var (
 	benchSCPIsValidator bool
 	//
 	benchSchedPort int
+	benchDebugPort int
 	//
 	benchDoSend          bool
 	benchOurAddress      string
@@ -165,6 +167,7 @@ func init() {
 	benchCoordinatorCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
 	benchCoordinatorCmd.Flags().Int64Var(&benchTxPerSec, "tx-per-sec", 1e4, "transactions per second")
 	benchCoordinatorCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
+	benchCoordinatorCmd.Flags().IntVar(&benchDebugPort, "debug-port", 40555, "debug port")
 	benchCoordinatorCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	benchCoordinatorCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	benchCoordinatorCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")

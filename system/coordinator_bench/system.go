@@ -2,11 +2,15 @@ package coordinator_bench
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/chuckd/net/debug"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/system/coordinator"
@@ -15,8 +19,9 @@ import (
 )
 
 type CoordinatorBenchSystem struct {
-	inside libnet.Network
-	notify *coordinator.NotifyReceive
+	inside  libnet.Network
+	outside libnet.Network
+	notify  *coordinator.NotifyReceive
 	*coordinator.System
 	*CoordinatorBenchCluster
 }
@@ -33,9 +38,10 @@ func NewCoordinatorBenchSystem(
 	notify := coordinator.NewNotifyReceive()
 	s := coordinator.NewSystem(ctx, notify, runtime.NewRandFromRand(rand), cfg, inside, outside)
 	return &CoordinatorBenchSystem{
-		inside: inside,
-		notify: notify,
-		System: s,
+		inside:  inside,
+		outside: outside,
+		notify:  notify,
+		System:  s,
 		CoordinatorBenchCluster: NewCoordinatorBenchCluster(
 			ctx,
 			time,
@@ -55,9 +61,28 @@ func (s *CoordinatorBenchSystem) Start(
 	numCommits int, // stop after this many commits
 	ready chan<- struct{},
 ) {
-	s.CoordinatorBenchCluster.Start(ctx, opcfg.InAddr) // start scheduler rpc, needed by coordinator system
+	// start debug service and wait until all counterparties are ready
+	counterAddr := make([]string, len(s.System.Config().Validator_config.Known_validators))
+	colonPort := fmt.Sprintf(":%d", opcfg.DebugPort)
+	for i, v := range s.System.Config().Validator_config.Known_validators {
+		host, _, err := libnet.StripPort(v.Address)
+		must.NoError(ctx, err)
+		counterAddr[i] = host + colonPort
+	}
+	err := debug.StartAndWaitCounterpartiesReady(ctx, s.outside, colonPort, counterAddr)
+	must.NoError(ctx, err)
+	liblog.Infof("all counterparties are up; starting coordinator benchmark")
+
+	// record the beginning of the benchmark
+	t0 := time.Now()
+
+	// start scheduler rpc, needed by coordinator system
+	s.CoordinatorBenchCluster.Start(ctx, opcfg.InAddr)
+
+	// start coordinator
 	s.System.Start(ctx, opcfg)
 
+	// connect the test scheduler to the coordinator
 	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, s.inside, opcfg.InAddr)
 	must.NoError(ctx, err)
 	s.sched.SetCoordScheduler(coordSchedConn)
@@ -67,8 +92,8 @@ func (s *CoordinatorBenchSystem) Start(
 		for i := 0; i < numCommits; i++ {
 			s.notify.ReceiveCommitted(ctx)
 		}
-		// XXX: trigger when all nodes are up
-		// XXX: print duration from start of experiment after trigger
+		benchDuration := time.Since(t0)
+		fmt.Println(benchDuration.Milliseconds())
 		close(ready)
 	}()
 }
