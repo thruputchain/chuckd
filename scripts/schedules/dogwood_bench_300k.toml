@@ -1,8 +1,8 @@
 name = "dogwood_bench_300k"
 
 [[jobs]]
-name = "dogwood_bench_300k_1_of_2"
-host = "hog7"
+name = "{{ .hog_schedule }}_{{ .hog_host_index_plus1 }}_of_{{ .hog_host_count }}"
+host = ["hog7", "hog8"]
 script = """
 
 git config --global protocol.version 2
@@ -20,33 +20,7 @@ sed \
     -e "s/{--METRIC--}/dogwood/g" \
     -e "s/{--LABEL--}/300k/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
-    -e "s/{--NODE--}/node-1-of-2/g" \
-    ./chuckd/scripts/templates/bench_with_metrics.sh | \
-    bash -s -- ./chuckd.dogwood_bench
-
-"""
-
-[[jobs]]
-name = "dogwood_bench_300k_2_of_2"
-host = "hog8"
-script = """
-
-git config --global protocol.version 2
-git clone --depth 1 git@github.com:groundhogchain/chuckd.git
-
-source ./chuckd/scripts/setup_go.sh
-
-root=$(pwd)
-cd chuckd/chuckd
-go build
-mv ./chuckd $root/chuckd.dogwood_bench
-cd $root
-
-sed \
-    -e "s/{--METRIC--}/dogwood/g" \
-    -e "s/{--LABEL--}/300k/g" \
-    -e "s/{--HOST--}/${HOG_HOST}/g" \
-    -e "s/{--NODE--}/node-2-of-2/g" \
+    -e "s/{--NODE--}/node-{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}/g" \
     ./chuckd/scripts/templates/bench_with_metrics.sh | \
     bash -s -- ./chuckd.dogwood_bench
 

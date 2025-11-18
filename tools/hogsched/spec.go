@@ -44,11 +44,11 @@ func (x Spec) Rewrite(ctx context.Context, kv map[string]any) RewrittenSpec {
 	rw := RewrittenSpec{
 		Name: textutil.Apply(ctx, x.Name, kv),
 	}
-	kv["hog_workflow"] = rw.Name
+	kv["hog_schedule"] = rw.Name
 	for _, job := range x.Jobs {
 		rw.Jobs = append(rw.Jobs, job.Rewrite(ctx, kv)...)
 	}
-	delete(kv, "hog_workflow")
+	delete(kv, "hog_schedule")
 	return rw
 }
 
@@ -58,6 +58,7 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 	for i, host := range x.Host {
 		kv["hog_host"] = host
 		kv["hog_host_index"] = i
+		kv["hog_host_index_plus1"] = i + 1
 		//
 		rwEnv := map[string]string{}
 		for envKey, envValue := range x.Env {
@@ -83,6 +84,7 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 	delete(kv, "hog_host_count")
 	delete(kv, "hog_host")
 	delete(kv, "hog_host_index")
+	delete(kv, "hog_host_index_plus1")
 	return rw
 }
 

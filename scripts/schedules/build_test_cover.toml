@@ -2,7 +2,7 @@ name = "build_test_cover"
 
 [[jobs]]
 name = "build_test_cover"
-host = "hog6"
+host = ["hog6"]
 script = """
 
 set -x
