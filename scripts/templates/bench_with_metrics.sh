@@ -15,12 +15,12 @@ if [[ $capture_metrics == true ]]; then
     source git_info.sh
     cd ../..
 
-    # e.g. LABEL=300k, HOST=hog7, NODE=node-1-of-2
-    METRIC_NAME="dogwood-{--LABEL--}"
+    # e.g. METRIC=dogwood, LABEL=300k, HOST=hog7, NODE=node-1-of-2
+    METRIC_NAME="{--METRIC--}-{--LABEL--}"
 
     ./metrics_history/scripts/make_metric_file.sh $METRIC_NAME $GIT_branch $GIT_commit $GIT_commit_time
 
-    ./chuckd/scripts/dogwood_bench/{--LABEL--}/{--HOST--}.sh ./chuckd.dogwood_bench > \
+    ./chuckd/scripts/bench/{--METRIC--}/{--LABEL--}/{--HOST--}.sh "$@" > \
         ./metrics_history/metrics/$METRIC_NAME/$GIT_branch/${GIT_commit_time}_$GIT_commit
 
     echo "committing metrics ..."
@@ -30,6 +30,6 @@ else
 
     echo "running benchmark (without metric capture) ..."
 
-    ./chuckd/scripts/dogwood_bench/{--LABEL--}/{--HOST--}.sh ./chuckd.dogwood_bench > /dev/null
+    ./chuckd/scripts/bench/{--METRIC--}/{--LABEL--}/{--HOST--}.sh "$@" > /dev/null
 
 fi

@@ -41,10 +41,12 @@ mv ./chuckd $root/chuckd.dogwood_bench
 cd $root
 
 sed \
+    -e "s/{--METRIC--}/dogwood/g" \
     -e "s/{--LABEL--}/300k/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-2-of-2/g" \
-    ./chuckd/scripts/templates/dogwood_bench_with_metrics.sh | bash
+    ./chuckd/scripts/templates/bench_with_metrics.sh | \
+    bash -s -- ./chuckd.dogwood_bench
 
 """
 
