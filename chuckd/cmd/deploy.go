@@ -44,8 +44,6 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return api.Invoke(ctx, func() {
 				bcfg := script.CoordinatorBenchConfig{
-					ChuckdPath:     deployChuckdPath,
-					ScpdPath:       deployScpdPath,
 					ValidatorPort:  deployValidatorPort,
 					WalletPort:     deployWalletPort,
 					MetricsPort:    deployMetricsPort,
@@ -81,8 +79,6 @@ var (
 	deployRoundMsec  int
 	//
 	deployHosts          []string
-	deployChuckdPath     string
-	deployScpdPath       string
 	deployValidatorPort  int
 	deployWalletPort     int
 	deployMetricsPort    int
@@ -107,8 +103,6 @@ func init() {
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 	//
 	deployCoordinatorBenchNetCmd.Flags().StringSliceVar(&deployHosts, "hosts", []string{"hog6", "hog7", "hog8"}, "hosts")
-	deployCoordinatorBenchNetCmd.Flags().StringVar(&deployChuckdPath, "chuckd", "chuckd", "chuckd path")
-	deployCoordinatorBenchNetCmd.Flags().StringVar(&deployScpdPath, "scpd", "scpd", "scpd path")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployValidatorPort, "v-port", 50000, "validator port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployWalletPort, "w-port", 40000, "wallet port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployMetricsPort, "m-port", 2223, "metrics port")

@@ -15,8 +15,6 @@ import (
 )
 
 type CoordinatorBenchConfig struct {
-	ChuckdPath     string
-	ScpdPath       string
 	ValidatorPort  int // 50000
 	WalletPort     int // 40000
 	MetricsPort    int // 2223
@@ -87,7 +85,14 @@ func CoordinatorBenchScript(
 
 	var script bytes.Buffer
 	fmt.Fprintf(&script, "#!/bin/sh\n")
-	fmt.Fprintf(&script, "set -e\n\n")
+	fmt.Fprintf(&script, "set -e\n")
+
+	fmt.Fprintf(&script, `
+if [ $# -ne 2 ]; then
+  echo "Usage: $0 <chuckd_path> <scpd_path>"
+  exit 1
+fi
+`)
 
 	untypedVID := protoutil.VIDUntypedString(
 		protoutil.VPublicKeyToID(
@@ -103,7 +108,7 @@ func CoordinatorBenchScript(
 	storageDir := fmt.Sprintf("./validator-storage-%s", host)
 
 	startCmd := fmt.Sprintf(
-		`%s -l %s --stack --config config-%s.json \
+		`$1 -l %s --stack --config config-%s.json \
 	--instance %s \
 	--seed %d \
 	--metrics :%d \
@@ -114,10 +119,10 @@ func CoordinatorBenchScript(
 			--storage-dir %s \
 			--out-addr %s \
 			--wallet-addr %s \
+			--scpd-path $2 \
 			--scp-handle-addr %s \
 			--scp-control-addr %s \
 			--scp-is-validator true`,
-		bcfg.ChuckdPath,
 		runtime.GetLogLevel(),
 		host,
 		untypedVID,

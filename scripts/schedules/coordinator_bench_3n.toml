@@ -25,7 +25,6 @@ cd $root
 # start benchmark
 
 # XXX: chuckd/scpd paths
-# XXX: termination condition
 # XXX: metric collection
 # XXX: metric graphing
 

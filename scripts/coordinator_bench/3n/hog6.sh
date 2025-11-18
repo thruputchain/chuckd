@@ -2,6 +2,11 @@
 #!/bin/sh
 set -e
 
+if [ $# -ne 2 ]; then
+  echo "Usage: $0 <chuckd_path> <scpd_path>"
+  exit 1
+fi
+
 cat > config-hog6.json << EOF
 
 {
@@ -112,7 +117,7 @@ cat > config-hog6.json << EOF
 }
 EOF
 rm -rf ./validator-storage-hog6
-chuckd -l info --stack --config config-hog6.json \
+$1 -l info --stack --config config-hog6.json \
 	--instance 970c9b \
 	--seed 7704454085476916988 \
 	--metrics :2223 \
@@ -122,6 +127,7 @@ chuckd -l info --stack --config config-hog6.json \
 			--storage-dir ./validator-storage-hog6 \
 			--out-addr :50000 \
 			--wallet-addr :40000 \
+			--scpd-path $2 \
 			--scp-handle-addr 127.0.0.1:3300 \
 			--scp-control-addr 127.0.0.1:4400 \
 			--scp-is-validator true > validator-hog6.log 2>&1 &
