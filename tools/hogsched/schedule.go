@@ -25,7 +25,7 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec) error {
 	c := hoglock.Client{Net: x.Net, LockdAddress: x.LockdAddress}
 
 	// acquire locks on hog machines
-	hosts := spec.HostObjects()
+	hosts := spec.Hosts()
 	liblog.Infof("acquiring locks on %v", hosts)
 	lease := c.AcquireLocks(ctx, hosts)
 	defer lease.Unlock()
@@ -74,7 +74,13 @@ func (x Scheduler) copyFilesToJob(ctx context.Context, job Job) error {
 		liblog.Infof("copying %s to job %s", local, job.Name)
 		remote[i] = path.Join(x.JobDir, local)
 	}
-	return libtools.CopyTo(ctx, job.Host, job.FileIn, remote)
+	for _, host := range job.Host {
+		err := libtools.CopyTo(ctx, host, job.FileIn, remote)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (x Scheduler) copyFilesFromJob(ctx context.Context, job Job) error {
@@ -83,5 +89,11 @@ func (x Scheduler) copyFilesFromJob(ctx context.Context, job Job) error {
 		liblog.Infof("copying %s from job %s", local, job.Name)
 		remote[i] = path.Join(x.JobDir, local)
 	}
-	return libtools.CopyFrom(ctx, job.Host, remote, job.FileOut)
+	for _, host := range job.Host {
+		err := libtools.CopyFrom(ctx, host, remote, job.FileOut)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

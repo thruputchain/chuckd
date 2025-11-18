@@ -17,17 +17,17 @@ type Spec struct {
 
 type Job struct {
 	Name    string            `toml:"name"`
-	Host    string            `toml:"host"`
+	Host    []string          `toml:"host"`
 	Script  string            `toml:"script"`
 	Env     map[string]string `toml:"env"`
 	FileIn  []string          `toml:"file_in"`
 	FileOut []string          `toml:"file_out"`
 }
 
-func (x Spec) HostObjects() proto.LockObjects {
-	r := make(proto.LockObjects, len(x.Jobs))
+func (x Spec) Hosts() proto.LockObjects {
+	r := proto.LockObjects{}
 	for i := range x.Jobs {
-		r[i] = x.Jobs[i].Host
+		r = append(r, x.Jobs[i].Host...)
 	}
 	return r
 }
@@ -48,23 +48,29 @@ hog_fwd
 	suffix := `
 )
 `
-	r := make([]string, len(x.Jobs))
-	for i := range x.Jobs {
-		r[i] = prefix + x.Jobs[i].Script + suffix
+	r := []string{}
+	for _, job := range x.Jobs {
+		jobScript := prefix + job.Script + suffix
+		for range job.Host {
+			r = append(r, jobScript)
+		}
 	}
 	return r
 }
 
 func (x Spec) Envs(inject map[string]string) []map[string]string {
-	r := make([]map[string]string, len(x.Jobs))
-	for i, job := range x.Jobs {
-		r[i] = cloneMap(job.Env)
-		for n, v := range inject {
-			r[i][n] = v
+	envs := []map[string]string{}
+	for _, job := range x.Jobs {
+		for _, host := range job.Host {
+			env := cloneMap(job.Env)
+			for n, v := range inject {
+				env[n] = v
+			}
+			env["HOG_HOST"] = host
+			envs = append(envs, env)
 		}
-		r[i]["HOG_HOST"] = job.Host
 	}
-	return r
+	return envs
 }
 
 func cloneMap(src map[string]string) map[string]string {
@@ -100,26 +106,28 @@ func validate(spec *Spec) error {
 	}
 	seenName := make(map[string]struct{}, len(spec.Jobs))
 	seenHost := make(map[string]struct{}, len(spec.Jobs))
-	for i, s := range spec.Jobs {
+	for i, job := range spec.Jobs {
 
-		if s.Name == "" {
+		if job.Name == "" {
 			return fmt.Errorf("scripts[%d]: name is empty", i)
 		}
-		if _, ok := seenName[s.Name]; ok {
-			return fmt.Errorf("duplicate job name %q", s.Name)
+		if _, ok := seenName[job.Name]; ok {
+			return fmt.Errorf("duplicate job name %q", job.Name)
 		}
-		seenName[s.Name] = struct{}{}
+		seenName[job.Name] = struct{}{}
 
-		if s.Host == "" {
-			return fmt.Errorf("scripts[%d]: host is empty", i)
+		for _, host := range job.Host {
+			if host == "" {
+				return fmt.Errorf("scripts[%d]: host is empty", i)
+			}
+			if _, ok := seenHost[host]; ok {
+				return fmt.Errorf("duplicate job host %q", host)
+			}
+			seenHost[host] = struct{}{}
 		}
-		if _, ok := seenHost[s.Host]; ok {
-			return fmt.Errorf("duplicate job host %q", s.Host)
-		}
-		seenHost[s.Host] = struct{}{}
 
-		if s.Script == "" {
-			return fmt.Errorf("scripts[%d] (%q): script body is empty", i, s.Name)
+		if job.Script == "" {
+			return fmt.Errorf("scripts[%d] (%q): script body is empty", i, job.Name)
 		}
 	}
 	return nil
