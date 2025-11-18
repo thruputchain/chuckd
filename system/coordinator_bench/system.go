@@ -67,6 +67,7 @@ func (s *CoordinatorBenchSystem) Start(
 		for i := 0; i < numCommits; i++ {
 			s.notify.ReceiveCommitted(ctx)
 		}
+		// XXX: trigger when all nodes are up
 		// XXX: print duration from start of experiment after trigger
 		close(ready)
 	}()
