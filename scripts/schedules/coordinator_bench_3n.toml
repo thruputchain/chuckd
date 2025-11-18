@@ -24,14 +24,79 @@ cd $root
 
 # start benchmark
 
-# XXX: metric collection
-# XXX: metric graphing
-
 sed \
     -e "s/{--METRIC--}/coordinator/g" \
     -e "s/{--LABEL--}/3n/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-1-of-3/g" \
+    ./chuckd/scripts/templates/bench_with_metrics.sh | \
+    bash -s -- ./chuckd.coordinator_bench ./scpd
+
+"""
+
+[[jobs]]
+name = "coordinator_bench_3n_2_of_3"
+host = "hog7"
+script = """
+
+git config --global protocol.version 2
+git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+# build chuckd
+
+source ./chuckd/scripts/setup_go.sh
+
+root=$(pwd)
+cd chuckd/chuckd
+go build
+mv ./chuckd $root/chuckd.coordinator_bench
+cd $root
+
+# build scpd
+
+./chuckd/scripts/build_scpd.sh
+
+# start benchmark
+
+sed \
+    -e "s/{--METRIC--}/coordinator/g" \
+    -e "s/{--LABEL--}/3n/g" \
+    -e "s/{--HOST--}/${HOG_HOST}/g" \
+    -e "s/{--NODE--}/node-2-of-3/g" \
+    ./chuckd/scripts/templates/bench_with_metrics.sh | \
+    bash -s -- ./chuckd.coordinator_bench ./scpd
+
+"""
+
+[[jobs]]
+name = "coordinator_bench_3n_3_of_3"
+host = "hog8"
+script = """
+
+git config --global protocol.version 2
+git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+
+# build chuckd
+
+source ./chuckd/scripts/setup_go.sh
+
+root=$(pwd)
+cd chuckd/chuckd
+go build
+mv ./chuckd $root/chuckd.coordinator_bench
+cd $root
+
+# build scpd
+
+./chuckd/scripts/build_scpd.sh
+
+# start benchmark
+
+sed \
+    -e "s/{--METRIC--}/coordinator/g" \
+    -e "s/{--LABEL--}/3n/g" \
+    -e "s/{--HOST--}/${HOG_HOST}/g" \
+    -e "s/{--NODE--}/node-3-of-3/g" \
     ./chuckd/scripts/templates/bench_with_metrics.sh | \
     bash -s -- ./chuckd.coordinator_bench ./scpd
 

@@ -3,14 +3,9 @@ MISC
 - [ ] purpose of MaybeValid?
 - [ ] ask stellar folks how they deal with messages coming after an externalization
 
-BENCHMARKS
+OPEN
 
-- [ ] coordinator_bench
-  - [ ] fetch and compile scpd (place commit dependence in file inside repo)
-  - [ ] impl termination condition for coordinator_bench
-
-- [ ] why `dogwood dropping partial incomplete transmission` before counterparties online
-
+- [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`
 
 UPGRADES
 

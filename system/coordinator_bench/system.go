@@ -93,7 +93,9 @@ func (s *CoordinatorBenchSystem) Start(
 			s.notify.ReceiveCommitted(ctx)
 		}
 		benchDuration := time.Since(t0)
-		fmt.Println(benchDuration.Milliseconds())
+		fmt.Println(
+			float64(benchDuration.Milliseconds()) / float64(numCommits), // milliseconds/commit
+		)
 		close(ready)
 	}()
 }
