@@ -139,7 +139,7 @@ fi
 	)
 
 	fmt.Fprintf(&script, "rm -rf %s\n", storageDir)
-	fmt.Fprintf(&script, "%s > validator-%s.log 2>&1 &\n", startCmd, host)
+	fmt.Fprintf(&script, "%s > validator-%s.log 2>&1\n", startCmd, host)
 
 	return script.String()
 }
