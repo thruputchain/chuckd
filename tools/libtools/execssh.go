@@ -31,7 +31,7 @@ func SshExecReader(
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
 
 	var prefix bytes.Buffer
-	fmt.Fprintln(&prefix, `set -euom pipefail`)
+	fmt.Fprintln(&prefix, `set -euo pipefail`)
 	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
@@ -51,7 +51,7 @@ func SshExecReader(
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
@@ -64,7 +64,7 @@ func SshExecReader(
 		case <-waitCh:
 		}
 		fmt.Fprintf(os.Stderr, "ssh_exec killing pid group %d\n", -cmd.Process.Pid)
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGHUP)
 		ck.unregister(cmd.Process.Pid)
 	}()
 

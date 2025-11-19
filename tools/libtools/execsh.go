@@ -29,7 +29,7 @@ func ExecReader(
 	cmd.Env = nil // nil ensures that bash inherits envs
 
 	var prefix bytes.Buffer
-	fmt.Fprintln(&prefix, `set -euom pipefail`)
+	fmt.Fprintln(&prefix, `set -euo pipefail`)
 	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
@@ -45,7 +45,7 @@ func ExecReader(
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
@@ -57,7 +57,7 @@ func ExecReader(
 		case <-ctx.Done():
 		case <-waitCh:
 		}
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGHUP)
 		ck.unregister(cmd.Process.Pid)
 	}()
 
