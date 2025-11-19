@@ -103,16 +103,15 @@ func (x RewrittenSpec) ScriptsWithJobDir(jobDir string, user string) []string {
 	jobDir = filepath.Clean(jobDir)
 	prefix := fmt.Sprintf(`
 echo "creating job directory" %q
+chmod -R +w %q || true
+rm -rf %q
 mkdir -p %q
 cd %q
 export HOME=%q
-echo "clearing job directory"
-chmod -R +w * || true
-rm -rf *
 echo "forwarding github urls through ssh-agent"
 hog_fwd
 (
-`, jobDir, jobDir, jobDir, jobDir)
+`, jobDir, jobDir, jobDir, jobDir, jobDir, jobDir)
 	suffix := `
 )
 `
