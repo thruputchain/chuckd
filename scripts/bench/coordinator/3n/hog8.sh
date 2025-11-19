@@ -131,4 +131,5 @@ $1 -l info --stack --config config-hog8.json \
 			--scp-handle-addr 127.0.0.1:3300 \
 			--scp-control-addr 127.0.0.1:4400 \
 			--scp-is-validator true \
-                2> validator-hog8.log | tee validator-hog8.report
+                > >(tee validator-hog8.report) \
+                2> >(tee validator-hog8.log >&2)

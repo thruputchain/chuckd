@@ -56,7 +56,6 @@ func NewDiscoveryService(
 
 	scpkit.NormalizeQSet(&scfg.Quorum_set, nil)
 
-	liblog.Infof("starting discovery service")
 	s := &DiscoveryService{
 		cfg:           cfg,
 		net:           n,
@@ -82,6 +81,7 @@ func NewDiscoveryService(
 }
 
 func (svc *DiscoveryService) Start(ctx context.Context, address string) {
+	liblog.Infof("starting discovery service")
 	rpcutil.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
 }
 

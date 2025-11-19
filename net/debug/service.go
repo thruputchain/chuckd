@@ -21,5 +21,5 @@ func (x *DebugService) Debug_ready(ctx context.Context) error {
 
 func (x *DebugService) Start(ctx context.Context, n libnet.Network, address string) {
 	l := rpcutil.StartSerial(ctx, n, address, proto.Debug1_Server{Srv: x})
-	liblog.Infof("advisory service is listening on %v", l.Addr().String())
+	liblog.Infof("debug service is listening on %v", l.Addr().String())
 }

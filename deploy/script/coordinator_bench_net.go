@@ -140,7 +140,8 @@ fi
 
 	fmt.Fprintf(&script, "rm -rf %s\n", storageDir)
 	fmt.Fprintf(&script, `%s \
-				2> validator-%s.log | tee validator-%s.report
+				> >(tee validator-%s.report) \
+				2> >(tee validator-%s.log >&2)
 `, startCmd, host, host)
 
 	return script.String()
