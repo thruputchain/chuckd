@@ -18,6 +18,11 @@ go build
 mv ./chuckd $root/chuckd.coordinator_bench
 cd $root
 
+# setup cargo
+
+curl -sSf https://sh.rustup.rs | sh -s -- -y
+. "$HOME/.cargo/env"
+
 # build scpd
 
 ./chuckd/scripts/build_scpd.sh
