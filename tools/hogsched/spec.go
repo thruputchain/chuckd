@@ -105,13 +105,14 @@ func (x RewrittenSpec) ScriptsWithJobDir(jobDir string, user string) []string {
 echo "creating job directory" %q
 mkdir -p %q
 cd %q
+export HOME=%q
 echo "clearing job directory"
 chmod -R +w * || true
 rm -rf *
 echo "forwarding github urls through ssh-agent"
 hog_fwd
 (
-`, jobDir, jobDir, jobDir)
+`, jobDir, jobDir, jobDir, jobDir)
 	suffix := `
 )
 `
@@ -127,10 +128,11 @@ func (x RewrittenSpec) AftersWithJobDir(jobDir string, user string) []string {
 	prefix := fmt.Sprintf(`
 echo "going to job directory" %q
 cd %q
+export HOME=%q
 echo "re-forwarding github urls through ssh-agent"
 hog_fwd
 (
-`, jobDir, jobDir)
+`, jobDir, jobDir, jobDir)
 	suffix := `
 )
 `
