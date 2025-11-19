@@ -32,7 +32,7 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
