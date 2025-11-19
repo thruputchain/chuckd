@@ -340,4 +340,5 @@ func (s *System) Close() {
 	s.insideSrv.Close()
 	s.outsideSrv.Close()
 	s.scpdKill()
+	liblog.Infof("coordinator stopped")
 }

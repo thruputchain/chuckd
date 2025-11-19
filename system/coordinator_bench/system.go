@@ -96,6 +96,16 @@ func (s *CoordinatorBenchSystem) Start(
 		fmt.Println(
 			float64(benchDuration.Milliseconds()) / float64(numCommits), // milliseconds/commit
 		)
+
+		// keep consuming commits for 2 more seconds,
+		// giving time to stragglers to complete
+		go func() {
+			for {
+				s.notify.ReceiveCommitted(ctx)
+			}
+		}()
+		time.Sleep(time.Second * 2)
+
 		close(ready)
 	}()
 }

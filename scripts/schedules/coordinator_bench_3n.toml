@@ -38,6 +38,9 @@ sed \
     bash -s -- ./chuckd.coordinator_bench ./scpd
 
 """
+after = """
+killall scpd chuckd.coordinator_bench
+"""
 
 [jobs.env]
 GIT_COMMIT = "{{ .git_commit }}"
