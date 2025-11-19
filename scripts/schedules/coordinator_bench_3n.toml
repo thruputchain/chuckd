@@ -39,7 +39,7 @@ sed \
 
 """
 after = """
-killall scpd chuckd.coordinator_bench
+killall scpd chuckd.coordinator_bench || true
 """
 
 [jobs.env]

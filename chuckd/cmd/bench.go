@@ -66,7 +66,7 @@ var (
 				ready := make(chan struct{})
 				sys.Start(ctx, opcfg, benchNumCommits, ready)
 				<-ready
-				sys.Close()
+				sys.Close() // kills scpd
 			})
 		},
 	}
