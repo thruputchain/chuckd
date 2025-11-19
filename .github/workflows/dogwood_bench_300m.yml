@@ -26,8 +26,6 @@ jobs:
 
             - name: Run hog schedule
               run: |
-                  set -x
-                  hog_fwd
                   rm -rf chuckd
                   git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
                   hog_sched \
