@@ -5,8 +5,9 @@ MISC
 
 HOGSCHED
 
+- [ ] .gitconfig conflicts, use GIT_CONFIG_GLOBAL=/tmp/hogjob-petar/.gitconfig
+- [ ] interrupt hog_sched kills subprocesses?
 - [ ] pass branch or commit to hog schedules
-- [ ] .gitconfig conflicts
 
 OPEN
 
