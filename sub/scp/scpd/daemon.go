@@ -76,8 +76,8 @@ func StartSCPDaemon(
 	err = cmd.Start()
 	must.NoError(ctx, err)
 	kill := func() {
-		fmt.Fprintf(os.Stderr, "killing scpd with pid %d\n", -cmd.Process.Pid)
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
+		fmt.Fprintf(os.Stderr, "killing scpd with pid %d\n", cmd.Process.Pid)
+		syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
 	}
 	libruntime.RegisterInterruptHook(kill)
 

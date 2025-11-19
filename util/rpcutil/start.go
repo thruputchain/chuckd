@@ -37,7 +37,8 @@ func StartSerial(ctx context.Context, n libnet.Network, addr string, srv ...xdr.
 	l, err := n.ListenAddress(ctx, addr)
 	must.NoError(ctx, err)
 	go func() {
-		defer l.Close()
+		// the only exit from the loop is when l is already closed
+		// defer l.Close()
 		for {
 			sock, err := l.Accept()
 			if (err != nil && strings.Contains(err.Error(), "use of closed network connection")) ||
@@ -60,7 +61,8 @@ func StartParallel(ctx context.Context, n libnet.Network, addr string, srv ...xd
 	l, err := n.ListenAddress(ctx, addr)
 	must.NoError(ctx, err)
 	go func() {
-		defer l.Close()
+		// the only exit from the loop is when l is already closed
+		// defer l.Close()
 		for {
 			sock, err := l.Accept()
 			if (err != nil && strings.Contains(err.Error(), "use of closed network connection")) ||
