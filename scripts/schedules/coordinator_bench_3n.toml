@@ -25,7 +25,7 @@ sed \
 
 """
 after = """
-killall scpd chuckd || true
+killall scpd.dev chuckd.dev || true
 """
 
 [jobs.env]

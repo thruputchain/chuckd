@@ -176,6 +176,8 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
 func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalizedConsensus, error) {
+	liblog.Infof("waiting for commit at height %d", height)
+
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {

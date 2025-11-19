@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -19,6 +20,9 @@ func (b *Baton) validateConsensus(
 	cv *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
+
+	liblog.Infof("validating consensus value at height %d with block hash %s",
+		slot, form.Display(cv.Nomination.Block_hash))
 
 	if b.tryValidateConsensusFast(ctx, slot, cv, reply) {
 		return
@@ -69,8 +73,10 @@ func (b *Baton) validateConsensus(
 		reply <- scpkit.InvalidValue
 		return
 	}
-	if !newStamp.Before(b.handler.Now()) {
-		liblog.Infof("cannot validate, timestamp in the future")
+	now := b.handler.Now()
+	if !newStamp.Before(now) {
+		liblog.Infof("cannot validate, timestamp in the future (stamp %s, now %s)",
+			libtime.FmtTime(newStamp), libtime.FmtTime(now))
 		reply <- scpkit.InvalidValue
 		return
 	}

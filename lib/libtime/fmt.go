@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+func FmtTime(t time.Time) string {
+	return t.Format(time.RFC3339Nano)
+}
+
 func FmtDur(d time.Duration) string {
 	switch {
 	case d >= time.Hour:

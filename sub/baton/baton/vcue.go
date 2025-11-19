@@ -49,11 +49,8 @@ func (b *Baton) validateCue(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	liblog.Infof("validating block at height %d with block hash %s and consensus value hash %s",
-		slot,
-		form.Display(cvc.Block_hash),
-		form.Display(cvc.Cv_hash),
-	)
+	liblog.Infof("validating cue at height %d with block hash %s and consensus value hash %s",
+		slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
 
 	// check if the value was already validated
 	b.lock()
@@ -79,6 +76,8 @@ func (b *Baton) validateCue(
 	go func() {
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
+		liblog.Infof("cancelling validating cue at height %d, block hash %s, consensus hash %s",
+			slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
 		vCtxCancel()
 	}()
 	defer vCtxCancel()
@@ -102,6 +101,9 @@ func (b *Baton) validateCue(
 }
 
 func (b *Baton) fetchCV(ctx context.Context, slot scpkit.Slot, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {
+
+	liblog.Infof("fetching consensus value at height %d, block hash %s, consensus hash %s",
+		slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
 
 	// lookup in cvpool
 	cv := b.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)
