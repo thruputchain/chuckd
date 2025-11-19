@@ -136,7 +136,11 @@ hog_fwd
 `
 	r := []string{}
 	for _, job := range x.Jobs {
-		r = append(r, prefix+job.After+suffix)
+		if job.After != "" {
+			r = append(r, prefix+job.After+suffix)
+		} else {
+			r = append(r, "")
+		}
 	}
 	return r
 }
