@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -xeuo pipefile
+set -xeuo pipefail
 
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 
