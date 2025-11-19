@@ -21,6 +21,7 @@ jobs:
                       ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
                       ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
                       ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+                      ${{ secrets.CHUCKD_TO_SCP_KEY }}
 
             - uses: actions/checkout@v4
 
