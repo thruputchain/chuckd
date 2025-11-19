@@ -5,6 +5,7 @@ MISC
 
 HOGSCHED
 
+- [ ] pass branch or commit to hog schedules
 - [ ] .gitconfig conflicts
 - [ ] after-script (gets payload script exit code)
 
