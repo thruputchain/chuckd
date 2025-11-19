@@ -79,7 +79,7 @@ cat > config-hog7.json << EOF
         "initial_nomination_timeout_ms": "750",
         "increment_nomination_timeout_ms": "750",
         "quorum_set": {
-            "threshold": 3,
+            "threshold": 2,
             "validators": [
                 {
                     "scheme": "Ed25519",
