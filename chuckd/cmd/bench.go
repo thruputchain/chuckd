@@ -43,7 +43,7 @@ var (
 					TxsPerSec: benchTxPerSec,
 					SchedPort: benchSchedPort,
 				}
-				srv := coordinator_bench.NewCoordinatorBenchSystem(
+				sys := coordinator_bench.NewCoordinatorBenchSystem(
 					ctx,
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
@@ -64,8 +64,9 @@ var (
 					IsValidator:    benchSCPIsValidator,
 				}
 				ready := make(chan struct{})
-				srv.Start(ctx, opcfg, benchNumCommits, ready)
+				sys.Start(ctx, opcfg, benchNumCommits, ready)
 				<-ready
+				sys.Close()
 			})
 		},
 	}

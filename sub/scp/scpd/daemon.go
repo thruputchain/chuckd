@@ -7,10 +7,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -27,7 +29,7 @@ func StartSCPDaemon(
 	isValidator bool,
 	cfg proto.SCPConfig,
 	secretKey proto.SecretKey,
-) (*SCPHandler, *SCPController) {
+) (*SCPHandler, *SCPController, func()) {
 
 	liblog.Infof("starting scpd, control_address=%s, handle_address=%s ...", controlAddr, handleAddr)
 
@@ -73,6 +75,12 @@ func StartSCPDaemon(
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
+	kill := func() {
+		fmt.Fprintf(os.Stderr, "killing scpd with pid %d\n", -cmd.Process.Pid)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
+	}
+	libruntime.RegisterInterruptHook(kill)
+
 	time.Sleep(300 * time.Millisecond) // allow time for the scp control service to start
 
 	// connect controller
@@ -80,5 +88,5 @@ func StartSCPDaemon(
 	controller, err := DialSCPController(ctx, libnet.TCPNet{}, controlAddr)
 	must.NoError(ctx, err)
 
-	return handler, controller
+	return handler, controller, kill
 }

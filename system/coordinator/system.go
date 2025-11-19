@@ -62,6 +62,8 @@ type System struct {
 	//
 	insideSrv  *Server
 	outsideSrv *Server
+	//
+	scpdKill func()
 }
 
 func NewSystem(
@@ -250,7 +252,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 	s.WalletSubmitter.Start(ctx, schedConn)
 
 	// handshake with scpd
-	scpHandler, scpController := scpd.StartSCPDaemon(
+	scpHandler, scpController, scpdKill := scpd.StartSCPDaemon(
 		ctx,
 		opcfg.SCPDaemonPath,
 		opcfg.SCPControlAddr,
@@ -259,6 +261,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 		*s.cfg.Scp_config,
 		protoutil.ToSecretKey(s.cfg.Validator_config.Private_info.Secret_key),
 	)
+	s.scpdKill = scpdKill
 	s.Live.SetSCP(scpController)
 	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
 
@@ -336,4 +339,5 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 func (s *System) Close() {
 	s.insideSrv.Close()
 	s.outsideSrv.Close()
+	s.scpdKill()
 }
