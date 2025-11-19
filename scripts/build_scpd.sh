@@ -8,7 +8,7 @@ ROOT=$(pwd)
 git clone --depth 1 git@github.com:groundhogchain/scp.git
 
 cd scp
-git switch $(cat ${SCRIPT_DIR}/../scp.commit)
+git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
 
 # build debug version of scpd
 . ~/.cargo/env
