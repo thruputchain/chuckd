@@ -2,7 +2,10 @@ package rpcutil
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net"
+	"strings"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -37,8 +40,10 @@ func StartSerial(ctx context.Context, n libnet.Network, addr string, srv ...xdr.
 		defer l.Close()
 		for {
 			sock, err := l.Accept()
-			if err != nil {
-				liblog.Errorf("rpc server (%v)", err)
+			if (err != nil && strings.Contains(err.Error(), "use of closed network connection")) ||
+				errors.Is(err, io.EOF) {
+				liblog.Errorf("rpc server exiting (%v)", err)
+				break
 			}
 			must.NoError(ctx, err)
 			driver := NewDriverSerial(ctx, sock)
@@ -58,6 +63,11 @@ func StartParallel(ctx context.Context, n libnet.Network, addr string, srv ...xd
 		defer l.Close()
 		for {
 			sock, err := l.Accept()
+			if (err != nil && strings.Contains(err.Error(), "use of closed network connection")) ||
+				errors.Is(err, io.EOF) {
+				liblog.Errorf("rpc server exiting (%v)", err)
+				break
+			}
 			must.NoError(ctx, err)
 			driver := NewDriverParallel(ctx, sock)
 			for _, srv := range srv {
