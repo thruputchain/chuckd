@@ -5,7 +5,8 @@ MISC
 
 HOGSCHED
 
-- [ ] cleanup script (gets payload script exit code)
+- [ ] .gitconfig conflicts
+- [ ] after-script (gets payload script exit code)
 
 OPEN
 

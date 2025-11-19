@@ -2,6 +2,7 @@ package debug
 
 import (
 	"context"
+	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libnet"
 )
@@ -30,15 +31,26 @@ func WaitCounterpartiesReady(
 
 	ech := make(chan error, len(addr))
 	for _, addr := range addr {
-		go func(addr string) {
-			c, err := DialDebugClient(ctx, net, addr)
-			if err != nil {
-				ech <- err
+		go func(ctx context.Context, addr string) {
+			for {
+				select {
+				case <-ctx.Done():
+					ech <- ctx.Err()
+					return
+				default:
+				}
+
+				c, err := DialDebugClient(ctx, net, addr)
+				if err != nil {
+					time.Sleep(time.Second)
+					continue
+				}
+				defer c.Close()
+
+				ech <- c.Debug_ready(ctx)
 				return
 			}
-			defer c.Close()
-			ech <- c.Debug_ready(ctx)
-		}(addr)
+		}(ctx, addr)
 	}
 
 	for i := 0; i < len(addr); i++ {
