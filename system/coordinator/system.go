@@ -337,8 +337,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 }
 
 func (s *System) Close() {
+	liblog.Infof("coordinator stopping inside network")
 	s.insideSrv.Close()
+	liblog.Infof("coordinator stopping outside network")
 	s.outsideSrv.Close()
+	liblog.Infof("coordinator killing scpd")
 	s.scpdKill()
 	liblog.Infof("coordinator stopped")
 }

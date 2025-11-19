@@ -37,6 +37,9 @@ func StartSerial(ctx context.Context, n libnet.Network, addr string, srv ...xdr.
 		defer l.Close()
 		for {
 			sock, err := l.Accept()
+			if err != nil {
+				liblog.Errorf("rpc server (%v)", err)
+			}
 			must.NoError(ctx, err)
 			driver := NewDriverSerial(ctx, sock)
 			for _, srv := range srv {

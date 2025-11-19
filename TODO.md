@@ -5,7 +5,10 @@ MISC
 
 HOGSCHED
 
+- [ ] schedule does not exit when coordinator_bench complete successfully
+
 - [ ] coordinator_bench must use complete quorum threshold
+  - [ ] coordinator_bench fails when threshold=2
 - [ ] kill scpd when coordinator exits or gets a signal
 - [ ] interrupt hog_sched kills subprocesses?
 - [ ] pass branch or commit to hog schedules
