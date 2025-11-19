@@ -21,6 +21,7 @@ type Job struct {
 	Name    string            `toml:"name"`
 	Host    []string          `toml:"host"`
 	Script  string            `toml:"script"`
+	After   string            `toml:"after"`
 	Env     map[string]string `toml:"env"`
 	FileIn  []string          `toml:"file_in"`
 	FileOut []string          `toml:"file_out"`
@@ -35,6 +36,7 @@ type RewrittenJob struct {
 	Name    string            `toml:"name"`
 	Host    string            `toml:"host"`
 	Script  string            `toml:"script"`
+	After   string            `toml:"after"`
 	Env     map[string]string `toml:"env"`
 	FileIn  []string          `toml:"file_in"`
 	FileOut []string          `toml:"file_out"`
@@ -69,6 +71,7 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 			Name:    textutil.Apply(ctx, x.Name, kv),
 			Host:    textutil.Apply(ctx, host, kv),
 			Script:  textutil.Apply(ctx, x.Script, kv),
+			After:   textutil.Apply(ctx, x.After, kv),
 			Env:     rwEnv,
 			FileIn:  make([]string, len(x.FileIn)),
 			FileOut: make([]string, len(x.FileOut)),
@@ -115,6 +118,25 @@ hog_fwd
 	r := []string{}
 	for _, job := range x.Jobs {
 		r = append(r, prefix+job.Script+suffix)
+	}
+	return r
+}
+
+func (x RewrittenSpec) AftersWithJobDir(jobDir string, user string) []string {
+	jobDir = filepath.Clean(jobDir)
+	prefix := fmt.Sprintf(`
+echo "going to job directory" %q
+cd %q
+echo "re-forwarding github urls through ssh-agent"
+hog_fwd
+(
+`, jobDir, jobDir)
+	suffix := `
+)
+`
+	r := []string{}
+	for _, job := range x.Jobs {
+		r = append(r, prefix+job.After+suffix)
 	}
 	return r
 }

@@ -47,12 +47,13 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	must.NoError(ctx, err)
 
 	scripts := rwSpec.ScriptsWithJobDir(x.JobDir, user.Username)
+	afters := rwSpec.AftersWithJobDir(x.JobDir, user.Username)
 	inject := map[string]string{
 		"HOG_USER": user.Username,
 		"HOG_XID":  xid,
 	}
 	envs := rwSpec.Envs(inject)
-	err = libtools.SshExecPar(ctx, hosts, scripts, envs)
+	err = libtools.SshExecPar(ctx, hosts, scripts, afters, envs)
 	if err != nil {
 		return err
 	}
