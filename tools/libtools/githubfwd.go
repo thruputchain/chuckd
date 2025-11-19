@@ -38,6 +38,8 @@ func ForwardSshForGit(ctx context.Context) error {
 
 	var gitconfig bytes.Buffer
 	fmt.Fprintf(&gitconfig, `
+[protocol]
+	version = 2
 [url "ssh://git@github.com/"]
 	insteadOf = https://github.com/
 `)
