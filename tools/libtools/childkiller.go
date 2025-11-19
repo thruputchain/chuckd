@@ -30,7 +30,7 @@ func (x *childKiller) kill() {
 	defer x.lk.Unlock()
 	for pgid := range x.pgid {
 		fmt.Fprintf(os.Stderr, "killing pid group %d\n", -pgid)
-		syscall.Kill(-pgid, syscall.SIGKILL)
+		syscall.Kill(-pgid, syscall.SIGTERM)
 		delete(x.pgid, pgid)
 	}
 }

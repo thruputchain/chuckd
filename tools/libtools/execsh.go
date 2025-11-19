@@ -57,7 +57,7 @@ func ExecReader(
 		case <-ctx.Done():
 		case <-waitCh:
 		}
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGHUP)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
 		ck.unregister(cmd.Process.Pid)
 	}()
 

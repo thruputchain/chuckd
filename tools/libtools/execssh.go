@@ -64,7 +64,7 @@ func SshExecReader(
 		case <-waitCh:
 		}
 		fmt.Fprintf(os.Stderr, "ssh_exec killing pid group %d\n", -cmd.Process.Pid)
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGHUP)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
 		ck.unregister(cmd.Process.Pid)
 	}()
 
