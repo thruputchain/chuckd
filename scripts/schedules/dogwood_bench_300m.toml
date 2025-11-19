@@ -16,7 +16,7 @@ sed \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}/g" \
     ./chuckd/scripts/templates/bench_with_metrics.sh | \
-    bash -s -- ./chuckd.dogwood_bench
+    bash -s -- ./chuckd.dev
 
 """
 
