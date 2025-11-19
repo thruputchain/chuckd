@@ -1,12 +1,11 @@
 package libtools
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-
-	"github.com/groundhogchain/chuckd/lib/liblog"
 )
 
 type childKiller struct {
@@ -30,7 +29,7 @@ func (x *childKiller) kill() {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	for pgid := range x.pgid {
-		liblog.Errorf("killing pid group %d", -pgid)
+		fmt.Fprintf(os.Stderr, "killing pid group %d\n", -pgid)
 		syscall.Kill(-pgid, syscall.SIGKILL)
 		delete(x.pgid, pgid)
 	}

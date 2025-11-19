@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
 )
@@ -64,7 +63,7 @@ func SshExecReader(
 		case <-ctx.Done():
 		case <-waitCh:
 		}
-		liblog.Errorf("ssh_exec killing pid group %d", -cmd.Process.Pid)
+		fmt.Fprintf(os.Stderr, "ssh_exec killing pid group %d\n", -cmd.Process.Pid)
 		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 		ck.unregister(cmd.Process.Pid)
 	}()
