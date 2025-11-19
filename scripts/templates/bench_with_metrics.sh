@@ -20,8 +20,8 @@ if [[ $capture_metrics == true ]]; then
 
     ./metrics_history/scripts/make_metric_file.sh $METRIC_NAME $GIT_branch $GIT_commit $GIT_commit_time
 
-    ./chuckd/scripts/bench/{--METRIC--}/{--LABEL--}/{--HOST--}.sh "$@" > \
-        ./metrics_history/metrics/$METRIC_NAME/$GIT_branch/${GIT_commit_time}_$GIT_commit
+    ./chuckd/scripts/bench/{--METRIC--}/{--LABEL--}/{--HOST--}.sh "$@" | \
+        tee ./metrics_history/metrics/$METRIC_NAME/$GIT_branch/${GIT_commit_time}_$GIT_commit
 
     echo "committing metrics ..."
     ./chuckd/scripts/commit_metrics.sh
@@ -30,6 +30,6 @@ else
 
     echo "running benchmark (without metric capture) ..."
 
-    ./chuckd/scripts/bench/{--METRIC--}/{--LABEL--}/{--HOST--}.sh "$@" > /dev/null
+    ./chuckd/scripts/bench/{--METRIC--}/{--LABEL--}/{--HOST--}.sh "$@"
 
 fi
