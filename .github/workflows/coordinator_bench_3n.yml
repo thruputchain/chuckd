@@ -29,5 +29,6 @@ jobs:
               run: |
                   hog_sched \
                     --i="github-${{ github.run_id }}" \
+                    --key=github_repo --value=${{ github.repository }} \
                     --key=git_commit --value=${{ github.sha }} \
                     ./scripts/schedules/coordinator_bench_3n.toml

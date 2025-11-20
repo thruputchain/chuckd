@@ -10,6 +10,8 @@ BUGS
 
 HOGSCHED
 
+- [ ] fix chuckd ymls to use github commit sha
+- [ ] create a directory for persisting core dumps
 - [ ] interrupt hog_sched kills subprocesses?
 - [ ] pass branch or commit to hog schedules
 
@@ -26,6 +28,10 @@ UPGRADES
 CATCHUP BLOCK PERSISTENCE
 
 UPDATE QUORUM SET
+
+RESEARCH
+
+- [ ]  https://commonware.xyz/blogs/zoda
 
 BACKLOG
 

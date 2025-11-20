@@ -5,13 +5,13 @@ name = "build_test_cover"
 host = ["hog6"]
 script = """
 
-set -x
-git config --global protocol.version 2
-git clone --depth 1 git@github.com:groundhogchain/chuckd.git
+git init -q .
+git remote add origin git@github.com:{{ .github_repo }}.git
+git fetch --depth 1 origin {{ .git_commit }}
+git checkout {{ .git_commit }}
 
-source ./chuckd/scripts/setup_go.sh
+source ./scripts/setup_go.sh
 
-cd chuckd
 go build ./...
 go test ./... -covermode=atomic -coverprofile=coverage.out
 go tool cover -func=coverage.out
