@@ -16,8 +16,6 @@ go build ./...
 go test ./... -covermode=atomic -coverprofile=coverage.out
 go tool cover -func=coverage.out
 
-mv coverage.out ../
-
 """
 file_in = []
 file_out = ["coverage.out"]
