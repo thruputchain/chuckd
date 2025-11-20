@@ -8,7 +8,7 @@ on:
 
 jobs:
     build-test:
-        runs-on: client
+        runs-on: self-hosted
         steps:
             - name: Clean up .gitconfig
               run: |
