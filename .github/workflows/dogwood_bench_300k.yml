@@ -26,8 +26,6 @@ jobs:
 
             - name: Run hog schedule
               run: |
-                  rm -rf chuckd
-                  git -c protocol.version=2 clone --depth 1 git@github.com:groundhogchain/chuckd.git
                   hog_sched \
                     --i="github-${{ github.run_id }}" \
                     --key=git_commit --value=${{ github.sha }} \
