@@ -16,6 +16,7 @@ type Scheduler struct {
 	Net          libnet.Network
 	LockdAddress string
 	JobDir       string
+	DumpDir      string
 }
 
 func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[string]any) error {
@@ -46,8 +47,8 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	user, err := user.Current()
 	must.NoError(ctx, err)
 
-	scripts := rwSpec.ScriptsWithJobDir(x.JobDir, user.Username)
-	afters := rwSpec.AftersWithJobDir(x.JobDir, user.Username)
+	scripts := rwSpec.ScriptsWithJobDir(x.JobDir, user.Username, x.DumpDir)
+	afters := rwSpec.AftersWithJobDir(x.JobDir, user.Username, x.DumpDir)
 	inject := map[string]string{
 		"HOG_USER": user.Username,
 		"HOG_XID":  xid,

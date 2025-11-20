@@ -11,8 +11,9 @@ import (
 )
 
 type DotHogtools struct {
-	Lockd  string `toml:"lockd"`
-	JobDir string `toml:"job_dir"`
+	Lockd   string `toml:"lockd"`
+	JobDir  string `toml:"job_dir"`
+	DumpDir string `toml:"dump_dir"`
 }
 
 func FindDotHogtools(ctx context.Context) (*DotHogtools, error) {
@@ -49,6 +50,9 @@ func DeriveDotHogtools(ctx context.Context) *DotHogtools {
 	}
 	if envJobDir := os.Getenv("HOG_JOB_DIR"); envJobDir != "" {
 		dot.JobDir = envJobDir
+	}
+	if envDumpDir := os.Getenv("HOG_DUMP_DIR"); envDumpDir != "" {
+		dot.DumpDir = envDumpDir
 	}
 	return dot
 }

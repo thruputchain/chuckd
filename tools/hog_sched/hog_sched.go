@@ -48,6 +48,11 @@ func main() {
 				Usage: "run directory for jobs (overwrites HOG_JOB_DIR, which overwrites ~/.hogtools)",
 				Value: dot.JobDir,
 			},
+			&cli.StringFlag{
+				Name:  "dump-dir",
+				Usage: "dump directory for jobs (overwrites HOG_DUMP_DIR, which overwrites ~/.hogtools)",
+				Value: dot.DumpDir,
+			},
 			&cli.StringSliceFlag{
 				Name:  "key",
 				Usage: "substitution key (repeated)",
@@ -63,6 +68,7 @@ func main() {
 			level := c.String("level")
 			lockdAddress := c.String("lockd")
 			jobDir := c.String("job-dir")
+			dumpDir := c.String("dump-dir")
 			keys := c.StringSlice("key")
 			values := c.StringSlice("value")
 
@@ -79,7 +85,7 @@ func main() {
 			liblog.LogLevel(zlevel)
 			libruntime.StackTraceInterrupt()
 
-			liblog.Infof("lockd=%v job_dir=%v", lockdAddress, jobDir)
+			liblog.Infof("lockd=%v job_dir=%v dump_dir=%v", lockdAddress, jobDir, dumpDir)
 
 			// spec argument
 			if c.Args().Len() < 1 {
@@ -113,6 +119,7 @@ func main() {
 				Net:          libnet.TCPNet{},
 				LockdAddress: lockdAddress,
 				JobDir:       jobDir,
+				DumpDir:      dumpDir,
 			}
 
 			return sched.Schedule(ctx, xid, *spec, kv)
