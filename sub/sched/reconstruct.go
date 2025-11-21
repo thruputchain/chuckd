@@ -9,6 +9,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+type NominationWaiter interface {
+	WaitForNomination(
+		ctx context.Context,
+		height proto.BlockHeight,
+	) (proto.Nomination, proto.BlockID, error)
+}
+
 type NominationReconstructor struct {
 	lk                 sync.Mutex
 	cond               *sync.Cond

@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -60,19 +61,21 @@ func (b *Baton) nominate(
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
-	schedNomResult, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
-	// we cannot continue if nomination fails
+	outcome, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
 	must.NoError(ctx, err)
-	must.Assert(ctx, schedNomResult.Outcome == proto.SchedulerNominationOK)
+	must.Assert(ctx, outcome == proto.SchedulerNominationOK)
 
-	schedNom := *schedNomResult.Scheduler_nomination()
+	nom, nomBlockID, err := b.handler.WaitForNomination(ctx, ontoDb.Height+1)
+	if err != nil {
+		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+		return nil, 0, err
+	}
 
-	nom := &schedNom.Nomination
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 
 	cv := &proto.ConsensusValue{
 		Timestamp:    protoutil.TimepointFromTime(b.handler.Now()),
-		Nomination:   *nom,
+		Nomination:   nom,
 		Upgrades:     nil, // XXX: placeholder for upgrades
 		Prev_cv_hash: ontoExt.ConsensusValueHash(),
 	}
@@ -98,7 +101,7 @@ func (b *Baton) nominate(
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
 	b.lock()
-	b.setValidated(cv, schedNom.Block_id)
+	b.setValidated(cv, nomBlockID)
 	b.unlock()
 
 	// nominate to consensus
@@ -120,7 +123,7 @@ func (b *Baton) nominate(
 			DbgConsensusValue:    cv,
 			DbgConsensusValueCue: cvc,
 		})
-		return cv, schedNom.Block_id, nil
+		return cv, nomBlockID, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 		return nil, 0, ErrNominationRejected

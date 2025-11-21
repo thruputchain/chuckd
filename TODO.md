@@ -1,8 +1,6 @@
 SCHEDULER INTEGRATION
 
-- the last chunk in coordscheduler_finish_nomination contains the block hash (none of the other chunks have it)
-
-- [ ] CoordSchedulerService.Coordscheduler_finish_nomination
+- [ ] purge old or abandoned nomination reconstructions
 
 HOGSCHED
 
