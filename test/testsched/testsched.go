@@ -93,38 +93,53 @@ func (x *TestScheduler) Schedcoord_lookup_transactions(
 	return mixed, nil
 }
 
-func (x *TestScheduler) Schedulercoord_nominate(ctx context.Context, onto proto.DbTip) (proto.SchedulerNominationResult, error) {
+func (x *TestScheduler) Schedulercoord_nominate(
+	ctx context.Context,
+	onto proto.DbTip,
+) (proto.SchedulerNominationOutcome, error) {
 
 	blockID := x.generateBlockID()
-	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeProposal)
 
-	txs := x.mempool.DrainTxs()
+	go func() {
+		<-x.ready // wait for x.coord != nil
 
-	txnoms := make([]proto.NominatedTransaction, len(txs))
-	for i, tx := range txs {
-		x.db.AddSignedTx(ctx, blockID, tx)
-		txnoms[i] = proto.NominatedTransaction{
-			Nondeterministic_proposal_data: testutil.TestNondeterministicData,
+		x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeProposal)
+
+		txs := x.mempool.DrainTxs()
+
+		txnoms := make([]proto.NominatedTransaction, len(txs))
+		for i, tx := range txs {
+			x.db.AddSignedTx(ctx, blockID, tx)
+			txnoms[i] = proto.NominatedTransaction{
+				Nondeterministic_proposal_data: testutil.TestNondeterministicData,
+			}
 		}
-	}
 
-	blockHash := x.db.CloseSnapshot(ctx, blockID)
+		blockHash := x.db.CloseSnapshot(ctx, blockID)
 
-	nomination := proto.Nomination{
-		Proposer:                x.signer,
-		Block_height:            onto.Height + 1,
-		Block_hash:              blockHash,
-		Prev_block_hash:         onto.Hash,
-		Transaction_hashes:      protoutil.HashSignedTxs(x.m, protoutil.Pack(txs)),
-		Transaction_nominations: txnoms,
-	}
+		nomination := proto.Nomination{
+			Proposer:                x.signer,
+			Block_height:            onto.Height + 1,
+			Block_hash:              blockHash,
+			Prev_block_hash:         onto.Hash,
+			Transaction_hashes:      protoutil.HashSignedTxs(x.m, protoutil.Pack(txs)),
+			Transaction_nominations: txnoms,
+		}
 
-	r := proto.SchedulerNominationResult{Outcome: proto.SchedulerNominationOK}
-	*r.Scheduler_nomination() = proto.SchedulerNomination{
-		Block_id:   blockID,
-		Nomination: nomination,
-	}
-	return r, nil
+		chunk := proto.SchedulerNominationChunk{
+			Chunk_idx:    0,
+			Total_chunks: 1,
+			Chunk: proto.SchedulerNomination{
+				Block_id:   blockID,
+				Nomination: nomination,
+			},
+		}
+
+		err := x.coord.Coordscheduler_finish_nomination(ctx, chunk)
+		must.NoError(ctx, err)
+	}()
+
+	return proto.SchedulerNominationOK, nil
 }
 
 func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.DbTip, nomination proto.Nomination) (proto.SchedulerValidationResult, error) {
