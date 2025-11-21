@@ -2,6 +2,9 @@ SCHEDULER INTEGRATION
 
 - [ ] purge old or abandoned nomination reconstructions
 
+- [ ] bench
+  - [ ] pump txs from geoff's loadgen into coordinator
+
 HOGSCHED
 
 - [ ] interrupt hog_sched kills subprocesses?

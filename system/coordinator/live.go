@@ -33,6 +33,7 @@ type LiveHandler struct {
 	libtime.Time
 	inside  libnet.Network
 	outside libnet.Network
+	sched.NominationWaiter
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
@@ -56,6 +57,7 @@ func NewLiveHandler(
 	time libtime.Time,
 	inside libnet.Network,
 	outside libnet.Network,
+	nw sched.NominationWaiter,
 	router router.Router,
 	repairAgent *repairagent.RepairAgent,
 	cvpool *cvpool.ConsensusValuePool,
@@ -65,21 +67,22 @@ func NewLiveHandler(
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
-		notify:      notify,
-		Signatory:   signer,
-		Time:        time,
-		inside:      inside,
-		outside:     outside,
-		router:      router,
-		RepairAgent: repairAgent,
-		cvpool:      cvpool,
-		multiplex:   multiplex,
-		storage:     storage,
-		scpBroker:   scpBroker,
-		m:           xdrutil.NewXdrMarshaler(),
-		rand:        rand,
-		scpReady:    make(chan struct{}),
-		schedReady:  make(chan struct{}),
+		notify:           notify,
+		Signatory:        signer,
+		Time:             time,
+		inside:           inside,
+		outside:          outside,
+		NominationWaiter: nw,
+		router:           router,
+		RepairAgent:      repairAgent,
+		cvpool:           cvpool,
+		multiplex:        multiplex,
+		storage:          storage,
+		scpBroker:        scpBroker,
+		m:                xdrutil.NewXdrMarshaler(),
+		rand:             rand,
+		scpReady:         make(chan struct{}),
+		schedReady:       make(chan struct{}),
 	}
 }
 

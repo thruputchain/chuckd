@@ -138,6 +138,7 @@ func NewSystem(
 		libtime.RealTime{},
 		inside,
 		outside,
+		s.CoordScheduler,
 		s.Router,
 		s.RepairAgent,
 		s.CVPool,
