@@ -2,6 +2,7 @@ package sched
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 
@@ -14,10 +15,15 @@ type NominationWaiter interface {
 		ctx context.Context,
 		height proto.BlockHeight,
 	) (proto.Nomination, proto.BlockID, error)
+	UpdateNoNominationsBelow(
+		ctx context.Context,
+		height proto.BlockHeight,
+	)
 }
 
 type NominationReconstructor struct {
 	lk                 sync.Mutex
+	notBelow           proto.BlockHeight
 	cond               *sync.Cond
 	partialNominations map[proto.BlockHeight]*partialNomination
 }
@@ -30,6 +36,20 @@ func NewNominationReconstructor() *NominationReconstructor {
 	return x
 }
 
+func (x *NominationReconstructor) UpdateNoNominationsBelow(ctx context.Context, height proto.BlockHeight) {
+
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	defer x.cond.Broadcast()
+
+	x.notBelow = max(height, x.notBelow)
+	for h := range x.partialNominations {
+		if h < height {
+			delete(x.partialNominations, h)
+		}
+	}
+}
+
 func (x *NominationReconstructor) AddChunk(ctx context.Context, chunk proto.SchedulerNominationChunk) {
 	must.Assert(ctx, chunk.Total_chunks > 0)
 
@@ -38,6 +58,9 @@ func (x *NominationReconstructor) AddChunk(ctx context.Context, chunk proto.Sche
 	defer x.cond.Broadcast()
 
 	height := chunk.Chunk.Nomination.Block_height
+	if height < x.notBelow {
+		return
+	}
 
 	partial, ok := x.partialNominations[height]
 	if !ok {
@@ -54,6 +77,8 @@ func (x *NominationReconstructor) AddChunk(ctx context.Context, chunk proto.Sche
 	partial.chunks = append(partial.chunks, &chunk)
 }
 
+var ErrHeightTooLow = fmt.Errorf("expected nomination height too low")
+
 func (x *NominationReconstructor) WaitForNomination(
 	ctx context.Context,
 	height proto.BlockHeight,
@@ -67,6 +92,9 @@ func (x *NominationReconstructor) WaitForNomination(
 		case <-ctx.Done():
 			return proto.Nomination{}, 0, ctx.Err()
 		default:
+			if height < x.notBelow {
+				return proto.Nomination{}, 0, ErrHeightTooLow
+			}
 			partial, ok := x.partialNominations[height]
 			if ok && partial.isComplete() {
 				delete(x.partialNominations, height)

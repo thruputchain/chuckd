@@ -1,6 +1,8 @@
 SCHEDULER INTEGRATION
 
 - [ ] purge old or abandoned nomination reconstructions
+  - [ ] call UpdateNoNominationsBelow
+  - [ ] handle ErrHeightTooLow
 
 - [ ] bench
   - [ ] pump txs from geoff's loadgen into coordinator

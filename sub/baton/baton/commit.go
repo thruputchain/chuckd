@@ -43,8 +43,9 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// commit
 	// TODO: scheduler should persist catchup blocks after every commit
 	// See https://github.com/groundhogchain/chuckd/issues/15
-	err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
+	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
+	must.Assert(ctx, outcome == proto.SchedulerCommitOK)
 
 	b.handler.Committed(ctx, cb.BlockHeight())
 

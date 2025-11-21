@@ -40,6 +40,10 @@ func (x *CoordSchedulerService) Coordscheduler_finish_nomination(ctx context.Con
 	return nil
 }
 
+func (x *CoordSchedulerService) UpdateNoNominationsBelow(ctx context.Context, height proto.BlockHeight) {
+	x.nr.UpdateNoNominationsBelow(ctx, height)
+}
+
 func (x *CoordSchedulerService) WaitForNomination(
 	ctx context.Context,
 	height proto.BlockHeight,

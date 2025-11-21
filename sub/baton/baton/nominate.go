@@ -61,15 +61,18 @@ func (b *Baton) nominate(
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
-	outcome, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
+	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
+
 	must.NoError(ctx, err)
-	must.Assert(ctx, outcome == proto.SchedulerNominationOK)
+	must.Assert(ctx, result.Outcome == proto.SchedulerNominationOK)
 
 	nom, nomBlockID, err := b.handler.WaitForNomination(ctx, ontoDb.Height+1)
 	if err != nil {
 		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 		return nil, 0, err
 	}
+
+	must.Assert(ctx, nomBlockID == *result.Block_id())
 
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 

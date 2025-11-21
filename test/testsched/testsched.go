@@ -96,7 +96,7 @@ func (x *TestScheduler) Schedcoord_lookup_transactions(
 func (x *TestScheduler) Schedulercoord_nominate(
 	ctx context.Context,
 	onto proto.DbTip,
-) (proto.SchedulerNominationOutcome, error) {
+) (proto.SchedulerNominationResult, error) {
 
 	blockID := x.generateBlockID()
 
@@ -139,7 +139,11 @@ func (x *TestScheduler) Schedulercoord_nominate(
 		must.NoError(ctx, err)
 	}()
 
-	return proto.SchedulerNominationOK, nil
+	r := proto.SchedulerNominationResult{}
+	r.Outcome = proto.SchedulerNominationOK
+	*r.Block_id() = blockID
+
+	return r, nil
 }
 
 func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.DbTip, nomination proto.Nomination) (proto.SchedulerValidationResult, error) {
@@ -178,11 +182,11 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 	return r, nil
 }
 
-func (x *TestScheduler) Schedulercoord_commit_block(ctx context.Context, blockID proto.BlockID) error {
+func (x *TestScheduler) Schedulercoord_commit_block(ctx context.Context, blockID proto.BlockID) (proto.SchedulerCommitOutcome, error) {
 	x.db.OpenSnapshot(ctx, blockID)
 	_, hashes := x.db.CommitSnapshot(ctx, blockID)
 	x.mempool.RemoveTxs(hashes)
-	return nil
+	return proto.SchedulerCommitOK, nil
 }
 
 func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.DbTipResult, error) {
