@@ -1,19 +1,31 @@
-MISC
+SCHEDULER INTEGRATION
 
-- [ ] purpose of MaybeValid?
-- [ ] ask stellar folks how they deal with messages coming after an externalization
+- the last chunk in coordscheduler_finish_nomination contains the block hash (none of the other chunks have it)
+
+- [ ] CoordSchedulerService.Coordscheduler_finish_nomination
+
+HOGSCHED
+
+- [ ] interrupt hog_sched kills subprocesses?
+- [ ] support available host allocation
 
 BUGS
 
 - [ ] coordinator_bench fails when threshold=2
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`
 
-HOGSCHED
 
-- [ ] fix chuckd ymls to use github commit sha
-- [ ] create a directory for persisting core dumps
-- [ ] interrupt hog_sched kills subprocesses?
-- [ ] pass branch or commit to hog schedules
+
+
+
+
+
+
+
+SCP MISC
+
+- [ ] purpose of MaybeValid?
+- [ ] ask stellar folks how they deal with messages coming after an externalization
 
 UPGRADES
 

@@ -12,11 +12,13 @@ import (
 
 type CoordSchedulerService struct {
 	vetted chan proto.SignedTransactionBatch
+	nr     *NominationReconstructor
 }
 
 func NewCoordSchedulerService() *CoordSchedulerService {
 	return &CoordSchedulerService{
 		vetted: make(chan proto.SignedTransactionBatch, 1),
+		nr:     NewNominationReconstructor(),
 	}
 }
 
@@ -31,6 +33,18 @@ func (x *CoordSchedulerService) Coordscheduler_null(ctx context.Context) error {
 func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
 	x.vetted <- txs
 	return nil
+}
+
+func (x *CoordSchedulerService) Coordscheduler_finish_nomination(ctx context.Context, chunk proto.SchedulerNominationChunk) error {
+	x.nr.AddChunk(ctx, chunk)
+	return nil
+}
+
+func (x *CoordSchedulerService) WaitForNomination(
+	ctx context.Context,
+	height proto.BlockHeight,
+) (proto.Nomination, proto.BlockID, error) {
+	return x.nr.WaitForNomination(ctx, height)
 }
 
 // client
