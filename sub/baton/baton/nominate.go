@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -66,9 +67,10 @@ func (b *Baton) nominate(
 	must.NoError(ctx, err)
 	must.Assert(ctx, result.Outcome == proto.SchedulerNominationOK)
 
-	nom, nomBlockID, err := b.handler.WaitForNomination(ctx, ontoDb.Height+1)
+	nom, nomBlockID, err := b.handler.WaitForPartialNomination(ctx, ontoDb.Height+1)
 	if err != nil {
-		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+		must.Assert(ctx, errors.Is(err, sched.ErrHeightTooLow) ||
+			errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 		return nil, 0, err
 	}
 

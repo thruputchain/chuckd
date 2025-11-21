@@ -60,7 +60,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	return *validatedBlockID
 }
 
-func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
+func (b *Baton) purgeNotAboveTipHeight(ctx context.Context) {
 
 	// purge catchup blocks
 	var catchup catchupArrivals
@@ -98,4 +98,7 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	if b.nominated != nil && b.nominated.BlockHeight() <= b.tipDb.Height {
 		b.nominated = nil
 	}
+
+	// purge partial nominations
+	b.handler.UpdateNoPartialNominationsBelow(ctx, b.tipDb.Height+1)
 }

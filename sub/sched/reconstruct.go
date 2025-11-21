@@ -10,12 +10,12 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type NominationWaiter interface {
-	WaitForNomination(
+type PartialNominationWaiter interface {
+	WaitForPartialNomination(
 		ctx context.Context,
 		height proto.BlockHeight,
 	) (proto.Nomination, proto.BlockID, error)
-	UpdateNoNominationsBelow(
+	UpdateNoPartialNominationsBelow(
 		ctx context.Context,
 		height proto.BlockHeight,
 	)
@@ -36,7 +36,7 @@ func NewNominationReconstructor() *NominationReconstructor {
 	return x
 }
 
-func (x *NominationReconstructor) UpdateNoNominationsBelow(ctx context.Context, height proto.BlockHeight) {
+func (x *NominationReconstructor) UpdateNoPartialNominationsBelow(ctx context.Context, height proto.BlockHeight) {
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
@@ -79,7 +79,7 @@ func (x *NominationReconstructor) AddChunk(ctx context.Context, chunk proto.Sche
 
 var ErrHeightTooLow = fmt.Errorf("expected nomination height too low")
 
-func (x *NominationReconstructor) WaitForNomination(
+func (x *NominationReconstructor) WaitForPartialNomination(
 	ctx context.Context,
 	height proto.BlockHeight,
 ) (proto.Nomination, proto.BlockID, error) {

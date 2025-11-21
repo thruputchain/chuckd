@@ -23,7 +23,7 @@ type Handler interface {
 	ConsensusController
 	BlockHandler
 	proto.SchedulerCoord1
-	sched.NominationWaiter
+	sched.PartialNominationWaiter
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
 	cvpool.CVPool

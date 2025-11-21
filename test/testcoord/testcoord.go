@@ -30,15 +30,15 @@ func (x *TestCoord) Coordscheduler_finish_nomination(ctx context.Context, chunk 
 	return nil
 }
 
-func (x *TestCoord) UpdateNoNominationsBelow(ctx context.Context, height proto.BlockHeight) {
-	x.nr.UpdateNoNominationsBelow(ctx, height)
+func (x *TestCoord) UpdateNoPartialNominationsBelow(ctx context.Context, height proto.BlockHeight) {
+	x.nr.UpdateNoPartialNominationsBelow(ctx, height)
 }
 
-func (x *TestCoord) WaitForNomination(
+func (x *TestCoord) WaitForPartialNomination(
 	ctx context.Context,
 	height proto.BlockHeight,
 ) (proto.Nomination, proto.BlockID, error) {
-	return x.nr.WaitForNomination(ctx, height)
+	return x.nr.WaitForPartialNomination(ctx, height)
 }
 
 func (x *TestCoord) Close() {}

@@ -40,15 +40,15 @@ func (x *CoordSchedulerService) Coordscheduler_finish_nomination(ctx context.Con
 	return nil
 }
 
-func (x *CoordSchedulerService) UpdateNoNominationsBelow(ctx context.Context, height proto.BlockHeight) {
-	x.nr.UpdateNoNominationsBelow(ctx, height)
+func (x *CoordSchedulerService) UpdateNoPartialNominationsBelow(ctx context.Context, height proto.BlockHeight) {
+	x.nr.UpdateNoPartialNominationsBelow(ctx, height)
 }
 
-func (x *CoordSchedulerService) WaitForNomination(
+func (x *CoordSchedulerService) WaitForPartialNomination(
 	ctx context.Context,
 	height proto.BlockHeight,
 ) (proto.Nomination, proto.BlockID, error) {
-	return x.nr.WaitForNomination(ctx, height)
+	return x.nr.WaitForPartialNomination(ctx, height)
 }
 
 // client
