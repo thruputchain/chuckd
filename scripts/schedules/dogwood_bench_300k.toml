@@ -18,8 +18,8 @@ sed \
     -e "s/{--LABEL--}/300k/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
     -e "s/{--NODE--}/node-{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}/g" \
-    ./scripts/templates/bench_with_metrics.sh | \
-    bash -s -- ./chuckd.dev
+    ./scripts/schedules/blue/launch_with_metrics.sh | \
+    HOST_JOBS_DIR="./scripts/schedules/host_jobs" bash -s -- ./chuckd.dev
 
 """
 
