@@ -235,7 +235,7 @@ type OperationalConfig struct {
 	IsValidator    bool
 }
 
-func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
+func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	s.Storage.Start(ctx, opcfg.StorageDir)
 
@@ -335,6 +335,8 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) {
 			s.CVPool.ConsensusValuePoolAdd(ctx, *cv)
 		}
 	}()
+
+	return Control{s: s, conn: schedConn}
 }
 
 func (s *System) Close() {

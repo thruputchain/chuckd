@@ -10,8 +10,10 @@ import (
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/coordinator_bench"
+	"github.com/groundhogchain/chuckd/system/coordinator_loadgen"
 	"github.com/groundhogchain/chuckd/system/dogwood_bench"
 	"github.com/groundhogchain/chuckd/system/echo_bench"
 	"github.com/spf13/cobra"
@@ -34,13 +36,13 @@ var (
 			return api.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench coordinator"),
-					attribute.Int64("txs_per_sec", benchTxPerSec),
+					attribute.Int64("txs_per_sec", benchTxsPerSec),
 				)
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				outside := libnet.Network(libnet.TCPNet{})
 				testCfg := coordinator_bench.CoordinatorBenchConfig{
-					TxsPerSec: benchTxPerSec,
+					TxsPerSec: benchTxsPerSec,
 					SchedPort: benchSchedPort,
 				}
 				sys := coordinator_bench.NewCoordinatorBenchSystem(
@@ -65,6 +67,52 @@ var (
 				}
 				ready := make(chan struct{})
 				sys.Start(ctx, opcfg, benchNumCommits, ready)
+				<-ready
+				sys.Close() // kills scpd
+			})
+		},
+	}
+
+	benchCoordinatorLoadgenCmd = &cobra.Command{
+		Use:   "coordinator_loadgen",
+		Short: "start coordinator with loadgen benchmark",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+				ctx = libmetrics.WithMetricAttributes(ctx,
+					attribute.String("cmd", "bench coordinator"),
+					attribute.Int("txs_per_block", benchTxsPerBlock),
+				)
+				cfg := LoadCoordinatorConfig(ctx)
+				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				testCfg := loadgen.Config{
+					NumAccts:       benchNumAccts,
+					NumTxsPerBlock: benchTxsPerBlock,
+					NumBlocks:      benchNumBlocks,
+				}
+				sys := coordinator_loadgen.NewCoordinatorLoadgenSystem(
+					ctx,
+					libtime.RealTime{},
+					runtime.NewRandFromRoot(),
+					libnet.TCPNet{},
+					libnet.TCPNet{},
+					cfg,
+					testCfg,
+				)
+				opcfg := coordinator.OperationalConfig{
+					StorageDir:     benchStorageDir,
+					SchedAddr:      fmt.Sprintf("localhost:%d", benchSchedPort),
+					DebugPort:      benchDebugPort,
+					InAddr:         benchInAddress,
+					OutAddr:        benchOutAddress,
+					WalletAddr:     benchWalletAddress,
+					SCPDaemonPath:  benchSCPDaemonPath,
+					SCPHandleAddr:  benchSCPHandleAddr,
+					SCPControlAddr: benchSCPControlAddr,
+					IsValidator:    benchSCPIsValidator,
+				}
+				ready := make(chan struct{})
+				sys.Start(ctx, opcfg, benchLoadgenAddr, ready)
 				<-ready
 				sys.Close() // kills scpd
 			})
@@ -133,7 +181,7 @@ var (
 	benchInAddress     string
 	benchOutAddress    string
 	benchWalletAddress string
-	benchTxPerSec      int64
+	benchTxsPerSec     int64
 	//
 	benchSCPDaemonPath  string
 	benchSCPHandleAddr  string
@@ -149,6 +197,11 @@ var (
 	benchNumConns        int
 	benchMaxPendingCalls int
 	benchNoEcho          bool
+	//
+	benchNumAccts    int
+	benchTxsPerBlock int
+	benchNumBlocks   int
+	benchLoadgenAddr string
 )
 
 func init() {
@@ -166,7 +219,7 @@ func init() {
 	benchCoordinatorCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchCoordinatorCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchCoordinatorCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
-	benchCoordinatorCmd.Flags().Int64Var(&benchTxPerSec, "tx-per-sec", 1e4, "transactions per second")
+	benchCoordinatorCmd.Flags().Int64Var(&benchTxsPerSec, "txs-per-sec", 1e4, "transactions per second")
 	benchCoordinatorCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
 	benchCoordinatorCmd.Flags().IntVar(&benchDebugPort, "debug-port", 40555, "debug port")
 	benchCoordinatorCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
@@ -174,6 +227,20 @@ func init() {
 	benchCoordinatorCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
 	benchCoordinatorCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
 	benchCoordinatorCmd.Flags().IntVar(&benchNumCommits, "num-commits", 100, "stop after number of commits")
+
+	benchCmd.AddCommand(benchCoordinatorLoadgenCmd)
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchTxsPerBlock, "txs-per-block", 1e4, "transactions per block")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchDebugPort, "debug-port", 40555, "debug port")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
+	benchCoordinatorLoadgenCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumCommits, "num-commits", 100, "stop after number of commits")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")

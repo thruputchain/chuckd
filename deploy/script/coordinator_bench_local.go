@@ -71,7 +71,7 @@ func CoordinatorBenchShellLocal(
 	--metrics :%d \
 		bench coordinator \
 			--debug-port %d \
-			--tx-per-sec %d \
+			--txs-per-sec %d \
 			--storage-dir %s \
 			--out-addr %s \
 			--wallet-addr %s \

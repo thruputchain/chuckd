@@ -93,12 +93,12 @@ func init() {
 	deployCmd.AddCommand(deployCoordinatorBenchLocalCmd)
 	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
 	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployNumVs, "num-vs", 3, "number of validators")
-	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployTxsPerSec, "tx-per-sec", 1e3, "transactions per second")
+	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployTxsPerSec, "txs-per-sec", 1e3, "transactions per second")
 	deployCoordinatorBenchLocalCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 
 	deployCmd.AddCommand(deployCoordinatorBenchNetCmd)
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
-	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployTxsPerSec, "tx-per-sec", 1e3, "transactions per second")
+	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployTxsPerSec, "txs-per-sec", 1e3, "transactions per second")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployNumCommits, "num-commits", 100, "stop after number of commits")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 	//

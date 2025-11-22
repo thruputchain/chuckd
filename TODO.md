@@ -1,9 +1,7 @@
 SCHEDULER INTEGRATION
 
-- [ ] bench
-  - [ ] pump txs from geoff's loadgen into coordinator
-
-Most recent commit touching loadgen Go files is be365c934abd928e05b11c7601909d421e513da0 (“remove loadgen”, Thu Oct 9 2025). That change deleted the remaining Go files whose paths contain loadgen, including bench/loadgen/client.go, bench/ loadgen/live.go, bench/loadgen/loadgen.go, bench/loadgen/stat.go, and bench/loadgen/testloadgen.go; see git show -1 --stat be365c9.
+- [ ] pump txs from geoff's loadgen into coordinator
+- [ ] make hog_sched for experiment
 
 HOGSCHED
 

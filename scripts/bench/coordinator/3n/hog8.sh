@@ -123,7 +123,7 @@ $1 -l info --stack --config config-hog8.json \
 	--metrics :2223 \
 		bench coordinator \
             --debug-port 5500 \
-			--tx-per-sec 1000 \
+			--txs-per-sec 1000 \
 			--storage-dir ./validator-storage-hog8 \
 			--out-addr :50000 \
 			--wallet-addr :40000 \
