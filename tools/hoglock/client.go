@@ -14,6 +14,20 @@ type Client struct {
 	LockdAddress string
 }
 
+func (c *Client) Signal(ctx context.Context, ns proto.HogNamespaces) error {
+	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
+	must.NoError(ctx, err)
+
+	return conn.Hoglock_signal(ctx, ns)
+}
+
+func (c *Client) Wait(ctx context.Context, prefix proto.HogNamespaces) error {
+	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
+	must.NoError(ctx, err)
+
+	return conn.Hoglock_wait(ctx, prefix)
+}
+
 func (c *Client) AcquireLocks(ctx context.Context, o proto.LockObjects) *Lease {
 	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)

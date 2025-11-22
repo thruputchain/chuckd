@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +24,10 @@ type Service struct {
 	cond    *sync.Cond
 	objects map[proto.LockObject]proto.LockLease
 	leases  map[proto.LockLease]*lease
+	//
+	slk       sync.Mutex
+	scond     *sync.Cond
+	signalled map[proto.HogNamespace]struct{}
 }
 
 type lease struct {
@@ -34,14 +39,17 @@ func NewService() *Service {
 	x := &Service{
 		objects: map[proto.LockObject]proto.LockLease{},
 		leases:  map[proto.LockLease]*lease{},
+		//
+		signalled: map[proto.HogNamespace]struct{}{},
 	}
 	x.cond = sync.NewCond(&x.lk)
+	x.scond = sync.NewCond(&x.slk)
 	return x
 }
 
 func (x *Service) Start(ctx context.Context, n libnet.Network, address string) {
 	go x.start(ctx)
-	l := rpcutil.StartSerial(ctx, n, address, proto.HogLock1_Server{Srv: x})
+	l := rpcutil.StartParallel(ctx, n, address, proto.HogLock1_Server{Srv: x})
 	liblog.Infof("hog_lockd is listening on %v", l.Addr().String())
 }
 
@@ -157,4 +165,51 @@ func randomHandle() proto.LockLease {
 		panic(err)
 	}
 	return hex.EncodeToString(b)
+}
+
+func (x *Service) Hoglock_signal(ctx context.Context, ns proto.HogNamespaces) error {
+
+	x.slk.Lock()
+	defer x.slk.Unlock()
+	defer x.scond.Broadcast()
+
+	for _, ns := range ns {
+		x.signalled[ns] = struct{}{}
+	}
+
+	return nil
+}
+
+func (x *Service) Hoglock_wait(ctx context.Context, prefix proto.HogNamespaces) error {
+
+	x.slk.Lock()
+	defer x.slk.Unlock()
+
+	for {
+		if x.isSignalled(prefix) {
+			return nil
+		} else {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+			x.cond.Wait()
+		}
+	}
+}
+
+func (x *Service) isSignalled(prefix proto.HogNamespaces) bool {
+	uncovered := map[proto.HogNamespace]struct{}{}
+	for _, prefix := range prefix {
+		uncovered[prefix] = struct{}{}
+	}
+	for ns := range x.signalled {
+		for u := range uncovered {
+			if strings.HasPrefix(ns, u) {
+				delete(uncovered, u)
+			}
+		}
+	}
+	return len(uncovered) == 0
 }
