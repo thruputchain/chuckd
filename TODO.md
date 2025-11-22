@@ -5,9 +5,6 @@ SCHEDULER INTEGRATION
 
 HOGSCHED
 
-- [ ] hog_signal
-- [ ] hog_wait
-
 - [ ] interrupt hog_sched kills subprocesses?
 - [ ] support available host allocation
 
