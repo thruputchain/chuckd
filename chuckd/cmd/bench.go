@@ -240,7 +240,9 @@ func init() {
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
 	benchCoordinatorLoadgenCmd.Flags().BoolVar(&benchSCPIsValidator, "scp-is-validator", true, "scp is validator")
-	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumCommits, "num-commits", 100, "stop after number of commits")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumAccts, "num-accts", 100, "number of accounts to generate")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 100, "number of blocks to generate")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchLoadgenAddr, "loadgen-addr", "localhost:44400", "loadgen address")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")
