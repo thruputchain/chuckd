@@ -1,6 +1,6 @@
 SCHEDULER INTEGRATION
 
-- [ ] pump txs from geoff's loadgen into coordinator
+- [ ] update groundhog-go
 - [ ] make hog_sched for experiment
 
 HOGSCHED

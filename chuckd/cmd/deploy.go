@@ -68,6 +68,40 @@ var (
 			})
 		},
 	}
+
+	deployCoordinatorLoadgenCmd = &cobra.Command{
+		Use:   "coordinator-loadgen",
+		Short: "generate multi-node coordinator/loadgen benchmark deploy scripts",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return api.Invoke(ctx, func() {
+				bcfg := script.CoordinatorLoadgenConfig{
+					ValidatorPort:  deployValidatorPort,
+					WalletPort:     deployWalletPort,
+					MetricsPort:    deployMetricsPort,
+					DebugPort:      deployDebugPort,
+					ScpHandlePort:  deployScpHandlePort,
+					ScpControlPort: deployScpControlPort,
+				}
+				scripts := script.CoordinatorLoadgenScripts(
+					ctx,
+					runtime.NewRandFromRoot(),
+					bcfg,
+					deployHosts,
+					time.Millisecond*time.Duration(deployRoundMsec),
+					deployFanOut,
+					deployNumAccts,
+					deployTxsPerBlock,
+					deployNumBlocks,
+					deployLoadgenAddr,
+				)
+				for i, host := range deployHosts {
+					fmt.Printf("### launch coordinator-loadgen-%s.sh\n", host)
+					fmt.Println(scripts[i])
+				}
+			})
+		},
+	}
 )
 
 var (
@@ -85,6 +119,11 @@ var (
 	deployDebugPort      int
 	deployScpHandlePort  int
 	deployScpControlPort int
+	//
+	deployNumAccts    int
+	deployTxsPerBlock int
+	deployNumBlocks   int
+	deployLoadgenAddr string
 )
 
 func init() {
@@ -109,4 +148,20 @@ func init() {
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployDebugPort, "d-port", 5500, "debug port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployScpHandlePort, "scp-handle-port", 3300, "scp handle port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployScpControlPort, "scp-control-port", 4400, "scp control port")
+
+	deployCmd.AddCommand(deployCoordinatorLoadgenCmd)
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployFanOut, "fan-out", 5, "tree fan out")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployNumAccts, "num-accts", 100, "number of accounts")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployTxsPerBlock, "txs-per-block", 1e4, "transactions per block")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployNumBlocks, "num-blocks", 100, "number of blocks")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
+	//
+	deployCoordinatorLoadgenCmd.Flags().StringSliceVar(&deployHosts, "hosts", []string{"hog8"}, "hosts")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployValidatorPort, "v-port", 50000, "validator port")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployWalletPort, "w-port", 40000, "wallet port")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployMetricsPort, "m-port", 2223, "metrics port")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployDebugPort, "d-port", 5500, "debug port")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployScpHandlePort, "scp-handle-port", 3300, "scp handle port")
+	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployScpControlPort, "scp-control-port", 4400, "scp control port")
+	deployCoordinatorLoadgenCmd.Flags().StringVar(&deployLoadgenAddr, "loadgen-addr", "localhost:44400", "loadgen address")
 }
