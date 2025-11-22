@@ -22,7 +22,7 @@ sed \
     -e "s/{--METRIC--}/coordinator/g" \
     -e "s/{--LABEL--}/3n/g" \
     -e "s/{--HOST--}/${HOG_HOST}/g" \
-    -e "s/{--NODE--}/node-{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}/g" \
+    -e "s/{--NODE--}/{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}/g" \
     ./scripts/schedules/blue/launch_with_metrics.sh | \
     HOST_JOBS_DIR="./scripts/schedules/host_jobs" bash -s -- ./chuckd.dev ./scpd.dev
 
