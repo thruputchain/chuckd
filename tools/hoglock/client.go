@@ -14,40 +14,40 @@ type Client struct {
 	LockdAddress string
 }
 
-func (c *Client) Signal(ctx context.Context, ns proto.HogNamespaces) error {
+func (c *Client) Signal(ctx context.Context, xid proto.HogXID, ns proto.HogNamespaces) error {
 	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)
 
-	return conn.Hoglock_signal(ctx, ns)
+	return conn.Hoglock_signal(ctx, xid, ns)
 }
 
-func (c *Client) Wait(ctx context.Context, prefix proto.HogNamespaces) error {
+func (c *Client) Wait(ctx context.Context, xid proto.HogXID, prefix proto.HogNamespaces) error {
 	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)
 
-	return conn.Hoglock_wait(ctx, prefix)
+	return conn.Hoglock_wait(ctx, xid, prefix)
 }
 
-func (c *Client) AcquireLocks(ctx context.Context, o proto.LockObjects) *Lease {
+func (c *Client) AcquireLocks(ctx context.Context, xid proto.HogXID, hosts proto.HogHosts) *Lease {
 	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)
 
-	h, err := conn.Hoglock_lock(ctx, o)
+	err = conn.Hoglock_lock(ctx, xid, hosts)
 	must.NoError(ctx, err)
 
-	return makeLease(ctx, conn, h)
+	return makeLease(ctx, conn, xid)
 }
 
 type Lease struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	conn   *HogLockClient
-	lease  proto.LockLease
+	xid    proto.HogXID
 }
 
-func makeLease(ctx context.Context, conn *HogLockClient, h proto.LockLease) *Lease {
+func makeLease(ctx context.Context, conn *HogLockClient, xid proto.HogXID) *Lease {
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	x := &Lease{ctx: ctx, cancel: cancel, conn: conn, lease: h}
+	x := &Lease{ctx: ctx, cancel: cancel, conn: conn, xid: xid}
 	go x.renew(ctx)
 	return x
 }
@@ -61,7 +61,7 @@ func (x *Lease) renew(ctx context.Context) {
 			return
 		default:
 		}
-		err := x.conn.Hoglock_renew(ctx, x.lease)
+		err := x.conn.Hoglock_renew(ctx, x.xid)
 		must.NoError(ctx, err)
 	}
 }

@@ -91,8 +91,8 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 	return rw
 }
 
-func (x RewrittenSpec) Hosts() proto.LockObjects {
-	r := proto.LockObjects{}
+func (x RewrittenSpec) Hosts() proto.HogHosts {
+	r := proto.HogHosts{}
 	for i := range x.Jobs {
 		r = append(r, x.Jobs[i].Host)
 	}

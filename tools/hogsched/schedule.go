@@ -29,7 +29,7 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	// acquire locks on hog machines
 	hosts := rwSpec.Hosts()
 	liblog.Infof("acquiring locks on %v", hosts)
-	lease := c.AcquireLocks(ctx, hosts)
+	lease := c.AcquireLocks(ctx, xid, hosts)
 	defer lease.Unlock()
 
 	liblog.Infof("locks acquired, starting jobs")

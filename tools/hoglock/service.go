@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -20,30 +21,26 @@ const LeaseRenewInterval = 1 * time.Second
 const LeaseTTL = 3 * time.Second
 
 type Service struct {
-	lk      sync.Mutex
-	cond    *sync.Cond
-	objects map[proto.LockObject]proto.LockLease
-	leases  map[proto.LockLease]*lease
-	//
-	slk       sync.Mutex
-	scond     *sync.Cond
-	signalled map[proto.HogNamespace]struct{}
+	lk        sync.Mutex
+	cond      *sync.Cond
+	hosts     map[proto.HogHost]proto.HogXID
+	leases    map[proto.HogXID]*lease
+	signalled map[proto.HogXID]map[proto.HogNamespace]struct{}
 }
 
 type lease struct {
 	renewed time.Time
-	objects proto.LockObjects
+	hosts   proto.HogHosts
 }
 
 func NewService() *Service {
 	x := &Service{
-		objects: map[proto.LockObject]proto.LockLease{},
-		leases:  map[proto.LockLease]*lease{},
+		hosts:  map[proto.HogHost]proto.HogXID{},
+		leases: map[proto.HogXID]*lease{},
 		//
-		signalled: map[proto.HogNamespace]struct{}{},
+		signalled: map[proto.HogXID]map[proto.HogNamespace]struct{}{},
 	}
 	x.cond = sync.NewCond(&x.lk)
-	x.scond = sync.NewCond(&x.slk)
 	return x
 }
 
@@ -62,15 +59,15 @@ func (x *Service) start(ctx context.Context) {
 	}()
 }
 
-func (x *Service) acquireLock(_ context.Context, h proto.LockLease, o proto.LockObject) {
+func (x *Service) acquireLock(_ context.Context, xid proto.HogXID, host proto.HogHost) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	defer x.cond.Broadcast()
 	for {
-		if _, locked := x.objects[o]; locked {
+		if _, locked := x.hosts[host]; locked {
 			x.cond.Wait()
 		} else {
-			x.objects[o] = h
+			x.hosts[host] = xid
 			return
 		}
 	}
@@ -88,16 +85,19 @@ func (x *Service) expireLeases(ctx context.Context) {
 	}
 }
 
-func (x *Service) releaseLease(_ context.Context, h proto.LockLease) {
-	liblog.Infof("expiring lease %v", h)
-	lease := x.leases[h]
-	delete(x.leases, h)
+func (x *Service) releaseLease(_ context.Context, xid proto.HogXID) {
+	liblog.Infof("expiring lease %v", xid)
 
-	slices.Reverse(lease.objects)
-	liblog.Infof("releasing locks %v, while expiring lease %v", lease.objects, h)
+	delete(x.signalled, xid)
 
-	for _, o := range lease.objects {
-		delete(x.objects, o)
+	lease := x.leases[xid]
+	delete(x.leases, xid)
+
+	slices.Reverse(lease.hosts)
+	liblog.Infof("releasing locks %v, while expiring lease %v", lease.hosts, xid)
+
+	for _, o := range lease.hosts {
+		delete(x.hosts, o)
 	}
 }
 
@@ -107,41 +107,40 @@ func (x *Service) Hoglock_null(context.Context) error {
 	return nil
 }
 
-func (x *Service) Hoglock_lock(ctx context.Context, o proto.LockObjects) (h proto.LockLease, err error) {
+func (x *Service) Hoglock_lock(ctx context.Context, xid proto.HogXID, hosts proto.HogHosts) (err error) {
 
-	liblog.Infof("hoglock_lock %v", o)
+	liblog.Infof("hoglock_lock %v", hosts)
 	defer func() {
 		if err != nil {
-			liblog.Errorf("hoglock_lock for %v not acquired (%v)", o, err)
+			liblog.Errorf("hoglock_lock for %v not acquired (%v)", hosts, err)
 		} else {
-			liblog.Infof("hoglock_lock for %v acquired under lease %v", o, h)
+			liblog.Infof("hoglock_lock for %v acquired under lease %v", hosts, xid)
 		}
 	}()
 
-	if len(o) == 0 {
-		return "", nil
+	if len(hosts) == 0 {
+		return nil
 	}
 
-	h = randomHandle()
-	sort.Strings(o)
-	for _, o := range o {
-		x.acquireLock(ctx, h, o)
+	sort.Strings(hosts)
+	for _, o := range hosts {
+		x.acquireLock(ctx, xid, o)
 	}
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	x.leases[h] = &lease{renewed: time.Now(), objects: o}
+	x.leases[xid] = &lease{renewed: time.Now(), hosts: hosts}
 
-	return h, nil
+	return nil
 }
 
-func (x *Service) Hoglock_renew(ctx context.Context, h proto.LockLease) error {
-	liblog.Infof("hoglock_renew %v", h)
+func (x *Service) Hoglock_renew(ctx context.Context, xid proto.HogXID) error {
+	liblog.Infof("hoglock_renew %v", xid)
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	lease, known := x.leases[h]
+	lease, known := x.leases[xid]
 	if !known {
 		return nil
 	}
@@ -149,16 +148,16 @@ func (x *Service) Hoglock_renew(ctx context.Context, h proto.LockLease) error {
 	return nil
 }
 
-func (x *Service) Hoglock_check(ctx context.Context, h proto.LockLease) (bool, error) {
-	liblog.Infof("hoglock_check %v", h)
+func (x *Service) Hoglock_check(ctx context.Context, xid proto.HogXID) (bool, error) {
+	liblog.Infof("hoglock_check %v", xid)
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	_, active := x.leases[h]
+	_, active := x.leases[xid]
 	return active, nil
 }
 
-func randomHandle() proto.LockLease {
+func randomHandle() proto.HogXID {
 	const n = 8
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
@@ -167,26 +166,38 @@ func randomHandle() proto.LockLease {
 	return hex.EncodeToString(b)
 }
 
-func (x *Service) Hoglock_signal(ctx context.Context, ns proto.HogNamespaces) error {
+func (x *Service) Hoglock_signal(ctx context.Context, xid proto.HogXID, ns proto.HogNamespaces) error {
 
-	x.slk.Lock()
-	defer x.slk.Unlock()
-	defer x.scond.Broadcast()
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	defer x.cond.Broadcast()
+
+	// check a lease is present
+	_, ok := x.leases[xid]
+	if !ok {
+		return fmt.Errorf("no lease")
+	}
+
+	signalled := x.signalled[xid] // isolate per-xid namespaces
+	if signalled == nil {
+		signalled = map[proto.HogNamespace]struct{}{}
+		x.signalled[xid] = signalled
+	}
 
 	for _, ns := range ns {
-		x.signalled[ns] = struct{}{}
+		signalled[ns] = struct{}{}
 	}
 
 	return nil
 }
 
-func (x *Service) Hoglock_wait(ctx context.Context, prefix proto.HogNamespaces) error {
+func (x *Service) Hoglock_wait(ctx context.Context, xid proto.HogXID, prefix proto.HogNamespaces) error {
 
-	x.slk.Lock()
-	defer x.slk.Unlock()
+	x.lk.Lock()
+	defer x.lk.Unlock()
 
 	for {
-		if x.isSignalled(prefix) {
+		if x.isSignalled(xid, prefix) {
 			return nil
 		} else {
 			select {
@@ -199,12 +210,12 @@ func (x *Service) Hoglock_wait(ctx context.Context, prefix proto.HogNamespaces) 
 	}
 }
 
-func (x *Service) isSignalled(prefix proto.HogNamespaces) bool {
+func (x *Service) isSignalled(xid proto.HogXID, prefix proto.HogNamespaces) bool {
 	uncovered := map[proto.HogNamespace]struct{}{}
 	for _, prefix := range prefix {
 		uncovered[prefix] = struct{}{}
 	}
-	for ns := range x.signalled {
+	for ns := range x.signalled[xid] {
 		for u := range uncovered {
 			if strings.HasPrefix(ns, u) {
 				delete(uncovered, u)

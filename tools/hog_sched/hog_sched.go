@@ -29,12 +29,14 @@ func main() {
 		ArgsUsage: "<schedule_file>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "level",
-				Value: "info",
-				Usage: "log level",
+				Name:    "level",
+				Aliases: []string{"l"},
+				Value:   "info",
+				Usage:   "log level",
 			},
 			&cli.StringFlag{
 				Name:     "i",
+				Aliases:  []string{"x"},
 				Required: true,
 				Usage:    "instance id",
 			},
@@ -54,12 +56,14 @@ func main() {
 				Value: dot.DumpDir,
 			},
 			&cli.StringSliceFlag{
-				Name:  "key",
-				Usage: "substitution key (repeated)",
+				Name:    "key",
+				Aliases: []string{"k"},
+				Usage:   "substitution key (repeated)",
 			},
 			&cli.StringSliceFlag{
-				Name:  "value",
-				Usage: "substitution value (repeated, must match key)",
+				Name:    "value",
+				Aliases: []string{"v"},
+				Usage:   "substitution value (repeated, must match key)",
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {

@@ -54,8 +54,10 @@ func main() {
 
 			ns := c.Args().Slice()
 
-			liblog.Infof("signalling %v", ns)
-			return cli.Signal(ctx, ns)
+			xid := os.Getenv("HOG_XID")
+
+			liblog.Infof("%v is signalling %v", xid, ns)
+			return cli.Signal(ctx, xid, ns)
 		},
 	}
 

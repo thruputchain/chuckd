@@ -54,8 +54,10 @@ func main() {
 
 			ps := c.Args().Slice()
 
-			liblog.Infof("waiting for signals with prefixes %v", ps)
-			return cli.Wait(ctx, ps)
+			xid := os.Getenv("HOG_XID")
+
+			liblog.Infof("%v is waiting for signals with prefixes %v", xid, ps)
+			return cli.Wait(ctx, xid, ps)
 		},
 	}
 
