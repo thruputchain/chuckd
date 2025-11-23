@@ -22,6 +22,7 @@ func NewBaton(
 	b := &Baton{
 		ctx:              ctx,
 		handler:          h,
+		maxSkew:          time.Millisecond * time.Duration(cfg.Max_skew_msec),
 		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
 		patience:         time.Millisecond * time.Duration(cfg.Patience_msec),
 		maxCatchupHeight: int(cfg.Max_catchup_height),
@@ -42,6 +43,7 @@ func NewBaton(
 type Baton struct {
 	ctx              context.Context // ctx for drive
 	handler          batonkit.Handler
+	maxSkew          time.Duration
 	heartbeat        time.Duration
 	patience         time.Duration // if no externalization seen for this duration, request a backfeed
 	maxCatchupHeight int

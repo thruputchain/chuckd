@@ -99,6 +99,7 @@ cat > config-hog7.json << EOF
         }
     },
     "baton_config": {
+        "max_skew_msec": "10",
         "heartbeat_msec": "600",
         "patience_msec": "3000",
         "max_catchup_height": 10000

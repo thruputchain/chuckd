@@ -5,6 +5,9 @@ SCHEDULER INTEGRATION
 
 HOGSCHED
 
+- [ ] reindex nomination chunks by block_id
+- [ ] allow clock skew parameter
+
 - [ ] interrupt hog_sched kills subprocesses?
 - [ ] support available host allocation
 
