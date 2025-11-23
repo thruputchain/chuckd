@@ -7,7 +7,7 @@ script = """
 
 git init -q .
 git remote add origin git@github.com:{{ .github_repo }}.git
-git fetch --depth 1 origin {{ .git_commit }}
+git fetch --depth 1 origin {{ .git_branch }}
 git checkout {{ .git_commit }}
 
 source ./scripts/setup_go.sh
