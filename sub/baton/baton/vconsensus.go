@@ -74,7 +74,7 @@ func (b *Baton) validateConsensus(
 		return
 	}
 	now := b.handler.Now()
-	if newStamp.Sub(now) > b.maxSkew {
+	if !newStamp.Before(now) {
 		liblog.Infof("cannot validate, timestamp in the future (stamp %s, now %s)",
 			libtime.FmtTime(newStamp), libtime.FmtTime(now))
 		reply <- scpkit.InvalidValue
