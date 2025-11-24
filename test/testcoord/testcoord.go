@@ -36,9 +36,10 @@ func (x *TestCoord) UpdateNoPartialNominationsBelow(ctx context.Context, height 
 
 func (x *TestCoord) WaitForPartialNomination(
 	ctx context.Context,
+	id proto.BlockID,
 	height proto.BlockHeight,
 ) (proto.Nomination, proto.BlockID, error) {
-	return x.nr.WaitForPartialNomination(ctx, height)
+	return x.nr.WaitForPartialNomination(ctx, id, height)
 }
 
 func (x *TestCoord) Close() {}

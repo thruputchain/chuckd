@@ -5,7 +5,7 @@ SCHEDULER INTEGRATION
 
 HOGSCHED
 
-- [ ] cv timestamp a little in the past, after the previous block
+- [x] cv timestamp a little in the past, after the previous block
 - [ ] index on block_id in reconstructor
 
 - [ ] interrupt hog_sched kills subprocesses?

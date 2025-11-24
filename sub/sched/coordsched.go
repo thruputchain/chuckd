@@ -46,9 +46,10 @@ func (x *CoordSchedulerService) UpdateNoPartialNominationsBelow(ctx context.Cont
 
 func (x *CoordSchedulerService) WaitForPartialNomination(
 	ctx context.Context,
+	id proto.BlockID,
 	height proto.BlockHeight,
 ) (proto.Nomination, proto.BlockID, error) {
-	return x.nr.WaitForPartialNomination(ctx, height)
+	return x.nr.WaitForPartialNomination(ctx, id, height)
 }
 
 // client

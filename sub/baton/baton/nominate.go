@@ -67,7 +67,7 @@ func (b *Baton) nominate(
 	must.NoError(ctx, err)
 	must.Assert(ctx, result.Outcome == proto.SchedulerNominationOK)
 
-	nom, nomBlockID, err := b.handler.WaitForPartialNomination(ctx, ontoDb.Height+1)
+	nom, nomBlockID, err := b.handler.WaitForPartialNomination(ctx, *result.Block_id(), ontoDb.Height+1)
 	if err != nil {
 		must.Assert(ctx, errors.Is(err, sched.ErrHeightTooLow) ||
 			errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))

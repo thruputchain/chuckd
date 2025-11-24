@@ -13,6 +13,7 @@ import (
 type PartialNominationWaiter interface {
 	WaitForPartialNomination(
 		ctx context.Context,
+		id proto.BlockID,
 		height proto.BlockHeight,
 	) (proto.Nomination, proto.BlockID, error)
 	UpdateNoPartialNominationsBelow(
@@ -23,14 +24,14 @@ type PartialNominationWaiter interface {
 
 type NominationReconstructor struct {
 	lk                 sync.Mutex
-	notBelow           proto.BlockHeight
+	notBelow           proto.BlockHeight //XXX
 	cond               *sync.Cond
-	partialNominations map[proto.BlockHeight]*partialNomination
+	partialNominations map[proto.BlockID]*partialNomination
 }
 
 func NewNominationReconstructor() *NominationReconstructor {
 	x := &NominationReconstructor{
-		partialNominations: map[proto.BlockHeight]*partialNomination{},
+		partialNominations: map[proto.BlockID]*partialNomination{},
 	}
 	x.cond = sync.NewCond(&x.lk)
 	return x
@@ -43,9 +44,9 @@ func (x *NominationReconstructor) UpdateNoPartialNominationsBelow(ctx context.Co
 	defer x.cond.Broadcast()
 
 	x.notBelow = max(height, x.notBelow)
-	for h := range x.partialNominations {
-		if h < height {
-			delete(x.partialNominations, h)
+	for id, par := range x.partialNominations {
+		if par.height < height {
+			delete(x.partialNominations, id)
 		}
 	}
 }
@@ -62,16 +63,18 @@ func (x *NominationReconstructor) AddChunk(ctx context.Context, chunk proto.Sche
 		return
 	}
 
-	partial, ok := x.partialNominations[height]
+	partial, ok := x.partialNominations[chunk.Chunk.Block_id]
 	if !ok {
 		partial = &partialNomination{
 			blockID: chunk.Chunk.Block_id,
+			height:  chunk.Chunk.Nomination.Block_height,
 			total:   chunk.Total_chunks,
 		}
-		x.partialNominations[height] = partial
+		x.partialNominations[chunk.Chunk.Block_id] = partial
 	}
 
 	must.Assert(ctx, partial.blockID == chunk.Chunk.Block_id)
+	must.Assert(ctx, partial.height == chunk.Chunk.Nomination.Block_height)
 	must.Assert(ctx, partial.total == chunk.Total_chunks)
 
 	partial.chunks = append(partial.chunks, &chunk)
@@ -81,6 +84,7 @@ var ErrHeightTooLow = fmt.Errorf("expected nomination height too low")
 
 func (x *NominationReconstructor) WaitForPartialNomination(
 	ctx context.Context,
+	id proto.BlockID,
 	height proto.BlockHeight,
 ) (proto.Nomination, proto.BlockID, error) {
 
@@ -95,9 +99,9 @@ func (x *NominationReconstructor) WaitForPartialNomination(
 			if height < x.notBelow {
 				return proto.Nomination{}, 0, ErrHeightTooLow
 			}
-			partial, ok := x.partialNominations[height]
+			partial, ok := x.partialNominations[id]
 			if ok && partial.isComplete() {
-				delete(x.partialNominations, height)
+				delete(x.partialNominations, id)
 				nom, blockID := partial.reconstruct()
 				return nom, blockID, nil
 			}
@@ -108,6 +112,7 @@ func (x *NominationReconstructor) WaitForPartialNomination(
 
 type partialNomination struct {
 	blockID proto.BlockID
+	height  proto.BlockHeight
 	total   uint32
 	chunks  []*proto.SchedulerNominationChunk
 }
