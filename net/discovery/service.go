@@ -90,6 +90,9 @@ func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {
 }
 
 func (s *DiscoveryService) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
+	s.lk.Lock()
+	defer s.lk.Unlock()
+
 	qset, ok := s.hashQSet[hash]
 	if ok {
 		return &qset, nil
