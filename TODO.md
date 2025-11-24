@@ -12,6 +12,7 @@ BUGS
 
 - [ ] coordinator_bench fails when threshold=2
   - [ ] one v gets stuck on `missingcv.go:63 no repaired consensus value returned`
+  - [ ] can repair missing txs be stuck in a similar way?
 
 - [ ] put height in cvc
 
