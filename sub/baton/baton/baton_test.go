@@ -36,6 +36,7 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 		time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC),
 	)
 	cfg := proto.BatonConfig{
+		Skew_msec:          0, //!
 		Heartbeat_msec:     roundTTL.Milliseconds() / 5,
 		Patience_msec:      roundTTL.Milliseconds(),
 		Max_catchup_height: 10000,

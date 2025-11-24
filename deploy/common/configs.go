@@ -66,6 +66,7 @@ func MakeBaseConfig(
 			Catchup_block_age:     5,
 		},
 		Baton_config: &proto.BatonConfig{
+			Skew_msec:          10,
 			Heartbeat_msec:     round.Milliseconds() / 5,
 			Patience_msec:      round.Milliseconds(),
 			Max_catchup_height: 10000,

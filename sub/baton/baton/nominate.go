@@ -78,8 +78,16 @@ func (b *Baton) nominate(
 
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 
+	// wait until `now - prevStamp >= clock skew`
+	prevStamp := protoutil.TimeFromTimepoint(ontoExt.cv.Timestamp)
+	stamp := b.handler.Now()
+	for stamp.Sub(prevStamp) < b.skew {
+		b.handler.Sleep(b.skew)
+		stamp = b.handler.Now()
+	}
+
 	cv := &proto.ConsensusValue{
-		Timestamp:    protoutil.TimepointFromTime(b.handler.Now()),
+		Timestamp:    protoutil.TimepointFromTime(stamp),
 		Nomination:   nom,
 		Upgrades:     nil, // XXX: placeholder for upgrades
 		Prev_cv_hash: ontoExt.ConsensusValueHash(),
