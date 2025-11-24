@@ -19,7 +19,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/groundhogchain/protocol-go v0.0.0-20251122222655-474795f0ac1b
+	github.com/groundhogchain/protocol-go v0.0.0-20251124012311-7e523afdcb37
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/prometheus/client_golang v1.22.0
 	github.com/urfave/cli/v3 v3.6.0

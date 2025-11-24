@@ -54,6 +54,6 @@ git_current_branch() {
 
 hog_sched -x=$1 \
     --key=github_repo --value=$(github_repo $SCHED_DIR) \
-    --key=git_commit --value=$(github_commit_sha $SCHED_DIR) \
+    --key=git_commit --value=$(git_commit_sha $SCHED_DIR) \
     --key=git_branch --value=$(git_current_branch $SCHED_DIR) \
     $2
