@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -19,13 +20,14 @@ func (x *RepairAgent) RepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing proto.ConsensusValueHash,
+	height proto.BlockHeight,
 ) (*proto.ConsensusValue, error) {
 
 	backoff := netutil.NewBackoff(x.backoffCfg, librand.NewRand())
 
 attempting:
 	for {
-		cv, err := x.attemptRepairMissingCV(ctx, from, missing)
+		cv, err := x.attemptRepairMissingCV(ctx, from, missing, height)
 		if err != nil {
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
@@ -46,6 +48,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing proto.ConsensusValueHash,
+	height proto.BlockHeight,
 ) (*proto.ConsensusValue, error) {
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
@@ -54,13 +57,14 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_cv(ctx, missing)
+	reply, err := c.Repair_missing_cv(ctx, missing, height)
 	if err != nil {
 		return nil, err
 	}
 
 	if reply == nil {
-		liblog.Errorf("no repaired consensus value returned")
+		liblog.Errorf("no repaired consensus value returned, cvh %s, vid %s",
+			form.Display(missing), protoutil.VIDString(protoutil.PublicVID(from)))
 		return nil, fmt.Errorf("no repaired consensus value returned")
 	}
 

@@ -17,5 +17,6 @@ type RepairAgent interface {
 		ctx context.Context,
 		from proto.ValidatorPublicInfo,
 		missing proto.ConsensusValueHash,
+		height proto.BlockHeight,
 	) (*proto.ConsensusValue, error)
 }

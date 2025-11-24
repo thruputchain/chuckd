@@ -49,6 +49,11 @@ func (b *Baton) validateCue(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
+	if slot != scpkit.Slot(cvc.Block_height) {
+		reply <- scpkit.InvalidValue
+		return
+	}
+
 	liblog.Infof("validating cue at height %d with block hash %s and consensus value hash %s",
 		slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
 
@@ -100,7 +105,11 @@ func (b *Baton) validateCue(
 	b.validateConsensus(vCtx, slot, cv, reply)
 }
 
-func (b *Baton) fetchCV(ctx context.Context, slot scpkit.Slot, cvc *proto.ConsensusValueCue) (*proto.ConsensusValue, error) {
+func (b *Baton) fetchCV(
+	ctx context.Context,
+	slot scpkit.Slot,
+	cvc *proto.ConsensusValueCue,
+) (*proto.ConsensusValue, error) {
 
 	liblog.Infof("fetching consensus value at height %d, block hash %s, consensus hash %s",
 		slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
@@ -118,7 +127,7 @@ func (b *Baton) fetchCV(ctx context.Context, slot scpkit.Slot, cvc *proto.Consen
 	// try repairing the missing cv
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.RepairMissingCV(ctx, cvc.Proposer, cvc.Cv_hash)
+		cv, err := b.handler.RepairMissingCV(ctx, cvc.Proposer, cvc.Cv_hash, proto.BlockHeight(slot))
 		if err != nil {
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return

@@ -25,6 +25,7 @@ func CueFromConsensusValue(m xdrutil.XdrMarshaler, cv *proto.ConsensusValue) pro
 		Proposer:        cv.Nomination.Proposer,
 		Cv_hash:         HashCV(m, cv),
 		Prev_cv_hash:    cv.Prev_cv_hash,
+		Block_height:    cv.Nomination.Block_height,
 		Block_hash:      cv.Nomination.Block_hash,
 		Prev_block_hash: cv.Nomination.Prev_block_hash,
 	}

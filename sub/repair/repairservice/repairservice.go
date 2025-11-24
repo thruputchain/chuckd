@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
+	"github.com/groundhogchain/chuckd/sub/storage"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -16,15 +17,18 @@ type RepairService struct {
 	conn        sched.SchedulerCoordConn
 	scpBroker   *scpbroker.SCPBroker       //XXX: use to repair missing scp envelopes
 	cvpool      *cvpool.ConsensusValuePool // use to repair missing consensus values
+	storage     *storage.DiskStorage
 	schedReady  chan struct{}
 	brokerReady chan struct{}
 }
 
 func NewRepairService(
 	cvpool *cvpool.ConsensusValuePool,
+	storage *storage.DiskStorage,
 ) *RepairService {
 	return &RepairService{
 		cvpool:      cvpool,
+		storage:     storage,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
 	}
@@ -79,10 +83,31 @@ func (x *RepairService) Repair_missing_txs(
 func (x *RepairService) Repair_missing_cv(
 	ctx context.Context,
 	cvh proto.ConsensusValueHash,
+	height proto.BlockHeight,
 ) (proto.OptConsensusValue, error) {
 
 	liblog.Debugf("repair missing consensus value request, cv hash %s", form.Display(cvh))
-	return x.cvpool.ConsensusValuePoolLookup(ctx, cvh), nil
+
+	// straggler validators may need a consensus value after
+	// it has been externalized and committed at other nodes.
+	// in this case, the consensus value may no longer be in the
+	// cvpool.
+	//
+	// thus, when a value is not found in the cvpool, repair
+	// tries to find it in the storage layer, which only persist
+	// externalized consensus values.
+	//
+	// requests for non-externalized past cvs will block the repair attempts forever,
+	// and they need to be aborted at the caller when they discover newer externalization have happened.
+	// requests for externalized cvs will be answered by the storage layer, which will allow
+	// externalization messages to be processed at the called, and thus externalizations to be acted on.
+
+	cv := x.cvpool.ConsensusValuePoolLookup(ctx, cvh)
+	if cv != nil {
+		return cv, nil
+	}
+
+	return x.storage.FindConsensusValue(ctx, height), nil
 }
 
 // XXX: dos protection

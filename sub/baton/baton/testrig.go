@@ -181,6 +181,7 @@ func (h *TestRig) RepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing proto.ConsensusValueHash,
+	height proto.BlockHeight,
 ) (*proto.ConsensusValue, error) {
 	panic("not used")
 }

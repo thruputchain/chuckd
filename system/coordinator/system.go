@@ -121,7 +121,7 @@ func NewSystem(
 		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
 	})
 
-	s.RepairService = repairservice.NewRepairService(s.CVPool)
+	s.RepairService = repairservice.NewRepairService(s.CVPool, s.Storage)
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,

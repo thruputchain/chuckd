@@ -5,15 +5,30 @@ SCHEDULER INTEGRATION
 
 HOGSCHED
 
-- [x] cv timestamp a little in the past, after the previous block
-- [ ] index on block_id in reconstructor
-
 - [ ] interrupt hog_sched kills subprocesses?
 - [ ] support available host allocation
 
 BUGS
 
 - [ ] coordinator_bench fails when threshold=2
+  - [ ] one v gets stuck on `missingcv.go:63 no repaired consensus value returned`
+
+- [ ] put height in cvc
+
+
+  - CAUSE: cv is dropped when peers commit it, and thus current peer fails to repair cv
+  - Q: why is the node stuck and not seeing higher externalizations?
+    - A: because externalizations come from SCP, but SCP cannot process an externalization before fetching the CV from the CVC
+
+  - GOAL: XXX
+
+  -> APPROACH 1:
+    - put height in cvc, and repair extracts cv from storage using height 
+    - unblocks externalizations to push through scp and reach baton
+  - APPROACH 2:
+    - index cvs by hash in storage layer
+
+
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`
 
 
