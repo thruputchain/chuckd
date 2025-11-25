@@ -21,6 +21,7 @@ const LeaseRenewInterval = 1 * time.Second
 const LeaseTTL = 3 * time.Second
 
 type Service struct {
+	allHosts  []string
 	lk        sync.Mutex
 	cond      *sync.Cond
 	hosts     map[proto.HogHost]proto.HogXID
@@ -33,10 +34,11 @@ type lease struct {
 	hosts   proto.HogHosts
 }
 
-func NewService() *Service {
+func NewService(allHosts []string) *Service {
 	x := &Service{
-		hosts:  map[proto.HogHost]proto.HogXID{},
-		leases: map[proto.HogXID]*lease{},
+		allHosts: allHosts,
+		hosts:    map[proto.HogHost]proto.HogXID{},
+		leases:   map[proto.HogXID]*lease{},
 		//
 		signalled: map[proto.HogXID]map[proto.HogNamespace]struct{}{},
 	}

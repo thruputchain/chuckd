@@ -37,7 +37,7 @@ func main() {
 		Action: func(ctx context.Context, c *cli.Command) error {
 			level := c.String("level")
 			addr := c.String("address")
-			_ = c.StringSlice("host")
+			host := c.StringSlice("host")
 
 			// log level
 			zlevel, err := zerolog.ParseLevel(level)
@@ -47,7 +47,7 @@ func main() {
 			liblog.LogLevel(zlevel)
 			libruntime.StackTraceInterrupt()
 
-			hoglock.NewService().Start(ctx, libnet.TCPNet{}, addr)
+			hoglock.NewService(host).Start(ctx, libnet.TCPNet{}, addr)
 			select {}
 		},
 	}
