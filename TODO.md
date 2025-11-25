@@ -6,6 +6,8 @@ SCHEDULER INTEGRATION
 HOGSCHED
 
 - [ ] symlink .cargo to ~/.cargo
+- [ ] cli to query who holds current locks
+
 - [ ] interrupt hog_sched kills subprocesses?
 - [ ] support available host allocation
 
