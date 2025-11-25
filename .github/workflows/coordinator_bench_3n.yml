@@ -26,6 +26,7 @@ jobs:
                       ${{ secrets.CHUCKD_TO_XDRS_KEY }}
                       ${{ secrets.CHUCKD_TO_XDR_COMMON_KEY }}
                       ${{ secrets.CHUCKD_TO_XDR_RPC_KEY }}
+                      ${{ secrets.CHUCKD_TO_PROTOCOL_KEY }}
 
             - uses: actions/checkout@v4
 
