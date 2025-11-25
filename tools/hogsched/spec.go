@@ -110,6 +110,7 @@ chmod -R +w %q || true
 rm -rf %q
 mkdir -p %q
 cd %q
+export USER_HOME=$HOME
 export HOME=%q
 echo "forwarding github urls through ssh-agent"
 hog_fwd
