@@ -94,6 +94,7 @@ var (
 					deployTxsPerBlock,
 					deployNumBlocks,
 					deployLoadgenAddr,
+					deploySchedAddr,
 				)
 				for i, host := range deployHosts {
 					fmt.Printf("### launch coordinator-loadgen-%s.sh\n", host)
@@ -124,6 +125,7 @@ var (
 	deployTxsPerBlock int
 	deployNumBlocks   int
 	deployLoadgenAddr string
+	deploySchedAddr   string
 )
 
 func init() {
@@ -164,4 +166,5 @@ func init() {
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployScpHandlePort, "scp-handle-port", 3300, "scp handle port")
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployScpControlPort, "scp-control-port", 4400, "scp control port")
 	deployCoordinatorLoadgenCmd.Flags().StringVar(&deployLoadgenAddr, "loadgen-addr", "localhost:44400", "loadgen address")
+	deployCoordinatorLoadgenCmd.Flags().StringVar(&deploySchedAddr, "sched-addr", "", "scheduler address")
 }

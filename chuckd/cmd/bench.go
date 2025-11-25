@@ -101,7 +101,7 @@ var (
 				)
 				opcfg := coordinator.OperationalConfig{
 					StorageDir:     benchStorageDir,
-					SchedAddr:      fmt.Sprintf("localhost:%d", benchSchedPort),
+					SchedAddr:      benchSchedAddr,
 					DebugPort:      benchDebugPort,
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
@@ -202,6 +202,7 @@ var (
 	benchTxsPerBlock int
 	benchNumBlocks   int
 	benchLoadgenAddr string
+	benchSchedAddr   string
 )
 
 func init() {
@@ -234,7 +235,7 @@ func init() {
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchTxsPerBlock, "txs-per-block", 1e4, "transactions per block")
-	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSchedAddr, "sched-addr", "", "scheduler address")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchDebugPort, "debug-port", 40555, "debug port")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")

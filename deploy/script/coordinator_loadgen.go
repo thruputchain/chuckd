@@ -36,6 +36,7 @@ func CoordinatorLoadgenScripts(
 	txsPerBlock int,
 	numBlocks int,
 	loadgenAddr string,
+	schedAddr string,
 ) []string {
 
 	nv := len(hosts)
@@ -66,6 +67,7 @@ func CoordinatorLoadgenScripts(
 			fmt.Sprintf(":%d", bcfg.ValidatorPort),
 			fmt.Sprintf(":%d", bcfg.WalletPort),
 			loadgenAddr,
+			schedAddr,
 		)
 	}
 
@@ -90,6 +92,7 @@ func CoordinatorLoadgenScript(
 	vBind string,
 	wBind string,
 	loadgenAddr string,
+	schedAddr string,
 ) string {
 
 	var script bytes.Buffer
@@ -130,6 +133,7 @@ fi
 			--out-addr %s \
 			--wallet-addr %s \
 			--loadgen-addr %s \
+			--sched-addr %s \
 			--scpd-path $2 \
 			--scp-handle-addr %s \
 			--scp-control-addr %s \
@@ -147,6 +151,7 @@ fi
 		vBind,
 		wBind,
 		loadgenAddr,
+		schedAddr,
 		fmt.Sprintf("127.0.0.1:%d", bcfg.ScpHandlePort),
 		fmt.Sprintf("127.0.0.1:%d", bcfg.ScpControlPort),
 	)
