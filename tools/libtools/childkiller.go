@@ -3,9 +3,10 @@ package libtools
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 )
 
 type childKiller struct {
@@ -43,11 +44,7 @@ func (x *childKiller) kill() {
 var ck = &childKiller{pgid: map[int]bool{}}
 
 func init() {
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	go func() {
-		s := <-sigc
-		ck.kill()
-		os.Exit(128 + int(s.(syscall.Signal))) // propagate a conventional code
-	}()
+	// Register with libruntime's signal handler instead of having our own
+	// This ensures kill() runs before os.Exit()
+	libruntime.RegisterInterruptHook(ck.kill)
 }
