@@ -25,22 +25,28 @@ func SshExecReader(
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
 
-	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
+	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
 	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
 
 	var prefix bytes.Buffer
+	// Disable TTY echo and prompt (we use -tt for SIGHUP on disconnect, but don't want the noise)
+	fmt.Fprintln(&prefix, `stty -echo`)
+	fmt.Fprintln(&prefix, `PS1=`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 || true; exit $status' INT TERM HUP`)
-	// fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	// Kill entire process group when bash exits. EXIT handles normal exit and
+	// when SSH connection closes. Signal traps ensure proper exit codes.
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true' EXIT`)
+	fmt.Fprintln(&prefix, `trap 'exit 130' INT`)   // 128 + 2 (SIGINT)
+	fmt.Fprintln(&prefix, `trap 'exit 143' TERM`)  // 128 + 15 (SIGTERM)
+	fmt.Fprintln(&prefix, `trap 'exit 129' HUP`)   // 128 + 1 (SIGHUP)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
-	fmt.Fprintln(&prefix, `(`)
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n")))
 	must.NoError(ctx, err)
 	stdin := bytes.NewBufferString(string(fullScript))
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
