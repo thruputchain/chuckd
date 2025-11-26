@@ -34,13 +34,13 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Trap signals to ensure cleanup when SSH disconnects
+	// Trap in parent shell - when SSH disconnects, bash receives SIGHUP
 	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 	fmt.Fprintln(&prefix, `(`)
-	// Set trap in subshell too
+	// Also trap in subshell to catch signals there
 	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
@@ -78,8 +78,15 @@ func SshExecReader(
 	return outbuf, errbuf, func() error {
 		err := cmd.Wait()
 		ck.unregister(pid)
+		// Check if it's actually a success (exit code 0) vs an error
 		if err == nil {
 			liblog.Infof("ssh_exec on %s completed successfully", host)
+		} else if exitErr, ok := err.(*exec.ExitError); ok {
+			// SSH might exit with non-zero even if script succeeds, check exit code
+			if exitErr.ExitCode() == 0 {
+				liblog.Infof("ssh_exec on %s completed successfully", host)
+				return nil
+			}
 		}
 		return err
 	}
