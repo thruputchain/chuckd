@@ -29,7 +29,12 @@ func (x *childKiller) kill() {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	for pgid := range x.pgid {
-		fmt.Fprintf(os.Stderr, "killing pid %d\n", pgid)
+		if pgid < 0 {
+			// Negative PID means process group ID
+			fmt.Fprintf(os.Stderr, "killing process group %d\n", -pgid)
+		} else {
+			fmt.Fprintf(os.Stderr, "killing pid %d\n", pgid)
+		}
 		syscall.Kill(pgid, syscall.SIGTERM)
 		delete(x.pgid, pgid)
 	}
