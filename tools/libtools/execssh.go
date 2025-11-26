@@ -41,8 +41,11 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 || true; exit $status' INT TERM HUP`)
-	// fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	// Kill all processes in the process group when bash exits for ANY reason
+	// (including normal exit when SSH connection closes and bash sees EOF).
+	// This is critical because SIGTERM to local ssh just closes the connection,
+	// it doesn't signal the remote bash - bash just sees EOF and exits normally.
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true' EXIT`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
