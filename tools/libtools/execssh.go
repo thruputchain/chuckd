@@ -33,7 +33,7 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; echo "trapped"; exit' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
@@ -45,10 +45,13 @@ func SshExecReader(
 	fmt.Fprintln(&suffix, ``)
 	fmt.Fprintln(&suffix, `) &`)
 	fmt.Fprintln(&suffix, `SCRIPT_PID=$!`)
-	fmt.Fprintln(&suffix, `# Monitor stdin - read blocks until stdin closes (SSH dies), then kill everything`)
-	fmt.Fprintln(&suffix, `{ read -r _ 2>/dev/null; kill 0 2>/dev/null; } &`)
+	fmt.Fprintln(&suffix, `# Save stdin to fd 3 before backgrounding (background jobs get stdin from /dev/null)`)
+	fmt.Fprintln(&suffix, `exec 3<&0`)
+	fmt.Fprintln(&suffix, `# Monitor fd 3 (original stdin) - read blocks until pipe closes (SSH dies), then kill everything`)
+	fmt.Fprintln(&suffix, `{ read -r _ <&3 2>/dev/null; echo "read failed"; kill 0 2>/dev/null; } &`)
 	fmt.Fprintln(&suffix, `wait $SCRIPT_PID 2>/dev/null`)
 	fmt.Fprintln(&suffix, `STATUS=$?`)
+	fmt.Fprintln(&suffix, `echo "status: $STATUS"`)
 	fmt.Fprintln(&suffix, `exit $STATUS`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, &suffix))
