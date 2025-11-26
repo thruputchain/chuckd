@@ -26,9 +26,10 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	// Use setsid to create a new session so bash is the session leader.
+	// Use setsid --wait to create a new session so bash is the session leader.
+	// --wait makes setsid wait for the child and forward its exit status (otherwise it detaches).
 	// This ensures `kill 0` in the EXIT trap kills all processes in the session's process group.
-	sshOpts = append(sshOpts, host, `setsid`, `bash`, `-s`)
+	sshOpts = append(sshOpts, host, `setsid`, `--wait`, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
