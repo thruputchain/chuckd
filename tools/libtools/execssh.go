@@ -38,17 +38,18 @@ func SshExecReader(
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 	// Run user script in subshell in background, then wait for it while also monitoring stdin
-	// When stdin closes (SSH dies), the cat fails and we kill the background job
+	// When stdin closes (SSH dies), the read fails and we kill the background job
 	fmt.Fprintln(&prefix, `(`)
 
 	var suffix bytes.Buffer
 	fmt.Fprintln(&suffix, ``)
 	fmt.Fprintln(&suffix, `) &`)
 	fmt.Fprintln(&suffix, `SCRIPT_PID=$!`)
-	fmt.Fprintln(&suffix, `# Monitor stdin - when it closes (SSH dies), kill the script`)
-	fmt.Fprintln(&suffix, `{ cat >/dev/null 2>&1; kill 0 2>/dev/null; } &`)
+	fmt.Fprintln(&suffix, `# Monitor stdin - read blocks until stdin closes (SSH dies), then kill everything`)
+	fmt.Fprintln(&suffix, `{ read -r _ 2>/dev/null; kill 0 2>/dev/null; } &`)
 	fmt.Fprintln(&suffix, `wait $SCRIPT_PID 2>/dev/null`)
-	fmt.Fprintln(&suffix, `exit $?`)
+	fmt.Fprintln(&suffix, `STATUS=$?`)
+	fmt.Fprintln(&suffix, `exit $STATUS`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, &suffix))
 	must.NoError(ctx, err)
