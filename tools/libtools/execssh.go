@@ -25,8 +25,10 @@ func SshExecReader(
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
 
-	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	sshOpts = append(sshOpts, host, `bash`, `-s`)
+	// Use -tt for TTY allocation so bash receives SIGHUP when SSH disconnects
+	// Run stty -echo first to prevent the TTY from echoing the script input
+	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
+	sshOpts = append(sshOpts, host, `stty -echo; exec bash -s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
@@ -62,21 +64,22 @@ func SshExecReader(
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	waitCh := make(chan error, 1)
-	ck.register(cmd.Process.Pid)
+	pid := cmd.Process.Pid
+	ck.register(pid)
+
+	// Kill SSH only when context is cancelled, not when process completes normally
 	go func() {
-		select {
-		case <-ctx.Done():
-		case <-waitCh:
-		}
-		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d\n", cmd.Process.Pid)
-		syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
-		ck.unregister(cmd.Process.Pid)
+		<-ctx.Done()
+		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d due to context cancellation\n", pid)
+		syscall.Kill(pid, syscall.SIGTERM)
 	}()
 
 	return outbuf, errbuf, func() error {
 		err := cmd.Wait()
-		waitCh <- err
+		ck.unregister(pid)
+		if err == nil {
+			fmt.Fprintf(os.Stderr, "ssh_exec on %s completed successfully\n", host)
+		}
 		return err
 	}
 }
