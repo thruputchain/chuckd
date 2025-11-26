@@ -36,7 +36,10 @@ func SshExecReader(
 	// MUST be first line - disable TTY echo before any other output
 	fmt.Fprintln(&prefix, `stty -echo 2>/dev/null || true`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
+	// Enable job control so signals are properly handled
+	fmt.Fprintln(&prefix, `set -m`)
+	// Trap signals and kill entire process group
+	fmt.Fprintln(&prefix, `trap 'kill -- -$$ 2>/dev/null; exit 1' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
