@@ -32,6 +32,9 @@ func SshExecReader(
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
 
 	var prefix bytes.Buffer
+	// Disable TTY echo and prompt (we use -tt for SIGHUP on disconnect, but don't want the noise)
+	fmt.Fprintln(&prefix, `stty -echo`)
+	fmt.Fprintln(&prefix, `PS1=`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
 	// Kill entire process group when bash exits. This handles both normal exit
 	// and when SSH connection closes (bash sees EOF). Yes, this kills bash too,
