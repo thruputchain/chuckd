@@ -26,29 +26,22 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	// Use setsid --wait to create a new session so bash is the session leader.
-	// --wait makes setsid wait for the child and forward its exit status (otherwise it detaches).
-	// This ensures `kill 0` in the EXIT trap kills all processes in the session's process group.
-	sshOpts = append(sshOpts, host, `setsid`, `--wait`, `bash`, `-s`)
+	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Kill all background jobs when bash exits for ANY reason
-	// (including normal exit when SSH connection closes and bash sees EOF).
-	// This is critical because SIGTERM to local ssh just closes the connection,
-	// it doesn't signal the remote bash - bash just sees EOF and exits normally.
-	// We use `jobs -p` to get only backgrounded jobs, not bash itself.
-	// We also recursively kill children of those jobs with pkill -P.
-	fmt.Fprintln(&prefix, `trap 'for p in $(jobs -p 2>/dev/null); do pkill -TERM -P $p 2>/dev/null; kill $p 2>/dev/null; done || true' EXIT`)
+	// Kill entire process group when bash exits. This handles both normal exit
+	// and when SSH connection closes (bash sees EOF). Yes, this kills bash too,
+	// but that's fine - the important thing is children die.
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null' EXIT`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
-	fmt.Fprintln(&prefix, `(`)
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n")))
 	must.NoError(ctx, err)
 	stdin := bytes.NewBufferString(string(fullScript))
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
