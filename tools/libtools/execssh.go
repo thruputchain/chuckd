@@ -45,16 +45,19 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Trap INT/TERM/HUP to kill all processes in the shell's process group
+	// Trap INT/TERM/HUP to kill all processes
 	// We don't trap EXIT because we only want to kill on signals, not normal exit
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; exit $status' INT TERM HUP`)
+	// Use kill -TERM -$$ to kill the entire process group of this shell
+	fmt.Fprintln(&prefix, `trap 'status=$?; kill -TERM -$$ 2>/dev/null || kill 0 2>/dev/null || true; exit $status' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
+	// Run script in subshell
 	fmt.Fprintln(&prefix, `(`)
-	// Set trap inside subshell as well - this ensures cleanup when SSH disconnects
-	// When SSH disconnects, bash receives SIGHUP and this trap will execute
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; exit $status' INT TERM HUP`)
+	// Set trap inside subshell - when SSH disconnects, bash receives SIGHUP
+	// and sends it to foreground process group. This trap should execute.
+	// Use both kill -TERM -$$ (parent's PGID) and kill 0 (current PGID) for robustness
+	fmt.Fprintln(&prefix, `trap 'status=$?; kill -TERM -$$ 2>/dev/null || kill 0 2>/dev/null || true; exit $status' INT TERM HUP`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
 	must.NoError(ctx, err)
@@ -98,8 +101,21 @@ func SshExecReader(
 		err := cmd.Wait()
 		// Unregister after process completes (successfully or not)
 		ck.unregister(pgid)
+		// Log completion status
 		if err == nil {
 			liblog.Infof("ssh_exec on %s completed successfully", host)
+		} else {
+			// Check exit code - SSH might exit with non-zero even if script succeeds
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode := exitErr.ExitCode()
+				if exitCode == 0 {
+					liblog.Infof("ssh_exec on %s completed successfully (exit code 0)", host)
+					return nil
+				}
+				liblog.Errorf("ssh_exec on %s failed with exit code %d", host, exitCode)
+			} else {
+				liblog.Errorf("ssh_exec on %s failed: %v", host, err)
+			}
 		}
 		return err
 	}
