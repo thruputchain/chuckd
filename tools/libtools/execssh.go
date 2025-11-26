@@ -36,10 +36,12 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `stty -echo`)
 	fmt.Fprintln(&prefix, `PS1=`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Kill entire process group when bash exits. This handles both normal exit
-	// and when SSH connection closes (bash sees EOF). Yes, this kills bash too,
-	// but that's fine - the important thing is children die.
-	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null' EXIT`)
+	// Kill entire process group when bash exits. EXIT handles normal exit and
+	// when SSH connection closes. Signal traps ensure proper exit codes.
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true' EXIT`)
+	fmt.Fprintln(&prefix, `trap 'exit 130' INT`)   // 128 + 2 (SIGINT)
+	fmt.Fprintln(&prefix, `trap 'exit 143' TERM`)  // 128 + 15 (SIGTERM)
+	fmt.Fprintln(&prefix, `trap 'exit 129' HUP`)   // 128 + 1 (SIGHUP)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
