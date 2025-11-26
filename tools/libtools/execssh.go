@@ -36,11 +36,13 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Kill all processes in the process group when bash exits for ANY reason
+	// Kill all background jobs when bash exits for ANY reason
 	// (including normal exit when SSH connection closes and bash sees EOF).
 	// This is critical because SIGTERM to local ssh just closes the connection,
 	// it doesn't signal the remote bash - bash just sees EOF and exits normally.
-	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true' EXIT`)
+	// We use `jobs -p` to get only backgrounded jobs, not bash itself.
+	// We also recursively kill children of those jobs with pkill -P.
+	fmt.Fprintln(&prefix, `trap 'for p in $(jobs -p 2>/dev/null); do pkill -TERM -P $p 2>/dev/null; kill $p 2>/dev/null; done || true' EXIT`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
