@@ -45,8 +45,8 @@ func SshExecReader(
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
 	// Trap INT/TERM/HUP to kill all processes in the shell's process group
-	// Also trap EXIT to ensure cleanup happens even on normal exit
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; exit $status' INT TERM HUP EXIT`)
+	// We don't trap EXIT because we only want to kill on signals, not normal exit
+	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; exit $status' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
@@ -79,24 +79,21 @@ func SshExecReader(
 	// Get the process group ID (negative PID kills the process group)
 	pgid := -pid
 
-	waitCh := make(chan error, 1)
 	// Register the process group ID (negative) so childkiller kills the entire group
 	ck.register(pgid)
+	
+	// Goroutine to kill process when context is cancelled (not when wait completes)
 	go func() {
-		select {
-		case <-ctx.Done():
-		case <-waitCh:
-		}
-		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d (pgid %d)\n", pid, pgid)
+		<-ctx.Done()
+		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d (pgid %d) due to context cancellation\n", pid, pgid)
 		// Kill the entire process group to ensure SSH and any child processes die
 		syscall.Kill(pgid, syscall.SIGTERM)
-		ck.unregister(pgid)
 	}()
 
 	return outbuf, errbuf, func() error {
-		defer ck.unregister(pgid) // Ensure cleanup even if Wait() panics
 		err := cmd.Wait()
-		waitCh <- err
+		// Unregister after process completes (successfully or not)
+		ck.unregister(pgid)
 		return err
 	}
 }
