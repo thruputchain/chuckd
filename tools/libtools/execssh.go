@@ -25,30 +25,38 @@ func SshExecReader(
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
 
-	// Use -tt for TTY allocation so bash receives SIGHUP when SSH disconnects
-	// Run stty -echo first to prevent the TTY from echoing the script input
-	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	sshOpts = append(sshOpts, host, `stty -echo; exec bash -s`)
+	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
+	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 || true; exit $status' INT TERM HUP`)
-	// fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
+	// Run user script in subshell in background, then wait for it while also monitoring stdin
+	// When stdin closes (SSH dies), the cat fails and we kill the background job
 	fmt.Fprintln(&prefix, `(`)
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
-	must.NoError(ctx, err)
-	stdin := bytes.NewBufferString(string(fullScript))
-	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
-	// stdin := io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n"))
+	var suffix bytes.Buffer
+	fmt.Fprintln(&suffix, ``)
+	fmt.Fprintln(&suffix, `) &`)
+	fmt.Fprintln(&suffix, `SCRIPT_PID=$!`)
+	fmt.Fprintln(&suffix, `# Monitor stdin - when it closes (SSH dies), kill the script`)
+	fmt.Fprintln(&suffix, `{ cat >/dev/null 2>&1; kill 0 2>/dev/null; } &`)
+	fmt.Fprintln(&suffix, `wait $SCRIPT_PID 2>/dev/null`)
+	fmt.Fprintln(&suffix, `exit $?`)
 
-	cmd.Stdin = stdin
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, &suffix))
+	must.NoError(ctx, err)
+	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
+
+	// Use a pipe for stdin so we can keep it open
+	stdinPipe, err := cmd.StdinPipe()
+	must.NoError(ctx, err)
 
 	outbuf, errbuf := &bytes.Buffer{}, &bytes.Buffer{}
 	out_prefix := fmt.Sprintf("[%s:out] ", host)
@@ -59,24 +67,35 @@ func SshExecReader(
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// Put SSH in its own process group so we can kill it and all its children
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	pid := cmd.Process.Pid
-	ck.register(pid)
+	// Write the script to stdin pipe
+	_, err = stdinPipe.Write(fullScript)
+	must.NoError(ctx, err)
+	// Don't close stdinPipe - keep it open so the remote can detect when we die
 
-	// Kill SSH only when context is cancelled, not when process completes normally
+	pid := cmd.Process.Pid
+	// Register negative PID to kill the process group
+	ck.register(-pid)
+
+	// Kill SSH process group only when context is cancelled
 	go func() {
 		<-ctx.Done()
-		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d due to context cancellation\n", pid)
-		syscall.Kill(pid, syscall.SIGTERM)
+		fmt.Fprintf(os.Stderr, "ssh_exec killing process group %d due to context cancellation\n", pid)
+		// Close stdin pipe first - this triggers the remote cleanup
+		stdinPipe.Close()
+		// Then kill the entire process group
+		syscall.Kill(-pid, syscall.SIGKILL)
 	}()
 
 	return outbuf, errbuf, func() error {
 		err := cmd.Wait()
-		ck.unregister(pid)
+		ck.unregister(-pid)
+		stdinPipe.Close() // Close on normal exit too
 		if err == nil {
 			fmt.Fprintf(os.Stderr, "ssh_exec on %s completed successfully\n", host)
 		}
