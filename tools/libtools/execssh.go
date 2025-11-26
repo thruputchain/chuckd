@@ -46,7 +46,7 @@ func SshExecReader(
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n")))
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\nexit $?\n")))
 	must.NoError(ctx, err)
 	stdin := bytes.NewBufferString(string(fullScript))
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
