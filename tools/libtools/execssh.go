@@ -105,8 +105,12 @@ func SshExecBlock(
 ) (string, string, error) {
 	outb, errb, wait := SshExec(ctx, host, script, env)
 	err := wait()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		fmt.Fprintf(os.Stderr, "[%s] exit code %d\n", host, exitErr.ExitCode())
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "[%s] ssh error: %v\n", host, err)
+	} else {
+		fmt.Fprintf(os.Stderr, "[%s] exit code 0\n", host)
 	}
 	return outb.String(), errb.String(), err
 }
@@ -119,8 +123,12 @@ func SshExecReaderBlock(
 ) (string, string, error) {
 	outb, errb, wait := SshExecReader(ctx, host, script, env)
 	err := wait()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		fmt.Fprintf(os.Stderr, "[%s] exit code %d\n", host, exitErr.ExitCode())
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "[%s] ssh error: %v\n", host, err)
+	} else {
+		fmt.Fprintf(os.Stderr, "[%s] exit code 0\n", host)
 	}
 	return outb.String(), errb.String(), err
 }
