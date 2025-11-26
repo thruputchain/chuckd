@@ -35,12 +35,13 @@ func SshExecReader(
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `stty -echo 2>/dev/null || true`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'kill 0' INT TERM HUP`)
+	fmt.Fprintln(&prefix, `shopt -s huponexit`)
+	fmt.Fprintln(&prefix, `trap 'kill -- -$$ 2>/dev/null; exit 1' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\nexit\n")))
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\nexit 0\n")))
 	must.NoError(ctx, err)
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
 

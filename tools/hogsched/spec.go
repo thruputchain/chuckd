@@ -115,7 +115,7 @@ export HOME=%q
 echo "forwarding github urls through ssh-agent"
 hog_fwd
 (
-trap 'kill 0' INT TERM HUP
+trap 'kill -- -$$ 2>/dev/null; exit 1' INT TERM HUP
 `, dumpDir, dumpDir, dumpDir, jobDir, jobDir, jobDir, jobDir, jobDir, jobDir)
 	suffix := `
 )
@@ -137,7 +137,7 @@ export HOME=%q
 echo "re-forwarding github urls through ssh-agent"
 hog_fwd
 (
-trap 'kill 0' INT TERM HUP
+trap 'kill -- -$$ 2>/dev/null; exit 1' INT TERM HUP
 `, dumpDir, jobDir, jobDir, jobDir)
 	suffix := `
 )
