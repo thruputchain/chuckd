@@ -38,7 +38,8 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
 	// Kill entire process group when bash exits. EXIT handles normal exit and
 	// when SSH connection closes. Signal traps ensure proper exit codes.
-	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true' EXIT`)
+	// We set traps to ignore before kill 0, so bash doesn't catch its own SIGTERM.
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' EXIT`)
 	fmt.Fprintln(&prefix, `trap 'exit 130' INT`)   // 128 + 2 (SIGINT)
 	fmt.Fprintln(&prefix, `trap 'exit 143' TERM`)  // 128 + 15 (SIGTERM)
 	fmt.Fprintln(&prefix, `trap 'exit 129' HUP`)   // 128 + 1 (SIGHUP)
@@ -46,7 +47,7 @@ func SshExecReader(
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n")))
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\nexit $?\n")))
 	must.NoError(ctx, err)
 	stdin := bytes.NewBufferString(string(fullScript))
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
@@ -104,8 +105,12 @@ func SshExecBlock(
 ) (string, string, error) {
 	outb, errb, wait := SshExec(ctx, host, script, env)
 	err := wait()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		fmt.Fprintf(os.Stderr, "[%s] exit code %d\n", host, exitErr.ExitCode())
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "[%s] ssh error: %v\n", host, err)
+	} else {
+		fmt.Fprintf(os.Stderr, "[%s] exit code 0\n", host)
 	}
 	return outb.String(), errb.String(), err
 }
@@ -118,8 +123,12 @@ func SshExecReaderBlock(
 ) (string, string, error) {
 	outb, errb, wait := SshExecReader(ctx, host, script, env)
 	err := wait()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ssh_exec error (%v):\n", err)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		fmt.Fprintf(os.Stderr, "[%s] exit code %d\n", host, exitErr.ExitCode())
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "[%s] ssh error: %v\n", host, err)
+	} else {
+		fmt.Fprintf(os.Stderr, "[%s] exit code 0\n", host)
 	}
 	return outb.String(), errb.String(), err
 }
