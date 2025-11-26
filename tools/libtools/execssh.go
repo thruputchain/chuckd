@@ -26,15 +26,9 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	// Wrap in systemd-run to ensure all child processes are killed when the scope is stopped.
-	// --user: run in user session (no root required)
-	// --scope: run as a transient scope unit (not a service)
-	// --collect: garbage collect the scope after it finishes
-	// KillMode=control-group: kill all processes in the cgroup on stop
-	sshOpts = append(sshOpts, host,
-		`systemd-run`, `--user`, `--scope`, `--collect`,
-		`--property=KillMode=control-group`,
-		`bash`, `-s`)
+	// Use setsid to create a new session so bash is the session leader.
+	// This ensures `kill 0` in the EXIT trap kills all processes in the session's process group.
+	sshOpts = append(sshOpts, host, `setsid`, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
