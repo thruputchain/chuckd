@@ -27,8 +27,14 @@ func (x *childKiller) unregister(pgid int) {
 
 func (x *childKiller) kill() {
 	x.lk.Lock()
-	defer x.lk.Unlock()
+	pgids := make([]int, 0, len(x.pgid))
 	for pgid := range x.pgid {
+		pgids = append(pgids, pgid)
+	}
+	x.lk.Unlock()
+	
+	// First, send SIGTERM to all process groups
+	for _, pgid := range pgids {
 		if pgid < 0 {
 			// Negative PID means process group ID
 			fmt.Fprintf(os.Stderr, "killing process group %d\n", -pgid)
@@ -36,8 +42,16 @@ func (x *childKiller) kill() {
 			fmt.Fprintf(os.Stderr, "killing pid %d\n", pgid)
 		}
 		syscall.Kill(pgid, syscall.SIGTERM)
+	}
+	
+	// Give processes a moment to clean up, then send SIGKILL if needed
+	// Note: We don't wait or check if they're still alive - the remote processes
+	// should receive SIGHUP when SSH disconnects and clean themselves up
+	x.lk.Lock()
+	for pgid := range x.pgid {
 		delete(x.pgid, pgid)
 	}
+	x.lk.Unlock()
 }
 
 var ck = &childKiller{pgid: map[int]bool{}}

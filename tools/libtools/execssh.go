@@ -27,8 +27,9 @@ func SshExecReader(
 
 	// ServerAliveInterval/CountMax help detect disconnection quickly
 	// ExitOnForwardFailure ensures we exit if connection breaks
+	// We use -tt (force TTY allocation) so that bash receives SIGHUP when SSH disconnects
 	sshOpts := []string{
-		`-T`,
+		`-tt`,
 		`-o`, `BatchMode=yes`,
 		`-o`, `ConnectTimeout=5`,
 		`-o`, `VisualHostKey=no`,
@@ -51,6 +52,9 @@ func SshExecReader(
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 	fmt.Fprintln(&prefix, `(`)
+	// Set trap inside subshell as well - this ensures cleanup when SSH disconnects
+	// When SSH disconnects, bash receives SIGHUP and this trap will execute
+	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; exit $status' INT TERM HUP`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
 	must.NoError(ctx, err)
@@ -94,6 +98,9 @@ func SshExecReader(
 		err := cmd.Wait()
 		// Unregister after process completes (successfully or not)
 		ck.unregister(pgid)
+		if err == nil {
+			liblog.Infof("ssh_exec on %s completed successfully", host)
+		}
 		return err
 	}
 }
