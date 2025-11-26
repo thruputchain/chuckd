@@ -25,7 +25,8 @@ func SshExecReader(
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
 
-	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
+	// Use -tt to force TTY allocation - required for bash to receive SIGHUP when SSH disconnects
+	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
 	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
@@ -33,12 +34,14 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 || true; exit $status' INT TERM HUP`)
-	// fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	// Trap signals to ensure cleanup when SSH disconnects
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
 	fmt.Fprintln(&prefix, `(`)
+	// Set trap in subshell too
+	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true; exit' INT TERM HUP`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
 	must.NoError(ctx, err)
@@ -62,21 +65,22 @@ func SshExecReader(
 	err = cmd.Start()
 	must.NoError(ctx, err)
 
-	waitCh := make(chan error, 1)
-	ck.register(cmd.Process.Pid)
+	pid := cmd.Process.Pid
+	ck.register(pid)
+	
+	// Only kill when context is cancelled, not when process completes normally
 	go func() {
-		select {
-		case <-ctx.Done():
-		case <-waitCh:
-		}
-		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d\n", cmd.Process.Pid)
-		syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
-		ck.unregister(cmd.Process.Pid)
+		<-ctx.Done()
+		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d due to context cancellation\n", pid)
+		syscall.Kill(pid, syscall.SIGTERM)
 	}()
 
 	return outbuf, errbuf, func() error {
 		err := cmd.Wait()
-		waitCh <- err
+		ck.unregister(pid)
+		if err == nil {
+			liblog.Infof("ssh_exec on %s completed successfully", host)
+		}
 		return err
 	}
 }
