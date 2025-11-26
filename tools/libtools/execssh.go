@@ -25,7 +25,8 @@ func SshExecReader(
 	sshPath, err := exec.LookPath("ssh")
 	must.NoError(ctx, err)
 
-	sshOpts := []string{`-T`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
+	// Use -tt to force TTY allocation - this ensures bash receives SIGHUP when SSH disconnects
+	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
 	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
@@ -33,12 +34,14 @@ func SshExecReader(
 
 	var prefix bytes.Buffer
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 || true; exit $status' INT TERM HUP`)
-	// fmt.Fprintln(&prefix, `trap 'status=$?; if [ $status -ne 0 ]; then kill 0; fi' EXIT`)
+	// Trap signals to kill all processes in the shell's process group
+	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; echo "hit trap handle 1";exit $status' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
+	// Run script in subshell - set trap here too so it executes when SSH disconnects
 	fmt.Fprintln(&prefix, `(`)
+	fmt.Fprintln(&prefix, `trap 'status=$?; kill 0 2>/dev/null || true; echo "hit trap handle 2"; exit $status' INT TERM HUP`)
 
 	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
 	must.NoError(ctx, err)
@@ -77,6 +80,11 @@ func SshExecReader(
 	return outbuf, errbuf, func() error {
 		err := cmd.Wait()
 		waitCh <- err
+		if err == nil {
+			liblog.Infof("ssh_exec on %s completed successfully", host)
+		} else {
+			liblog.Errorf("ssh_exec on %s failed (%v)", host, err)
+		}
 		return err
 	}
 }
