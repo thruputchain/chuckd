@@ -36,8 +36,6 @@ func SshExecReader(
 	// MUST be first line - disable TTY echo before any other output
 	fmt.Fprintln(&prefix, `stty -echo 2>/dev/null || true`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Enable job control so signals are properly handled
-	fmt.Fprintln(&prefix, `set -m`)
 	// Trap signals and kill all processes in this session
 	// pkill -9 -s 0 kills all processes in the current session (0 = current session)
 	fmt.Fprintln(&prefix, `trap 'pkill -9 -s 0 2>/dev/null; exit 1' INT TERM HUP`)
@@ -46,7 +44,8 @@ func SshExecReader(
 	}
 	// No subshell - run script directly so all processes are in same process group
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n")))
+	// Add explicit exit so bash doesn't wait for more input after script finishes
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\nexit $?\n")))
 	must.NoError(ctx, err)
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
 
