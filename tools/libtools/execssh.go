@@ -38,14 +38,15 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
 	// Enable job control so signals are properly handled
 	fmt.Fprintln(&prefix, `set -m`)
-	// Trap signals and kill entire process group
-	fmt.Fprintln(&prefix, `trap 'kill -- -$$ 2>/dev/null; exit 1' INT TERM HUP`)
+	// Trap signals and kill all processes in this session
+	// pkill -9 -s 0 kills all processes in the current session (0 = current session)
+	fmt.Fprintln(&prefix, `trap 'pkill -9 -s 0 2>/dev/null; exit 1' INT TERM HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
-	fmt.Fprintln(&prefix, `(`)
+	// No subshell - run script directly so all processes are in same process group
 
-	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n)\n")))
+	fullScript, err := io.ReadAll(io.MultiReader(&prefix, script, bytes.NewBufferString("\n")))
 	must.NoError(ctx, err)
 	liblog.Debugf("ssh_exec executing:\n%s\n", fullScript)
 
