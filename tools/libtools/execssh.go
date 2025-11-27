@@ -26,7 +26,7 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	sshOpts = append(sshOpts, host, `systemd-run`, `--user`, `--scope`, `--quiet`, `bash`, `-s`)
+	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
