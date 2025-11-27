@@ -12,7 +12,9 @@ git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
 
 # build debug version of scpd
 . ~/.cargo/env
-CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build -p scp_server --bin scpd
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
+cargo fetch
+cargo build --offline --locked -p scp_server --bin scpd
 cp ./target/debug/scpd ${ROOT}/scpd.dev
 
 cd ${ROOT}
