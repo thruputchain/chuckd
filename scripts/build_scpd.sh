@@ -14,6 +14,8 @@ cd scp
 git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
 
 cd ..
+export GIT_CONFIG_GLOBAL="${ROOT}/.gitconfig"
+export HOME="${ROOT}"
 cargo --config net.git-fetch-with-cli=true fetch --manifest-path scp/Cargo.toml
 
 cd scp
