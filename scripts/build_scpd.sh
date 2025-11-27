@@ -8,7 +8,6 @@ ROOT=$(pwd)
 git clone --depth 1 git@github.com:groundhogchain/scp.git
 
 echo $HOME
-echo $GIT_CONFIG_GLOBAL
 echo ~
 
 GIT_TRACE=1 git ls-remote https://github.com/groundhogchain/protocol.git
