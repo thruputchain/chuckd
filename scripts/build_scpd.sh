@@ -7,6 +7,11 @@ ROOT=$(pwd)
 
 git clone --depth 1 git@github.com:groundhogchain/scp.git
 
+echo $HOME
+echo $GIT_CONFIG_GLOBAL
+echo ~
+
+GIT_TRACE=1 git ls-remote https://github.com/groundhogchain/protocol.git
 # build debug version of scpd
 . ~/.cargo/env
 
@@ -14,13 +19,7 @@ cd scp
 git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
 cd ..
 
-git clone git@github.com:groundhogchain/protocol.git || true
-git clone git@github.com:groundhogchain/protocol-rs.git || true
-export GIT_CONFIG_GLOBAL="${ROOT}/.gitconfig"
-export HOME="${ROOT}"
-rm -r protocol-rs || true
-rm -r protocol || true
-git clone git@github.com:groundhogchain/protocol.git || true
+GIT_TRACE=1 git clone git@github.com:groundhogchain/protocol.git || true
 git clone git@github.com:groundhogchain/protocol-rs.git || true
 git clone git@github.com:groundhogchain/xdr_rpc.git || true
 git clone git@github.com:groundhogchain/xdr_common.git || true
