@@ -26,7 +26,7 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	sshOpts = append(sshOpts, host, `bash`, `-s`)
+	sshOpts = append(sshOpts, host, `setsid`, `-w`, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
@@ -75,7 +75,7 @@ func SshExecReader(
 		case <-waitCh:
 		}
 		fmt.Fprintf(os.Stderr, "ssh_exec killing pid %d\n", cmd.Process.Pid)
-		syscall.Kill(cmd.Process.Pid, syscall.SIGINT)
+		syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
 		ck.unregister(cmd.Process.Pid)
 	}()
 
