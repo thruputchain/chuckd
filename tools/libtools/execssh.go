@@ -39,6 +39,7 @@ func SshExecReader(
 	// Kill entire process group when bash exits. EXIT handles normal exit and
 	// when SSH connection closes. Signal traps ensure proper exit codes.
 	// We set traps to ignore before kill 0, so bash doesn't catch its own SIGTERM.
+	// systemd-run will clean up the scope when it exits (e.g., on SSH disconnect).
 	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' EXIT`)
 	fmt.Fprintln(&prefix, `trap 'exit 130' INT`)   // 128 + 2 (SIGINT)
 	fmt.Fprintln(&prefix, `trap 'exit 143' TERM`)  // 128 + 15 (SIGTERM)
