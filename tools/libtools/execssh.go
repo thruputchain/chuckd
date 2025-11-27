@@ -26,10 +26,7 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	// systemd-run will exit when its child (bash) exits or when it receives SIGHUP
-	// When SSH disconnects, systemd-run receives SIGHUP and exits (or bash exits first),
-	// which triggers systemd to clean up the scope and all processes within it
-	sshOpts = append(sshOpts, host, `systemd-run`, `--user`, `--scope`, `--quiet`, `--property=KillMode=control-group`, `bash`, `-s`)
+	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
