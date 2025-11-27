@@ -12,10 +12,17 @@ git clone --depth 1 git@github.com:groundhogchain/scp.git
 
 cd scp
 git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
-
 cd ..
+
+git clone git@github.com:groundhogchain/protocol.git
+git clone git@github.com:groundhogchain/protocol-rs.git
 export GIT_CONFIG_GLOBAL="${ROOT}/.gitconfig"
 export HOME="${ROOT}"
+rm -r protocol-rs
+rm -r protocol
+git clone git@github.com:groundhogchain/protocol.git
+git clone git@github.com:groundhogchain/protocol-rs.git
+
 cargo --config net.git-fetch-with-cli=true fetch --manifest-path scp/Cargo.toml
 
 cd scp
