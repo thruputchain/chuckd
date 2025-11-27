@@ -10,7 +10,9 @@ git clone --depth 1 git@github.com:groundhogchain/scp.git
 echo $HOME
 echo ~
 
-GIT_TRACE=1 git ls-remote https://github.com/groundhogchain/protocol.git
+ls -la $HOME/.ssh/
+
+GIT_TRACE=1 git ls-remote https://github.com/groundhogchain/protocol.git || true
 # build debug version of scpd
 . ~/.cargo/env
 
