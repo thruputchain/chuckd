@@ -26,9 +26,7 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	// Use setsid to make bash the session and process group leader
-	// This ensures all children are in the same process group, so kill 0 works
-	sshOpts = append(sshOpts, host, `setsid`, `bash`, `-s`)
+	sshOpts = append(sshOpts, host, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
