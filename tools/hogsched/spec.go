@@ -114,8 +114,11 @@ export USER_HOME=$HOME
 export HOME=%q
 echo "forwarding github urls through ssh-agent"
 hog_fwd
+
 `, dumpDir, dumpDir, dumpDir, jobDir, jobDir, jobDir, jobDir, jobDir, jobDir)
 	suffix := `
+echo "done command"
+
 `
 	r := []string{}
 	for _, job := range x.Jobs {

@@ -41,9 +41,9 @@ func SshExecReader(
 	// Kill entire process group when bash exits. Since bash is the process group leader
 	// (via setsid), kill 0 will kill all children in the same process group.
 	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' EXIT`)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 130' INT`)   // 128 + 2 (SIGINT)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 143' TERM`)  // 128 + 15 (SIGTERM)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 129' HUP`)   // 128 + 1 (SIGHUP)
+	fmt.Fprintln(&prefix, `trap exit 130 INT`)   // 128 + 2 (SIGINT)
+	fmt.Fprintln(&prefix, `trap exit 143 TERM`)  // 128 + 15 (SIGTERM)
+	fmt.Fprintln(&prefix, `trap exit 129 HUP`)   // 128 + 1 (SIGHUP)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
