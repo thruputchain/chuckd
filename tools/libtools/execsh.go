@@ -58,7 +58,7 @@ func ExecReader(
 		case <-waitCh:
 		}
 		fmt.Fprintf(os.Stderr, "shell_exec killing pid %d\n", cmd.Process.Pid)
-		syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
+		syscall.Kill(cmd.Process.Pid, syscall.SIGINT)
 		ck.unregister(cmd.Process.Pid)
 	}()
 
