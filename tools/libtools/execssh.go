@@ -26,7 +26,10 @@ func SshExecReader(
 	must.NoError(ctx, err)
 
 	sshOpts := []string{`-tt`, `-o`, `BatchMode=yes`, `-o`, `ConnectTimeout=5`, `-o`, `VisualHostKey=no`, `-A`}
-	sshOpts = append(sshOpts, host, `systemd-run`, `--user`, `--scope`, `--quiet`, `bash`, `-s`)
+	// systemd-run will exit when its child (bash) exits or when it receives SIGHUP
+	// When SSH disconnects, systemd-run receives SIGHUP and exits (or bash exits first),
+	// which triggers systemd to clean up the scope and all processes within it
+	sshOpts = append(sshOpts, host, `systemd-run`, `--user`, `--scope`, `--quiet`, `--property=KillMode=control-group`, `bash`, `-s`)
 
 	cmd := exec.CommandContext(ctx, sshPath, sshOpts...)
 	cmd.Env = nil // nil ensures that SSH_AUTH_SOCK is passed to ssh
@@ -39,11 +42,11 @@ func SshExecReader(
 	// Kill entire process group when bash exits. EXIT handles normal exit and
 	// when SSH connection closes. Signal traps ensure proper exit codes.
 	// We set traps to ignore before kill 0, so bash doesn't catch its own SIGTERM.
-	// systemd-run will clean up the scope when it exits (e.g., on SSH disconnect).
+	// When bash exits (including on SIGHUP), systemd-run will exit, causing systemd to clean up the scope.
 	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' EXIT`)
-	fmt.Fprintln(&prefix, `trap 'exit 130' INT`)   // 128 + 2 (SIGINT)
-	fmt.Fprintln(&prefix, `trap 'exit 143' TERM`)  // 128 + 15 (SIGTERM)
-	fmt.Fprintln(&prefix, `trap 'exit 129' HUP`)   // 128 + 1 (SIGHUP)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 130' INT`)   // 128 + 2 (SIGINT)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 143' TERM`)  // 128 + 15 (SIGTERM)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 129' HUP`)   // 128 + 1 (SIGHUP) - kill all children then exit
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
