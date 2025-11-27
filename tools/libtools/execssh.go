@@ -36,14 +36,18 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `stty -echo`)
 	fmt.Fprintln(&prefix, `PS1=`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
+	// Enable job control so bash becomes the process group leader
+	// This ensures kill 0 works correctly to kill all child processes
+	fmt.Fprintln(&prefix, `set -m`)
 	// Kill entire process group when bash exits. EXIT handles normal exit and
 	// when SSH connection closes. Signal traps ensure proper exit codes.
 	// We set traps to ignore before kill 0, so bash doesn't catch its own SIGTERM.
-	// When bash exits (including on SIGHUP), systemd-run will exit, causing systemd to clean up the scope.
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' EXIT`)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 130' INT`)   // 128 + 2 (SIGINT)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 143' TERM`)  // 128 + 15 (SIGTERM)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true; exit 129' HUP`)   // 128 + 1 (SIGHUP) - kill all children then exit
+	// Helper function to kill all children
+	fmt.Fprintln(&prefix, `kill_children() { pkill -P $$ 2>/dev/null || true; kill 0 2>/dev/null || true; }`)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children' EXIT`)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children; exit 130' INT`)   // 128 + 2 (SIGINT)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children; exit 143' TERM`)  // 128 + 15 (SIGTERM)
+	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children; exit 129' HUP`)   // 128 + 1 (SIGHUP) - kill all children then exit
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
