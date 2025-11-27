@@ -14,14 +14,17 @@ cd scp
 git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
 cd ..
 
-git clone git@github.com:groundhogchain/protocol.git
-git clone git@github.com:groundhogchain/protocol-rs.git
+git clone git@github.com:groundhogchain/protocol.git || true
+git clone git@github.com:groundhogchain/protocol-rs.git || true
 export GIT_CONFIG_GLOBAL="${ROOT}/.gitconfig"
 export HOME="${ROOT}"
-rm -r protocol-rs
-rm -r protocol
-git clone git@github.com:groundhogchain/protocol.git
-git clone git@github.com:groundhogchain/protocol-rs.git
+rm -r protocol-rs || true
+rm -r protocol || true
+git clone git@github.com:groundhogchain/protocol.git || true
+git clone git@github.com:groundhogchain/protocol-rs.git || true
+git clone git@github.com:groundhogchain/xdr_rpc.git || true
+git clone git@github.com:groundhogchain/xdr_common.git || true
+git clone git@github.com:groundhogchain/xdrs.git || true
 
 cargo --config net.git-fetch-with-cli=true fetch --manifest-path scp/Cargo.toml
 
