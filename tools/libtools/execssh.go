@@ -36,18 +36,26 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `stty -echo`)
 	fmt.Fprintln(&prefix, `PS1=`)
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
-	// Enable job control so bash becomes the process group leader
-	// This ensures kill 0 works correctly to kill all child processes
-	fmt.Fprintln(&prefix, `set -m`)
-	// Kill entire process group when bash exits. EXIT handles normal exit and
-	// when SSH connection closes. Signal traps ensure proper exit codes.
-	// We set traps to ignore before kill 0, so bash doesn't catch its own SIGTERM.
-	// Helper function to kill all children
-	fmt.Fprintln(&prefix, `kill_children() { pkill -P $$ 2>/dev/null || true; kill 0 2>/dev/null || true; }`)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children' EXIT`)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children; exit 130' INT`)   // 128 + 2 (SIGINT)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children; exit 143' TERM`)  // 128 + 15 (SIGTERM)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill_children; exit 129' HUP`)   // 128 + 1 (SIGHUP) - kill all children then exit
+	// Debug: Show process info
+	fmt.Fprintln(&prefix, `echo "DEBUG: bash PID=$$ PPID=$PPID PGID=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ' || echo 'unknown')" >&2`)
+	// Helper function to kill all children with debugging
+	fmt.Fprintln(&prefix, `kill_children() {`)
+	fmt.Fprintln(&prefix, `  echo "DEBUG: kill_children called, PID=$$" >&2`)
+	fmt.Fprintln(&prefix, `  pkill -P $$ 2>/dev/null || true`)
+	fmt.Fprintln(&prefix, `  kill -TERM 0 2>/dev/null || true`)
+	fmt.Fprintln(&prefix, `  sleep 0.1`)
+	fmt.Fprintln(&prefix, `  kill -KILL 0 2>/dev/null || true`)
+	fmt.Fprintln(&prefix, `  echo "DEBUG: kill_children done" >&2`)
+	fmt.Fprintln(&prefix, `}`)
+	// Monitor stdin - if it closes, exit immediately
+	fmt.Fprintln(&prefix, `{ while IFS= read -r line 2>/dev/null || [ -n "$line" ]; do :; done <&0; echo "DEBUG: stdin closed, exiting" >&2; kill_children; exit 1; } &`)
+	fmt.Fprintln(&prefix, `STDIN_MONITOR=$!`)
+	fmt.Fprintln(&prefix, `trap 'kill $STDIN_MONITOR 2>/dev/null || true; kill_children' EXIT`)
+	// Set up signal traps with debugging
+	fmt.Fprintln(&prefix, `trap 'echo "DEBUG: EXIT trap fired" >&2; trap "" TERM HUP INT; kill $STDIN_MONITOR 2>/dev/null || true; kill_children' EXIT`)
+	fmt.Fprintln(&prefix, `trap 'echo "DEBUG: INT trap fired" >&2; trap "" TERM HUP INT; kill $STDIN_MONITOR 2>/dev/null || true; kill_children; exit 130' INT`)
+	fmt.Fprintln(&prefix, `trap 'echo "DEBUG: TERM trap fired" >&2; trap "" TERM HUP INT; kill $STDIN_MONITOR 2>/dev/null || true; kill_children; exit 143' TERM`)
+	fmt.Fprintln(&prefix, `trap 'echo "DEBUG: HUP trap fired" >&2; trap "" TERM HUP INT; kill $STDIN_MONITOR 2>/dev/null || true; kill_children; exit 129' HUP`)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
