@@ -38,9 +38,6 @@ func SshExecReader(
 	fmt.Fprintln(&prefix, `set -euo pipefail`)
 
 	fmt.Fprintln(&prefix, `trap 'kill 0 2>/dev/null || true' EXIT`)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' INT`)   // 128 + 2 (SIGINT)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' TERM`)  // 128 + 15 (SIGTERM)
-	fmt.Fprintln(&prefix, `trap 'trap "" TERM HUP INT; kill 0 2>/dev/null || true' HUP`)   // 128 + 1 (SIGHUP)
 	for name, value := range env {
 		fmt.Fprintf(&prefix, "export %s=%q\n", name, value)
 	}
