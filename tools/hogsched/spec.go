@@ -117,7 +117,6 @@ hog_fwd
 
 `, dumpDir, dumpDir, dumpDir, jobDir, jobDir, jobDir, jobDir, jobDir, jobDir)
 	suffix := `
-echo "done command"
 
 `
 	r := []string{}
