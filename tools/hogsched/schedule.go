@@ -4,6 +4,7 @@ import (
 	"context"
 	"os/user"
 	"path"
+	"strings"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -19,6 +20,18 @@ type Scheduler struct {
 	DumpDir      string
 }
 
+func SplitHosts(hosts []string) (fixed []string, variable []string) {
+	fixed, variable = []string{}, []string{}
+	for _, h := range hosts {
+		if strings.HasSuffix(h, "?") {
+			variable = append(variable, h[:len(h)-1])
+		} else {
+			fixed = append(fixed, h)
+		}
+	}
+	return
+}
+
 func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[string]any) error {
 
 	liblog.Infof("executing schedule %s", spec.Name)
@@ -29,7 +42,10 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	// acquire locks on hog machines
 	hosts := rwSpec.Hosts()
 	liblog.Infof("acquiring locks on %v", hosts)
-	lease := c.AcquireLocks(ctx, xid, hosts)
+
+	fixed, variable := SplitHosts(hosts) // XXX: variable contains names excluding the `?` suffix
+	//XXX
+	assigned, lease := c.AcquireLocks(ctx, xid, fixed, len(variable))
 	defer lease.Unlock()
 
 	liblog.Infof("locks acquired, starting jobs")
