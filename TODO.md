@@ -8,6 +8,34 @@ HOGSCHED
 - [x] interrupt hog_sched kills subprocesses?
 - [ ] support available host allocation
 
+- [ ] when running hogd as user, cargo builds are conflicting with each other:
+```
+[hog6:out] error: failed to download `tracing v0.1.43`
+[hog6:out]
+[hog6:out] Caused by:
+[hog6:out]   unable to get packages from source
+[hog6:out]
+[hog6:out] Caused by:
+[hog6:out]   failed to unpack package `tracing v0.1.43`
+[hog6:out]
+[hog6:out] Caused by:
+[hog6:out]   failed to open `/tmp/hogjob-petar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-0.1.43/.cargo-ok`
+[hog6:out]
+[hog6:out] Caused by:
+[hog6:out]   File exists (os error 17)
+```
+
+- nspawn
+  - networking with fixed ip
+  - forwarding ssh agent
+
+    sudo systemd-nspawn -D /var/lib/machines/petar-hogbase \
+    --bind="$SSH_AUTH_SOCK:/tmp/ssh-agent.sock" \
+    --setenv=SSH_AUTH_SOCK=/tmp/ssh-agent.sock \
+    --network-zone=lan \
+    --network-interface=enp129s0f0np0:eth0
+
+
 BUGS
 
 - [ ] coordinator_bench fails when threshold=2
