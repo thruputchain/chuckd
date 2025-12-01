@@ -136,31 +136,30 @@ func (x *Service) Hoglock_null(context.Context) error {
 func (x *Service) Hoglock_lock(
 	ctx context.Context,
 	xid proto.HogXID,
-	fixed proto.HogHosts,
-	variable proto.HogHosts,
+	ask proto.HogAsk,
 ) (assigned proto.HogHosts, err error) {
 
-	liblog.Infof("hoglock_lock %v", fixed)
+	liblog.Infof("hoglock_lock %v and %v", ask.Fixed, ask.Variable)
 	defer func() {
 		if err != nil {
-			liblog.Errorf("hoglock_lock for %v not acquired (%v)", fixed, err)
+			liblog.Errorf("hoglock_lock for %v and %v not acquired (%v)", ask.Fixed, ask.Variable, err)
 		} else {
-			liblog.Infof("hoglock_lock for %v acquired under lease %v", fixed, xid)
+			liblog.Infof("hoglock_lock for %v and %v acquired under lease %v", ask.Fixed, ask.Variable, xid)
 		}
 	}()
 
-	if len(fixed)+len(variable) == 0 {
-		return nil
+	if len(ask.Fixed)+len(ask.Variable) == 0 {
+		return nil, nil
 	}
 
-	assigned, err := x.pickNHosts(ctx, len(variable), fixed)
+	assigned, err = x.pickNHosts(ctx, len(ask.Variable), ask.Fixed)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// all = fixed + assigned
-	all := make(proto.HogHosts, 0, len(fixed)+len(variable))
-	for _, f := range fixed {
+	all := make(proto.HogHosts, 0, len(ask.Fixed)+len(ask.Variable))
+	for _, f := range ask.Fixed {
 		all = append(all, f)
 	}
 	for _, a := range assigned {
