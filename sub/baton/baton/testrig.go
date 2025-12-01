@@ -93,7 +93,7 @@ func NewTestRig(
 func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 	r, err := h.TestScheduler.Schedcoord_get_tip(ctx)
 	must.NoError(ctx, err)
-	return *r.Db_tip()
+	return r
 }
 
 func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusValue) {

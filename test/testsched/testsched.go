@@ -189,12 +189,8 @@ func (x *TestScheduler) Schedulercoord_commit_block(ctx context.Context, blockID
 	return proto.SchedulerCommitOK, nil
 }
 
-func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.DbTipResult, error) {
-	r := proto.DbTipResult{
-		Result: proto.DbSchedResultOK,
-	}
-	*r.Db_tip() = x.db.GetTip()
-	return r, nil
+func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.DbTip, error) {
+	return x.db.GetTip(), nil
 }
 
 func (x *TestScheduler) Schedcoord_load_genesis_block(context.Context, proto.GenesisBlock) (proto.DbSchedResult, error) {

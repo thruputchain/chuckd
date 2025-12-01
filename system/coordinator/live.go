@@ -2,7 +2,6 @@ package coordinator
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sync"
 
@@ -99,12 +98,8 @@ func (x *LiveHandler) SetScheduler(conn sched.SchedulerCoordConn) {
 func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.DbTip, error) {
 	<-x.schedReady
 
-	tipResult, err := x.Schedcoord_get_tip(ctx)
+	tip, err := x.Schedcoord_get_tip(ctx)
 	must.NoError(ctx, err)
-	if tipResult.Result != proto.DbSchedResultOK {
-		return proto.DbTip{}, fmt.Errorf("sched get tip error")
-	}
-	tip := *tipResult.Db_tip()
 	return tip, nil
 }
 
