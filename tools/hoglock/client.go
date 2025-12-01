@@ -28,14 +28,19 @@ func (c *Client) Wait(ctx context.Context, xid proto.HogXID, prefix proto.HogNam
 	return conn.Hoglock_wait(ctx, xid, prefix)
 }
 
-func (c *Client) AcquireLocks(ctx context.Context, xid proto.HogXID, hosts proto.HogHosts) *Lease {
+func (c *Client) AcquireLocks(
+	ctx context.Context,
+	xid proto.HogXID,
+	fixed proto.HogHosts,
+	variable proto.HogHosts,
+) (assigned proto.HogHosts, lease *Lease) {
 	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)
 
-	err = conn.Hoglock_lock(ctx, xid, hosts)
+	assigned, err = conn.Hoglock_lock(ctx, xid, proto.HogAsk{Fixed: fixed, Variable: variable})
 	must.NoError(ctx, err)
 
-	return makeLease(ctx, conn, xid)
+	return assigned, makeLease(ctx, conn, xid)
 }
 
 type Lease struct {
