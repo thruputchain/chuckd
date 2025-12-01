@@ -21,12 +21,15 @@ const LeaseRenewInterval = 1 * time.Second
 const LeaseTTL = 3 * time.Second
 
 type Service struct {
-	allHosts  []string
-	lk        sync.Mutex
-	cond      *sync.Cond
-	hosts     map[proto.HogHost]proto.HogXID
-	leases    map[proto.HogXID]*lease
-	signalled map[proto.HogXID]map[proto.HogNamespace]struct{}
+	inventory []string //XXX
+	//
+	lk   sync.Mutex
+	cond *sync.Cond
+	//
+	demand  map[proto.HogHost]int
+	leases  map[proto.HogXID]*lease
+	locks   map[proto.HogHost]proto.HogXID
+	signals map[proto.HogXID]map[proto.HogNamespace]struct{}
 }
 
 type lease struct {
@@ -36,11 +39,12 @@ type lease struct {
 
 func NewService(allHosts []string) *Service {
 	x := &Service{
-		allHosts: allHosts,
-		hosts:    map[proto.HogHost]proto.HogXID{},
-		leases:   map[proto.HogXID]*lease{},
+		inventory: allHosts,
+		demand:    map[proto.HogHost]int{},
+		locks:     map[proto.HogHost]proto.HogXID{},
+		leases:    map[proto.HogXID]*lease{},
 		//
-		signalled: map[proto.HogXID]map[proto.HogNamespace]struct{}{},
+		signals: map[proto.HogXID]map[proto.HogNamespace]struct{}{},
 	}
 	x.cond = sync.NewCond(&x.lk)
 	return x
@@ -66,10 +70,10 @@ func (x *Service) acquireLock(_ context.Context, xid proto.HogXID, host proto.Ho
 	defer x.lk.Unlock()
 	defer x.cond.Broadcast()
 	for {
-		if _, locked := x.hosts[host]; locked {
+		if _, locked := x.locks[host]; locked {
 			x.cond.Wait()
 		} else {
-			x.hosts[host] = xid
+			x.locks[host] = xid
 			return
 		}
 	}
@@ -90,7 +94,7 @@ func (x *Service) expireLeases(ctx context.Context) {
 func (x *Service) releaseLease(_ context.Context, xid proto.HogXID) {
 	liblog.Infof("expiring lease %v", xid)
 
-	delete(x.signalled, xid)
+	delete(x.signals, xid)
 
 	lease := x.leases[xid]
 	delete(x.leases, xid)
@@ -99,7 +103,27 @@ func (x *Service) releaseLease(_ context.Context, xid proto.HogXID) {
 	liblog.Infof("releasing locks %v, while expiring lease %v", lease.hosts, xid)
 
 	for _, o := range lease.hosts {
-		delete(x.hosts, o)
+		delete(x.locks, o)
+	}
+}
+
+func (x *Service) pickNHosts(ctx context.Context, n int, excluding proto.HogHosts) ([]proto.HogHost, error) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+
+	wh := WeightedHostsFromMap(x.demand, excluding)
+	if len(wh) < n {
+		return nil, fmt.Errorf("not enough available hosts")
+	}
+	return wh[:n].ToHosts(), nil
+}
+
+func (x *Service) changeDemand(delta int, hosts ...proto.HogHost) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+
+	for _, h := range hosts {
+		x.demand[h] += delta
 	}
 }
 
@@ -109,32 +133,53 @@ func (x *Service) Hoglock_null(context.Context) error {
 	return nil
 }
 
-func (x *Service) Hoglock_lock(ctx context.Context, xid proto.HogXID, hosts proto.HogHosts) (err error) {
+func (x *Service) Hoglock_lock(
+	ctx context.Context,
+	xid proto.HogXID,
+	fixed proto.HogHosts,
+	variable proto.HogHosts,
+) (assigned proto.HogHosts, err error) {
 
-	liblog.Infof("hoglock_lock %v", hosts)
+	liblog.Infof("hoglock_lock %v", fixed)
 	defer func() {
 		if err != nil {
-			liblog.Errorf("hoglock_lock for %v not acquired (%v)", hosts, err)
+			liblog.Errorf("hoglock_lock for %v not acquired (%v)", fixed, err)
 		} else {
-			liblog.Infof("hoglock_lock for %v acquired under lease %v", hosts, xid)
+			liblog.Infof("hoglock_lock for %v acquired under lease %v", fixed, xid)
 		}
 	}()
 
-	if len(hosts) == 0 {
+	if len(fixed)+len(variable) == 0 {
 		return nil
 	}
 
-	sort.Strings(hosts)
-	for _, o := range hosts {
+	assigned, err := x.pickNHosts(ctx, len(variable), fixed)
+	if err != nil {
+		return err
+	}
+
+	// all = fixed + assigned
+	all := make(proto.HogHosts, 0, len(fixed)+len(variable))
+	for _, f := range fixed {
+		all = append(all, f)
+	}
+	for _, a := range assigned {
+		all = append(all, a)
+	}
+
+	x.changeDemand(+1, all...) //XXX: unchange!
+
+	sort.Strings(all)
+	for _, o := range all {
 		x.acquireLock(ctx, xid, o)
 	}
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	x.leases[xid] = &lease{renewed: time.Now(), hosts: hosts}
+	x.leases[xid] = &lease{renewed: time.Now(), hosts: all}
 
-	return nil
+	return assigned, nil
 }
 
 func (x *Service) Hoglock_renew(ctx context.Context, xid proto.HogXID) error {
@@ -180,10 +225,10 @@ func (x *Service) Hoglock_signal(ctx context.Context, xid proto.HogXID, ns proto
 		return fmt.Errorf("no lease")
 	}
 
-	signalled := x.signalled[xid] // isolate per-xid namespaces
+	signalled := x.signals[xid] // isolate per-xid namespaces
 	if signalled == nil {
 		signalled = map[proto.HogNamespace]struct{}{}
-		x.signalled[xid] = signalled
+		x.signals[xid] = signalled
 	}
 
 	for _, ns := range ns {
@@ -217,7 +262,7 @@ func (x *Service) isSignalled(xid proto.HogXID, prefix proto.HogNamespaces) bool
 	for _, prefix := range prefix {
 		uncovered[prefix] = struct{}{}
 	}
-	for ns := range x.signalled[xid] {
+	for ns := range x.signals[xid] {
 		for u := range uncovered {
 			if strings.HasPrefix(ns, u) {
 				delete(uncovered, u)
