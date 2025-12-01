@@ -65,16 +65,21 @@ func (x *Service) start(ctx context.Context) {
 	}()
 }
 
-func (x *Service) acquireLock(_ context.Context, xid proto.HogXID, host proto.HogHost) {
+func (x *Service) acquireLock(ctx context.Context, xid proto.HogXID, host proto.HogHost) error {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	defer x.cond.Broadcast()
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		if _, locked := x.locks[host]; locked {
 			x.cond.Wait()
 		} else {
 			x.locks[host] = xid
-			return
+			return nil
 		}
 	}
 }
@@ -102,12 +107,13 @@ func (x *Service) releaseLease(_ context.Context, xid proto.HogXID) {
 	slices.Reverse(lease.hosts)
 	liblog.Infof("releasing locks %v, while expiring lease %v", lease.hosts, xid)
 
-	for _, o := range lease.hosts {
-		delete(x.locks, o)
+	for _, h := range lease.hosts {
+		delete(x.locks, h)
 	}
+	x.changeDemand(-1, lease.hosts...)
 }
 
-func (x *Service) pickNHosts(ctx context.Context, n int, excluding proto.HogHosts) ([]proto.HogHost, error) {
+func (x *Service) pickNHosts(_ context.Context, n int, excluding proto.HogHosts) ([]proto.HogHost, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
@@ -119,12 +125,15 @@ func (x *Service) pickNHosts(ctx context.Context, n int, excluding proto.HogHost
 }
 
 func (x *Service) changeDemand(delta int, hosts ...proto.HogHost) {
-	x.lk.Lock()
-	defer x.lk.Unlock()
-
 	for _, h := range hosts {
 		x.demand[h] += delta
 	}
+}
+
+func (x *Service) lockChangeDemand(delta int, hosts ...proto.HogHost) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	x.changeDemand(delta, hosts...)
 }
 
 // --- rpc ---
@@ -166,17 +175,31 @@ func (x *Service) Hoglock_lock(
 		all = append(all, a)
 	}
 
-	x.changeDemand(+1, all...) //XXX: unchange!
+	x.lockChangeDemand(+1, all...) // demand is reverted on lock release
 
 	sort.Strings(all)
-	for _, o := range all {
-		x.acquireLock(ctx, xid, o)
+	acquired := proto.HogHosts{}
+	var errTotal error
+	for _, h := range all {
+		err = x.acquireLock(ctx, xid, h)
+		// if a lock is acquired, the expiration routine will revert its demand,
+		// otherwise we need to revert it here.
+		if err != nil {
+			x.lockChangeDemand(-1, h)
+			errTotal = err
+		} else {
+			acquired = append(acquired, h)
+		}
 	}
 
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
-	x.leases[xid] = &lease{renewed: time.Now(), hosts: all}
+	x.leases[xid] = &lease{renewed: time.Now(), hosts: acquired}
+
+	if errTotal != nil {
+		return nil, errTotal
+	}
 
 	return assigned, nil
 }
