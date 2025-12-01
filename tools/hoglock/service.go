@@ -2,8 +2,6 @@ package hoglock
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"slices"
 	"sort"
@@ -157,17 +155,17 @@ func (x *Service) Hoglock_lock(
 		}
 	}()
 
-	if len(ask.Fixed)+len(ask.Variable) == 0 {
+	if len(ask.Fixed)+int(ask.Variable) == 0 {
 		return nil, nil
 	}
 
-	assigned, err = x.pickNHosts(ctx, len(ask.Variable), ask.Fixed)
+	assigned, err = x.pickNHosts(ctx, int(ask.Variable), ask.Fixed)
 	if err != nil {
 		return nil, err
 	}
 
 	// all = fixed + assigned
-	all := make(proto.HogHosts, 0, len(ask.Fixed)+len(ask.Variable))
+	all := make(proto.HogHosts, 0, len(ask.Fixed)+int(ask.Variable))
 	for _, f := range ask.Fixed {
 		all = append(all, f)
 	}
@@ -224,15 +222,6 @@ func (x *Service) Hoglock_check(ctx context.Context, xid proto.HogXID) (bool, er
 	defer x.lk.Unlock()
 	_, active := x.leases[xid]
 	return active, nil
-}
-
-func randomHandle() proto.HogXID {
-	const n = 8
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		panic(err)
-	}
-	return hex.EncodeToString(b)
 }
 
 func (x *Service) Hoglock_signal(ctx context.Context, xid proto.HogXID, ns proto.HogNamespaces) error {

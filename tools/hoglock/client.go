@@ -32,12 +32,12 @@ func (c *Client) AcquireLocks(
 	ctx context.Context,
 	xid proto.HogXID,
 	fixed proto.HogHosts,
-	variable proto.HogHosts,
+	variable int,
 ) (assigned proto.HogHosts, lease *Lease) {
 	conn, err := DialHogLockClient(ctx, c.Net, c.LockdAddress)
 	must.NoError(ctx, err)
 
-	assigned, err = conn.Hoglock_lock(ctx, xid, proto.HogAsk{Fixed: fixed, Variable: variable})
+	assigned, err = conn.Hoglock_lock(ctx, xid, proto.HogAsk{Fixed: fixed, Variable: int64(variable)})
 	must.NoError(ctx, err)
 
 	return assigned, makeLease(ctx, conn, xid)
