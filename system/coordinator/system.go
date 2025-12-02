@@ -239,13 +239,8 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	s.Storage.Start(ctx, opcfg.StorageDir)
 
-	// intro to scheduler
-	schedConn, err := sched.DialSchedulerCoordClient(ctx, s.inside, opcfg.SchedAddr)
+	schedConn, err := sched.ConnectToScheduler(ctx, s.inside, opcfg.SchedAddr, opcfg.InAddr)
 	must.NoError(ctx, err)
-
-	err = sched.Intro(ctx, schedConn, opcfg.InAddr)
-	must.NoError(ctx, err)
-	liblog.Infof("connected to scheduler at %v", opcfg.SchedAddr)
 
 	s.RepairService.SetSchedConn(schedConn)
 	s.Live.SetScheduler(schedConn)
