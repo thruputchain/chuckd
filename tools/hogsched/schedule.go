@@ -44,17 +44,21 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	hosts := rwSpec.Hosts()
 	liblog.Infof("acquiring locks on %v", hosts)
 
-	fixed, variable := SplitHosts(hosts) // XXX: variable contains names excluding the `?` suffix
+	fixed, variable := SplitHosts(hosts) // variable contains host variable names, excluding the trailing "?"
 	allocated, lease := c.AcquireLocks(ctx, xid, fixed, len(variable))
 	defer lease.Unlock()
 
-	// build host_variable->host binding
-	// XXX: verify host variables are identifiers followed by ?
+	// prepare injected environment
+	inject := map[string]string{
+		"HOG_XID": xid,
+	}
+
+	// build host_variable->host map
+	// host variables are identifiers followed by "?"
 	bind := map[string]string{}
-	bindEnv := map[string]string{}
 	for i := range variable {
 		bind[variable[i]] = allocated[i]
-		bindEnv[fmt.Sprintf("HOG_HOST_VAR_%s", variable[i])] = allocated[i]
+		inject[fmt.Sprintf("HOG_HOSTVAR_%s", variable[i])] = allocated[i]
 	}
 
 	liblog.Infof("locks acquired, starting jobs")
@@ -71,13 +75,10 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	// executing scripts in parallel
 	user, err := user.Current()
 	must.NoError(ctx, err)
+	inject["HOG_USER"] = user.Username
 
 	scripts := rwSpec.ScriptsWithJobDir(x.JobDir, user.Username, x.DumpDir)
 	afters := rwSpec.AftersWithJobDir(x.JobDir, user.Username, x.DumpDir)
-	inject := map[string]string{
-		"HOG_USER": user.Username,
-		"HOG_XID":  xid,
-	}
 	envs := rwSpec.Envs(inject)
 	err = libtools.SshExecPar(ctx, hosts, scripts, afters, envs)
 	if err != nil {
