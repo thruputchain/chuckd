@@ -3,6 +3,10 @@ SCHEDULER INTEGRATION
 HOGSCHED
 
 - [ ] support available host allocation
+  - [ ] unit test lock service
+  - [ ] set alias map HOG_VHOST_XXX="hog7", etc. for all jobs
+
+- [x] interrupt hog_sched kills subprocesses?
 
 - [ ] when running hogd as user, cargo builds are conflicting with each other:
 ```
