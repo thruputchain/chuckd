@@ -7,7 +7,8 @@ HOGSCHED
 
 - [ ] support available host allocation
   - [ ] unit test lock service
-  - [ ] set alias map HOG_VHOST_XXX="hog7", etc. for all jobs
+  - [x] set alias map HOG_HOSTVAR_XXX="hog7", etc. for all jobs
+  - [x] rewrite spec with assigned hosts
 
 - [x] interrupt hog_sched kills subprocesses?
 

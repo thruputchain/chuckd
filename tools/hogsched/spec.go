@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
+	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -26,6 +27,27 @@ type Job struct {
 	Env     map[string]string `toml:"env"`
 	FileIn  []string          `toml:"file_in"`
 	FileOut []string          `toml:"file_out"`
+}
+
+func (x Spec) Hosts() proto.HogHosts {
+	h := proto.HogHosts{}
+	for _, job := range x.Jobs {
+		h = append(h, job.Host...)
+	}
+	return h
+}
+
+// bind is a host_variable_name -> host map
+func (x *Spec) SubstituteHostVariables(ctx context.Context, bind map[string]string) {
+	for _, job := range x.Jobs {
+		for i, hv := range job.Host {
+			if hostVarName, isVar := IsHostVariable(hv); isVar {
+				assignedHost, ok := bind[hostVarName]
+				must.Assert(ctx, ok)
+				job.Host[i] = assignedHost
+			}
+		}
+	}
 }
 
 type RewrittenSpec struct {
@@ -235,6 +257,19 @@ var (
 	identifierMaybeRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*\?$`)
 )
 
+func IsHost(s string) bool {
+	return hostRe.MatchString(s)
+}
+
+func IsHostVariable(s string) (string, bool) {
+	if identifierMaybeRe.MatchString(s) {
+		return s[:len(s)-1], true
+	}
+	return "", false
+}
+
 func IsHostOrIdentifierMaybe(s string) bool {
-	return hostRe.MatchString(s) || identifierMaybeRe.MatchString(s)
+	isHost := IsHost(s)
+	_, isHostVar := IsHostVariable(s)
+	return isHost || isHostVar
 }

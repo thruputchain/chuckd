@@ -21,7 +21,7 @@ type Scheduler struct {
 	DumpDir      string
 }
 
-func SplitHosts(hosts []string) (fixed []string, variable []string) {
+func SplitFixedAndVariable(hosts []string) (fixed []string, variable []string) {
 	fixed, variable = []string{}, []string{}
 	for _, h := range hosts {
 		if strings.HasSuffix(h, "?") {
@@ -36,15 +36,14 @@ func SplitHosts(hosts []string) (fixed []string, variable []string) {
 func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[string]any) error {
 
 	liblog.Infof("executing schedule %s", spec.Name)
-	rwSpec := spec.Rewrite(ctx, kv)
 
 	c := hoglock.Client{Net: x.Net, LockdAddress: x.LockdAddress}
 
 	// acquire locks on hog machines
-	hosts := rwSpec.Hosts()
+	hosts := spec.Hosts()
 	liblog.Infof("acquiring locks on %v", hosts)
 
-	fixed, variable := SplitHosts(hosts) // variable contains host variable names, excluding the trailing "?"
+	fixed, variable := SplitFixedAndVariable(hosts) // variable contains host variable names, excluding the trailing "?"
 	allocated, lease := c.AcquireLocks(ctx, xid, fixed, len(variable))
 	defer lease.Unlock()
 
@@ -60,6 +59,13 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 		bind[variable[i]] = allocated[i]
 		inject[fmt.Sprintf("HOG_HOSTVAR_%s", variable[i])] = allocated[i]
 	}
+	kv["hog_hostvar"] = bind
+
+	// replace all host variables in the job specs with their assignment
+	spec.SubstituteHostVariables(ctx, bind)
+
+	// apply key/value substitutions in spec
+	rwSpec := spec.Rewrite(ctx, kv)
 
 	liblog.Infof("locks acquired, starting jobs")
 
