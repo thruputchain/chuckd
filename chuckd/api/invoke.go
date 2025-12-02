@@ -123,7 +123,7 @@ func Invoke(ctx context.Context, f func()) error {
 		libruntime.InstallStackTraceOnInterrupt()
 	}
 	for _, hook := range hooks {
-		libruntime.RegisterInterruptHook(hook)
+		libruntime.InstallInterruptHook(hook)
 	}
 
 	// start telemetry

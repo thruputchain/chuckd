@@ -43,7 +43,7 @@ func (x WeightedHosts) Len() int {
 }
 
 func (x WeightedHosts) Less(i, j int) bool {
-	if x[i].Weight > x[j].Weight {
+	if x[i].Weight < x[j].Weight {
 		return true
 	}
 	if x[i].Weight == x[j].Weight {

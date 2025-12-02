@@ -16,7 +16,7 @@ var (
 	signalHooks []func()
 )
 
-func RegisterInterruptHook(f func()) {
+func InstallInterruptHook(f func()) {
 	signalLk.Lock()
 	defer signalLk.Unlock()
 	signalHooks = append(signalHooks, f)
@@ -44,7 +44,7 @@ func init() {
 
 func InstallStackTraceOnInterrupt() {
 	liblog.Infof("installing stack trace on SIGINT and SIGTERM")
-	RegisterInterruptHook(func() {
+	InstallInterruptHook(func() {
 		buf := make([]byte, 1<<20)
 		stackLen := runtime.Stack(buf, true)
 		os.Stderr.Write(buf[:stackLen])

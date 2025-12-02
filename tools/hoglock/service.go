@@ -97,6 +97,12 @@ func (x *Service) expireLeases(ctx context.Context) {
 	}
 }
 
+func (x *Service) ReleaseLease(ctx context.Context, xid proto.HogXID) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	x.releaseLease(ctx, xid)
+}
+
 func (x *Service) releaseLease(_ context.Context, xid proto.HogXID) {
 	liblog.Infof("expiring lease %v", xid)
 
@@ -118,10 +124,15 @@ func (x *Service) pickNHosts(_ context.Context, n int, excluding proto.HogHosts)
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
+	liblog.Debugf("lock open demand %v", x.demand)
+
 	wh := WeightedHostsFromMap(x.demand, excluding)
 	if len(wh) < n {
 		return nil, fmt.Errorf("not enough available hosts")
 	}
+
+	liblog.Debugf("sorted demand %v", wh)
+
 	return wh[:n].ToHosts(), nil
 }
 
@@ -135,6 +146,12 @@ func (x *Service) lockChangeDemand(delta int, hosts ...proto.HogHost) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	x.changeDemand(delta, hosts...)
+}
+
+func (x *Service) Demand() WeightedHosts {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return WeightedHostsFromMap(x.demand, nil)
 }
 
 // --- rpc ---
@@ -166,6 +183,7 @@ func (x *Service) Hoglock_lock(
 	if err != nil {
 		return nil, err
 	}
+	liblog.Debugf("picked hosts %v for xid %v", assigned, xid)
 
 	// all = fixed + assigned
 	all := make(proto.HogHosts, 0, len(ask.Fixed)+int(ask.Variable))
