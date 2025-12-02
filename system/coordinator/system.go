@@ -239,6 +239,9 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	s.Storage.Start(ctx, opcfg.StorageDir)
 
+	// start internal rpcs before connecting to scheduler, so scheduler can connect back
+	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr) // serves: coord_sched.x, wallet.x
+
 	schedConn, err := sched.ConnectToScheduler(ctx, s.inside, opcfg.SchedAddr, opcfg.InAddr)
 	must.NoError(ctx, err)
 
@@ -263,7 +266,6 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	s.Dogwood.Start(ctx) // dogwood
 
-	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr)    // coord, wallet
 	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
 
 	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
