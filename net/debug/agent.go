@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 )
 
@@ -42,6 +43,7 @@ func WaitCounterpartiesReady(
 
 				c, err := DialDebugClient(ctx, net, addr)
 				if err != nil {
+					liblog.Debugf("failed to dial debug counterparty %s: %v", addr, err)
 					time.Sleep(time.Second)
 					continue
 				}
