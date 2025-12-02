@@ -46,6 +46,9 @@ func (x WeightedHosts) Less(i, j int) bool {
 	if x[i].Weight > x[j].Weight {
 		return true
 	}
+	if x[i].Weight == x[j].Weight {
+		return x[i].Host < x[j].Host // hosts by lex order
+	}
 	return false
 }
 

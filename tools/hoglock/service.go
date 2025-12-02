@@ -45,6 +45,9 @@ func NewService(allHosts []string) *Service {
 		signals: map[proto.HogXID]map[proto.HogNamespace]struct{}{},
 	}
 	x.cond = sync.NewCond(&x.lk)
+	for _, h := range allHosts {
+		x.demand[h] = 0
+	}
 	return x
 }
 

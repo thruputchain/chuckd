@@ -16,6 +16,10 @@ func init() {
 	LogLevel(zerolog.ErrorLevel)
 }
 
+func LogLevelDebug() error {
+	return LogLevel(zerolog.DebugLevel)
+}
+
 func LogLevel(level zerolog.Level) error {
 	zerolog.SetGlobalLevel(level)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
