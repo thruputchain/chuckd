@@ -28,6 +28,7 @@ HOGSCHED
 
 - nspawn
   - networking with fixed ip
+  - allowing non-root users to spawn
   - forwarding ssh agent
 
     sudo systemd-nspawn -D /var/lib/machines/petar-hogbase \
