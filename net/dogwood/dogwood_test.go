@@ -12,6 +12,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/runtime"
 	proto "github.com/groundhogchain/protocol-go"
@@ -20,7 +21,7 @@ import (
 
 func TestMain(m *testing.M) {
 	liblog.LogLevel(zerolog.InfoLevel)
-	runtime.CaptureInterrupts(true)
+	libruntime.InstallStackTraceOnInterrupt()
 	runtime.SetRootSeed(0)
 	exitCode := m.Run()
 	os.Exit(exitCode)

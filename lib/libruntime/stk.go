@@ -7,6 +7,8 @@ import (
 	"slices"
 	"sync"
 	"syscall"
+
+	"github.com/groundhogchain/chuckd/lib/liblog"
 )
 
 var (
@@ -25,20 +27,23 @@ func init() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		<-sigChan
+		sig := <-sigChan
+		println("signal: ", sig.String())
 
 		signalLk.Lock()
 		hooks := slices.Clone(signalHooks)
 		signalLk.Unlock()
 
 		for _, hook := range hooks {
+			println("calling hook")
 			hook()
 		}
 		os.Exit(1)
 	}()
 }
 
-func StackTraceInterrupt() {
+func InstallStackTraceOnInterrupt() {
+	liblog.Infof("installing stack trace on SIGINT and SIGTERM")
 	RegisterInterruptHook(func() {
 		buf := make([]byte, 1<<20)
 		stackLen := runtime.Stack(buf, true)

@@ -32,7 +32,7 @@ func main() {
 				log.Fatal(err)
 			}
 			liblog.LogLevel(zlevel)
-			libruntime.StackTraceInterrupt()
+			libruntime.InstallStackTraceOnInterrupt()
 
 			return libtools.ForwardSshForGit(ctx)
 		},

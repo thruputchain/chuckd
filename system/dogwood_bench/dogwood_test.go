@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
@@ -16,7 +17,7 @@ import (
 func TestMain(m *testing.M) {
 	liblog.LogLevel(zerolog.InfoLevel)
 	runtime.SetRootSeed(0)
-	runtime.CaptureInterrupts(true)
+	libruntime.InstallStackTraceOnInterrupt()
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }

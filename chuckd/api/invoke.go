@@ -9,6 +9,7 @@ import (
 	"runtime/trace"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/lib/must"
 	xruntime "github.com/groundhogchain/chuckd/runtime"
 )
@@ -118,7 +119,12 @@ func Invoke(ctx context.Context, f func()) error {
 		hooks = append(hooks, func() { flushBlockProfile(blockProfilePath) })
 	}
 
-	xruntime.CaptureInterrupts(stackTrace, hooks...)
+	if stackTrace {
+		libruntime.InstallStackTraceOnInterrupt()
+	}
+	for _, hook := range hooks {
+		libruntime.RegisterInterruptHook(hook)
+	}
 
 	// start telemetry
 	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)

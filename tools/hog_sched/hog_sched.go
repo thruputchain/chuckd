@@ -87,7 +87,7 @@ func main() {
 				log.Fatal(err)
 			}
 			liblog.LogLevel(zlevel)
-			libruntime.StackTraceInterrupt()
+			libruntime.InstallStackTraceOnInterrupt()
 
 			liblog.Infof("lockd=%v job_dir=%v dump_dir=%v", lockdAddress, jobDir, dumpDir)
 

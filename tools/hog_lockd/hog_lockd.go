@@ -45,7 +45,7 @@ func main() {
 				log.Fatal(err)
 			}
 			liblog.LogLevel(zlevel)
-			libruntime.StackTraceInterrupt()
+			libruntime.InstallStackTraceOnInterrupt()
 
 			hoglock.NewService(host).Start(ctx, libnet.TCPNet{}, addr)
 			select {}

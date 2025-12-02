@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -22,7 +23,7 @@ var testMarshaler = xdrutil.NewXdrMarshaler()
 func TestMain(m *testing.M) {
 	liblog.LogLevel(zerolog.DebugLevel)
 	runtime.SetRootSeed(0)
-	runtime.CaptureInterrupts(true)
+	libruntime.InstallStackTraceOnInterrupt()
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }
