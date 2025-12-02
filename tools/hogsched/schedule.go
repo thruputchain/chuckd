@@ -2,6 +2,7 @@ package hogsched
 
 import (
 	"context"
+	"fmt"
 	"os/user"
 	"path"
 	"strings"
@@ -44,9 +45,17 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	liblog.Infof("acquiring locks on %v", hosts)
 
 	fixed, variable := SplitHosts(hosts) // XXX: variable contains names excluding the `?` suffix
-	//XXX
-	assigned, lease := c.AcquireLocks(ctx, xid, fixed, len(variable))
+	allocated, lease := c.AcquireLocks(ctx, xid, fixed, len(variable))
 	defer lease.Unlock()
+
+	// build host_variable->host binding
+	// XXX: verify host variables are identifiers followed by ?
+	bind := map[string]string{}
+	bindEnv := map[string]string{}
+	for i := range variable {
+		bind[variable[i]] = allocated[i]
+		bindEnv[fmt.Sprintf("HOG_HOST_VAR_%s", variable[i])] = allocated[i]
+	}
 
 	liblog.Infof("locks acquired, starting jobs")
 

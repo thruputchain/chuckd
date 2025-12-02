@@ -205,14 +205,15 @@ func validate(spec *Spec) error {
 		}
 		seenName[job.Name] = struct{}{}
 
-		for _, host := range job.Host {
-			if host == "" {
-				return fmt.Errorf("scripts[%d]: host is empty", i)
+		for _, hostOrVar := range job.Host {
+			err := validateHostOrVar(hostOrVar)
+			if err != nil {
+				return fmt.Errorf("scripts[%d]: parsing host (%v)", i, err)
 			}
-			if _, ok := seenHost[host]; ok {
-				return fmt.Errorf("duplicate job host %q", host)
+			if _, ok := seenHost[hostOrVar]; ok {
+				return fmt.Errorf("duplicate job host or host variable %q", hostOrVar)
 			}
-			seenHost[host] = struct{}{}
+			seenHost[hostOrVar] = struct{}{}
 		}
 
 		if job.Script == "" {
@@ -220,4 +221,11 @@ func validate(spec *Spec) error {
 		}
 	}
 	return nil
+}
+
+func validateHostOrVar(s string) error {
+	if s == "" {
+		return fmt.Errorf("host is empty")
+	}
+	panic("XXX")
 }
