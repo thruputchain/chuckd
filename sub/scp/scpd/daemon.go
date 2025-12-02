@@ -81,7 +81,7 @@ func StartSCPDaemon(
 		fmt.Fprintf(os.Stderr, "killing scpd with pid %d\n", cmd.Process.Pid)
 		syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
 	}
-	libruntime.RegisterInterruptHook(kill)
+	libruntime.InstallInterruptHook(kill)
 
 	time.Sleep(300 * time.Millisecond) // allow time for the scp control service to start
 
