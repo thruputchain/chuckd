@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 
 	"github.com/BurntSushi/toml"
 	"github.com/groundhogchain/chuckd/util/textutil"
@@ -207,9 +208,11 @@ func validate(spec *Spec) error {
 		seenName[job.Name] = struct{}{}
 
 		for _, hostOrVar := range job.Host {
-			err := validateHostOrVar(hostOrVar)
-			if err != nil {
-				return fmt.Errorf("scripts[%d]: parsing host (%v)", i, err)
+			if hostOrVar == "" {
+				return fmt.Errorf("scripts[%d]: no host or host variable given", i)
+			}
+			if !IsHostOrIdentifierMaybe(hostOrVar) {
+				return fmt.Errorf("scripts[%d]: not a host or host variable", i)
 			}
 			if _, ok := seenHost[hostOrVar]; ok {
 				return fmt.Errorf("duplicate job host or host variable %q", hostOrVar)
@@ -224,9 +227,15 @@ func validate(spec *Spec) error {
 	return nil
 }
 
-func validateHostOrVar(s string) error {
-	if s == "" {
-		return fmt.Errorf("host is empty")
-	}
-	panic("XXX")
+var (
+	// RFC-1123-ish hostname: labels of letters, digits, hyphens,
+	// cannot start/end with '-', max label length not strictly enforced.
+	hostRe = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*$`)
+
+	// identifier? — typical programming identifier + a trailing '?'
+	identifierMaybeRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*\?$`)
+)
+
+func IsHostOrIdentifierMaybe(s string) bool {
+	return hostRe.MatchString(s) || identifierMaybeRe.MatchString(s)
 }
