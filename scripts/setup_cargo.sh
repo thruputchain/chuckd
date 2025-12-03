@@ -4,6 +4,7 @@
 ln -s "$USER_HOME/.cargo" "$HOME/.cargo"
 . "$HOME/.cargo/env"
 
-rustup default stable
+# rustup default stable
+ln -s "$USER_HOME/.rustup" "$HOME/.rustup"
 
 export CARGO_NET_GIT_FETCH_WITH_CLI=true

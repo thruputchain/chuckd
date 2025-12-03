@@ -2,7 +2,7 @@ name = "coordinator_bench_3n"
 
 [[jobs]]
 name = "{{ .hog_schedule }}_{{ .hog_host_index_plus1 }}_of_{{ .hog_host_count }}"
-host = ["hog6", "hog9", "hog8"]
+host = ["hog6", "hog7", "hog8"]
 script = """
 
 pwd
