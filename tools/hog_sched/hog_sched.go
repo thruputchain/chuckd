@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"syscall"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -19,6 +20,8 @@ import (
 )
 
 func main() {
+	syscall.Setpgid(0, 0)
+	libruntime.InstallKillProcessGroupOnInterrupt()
 	liblog.LogLevel(zerolog.DebugLevel)
 
 	ctx := context.Background()

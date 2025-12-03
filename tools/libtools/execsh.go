@@ -45,7 +45,7 @@ func ExecReader(
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	err = cmd.Start()
 	must.NoError(ctx, err)

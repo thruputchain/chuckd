@@ -73,9 +73,11 @@ func StartSCPDaemon(
 	cmd.Stdout = textutil.NewPrefixWriter(os.Stderr, "[scpd:out] ")
 	cmd.Stderr = textutil.NewPrefixWriter(os.Stderr, "[scpd:err] ")
 
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	err = cmd.Start()
 	must.NoError(ctx, err)
-	kill := func() {
+	kill := func(sig os.Signal) {
 		fmt.Fprintf(os.Stderr, "killing scpd with pid %d\n", cmd.Process.Pid)
 		syscall.Kill(cmd.Process.Pid, syscall.SIGTERM)
 	}
@@ -88,5 +90,5 @@ func StartSCPDaemon(
 	controller, err := DialSCPController(ctx, libnet.TCPNet{}, controlAddr)
 	must.NoError(ctx, err)
 
-	return handler, controller, kill
+	return handler, controller, func() { kill(os.Kill) }
 }

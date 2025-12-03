@@ -13,10 +13,10 @@ import (
 
 var (
 	signalLk    sync.Mutex
-	signalHooks []func()
+	signalHooks []func(sig os.Signal)
 )
 
-func RegisterInterruptHook(f func()) {
+func RegisterInterruptHook(f func(sig os.Signal)) {
 	signalLk.Lock()
 	defer signalLk.Unlock()
 	signalHooks = append(signalHooks, f)
@@ -36,7 +36,7 @@ func init() {
 
 		for _, hook := range hooks {
 			println("calling hook")
-			hook()
+			hook(sig)
 		}
 		os.Exit(1)
 	}()
@@ -44,9 +44,11 @@ func init() {
 
 func InstallStackTraceOnInterrupt() {
 	liblog.Infof("installing stack trace on SIGINT and SIGTERM")
-	RegisterInterruptHook(func() {
-		buf := make([]byte, 1<<20)
-		stackLen := runtime.Stack(buf, true)
-		os.Stderr.Write(buf[:stackLen])
-	})
+	RegisterInterruptHook(
+		func(sig os.Signal) {
+			buf := make([]byte, 1<<20)
+			stackLen := runtime.Stack(buf, true)
+			os.Stderr.Write(buf[:stackLen])
+		},
+	)
 }

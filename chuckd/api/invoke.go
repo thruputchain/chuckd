@@ -59,12 +59,12 @@ func flushBlockProfile(blockProfilePath string) {
 
 func Invoke(ctx context.Context, f func()) error {
 
-	hooks := []func(){}
+	hooks := []func(os.Signal){}
 
 	// mem profile
 	if memProfilePath != "" {
 		defer flushMemProfile(memProfilePath)
-		hooks = append(hooks, func() { flushMemProfile(memProfilePath) })
+		hooks = append(hooks, func(os.Signal) { flushMemProfile(memProfilePath) })
 	}
 
 	// cpu profile
@@ -79,7 +79,7 @@ func Invoke(ctx context.Context, f func()) error {
 		}
 		defer pprof.StopCPUProfile()
 		hooks = append(hooks,
-			func() {
+			func(os.Signal) {
 				pprof.StopCPUProfile()
 				f.Close()
 			},
@@ -98,7 +98,7 @@ func Invoke(ctx context.Context, f func()) error {
 		}
 		defer trace.Stop()
 		hooks = append(hooks,
-			func() {
+			func(os.Signal) {
 				trace.Stop()
 				f.Close()
 			},
@@ -109,14 +109,14 @@ func Invoke(ctx context.Context, f func()) error {
 	if mutexProfilePath != "" {
 		runtime.SetMutexProfileFraction(1)
 		defer flushMutexProfile(mutexProfilePath)
-		hooks = append(hooks, func() { flushMutexProfile(mutexProfilePath) })
+		hooks = append(hooks, func(os.Signal) { flushMutexProfile(mutexProfilePath) })
 	}
 
 	// block profile
 	if blockProfilePath != "" {
 		runtime.SetBlockProfileRate(1)
 		defer flushBlockProfile(blockProfilePath)
-		hooks = append(hooks, func() { flushBlockProfile(blockProfilePath) })
+		hooks = append(hooks, func(os.Signal) { flushBlockProfile(blockProfilePath) })
 	}
 
 	if stackTrace {
@@ -138,7 +138,7 @@ func Invoke(ctx context.Context, f func()) error {
 		}
 	}()
 	hooks = append(hooks,
-		func() {
+		func(os.Signal) {
 			shutdown(ctx)
 		},
 	)
