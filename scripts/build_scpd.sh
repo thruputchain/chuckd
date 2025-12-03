@@ -2,8 +2,6 @@
 
 set -xeuo pipefail
 
-ssh-add -l
-
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 ROOT=$(pwd)
 

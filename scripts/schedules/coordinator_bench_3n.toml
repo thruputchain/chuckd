@@ -5,9 +5,9 @@ name = "{{ .hog_schedule }}_{{ .hog_host_index_plus1 }}_of_{{ .hog_host_count }}
 host = ["hog1", "hog2", "hog3"]
 script = """
 
-pwd
-export HOME=$(pwd)
-echo $HOME
+echo "job home directory $HOME"
+echo "ssh agent forwards:"
+ssh-add -l
 
 git init -q .
 git remote add origin git@github.com:{{ .github_repo }}.git
