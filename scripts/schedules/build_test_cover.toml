@@ -21,4 +21,6 @@ file_in = []
 file_out = ["coverage.out"]
 
 [jobs.env]
+GIT_REPO = "{{ .github_repo }}"
 GIT_COMMIT = "{{ .git_commit }}"
+GIT_BRANCH = "{{ .git_branch }}"

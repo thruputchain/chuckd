@@ -1,10 +1,10 @@
 echo "obtaining git info for $(pwd)"
 
 # Get current branch name
-if [[ -z ${GITHUB_HEAD_REF} ]]; then
+if [[ -z ${GIT_BRANCH} ]]; then
   GIT_branch=$(git rev-parse --abbrev-ref HEAD)
 else
-  GIT_branch=${GITHUB_HEAD_REF}
+  GIT_branch=${GIT_BRANCH}
 fi
 
 # Get current commit hash

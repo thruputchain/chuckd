@@ -5,7 +5,19 @@ SCHEDULER INTEGRATION
 
 HOGSCHED
 
-- [x] interrupt hog_sched kills subprocesses?
+- [ ] update integration.toml with latest
+- [ ] install cargo and rustup on all hogs
+- [ ] [hog7:out] Commit message: Add metrics for HEAD 92495e7195be699281dd958cd07b1d013e5ef4a3
+the git branch isn't set correctly in the metrics logging
+on the hogd metrics, I did
+BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+                  echo "Branch name: $BRANCH_NAME"
+                  hog_sched \
+                    --i="github-${{ github.run_id }}" \
+                    --key=github_repo --value=${{ github.repository }} \
+                    --key=git_commit --value=${{ github.sha }} \
+                    --key=git_branch --value=$BRANCH_NAME \
+                    ./scripts/schedules/combined_metrics.toml
 - [ ] support available host allocation
 
 BUGS
