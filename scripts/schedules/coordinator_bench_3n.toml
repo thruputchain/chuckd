@@ -12,8 +12,6 @@ ssh-add -l
 set -x
 
 git init -q .
-git config core.sshCommand "ssh -F $HOME/.ssh/config"
-
 git remote add origin git@github.com:{{ .github_repo }}.git
 git fetch --depth 1 origin {{ .git_commit }} --quiet --no-progress
 git checkout {{ .git_commit }}
