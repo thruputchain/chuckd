@@ -8,8 +8,9 @@ import (
 )
 
 type Control struct {
-	s    *System
-	conn sched.SchedulerCoordConn
+	s            *System
+	conn         sched.SchedulerCoordConn
+	genesisReady chan struct{}
 }
 
 func (x Control) LoadGenesisBlock(ctx context.Context, gb proto.GenesisBlock) (proto.DbSchedResult, error) {
@@ -18,4 +19,8 @@ func (x Control) LoadGenesisBlock(ctx context.Context, gb proto.GenesisBlock) (p
 
 func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) {
 	x.s.WalletSubmitter.SubmitTxs(ctx, txs...)
+}
+
+func (x Control) GenesisIsReady() {
+	close(x.genesisReady)
 }

@@ -272,7 +272,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	s.Dogwood.WaitReady(ctx) // wait until routes have been disseminated
 
-	s.Baton.Start(ctx)
+	genesisReady := make(chan struct{})
+	go func() {
+		<-genesisReady // wait for genesis to be in the db
+		s.Baton.Start(ctx)
+	}()
 
 	// drive vetted transactions to dissemination
 	go func() {
@@ -333,7 +337,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		}
 	}()
 
-	return Control{s: s, conn: schedConn}
+	return Control{
+		s:            s,
+		conn:         schedConn,
+		genesisReady: genesisReady,
+	}
 }
 
 func (s *System) Close() {

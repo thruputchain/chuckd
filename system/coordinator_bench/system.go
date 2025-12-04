@@ -80,7 +80,8 @@ func (s *CoordinatorBenchSystem) Start(
 	s.CoordinatorBenchCluster.Start(ctx, opcfg.InAddr)
 
 	// start coordinator
-	s.System.Start(ctx, opcfg)
+	ctl := s.System.Start(ctx, opcfg)
+	ctl.GenesisIsReady()
 
 	// connect the test scheduler to the coordinator
 	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, s.inside, opcfg.InAddr)

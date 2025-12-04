@@ -72,7 +72,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.loadgen.Start(ctx, loadgenAddr)
 	ctl := s.coordinator.Start(ctx, opcfg)
 
-	// wait for NumBlocks+1 (for genesis) and signal ready
+	// wait for NumBlocks+1 (for genesis) to be committed and signal end of the experiment
 	go func() {
 		for i := 0; i < s.loadgen.Cfg.NumBlocks+1; i++ {
 			s.notify.ReceiveCommitted(ctx)
@@ -98,6 +98,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	genesis := s.loadgen.WaitGenesis(ctx)
 	_, err = ctl.LoadGenesisBlock(ctx, *genesis)
 	must.NoError(ctx, err)
+	ctl.GenesisIsReady()
 
 	// pump transactions
 pump:

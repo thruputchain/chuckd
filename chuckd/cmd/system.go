@@ -51,7 +51,8 @@ var (
 					SCPControlAddr: serverSCPControlAddr,
 					IsValidator:    serverSCPIsValidator,
 				}
-				srv.Start(ctx, opcfg)
+				ctl := srv.Start(ctx, opcfg)
+				ctl.GenesisIsReady()
 				select {} // hang
 			})
 		},
