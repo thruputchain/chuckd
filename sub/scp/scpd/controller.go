@@ -46,7 +46,7 @@ func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value s
 	if err != nil {
 		// the context can be cancelled if an externalization occurs during the call to Scp_control_nominate.
 		// in this case, we return false (meaning nomination rejected).
-		must.Assert(ctx, errors.Is(err, context.Canceled))
+		must.Assertf(ctx, errors.Is(err, context.Canceled), "scp control error (%v)", err)
 		return false
 	}
 	return r
