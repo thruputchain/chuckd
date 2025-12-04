@@ -1,12 +1,7 @@
 SCHEDULER INTEGRATION
 
-- [ ] update groundhog-go
-- [ ] make hog_sched for experiment
-
 HOGSCHED
 
-- [ ] update integration.toml with latest
-- [ ] install cargo and rustup on all hogs
 - [ ] support available host allocation
 
 BUGS
