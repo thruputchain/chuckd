@@ -114,7 +114,7 @@ export USER_HOME=$HOME
 export HOME=%q
 echo "forwarding github urls through ssh-agent"
 hog_fwd
-
+export GIT_SSH_COMMAND="ssh -F $HOME/.ssh/config"
 `, dumpDir, dumpDir, dumpDir, jobDir, jobDir, jobDir, jobDir, jobDir, jobDir)
 	suffix := `
 
@@ -135,6 +135,7 @@ cd %q
 export HOME=%q
 echo "re-forwarding github urls through ssh-agent"
 hog_fwd
+export GIT_SSH_COMMAND="ssh -F $HOME/.ssh/config"
 `, dumpDir, jobDir, jobDir, jobDir)
 	suffix := `
 `
