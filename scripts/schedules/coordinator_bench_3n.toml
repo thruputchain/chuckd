@@ -18,6 +18,13 @@ source ./scripts/setup_cargo.sh
 
 # start benchmark
 
+METRIC="coordinator" \
+LABEL="3n" \
+HOST="${HOG_HOST}" \
+NODE="{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}" \
+HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
+./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev ./scpd.dev
+
 sed \
     -e "s/{--METRIC--}/coordinator/g" \
     -e "s/{--LABEL--}/3n/g" \
