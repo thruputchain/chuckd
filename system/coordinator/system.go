@@ -275,6 +275,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	genesisReady := make(chan struct{})
 	go func() {
 		<-genesisReady // wait for genesis to be in the db
+		liblog.Infof("genesis ready")
 
 		s.Baton.Start(ctx)
 
