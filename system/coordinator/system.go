@@ -275,66 +275,67 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	genesisReady := make(chan struct{})
 	go func() {
 		<-genesisReady // wait for genesis to be in the db
+
 		s.Baton.Start(ctx)
-	}()
 
-	// drive vetted transactions to dissemination
-	go func() {
-		buf := libflow.NewBuffer(
-			ctx,
-			s.time,
-			func(ctx context.Context, txs []proto.SignedTransaction) {
-				liblog.Debugf("disseminating %d vetted txs", len(txs))
-				s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: txs})
-			},
-			int(s.cfg.Mempool_config.Submission_lot_size),
-			time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
-		)
-		for {
-			txs := s.CoordScheduler.ReceiveVetted()
-			liblog.Debugf("received %d vetted txs from scheduler", len(txs))
-			buf.Submit(ctx, txs...)
-		}
-	}()
-
-	// drive received envelopes into scp_control
-	s.SCPBroker.SetSCPController(scpController)
-	s.RepairService.SetSCPBroker(s.SCPBroker)
-	go func() {
-		for {
-			_, env := s.Multiplex.ReceiveEnvelope(ctx)
-			s.SCPBroker.ReceivedEnvelope(ctx, *env)
-		}
-	}()
-
-	// drive received txs into mempool
-	go func() {
-		m := xdrutil.NewXdrMarshaler()
-		_ = m
-		for {
-			sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
-			_ = sender
-
-			// liblog.Debugf("received %d txs from %v: %v",
-			// 	len(submittedTxs.Transactions),
-			// 	protoutil.VIDString(sender),
-			// 	form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
-
-			err := schedConn.Schedulercoord_submit_vetted(
+		// drive vetted transactions to dissemination
+		go func() {
+			buf := libflow.NewBuffer(
 				ctx,
-				proto.ValidatorID{}, // XXX: who vetted them is not known
-				submittedTxs.Transactions)
-			must.NoError(ctx, err)
-		}
-	}()
+				s.time,
+				func(ctx context.Context, txs []proto.SignedTransaction) {
+					liblog.Debugf("disseminating %d vetted txs", len(txs))
+					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: txs})
+				},
+				int(s.cfg.Mempool_config.Submission_lot_size),
+				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
+			)
+			for {
+				txs := s.CoordScheduler.ReceiveVetted()
+				liblog.Debugf("received %d vetted txs from scheduler", len(txs))
+				buf.Submit(ctx, txs...)
+			}
+		}()
 
-	// drive received consensus values into cvpool
-	go func() {
-		for {
-			sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
-			_ = sender
-			s.CVPool.ConsensusValuePoolAdd(ctx, *cv)
-		}
+		// drive received envelopes into scp_control
+		s.SCPBroker.SetSCPController(scpController)
+		s.RepairService.SetSCPBroker(s.SCPBroker)
+		go func() {
+			for {
+				_, env := s.Multiplex.ReceiveEnvelope(ctx)
+				s.SCPBroker.ReceivedEnvelope(ctx, *env)
+			}
+		}()
+
+		// drive received txs into mempool
+		go func() {
+			m := xdrutil.NewXdrMarshaler()
+			_ = m
+			for {
+				sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
+				_ = sender
+
+				// liblog.Debugf("received %d txs from %v: %v",
+				// 	len(submittedTxs.Transactions),
+				// 	protoutil.VIDString(sender),
+				// 	form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
+
+				err := schedConn.Schedulercoord_submit_vetted(
+					ctx,
+					proto.ValidatorID{}, // XXX: who vetted them is not known
+					submittedTxs.Transactions)
+				must.NoError(ctx, err)
+			}
+		}()
+
+		// drive received consensus values into cvpool
+		go func() {
+			for {
+				sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
+				_ = sender
+				s.CVPool.ConsensusValuePoolAdd(ctx, *cv)
+			}
+		}()
 	}()
 
 	return Control{
