@@ -2,9 +2,18 @@ SCHEDULER INTEGRATION
 
 HOGTOOLS
 
-- [ ] separate hogtools from chuckd
+- [ ] separate hogtools (and libXXX) from chuckd
 - [ ] upgrade coordinator bench to use any available host
-  - [ ] hosts -> key/value map
+  - [x] use maps.Clone/Copy
+  - [x] hosts -> key/value map
+    - [ ] update .tomls: host kv, hog_host_index_plus1/***
+      - [x] chuckd
+      - [ ] hogd
+  - [ ] get rid of go template substitution?
+
+  - changes
+    - removed hog_host_index, hog_host_index_plus1; added hog_host_key
+
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 

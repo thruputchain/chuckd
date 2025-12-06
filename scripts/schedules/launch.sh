@@ -52,7 +52,11 @@ git_current_branch() {
     printf '%s\n' "$branch"
 }
 
-hog_sched -x=$1 \
+if [ -z "${HOG_SCHED+x}" ]; then
+    HOG_SCHED="$(which hog_sched)"
+fi
+
+${HOG_SCHED} -x=$1 \
     --key=github_repo --value=$(github_repo $SCHED_DIR) \
     --key=git_commit --value=$(git_commit_sha $SCHED_DIR) \
     --key=git_branch --value=$(git_current_branch $SCHED_DIR) \
