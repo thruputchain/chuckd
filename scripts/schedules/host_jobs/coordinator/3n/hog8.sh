@@ -1,4 +1,4 @@
-### launch-coordinator-bench-hog3.sh
+### launch-coordinator-bench-hog8.sh
 #!/bin/sh
 set -e
 
@@ -7,29 +7,29 @@ if [ $# -ne 2 ]; then
   exit 1
 fi
 
-cat > config-hog3.json << EOF
+cat > config-hog8.json << EOF
 
 {
     "validator_config": {
         "private_info": {
             "public_info": {
                 "public_key": "24454aa846034d3d8bb9110797c97132cb63f91794db548d9a6ff03249eea12e",
-                "address": "hog3:50000"
+                "address": "hog8:50000"
             },
             "secret_key": "a4ebf91bf5a5e62e29a3c8c8dcf6489a09e45468ad5c1a41ee2b3bc05f43e9f424454aa846034d3d8bb9110797c97132cb63f91794db548d9a6ff03249eea12e"
         },
         "known_validators": [
             {
                 "public_key": "970c9ba081452fa7f094bbba51966f4a64c9108ea6fec6d1dcbbad38e25e0f56",
-                "address": "hog1:50000"
+                "address": "hog6:50000"
             },
             {
                 "public_key": "982951c7de7f91bde1770134b6f301b7e4b8a4f4ce250a1ce5f9fd7ecde52bd7",
-                "address": "hog2:50000"
+                "address": "hog7:50000"
             },
             {
                 "public_key": "24454aa846034d3d8bb9110797c97132cb63f91794db548d9a6ff03249eea12e",
-                "address": "hog3:50000"
+                "address": "hog8:50000"
             }
         ]
     },
@@ -117,20 +117,20 @@ cat > config-hog3.json << EOF
     }
 }
 EOF
-rm -rf ./validator-storage-hog3
-$1 -l info --stack --config config-hog3.json \
+rm -rf ./validator-storage-hog8
+$1 -l info --stack --config config-hog8.json \
 	--instance 24454a \
 	--seed 4090419587568630594 \
 	--metrics :2223 \
 		bench coordinator \
             --debug-port 5500 \
 			--txs-per-sec 1000 \
-			--storage-dir ./validator-storage-hog3 \
+			--storage-dir ./validator-storage-hog8 \
 			--out-addr :50000 \
 			--wallet-addr :40000 \
 			--scpd-path $2 \
 			--scp-handle-addr 127.0.0.1:3300 \
 			--scp-control-addr 127.0.0.1:4400 \
 			--scp-is-validator true \
-                > >(tee validator-hog3.report) \
-                2> >(tee validator-hog3.log >&2)
+                > >(tee validator-hog8.report) \
+                2> >(tee validator-hog8.log >&2)

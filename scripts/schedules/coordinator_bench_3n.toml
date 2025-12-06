@@ -30,9 +30,9 @@ killall scpd.dev chuckd.dev || true
 """
 
 [jobs.host]
-1 = "hog1"
-2 = "hog2"
-3 = "hog3"
+1 = "hog6"
+2 = "hog7"
+3 = "hog8"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"
