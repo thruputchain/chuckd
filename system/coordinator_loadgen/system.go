@@ -52,6 +52,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	loadgenAddr string,
 	ready chan<- struct{},
 ) {
+	defer close(ready)
 
 	// start debug service and wait until all counterparties are ready
 	counterAddr := make([]string, len(s.coordinator.Config().Validator_config.Known_validators))
@@ -72,28 +73,6 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.loadgen.Start(ctx, loadgenAddr)
 	ctl := s.coordinator.Start(ctx, opcfg)
 
-	// wait for NumBlocks+1 (for genesis) to be committed and signal end of the experiment
-	go func() {
-		for i := 0; i < s.loadgen.Cfg.NumBlocks+1; i++ {
-			s.notify.ReceiveCommitted(ctx)
-		}
-		benchDuration := time.Since(t0)
-		fmt.Println(
-			float64(benchDuration.Milliseconds()) / float64(s.loadgen.Cfg.NumBlocks), // milliseconds/commit
-		)
-
-		// keep consuming commits for 2 more seconds,
-		// giving time to stragglers to complete
-		go func() {
-			for {
-				s.notify.ReceiveCommitted(ctx)
-			}
-		}()
-		time.Sleep(time.Second * 2)
-
-		close(ready)
-	}()
-
 	// pump genesis
 	genesis := s.loadgen.WaitGenesis(ctx)
 	_, err = ctl.LoadGenesisBlock(ctx, *genesis)
@@ -108,17 +87,29 @@ pump:
 			break pump
 		default:
 		}
+
 		txs := s.loadgen.WaitBlockTxs(ctx)
 		if txs == nil {
 			break pump
 		}
+
 		select {
 		case <-ctx.Done():
 			break pump
 		default:
 		}
+
 		ctl.SubmitTxs(ctx, txs)
+
+		// wait until the block is committed
+		s.notify.ReceiveCommitted(ctx)
 	}
+
+	// print results
+	benchDuration := time.Since(t0)
+	fmt.Println(
+		float64(benchDuration.Milliseconds()) / float64(s.loadgen.Cfg.NumBlocks), // milliseconds/commit
+	)
 }
 
 func (s *CoordinatorLoadgenSystem) Close() {
