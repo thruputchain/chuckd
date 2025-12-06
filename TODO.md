@@ -2,15 +2,17 @@ SCHEDULER INTEGRATION
 
 HOGTOOLS
 
+- [ ] separate hogtools from chuckd
 - [ ] upgrade coordinator bench to use any available host
+  - [ ] hosts -> key/value map
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 
 BUGS
 
 - [ ] validators must be able to respond to missing txs request even for past blocks
-
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
+
 
 
 
