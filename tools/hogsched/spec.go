@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 
 	"github.com/BurntSushi/toml"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
-	proto "github.com/groundhogchain/protocol-go"
 )
 
 type Spec struct {
@@ -20,7 +20,7 @@ type Spec struct {
 
 type Job struct {
 	Name    string            `toml:"name"`
-	Host    []string          `toml:"host"`
+	Host    map[string]string `toml:"host"`
 	Script  string            `toml:"script"`
 	After   string            `toml:"after"`
 	Env     map[string]string `toml:"env"`
@@ -28,22 +28,22 @@ type Job struct {
 	FileOut []string          `toml:"file_out"`
 }
 
-func (x Spec) Hosts() proto.HogHosts {
-	h := proto.HogHosts{}
+func (x Spec) Hosts() map[string]string {
+	h := map[string]string{}
 	for _, job := range x.Jobs {
-		h = append(h, job.Host...)
+		maps.Copy(h, job.Host)
 	}
 	return h
 }
 
-// bind is a host_variable_name -> host map
-func (x *Spec) SubstituteHostVariables(ctx context.Context, bind map[string]string) {
+// bind is host_key -> host_value
+func (x *Spec) SubstituteHostVariables(ctx context.Context, assignedHostMap map[string]string) {
 	for _, job := range x.Jobs {
-		for i, hv := range job.Host {
-			if hostVarName, isVar := IsHostVariable(hv); isVar {
-				assignedHost, ok := bind[hostVarName]
+		for hk, hv := range job.Host {
+			if IsWildcard(hv) {
+				assignedHost, ok := assignedHostMap[hk]
 				must.Assert(ctx, ok)
-				job.Host[i] = assignedHost
+				job.Host[hk] = assignedHost
 			}
 		}
 	}
@@ -64,10 +64,9 @@ func (x Spec) Rewrite(ctx context.Context, kv map[string]any) RewrittenSpec {
 func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 	rw := []RewrittenJob{}
 	kv["hog_host_count"] = len(x.Host)
-	for i, host := range x.Host {
-		kv["hog_host"] = host
-		kv["hog_host_index"] = i
-		kv["hog_host_index_plus1"] = i + 1
+	for hostKey, hostValue := range x.Host {
+		kv["hog_host_key"] = hostKey
+		kv["hog_host"] = hostValue
 		//
 		rwEnv := map[string]string{}
 		for envKey, envValue := range x.Env {
@@ -75,13 +74,14 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 		}
 		//
 		rwJob := RewrittenJob{
-			Name:    textutil.Apply(ctx, x.Name, kv),
-			Host:    textutil.Apply(ctx, host, kv),
-			Script:  textutil.Apply(ctx, x.Script, kv),
-			After:   textutil.Apply(ctx, x.After, kv),
-			Env:     rwEnv,
-			FileIn:  make([]string, len(x.FileIn)),
-			FileOut: make([]string, len(x.FileOut)),
+			Name:      textutil.Apply(ctx, x.Name, kv),
+			HostKey:   hostKey,
+			HostValue: hostValue,
+			Script:    textutil.Apply(ctx, x.Script, kv),
+			After:     textutil.Apply(ctx, x.After, kv),
+			Env:       rwEnv,
+			FileIn:    make([]string, len(x.FileIn)),
+			FileOut:   make([]string, len(x.FileOut)),
 		}
 		for i := range x.FileIn {
 			rwJob.FileIn[i] = textutil.Apply(ctx, x.FileIn[i], kv)
@@ -93,8 +93,7 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 	}
 	delete(kv, "hog_host_count")
 	delete(kv, "hog_host")
-	delete(kv, "hog_host_index")
-	delete(kv, "hog_host_index_plus1")
+	delete(kv, "hog_host_key")
 	return rw
 }
 
@@ -119,7 +118,8 @@ func validate(spec *Spec) error {
 		return errors.New("no [[jobs]] entries found")
 	}
 	seenName := make(map[string]struct{}, len(spec.Jobs))
-	seenHost := make(map[string]struct{}, len(spec.Jobs))
+	seenHostKey := make(map[string]struct{}, len(spec.Jobs))
+	seenHostValue := make(map[string]struct{}, len(spec.Jobs))
 	for i, job := range spec.Jobs {
 
 		if job.Name == "" {
@@ -130,17 +130,31 @@ func validate(spec *Spec) error {
 		}
 		seenName[job.Name] = struct{}{}
 
-		for _, hostOrVar := range job.Host {
-			if hostOrVar == "" {
-				return fmt.Errorf("scripts[%d]: no host or host variable given", i)
+		for hostKey, hostValue := range job.Host {
+
+			// host key syntax
+			if !IsIdentifier(hostKey) {
+				return fmt.Errorf("scripts[%d]: host key is not an identifier", i)
 			}
-			if !IsHostOrIdentifierMaybe(hostOrVar) {
-				return fmt.Errorf("scripts[%d]: not a host or host variable", i)
+
+			// no duplicate host keys
+			if _, ok := seenHostKey[hostKey]; ok {
+				return fmt.Errorf("duplicate job host key %q", hostKey)
 			}
-			if _, ok := seenHost[hostOrVar]; ok {
-				return fmt.Errorf("duplicate job host or host variable %q", hostOrVar)
+			seenHostKey[hostKey] = struct{}{}
+
+			// host values
+			switch {
+			case IsHost(hostValue):
+				if _, ok := seenHostValue[hostValue]; ok {
+					return fmt.Errorf("duplicate job host %q", hostValue)
+				}
+				seenHostValue[hostValue] = struct{}{}
+			case IsWildcard(hostValue):
+			default:
+				return fmt.Errorf("scripts[%d]: host value %q is not a valid host or wildcard", i, hostValue)
 			}
-			seenHost[hostOrVar] = struct{}{}
+
 		}
 
 		if job.Script == "" {
@@ -155,23 +169,18 @@ var (
 	// cannot start/end with '-', max label length not strictly enforced.
 	hostRe = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*$`)
 
-	// identifier? — typical programming identifier + a trailing '?'
-	identifierMaybeRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*\?$`)
+	// programming identifier
+	identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]+$`)
 )
 
 func IsHost(s string) bool {
 	return hostRe.MatchString(s)
 }
 
-func IsHostVariable(s string) (string, bool) {
-	if identifierMaybeRe.MatchString(s) {
-		return s[:len(s)-1], true
-	}
-	return "", false
+func IsWildcard(s string) bool {
+	return s == "*" || s == "" || s == "?"
 }
 
-func IsHostOrIdentifierMaybe(s string) bool {
-	isHost := IsHost(s)
-	_, isHostVar := IsHostVariable(s)
-	return isHost || isHostVar
+func IsIdentifier(s string) bool {
+	return identifierRe.MatchString(s)
 }

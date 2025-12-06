@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/user"
 	"path"
-	"strings"
 
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
@@ -21,13 +20,20 @@ type Scheduler struct {
 	DumpDir      string
 }
 
-func SplitFixedAndVariable(hosts []string) (fixed []string, variable []string) {
-	fixed, variable = []string{}, []string{}
-	for _, h := range hosts {
-		if strings.HasSuffix(h, "?") {
-			variable = append(variable, h[:len(h)-1])
+func hostMapValues(hostMap map[string]string) []string {
+	values := make([]string, 0, len(hostMap))
+	for _, value := range hostMap {
+		values = append(values, value)
+	}
+	return values
+}
+
+func SplitFixedAndVariable(hosts map[string]string) (fixedHostValues []string, variableHostKeys []string) {
+	for hk, hv := range hosts {
+		if IsWildcard(hv) {
+			variableHostKeys = append(variableHostKeys, hk)
 		} else {
-			fixed = append(fixed, h)
+			fixedHostValues = append(fixedHostValues, hv)
 		}
 	}
 	return
@@ -41,10 +47,10 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 
 	// acquire locks on hog machines
 	hosts := spec.Hosts()
-	liblog.Infof("acquiring locks on %v", hosts)
+	fixedHostValues, variableHostKeys := SplitFixedAndVariable(hosts) // variable contains host variable names, excluding the trailing "?"
+	liblog.Infof("acquiring locks for %v on %v and %d more", xid, fixedHostValues, len(variableHostKeys))
 
-	fixed, variable := SplitFixedAndVariable(hosts) // variable contains host variable names, excluding the trailing "?"
-	allocated, lease := c.AcquireLocks(ctx, xid, fixed, len(variable))
+	allocated, lease := c.AcquireLocks(ctx, xid, fixedHostValues, len(variableHostKeys))
 	defer lease.Unlock()
 
 	// prepare injected environment
@@ -54,20 +60,27 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 
 	// build host_variable->host map
 	// host variables are identifiers followed by "?"
-	bind := map[string]string{}
-	for i := range variable {
-		bind[variable[i]] = allocated[i]
-		inject[fmt.Sprintf("HOG_HOSTVAR_%s", variable[i])] = allocated[i]
+	assignedHostMap := map[string]string{}
+	i := 0
+	for _, vhk := range variableHostKeys {
+		assignedHostMap[vhk] = allocated[i]
+		i += 1
 	}
-	kv["hog_hostvar"] = bind
 
 	// replace all host variables in the job specs with their assignment
-	spec.SubstituteHostVariables(ctx, bind)
+	spec.SubstituteHostVariables(ctx, assignedHostMap)
+
+	// inject host map into environment
+	hostMap := spec.Hosts()
+	for hk, hv := range hostMap {
+		inject[fmt.Sprintf("HOG_HOST_%s", hk)] = hv
+	}
+	kv["hog_host_map"] = hostMap
 
 	// apply key/value substitutions in spec
 	rwSpec := spec.Rewrite(ctx, kv)
 
-	liblog.Infof("locks acquired, starting jobs")
+	liblog.Infof("locks for %v acquired as %v, starting jobs", hostMap, xid)
 
 	// copy files into host
 	// TODO: parallelize (or combine with script execution)
@@ -86,7 +99,7 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	scripts := rwSpec.ScriptsWithJobDir(x.JobDir, user.Username, x.DumpDir)
 	afters := rwSpec.AftersWithJobDir(x.JobDir, user.Username, x.DumpDir)
 	envs := rwSpec.Envs(inject)
-	err = libtools.SshExecPar(ctx, hosts, scripts, afters, envs)
+	err = libtools.SshExecPar(ctx, hostMapValues(hostMap), scripts, afters, envs)
 	if err != nil {
 		return err
 	}
@@ -109,7 +122,7 @@ func (x Scheduler) copyFilesToJob(ctx context.Context, job RewrittenJob) error {
 		liblog.Infof("copying %s to job %s", local, job.Name)
 		remote[i] = path.Join(x.JobDir, local)
 	}
-	return libtools.CopyTo(ctx, job.Host, job.FileIn, remote)
+	return libtools.CopyTo(ctx, job.HostValue, job.FileIn, remote)
 }
 
 func (x Scheduler) copyFilesFromJob(ctx context.Context, job RewrittenJob) error {
@@ -118,5 +131,5 @@ func (x Scheduler) copyFilesFromJob(ctx context.Context, job RewrittenJob) error
 		liblog.Infof("copying %s from job %s", local, job.Name)
 		remote[i] = path.Join(x.JobDir, local)
 	}
-	return libtools.CopyFrom(ctx, job.Host, remote, job.FileOut)
+	return libtools.CopyFrom(ctx, job.HostValue, remote, job.FileOut)
 }

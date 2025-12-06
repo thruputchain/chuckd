@@ -5,8 +5,14 @@ HOGTOOLS
 - [ ] separate hogtools (and libXXX) from chuckd
 - [ ] upgrade coordinator bench to use any available host
   - [x] use maps.Clone/Copy
-  - [ ] hosts -> key/value map
+  - [x] hosts -> key/value map
+    - [ ] update .tomls
+      - [ ] chuckd
+      - [ ] hogd
   - [ ] get rid of go template substitution?
+
+  - changes
+    - removed hog_host_index, hog_host_index_plus1; added hog_host_key
 
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?

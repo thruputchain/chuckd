@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-
-	proto "github.com/groundhogchain/protocol-go"
 )
 
 type RewrittenSpec struct {
@@ -14,21 +12,14 @@ type RewrittenSpec struct {
 }
 
 type RewrittenJob struct {
-	Name    string            `toml:"name"`
-	Host    string            `toml:"host"`
-	Script  string            `toml:"script"`
-	After   string            `toml:"after"`
-	Env     map[string]string `toml:"env"`
-	FileIn  []string          `toml:"file_in"`
-	FileOut []string          `toml:"file_out"`
-}
-
-func (x RewrittenSpec) Hosts() proto.HogHosts {
-	r := proto.HogHosts{}
-	for i := range x.Jobs {
-		r = append(r, x.Jobs[i].Host)
-	}
-	return r
+	Name      string            `toml:"name"`
+	HostKey   string            `toml:"host_key"`
+	HostValue string            `toml:"host_value"`
+	Script    string            `toml:"script"`
+	After     string            `toml:"after"`
+	Env       map[string]string `toml:"env"`
+	FileIn    []string          `toml:"file_in"`
+	FileOut   []string          `toml:"file_out"`
 }
 
 func (x RewrittenSpec) ScriptsWithJobDir(jobDir string, user string, dumpDir string) []string {
@@ -87,7 +78,8 @@ func (x RewrittenSpec) Envs(inject map[string]string) []map[string]string {
 	for _, job := range x.Jobs {
 		env := maps.Clone(job.Env)
 		maps.Copy(env, inject)
-		env["HOG_HOST"] = job.Host
+		env["HOG_HOST_KEY"] = job.HostKey
+		env["HOG_HOST"] = job.HostValue
 		envs = append(envs, env)
 	}
 	return envs
