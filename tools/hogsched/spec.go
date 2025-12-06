@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"regexp"
 
 	"github.com/BurntSushi/toml"
@@ -48,21 +47,6 @@ func (x *Spec) SubstituteHostVariables(ctx context.Context, bind map[string]stri
 			}
 		}
 	}
-}
-
-type RewrittenSpec struct {
-	Name string         `toml:"name"`
-	Jobs []RewrittenJob `toml:"jobs"`
-}
-
-type RewrittenJob struct {
-	Name    string            `toml:"name"`
-	Host    string            `toml:"host"`
-	Script  string            `toml:"script"`
-	After   string            `toml:"after"`
-	Env     map[string]string `toml:"env"`
-	FileIn  []string          `toml:"file_in"`
-	FileOut []string          `toml:"file_out"`
 }
 
 func (x Spec) Rewrite(ctx context.Context, kv map[string]any) RewrittenSpec {
@@ -112,89 +96,6 @@ func (x Job) Rewrite(ctx context.Context, kv map[string]any) []RewrittenJob {
 	delete(kv, "hog_host_index")
 	delete(kv, "hog_host_index_plus1")
 	return rw
-}
-
-func (x RewrittenSpec) Hosts() proto.HogHosts {
-	r := proto.HogHosts{}
-	for i := range x.Jobs {
-		r = append(r, x.Jobs[i].Host)
-	}
-	return r
-}
-
-func (x RewrittenSpec) ScriptsWithJobDir(jobDir string, user string, dumpDir string) []string {
-	jobDir = filepath.Clean(jobDir)
-	prefix := fmt.Sprintf(`
-echo "creating dump directory" %q
-mkdir -p %q
-export HOG_DUMP_DIR=%q
-echo "creating job directory" %q
-chmod -R +w %q || true
-rm -rf %q
-mkdir -p %q
-cd %q
-export USER_HOME=$HOME
-export HOME=%q
-echo "forwarding github urls through ssh-agent"
-hog_fwd
-export GIT_SSH_COMMAND="ssh -F $HOME/.ssh/config"
-`, dumpDir, dumpDir, dumpDir, jobDir, jobDir, jobDir, jobDir, jobDir, jobDir)
-	suffix := `
-
-`
-	r := []string{}
-	for _, job := range x.Jobs {
-		r = append(r, prefix+job.Script+suffix)
-	}
-	return r
-}
-
-func (x RewrittenSpec) AftersWithJobDir(jobDir string, user string, dumpDir string) []string {
-	jobDir = filepath.Clean(jobDir)
-	prefix := fmt.Sprintf(`
-export HOG_DUMP_DIR=%q
-echo "going to job directory" %q
-cd %q
-export HOME=%q
-echo "re-forwarding github urls through ssh-agent"
-hog_fwd
-export GIT_SSH_COMMAND="ssh -F $HOME/.ssh/config"
-`, dumpDir, jobDir, jobDir, jobDir)
-	suffix := `
-`
-	r := []string{}
-	for _, job := range x.Jobs {
-		if job.After != "" {
-			r = append(r, prefix+job.After+suffix)
-		} else {
-			r = append(r, "")
-		}
-	}
-	return r
-}
-
-func (x RewrittenSpec) Envs(inject map[string]string) []map[string]string {
-	envs := []map[string]string{}
-	for _, job := range x.Jobs {
-		env := cloneMap(job.Env)
-		for n, v := range inject {
-			env[n] = v
-		}
-		env["HOG_HOST"] = job.Host
-		envs = append(envs, env)
-	}
-	return envs
-}
-
-func cloneMap(src map[string]string) map[string]string {
-	if src == nil {
-		return map[string]string{}
-	}
-	dst := make(map[string]string, len(src))
-	for k, v := range src {
-		dst[k] = v
-	}
-	return dst
 }
 
 func Parse(r io.Reader) (*Spec, error) {
