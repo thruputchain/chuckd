@@ -1,8 +1,13 @@
 name = "coordinator_bench_3n"
 
 [[jobs]]
-name = "{{ .hog_schedule }}_{{ .hog_host_index_plus1 }}_of_{{ .hog_host_count }}"
-host = ["hog1", "hog2", "hog3"]
+name = "{{ .hog_schedule }}_{{ .hog_host_key }}_of_{{ .hog_host_count }}"
+
+[jobs.host]
+1 = "hog1"
+2 = "hog2"
+3 = "hog3"
+
 script = """
 
 git init -q .
@@ -21,7 +26,7 @@ source ./scripts/setup_cargo.sh
 METRIC="coordinator" \
 LABEL="3n" \
 HOST="${HOG_HOST}" \
-NODE="{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}" \
+NODE="{{ .hog_host_key }}-of-{{ .hog_host_count }}" \
 HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 ./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev ./scpd.dev
 

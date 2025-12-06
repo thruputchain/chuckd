@@ -170,7 +170,7 @@ var (
 	hostRe = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*$`)
 
 	// programming identifier
-	identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]+$`)
+	identifierRe = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 )
 
 func IsHost(s string) bool {

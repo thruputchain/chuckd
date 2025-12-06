@@ -6,7 +6,7 @@ HOGTOOLS
 - [ ] upgrade coordinator bench to use any available host
   - [x] use maps.Clone/Copy
   - [x] hosts -> key/value map
-    - [ ] update .tomls
+    - [ ] update .tomls: host kv, hog_host_index_plus1/***
       - [ ] chuckd
       - [ ] hogd
   - [ ] get rid of go template substitution?

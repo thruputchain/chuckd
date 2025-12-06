@@ -1,8 +1,13 @@
 name = "dogwood_bench_30m"
 
 [[jobs]]
-name = "{{ .hog_schedule }}_{{ .hog_host_index_plus1 }}_of_{{ .hog_host_count }}"
-host = ["hog6", "hog7", "hog8"]
+name = "{{ .hog_schedule }}_{{ .hog_host_key }}_of_{{ .hog_host_count }}"
+
+[jobs.host]
+1 = "hog6"
+2 = "hog7"
+3 = "hog8"
+
 script = """
 
 git init -q .
@@ -16,7 +21,7 @@ source ./scripts/setup_go.sh
 METRIC="dogwood" \
 LABEL="30m" \
 HOST="${HOG_HOST}" \
-NODE="{{ .hog_host_index_plus1 }}-of-{{ .hog_host_count }}" \
+NODE="{{ .hog_host_key }}-of-{{ .hog_host_count }}" \
 HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 ./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev
 
