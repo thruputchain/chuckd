@@ -2,12 +2,6 @@ name = "dogwood_bench_300m"
 
 [[jobs]]
 name = "{{ .hog_schedule }}_{{ .hog_host_key }}_of_{{ .hog_host_count }}"
-
-[jobs.host]
-1 = "hog6"
-2 = "hog7"
-3 = "hog8"
-
 script = """
 
 git init -q .
@@ -26,6 +20,11 @@ HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 ./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev
 
 """
+
+[jobs.host]
+1 = "hog6"
+2 = "hog7"
+3 = "hog8"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"

@@ -2,12 +2,6 @@ name = "coordinator_bench_3n"
 
 [[jobs]]
 name = "{{ .hog_schedule }}_{{ .hog_host_key }}_of_{{ .hog_host_count }}"
-
-[jobs.host]
-1 = "hog1"
-2 = "hog2"
-3 = "hog3"
-
 script = """
 
 git init -q .
@@ -34,6 +28,11 @@ HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 after = """
 killall scpd.dev chuckd.dev || true
 """
+
+[jobs.host]
+1 = "hog1"
+2 = "hog2"
+3 = "hog3"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"

@@ -2,10 +2,6 @@ name = "build_test_cover"
 
 [[jobs]]
 name = "build_test_cover"
-
-[jobs.host]
-1 = "hog6"
-
 script = """
 
 git init -q .
@@ -22,6 +18,9 @@ go tool cover -func=coverage.out
 """
 file_in = []
 file_out = ["coverage.out"]
+
+[jobs.host]
+1 = "hog6"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"
