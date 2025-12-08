@@ -1,5 +1,8 @@
 SCHEDULER INTEGRATION
 
+- [ ] pause/resume nominate
+- [ ] no buffering on tx submission
+
 HOGTOOLS
 
 - [ ] separate hogtools (and libXXX) from chuckd

@@ -2,6 +2,7 @@ package must
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 )
 
@@ -21,7 +22,7 @@ func (x *Error) StackString() string {
 
 func (x *Error) Unwrap() error {
 	if x == nil {
-		return nil
+		return fmt.Errorf("libmust error is nil")
 	}
 	return x.wrapped
 }

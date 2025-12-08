@@ -98,13 +98,16 @@ func Try1Thru[R1 any](f func() R1) (_ R1, err *Error) {
 }
 
 func LogPanic(r any) {
-	if xerr, ok := r.(*Error); ok {
+	switch xerr := r.(type) {
+	case *Error:
 		if xerr != nil {
 			liblog.Errorf("%s\n%s", xerr.Error(), xerr.StackString())
 		} else {
-			liblog.Errorf("encountered panic without error payload")
+			liblog.Errorf("encountered panic with nil libmust error")
 		}
-	} else {
-		liblog.Error().Msg(xerr.Error())
+	case error:
+		liblog.Errorf("encountered panic with error: %v", xerr)
+	default:
+		liblog.Errorf("encountered panic with unknown payload (%v)", r)
 	}
 }
