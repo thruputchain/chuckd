@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -55,7 +55,7 @@ func (b *Baton) validateCue(
 	}
 
 	liblog.Infof("validating cue at height %d with block hash %s and consensus value hash %s",
-		slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
+		slot, libtext.Display(cvc.Block_hash), libtext.Display(cvc.Cv_hash))
 
 	// check if the value was already validated
 	b.lock()
@@ -82,7 +82,7 @@ func (b *Baton) validateCue(
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
 		liblog.Infof("cancelling validating cue at height %d, block hash %s, consensus hash %s",
-			slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
+			slot, libtext.Display(cvc.Block_hash), libtext.Display(cvc.Cv_hash))
 		vCtxCancel()
 	}()
 	defer vCtxCancel()
@@ -112,7 +112,7 @@ func (b *Baton) fetchCV(
 ) (*proto.ConsensusValue, error) {
 
 	liblog.Infof("fetching consensus value at height %d, block hash %s, consensus hash %s",
-		slot, form.Display(cvc.Block_hash), form.Display(cvc.Cv_hash))
+		slot, libtext.Display(cvc.Block_hash), libtext.Display(cvc.Cv_hash))
 
 	// lookup in cvpool
 	cv := b.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)

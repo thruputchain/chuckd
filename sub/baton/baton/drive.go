@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
@@ -37,7 +37,7 @@ func (b *Baton) drive(ctx context.Context) {
 // driveCommit commits the next block, if one is available and no commit is in progress
 func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
-		liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), form.Display(cb.BlockHash()))
+		liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), libtext.Display(cb.BlockHash()))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
@@ -124,8 +124,8 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 				b.setValidated(cv, blockID)
 				liblog.Infof("nominated block at height %d with block hash %s and consensus value hash %s",
 					cv.Nomination.Block_height,
-					form.Display(cv.Nomination.Block_hash),
-					form.Display(b.hashCV(cv)),
+					libtext.Display(cv.Nomination.Block_hash),
+					libtext.Display(b.hashCV(cv)),
 				)
 			}
 		}()

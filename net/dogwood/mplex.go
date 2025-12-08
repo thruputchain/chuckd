@@ -3,9 +3,9 @@ package dogwood
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/form"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libmem"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -97,7 +97,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 			continue
 		}
 		h := dogwoodutil.TreeNodeHash(x.mTree, treeNodes[0])
-		liblog.Tracef("dogwood multiplex at %v: caching route %v", x.selfString(), form.Display(h))
+		liblog.Tracef("dogwood multiplex at %v: caching route %v", x.selfString(), libtext.Display(h))
 		x.nav.CacheRoute(ctx, linked)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -22,7 +22,7 @@ func (b *Baton) validateConsensus(
 ) {
 
 	liblog.Infof("validating consensus value at height %d with block hash %s",
-		slot, form.Display(cv.Nomination.Block_hash))
+		slot, libtext.Display(cv.Nomination.Block_hash))
 
 	if b.tryValidateConsensusFast(ctx, slot, cv, reply) {
 		return
@@ -50,16 +50,16 @@ func (b *Baton) validateConsensus(
 
 	if cv.Nomination.Prev_block_hash != dbTip.Hash {
 		liblog.Infof("cannot validate, previous block mismatch, nomination %v vs ours %v",
-			form.Display(cv.Nomination.Prev_block_hash),
-			form.Display(dbTip.Hash))
+			libtext.Display(cv.Nomination.Prev_block_hash),
+			libtext.Display(dbTip.Hash))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
 	if cv.Prev_cv_hash != extTip.ConsensusValueHash() {
 		liblog.Infof("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
-			form.Display(cv.Prev_cv_hash),
-			form.Display(extTip.ConsensusValueHash()))
+			libtext.Display(cv.Prev_cv_hash),
+			libtext.Display(extTip.ConsensusValueHash()))
 		reply <- scpkit.InvalidValue
 		return
 	}
@@ -112,8 +112,8 @@ func (b *Baton) validateConsensus(
 
 	// cache validated blocks
 	liblog.Debugf("caching validation for block %s and consensus %s",
-		form.Display(cv.Nomination.Block_hash),
-		form.Display(b.hashCV(cv)))
+		libtext.Display(cv.Nomination.Block_hash),
+		libtext.Display(b.hashCV(cv)))
 	b.lock()
 	b.setValidated(cv, validatedTip.Id)
 	b.unlock()

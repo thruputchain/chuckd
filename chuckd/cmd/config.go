@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -33,12 +33,12 @@ var (
 					Validator_config: vcfg,
 				}
 				if configToStdout {
-					fmt.Println(form.Display(cfg))
+					fmt.Println(libtext.Display(cfg))
 				} else {
 					cfgPath := effectiveConfigPath(ctx)
 					_, err := os.Stat(cfgPath)
 					if errors.Is(err, os.ErrNotExist) {
-						err := os.WriteFile(cfgPath, form.SprintJSONBytes(cfg), 0644)
+						err := os.WriteFile(cfgPath, libtext.SprintJSONBytes(cfg), 0644)
 						must.NoError(ctx, err)
 					} else {
 						must.NoError(ctx, err)

@@ -3,7 +3,7 @@ package magnolia
 import (
 	"testing"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 )
 
 func TestBallsIntoBins(t *testing.T) {
@@ -36,7 +36,7 @@ func TestPlace(t *testing.T) {
 
 		got := MkBytesToSheafChunks(v.NBytes, v.NSheaves, v.MaxBytesPerChunk)
 		if got != v.Place {
-			t.Errorf("test %d, expecting %v, got %v", i, form.Display(v.Place), form.Display(got))
+			t.Errorf("test %d, expecting %v, got %v", i, libtext.Display(v.Place), libtext.Display(got))
 		}
 
 		for s := 0; s < v.Place.NumSheaves; s++ {
@@ -44,7 +44,7 @@ func TestPlace(t *testing.T) {
 				got := got.Range(s, c)
 				exp := v.R[s][c]
 				if got != exp {
-					t.Errorf("test %d, expecting %v, got %v", i, form.Display(exp), form.Display(got))
+					t.Errorf("test %d, expecting %v, got %v", i, libtext.Display(exp), libtext.Display(got))
 				}
 			}
 		}

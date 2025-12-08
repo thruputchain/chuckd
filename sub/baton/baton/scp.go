@@ -3,7 +3,7 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -62,8 +62,8 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	liblog.Infof("received externalization for slot %d with block hash %s and consensus value hash %s",
 		slot,
-		form.Display(cvc.Block_hash),
-		form.Display(cvc.Cv_hash))
+		libtext.Display(cvc.Block_hash),
+		libtext.Display(cvc.Cv_hash))
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.

@@ -3,7 +3,7 @@ package repairservice
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
@@ -86,7 +86,7 @@ func (x *RepairService) Repair_missing_cv(
 	height proto.BlockHeight,
 ) (proto.OptConsensusValue, error) {
 
-	liblog.Debugf("repair missing consensus value request, cv hash %s", form.Display(cvh))
+	liblog.Debugf("repair missing consensus value request, cv hash %s", libtext.Display(cvh))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.

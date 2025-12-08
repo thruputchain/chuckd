@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/lib/libstat"
@@ -247,9 +247,9 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 		ReceptionRate:     receptionRate,
 	}
 
-	fmt.Fprintln(os.Stderr, form.Display(report))
+	fmt.Fprintln(os.Stderr, libtext.Display(report))
 	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, form.Display(report.Summarize()))
+	fmt.Fprintln(os.Stderr, libtext.Display(report.Summarize()))
 
 	// rx speed GB/sec, tx speed GB/sec, drop rate %
 	fmt.Printf("%f, %f, %f",

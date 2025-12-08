@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -64,7 +64,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 
 	if reply == nil {
 		liblog.Errorf("no repaired consensus value returned, cvh %s, vid %s",
-			form.Display(missing), protoutil.VIDString(protoutil.PublicVID(from)))
+			libtext.Display(missing), protoutil.VIDString(protoutil.PublicVID(from)))
 		return nil, fmt.Errorf("no repaired consensus value returned")
 	}
 

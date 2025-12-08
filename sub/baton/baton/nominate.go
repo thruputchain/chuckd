@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
@@ -124,7 +124,7 @@ func (b *Baton) nominate(
 		// if nomination accepted, broadcast consensus value
 		liblog.Debugf("disseminating consensus value for slot %d with hash %s",
 			nom.Block_height,
-			form.Display(cvc.Cv_hash))
+			libtext.Display(cvc.Cv_hash))
 		b.handler.DisseminateCV(ctx, *cv)
 
 		b.handler.Emit(ctx, batonkit.EventNominated{

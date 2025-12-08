@@ -3,7 +3,7 @@ package multiplex
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -80,7 +80,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	liblog.Debugf("%v multiplex sending txs: %v",
 		protoutil.VIDString(x.self),
-		form.Display(protoutil.HashSignedTxs(x.dbgM, submitted.Transactions)))
+		libtext.Display(protoutil.HashSignedTxs(x.dbgM, submitted.Transactions)))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted

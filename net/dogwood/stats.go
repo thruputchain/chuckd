@@ -1,7 +1,7 @@
 package dogwood
 
 import (
-	"github.com/groundhogchain/chuckd/lib/form"
+	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/runtime"
 )
 
@@ -23,7 +23,7 @@ type Stats struct {
 }
 
 func (x Stats) String() string {
-	return form.Display(x)
+	return libtext.Display(x)
 }
 
 func (x *DogwoodService) Stats() Stats {
