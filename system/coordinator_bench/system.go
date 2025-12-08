@@ -77,7 +77,7 @@ func (s *CoordinatorBenchSystem) Start(
 	t0 := time.Now()
 
 	// start scheduler rpc, needed by coordinator system
-	s.CoordinatorBenchCluster.Start(ctx, opcfg.InAddr)
+	s.CoordinatorBenchCluster.Start(ctx)
 
 	// start coordinator
 	ctl := s.System.Start(ctx, opcfg)

@@ -71,7 +71,7 @@ func (x *CoordinatorBenchCluster) SchedAddress() string {
 	return fmt.Sprintf("localhost:%d", x.cfg.SchedPort)
 }
 
-func (x *CoordinatorBenchCluster) Start(ctx context.Context, coordAddr string) {
+func (x *CoordinatorBenchCluster) Start(ctx context.Context) {
 
 	liblog.Infof("testcluster starting")
 	rpcutil.StartSerial(ctx, x.net, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})

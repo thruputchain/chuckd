@@ -16,6 +16,9 @@ import (
 	"github.com/groundhogchain/chuckd/system/coordinator_loadgen"
 	"github.com/groundhogchain/chuckd/system/dogwood_bench"
 	"github.com/groundhogchain/chuckd/system/echo_bench"
+	"github.com/groundhogchain/chuckd/system/scheduler"
+	"github.com/groundhogchain/chuckd/system/systemkit"
+	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -40,7 +43,7 @@ var (
 				)
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				outside := libnet.Network(libnet.TCPNet{})
+				outside := libnet.TCPNet{}
 				testCfg := coordinator_bench.CoordinatorBenchConfig{
 					TxsPerSec: benchTxsPerSec,
 					SchedPort: benchSchedPort,
@@ -90,14 +93,26 @@ var (
 					NumTxsPerBlock: benchTxsPerBlock,
 					NumBlocks:      benchNumBlocks,
 				}
+				// pick scheduler system
+				var inside libnet.Network
+				var schedSystem systemkit.SchedulerSystem
+				if benchMockScheduler {
+					inside = testnet.NewTestNetwork()
+					schedSystem = scheduler.NewMockScheduler(ctx, inside, cfg.Validator_config.Private_info)
+				} else {
+					inside = libnet.TCPNet{}
+					schedSystem = scheduler.NewLiveScheduler()
+				}
+				// coordinator
 				sys := coordinator_loadgen.NewCoordinatorLoadgenSystem(
 					ctx,
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
-					libnet.TCPNet{},
+					inside,
 					libnet.TCPNet{},
 					cfg,
 					testCfg,
+					schedSystem,
 				)
 				opcfg := coordinator.OperationalConfig{
 					StorageDir:     benchStorageDir,
@@ -203,6 +218,8 @@ var (
 	benchNumBlocks   int
 	benchLoadgenAddr string
 	benchSchedAddr   string
+	//
+	benchMockScheduler bool
 )
 
 func init() {
@@ -244,6 +261,7 @@ func init() {
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumAccts, "num-accts", 100, "number of accounts to generate")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 100, "number of blocks to generate")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchLoadgenAddr, "loadgen-addr", "localhost:44400", "loadgen address")
+	benchCoordinatorLoadgenCmd.Flags().BoolVar(&benchMockScheduler, "mock-scheduler", false, "use a mock scheduler")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")

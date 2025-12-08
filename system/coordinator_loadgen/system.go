@@ -14,6 +14,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/debug"
 	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
+	"github.com/groundhogchain/chuckd/system/systemkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -22,6 +23,7 @@ type CoordinatorLoadgenSystem struct {
 	outside     libnet.Network
 	notify      *coordinator.NotifyReceive
 	coordinator *coordinator.System
+	scheduler   systemkit.SchedulerSystem
 	loadgen     *loadgen.LoadGen
 }
 
@@ -31,17 +33,19 @@ func NewCoordinatorLoadgenSystem(
 	rand *rand.Rand,
 	inside libnet.Network,
 	outside libnet.Network,
-	cfg proto.Config,
-	lgCfg loadgen.Config,
+	config proto.Config,
+	loadgenConfig loadgen.Config,
+	scheduler systemkit.SchedulerSystem,
 ) *CoordinatorLoadgenSystem {
 	notify := coordinator.NewNotifyReceive()
-	cs := coordinator.NewSystem(ctx, notify, librand.NewRandFrom(rand), cfg, inside, outside)
-	lg := loadgen.NewLoadGen(ctx, librand.NewRandFrom(rand), inside, lgCfg)
+	cs := coordinator.NewSystem(ctx, notify, librand.NewRandFrom(rand), config, inside, outside)
+	lg := loadgen.NewLoadGen(ctx, librand.NewRandFrom(rand), inside, loadgenConfig)
 	return &CoordinatorLoadgenSystem{
 		inside:      inside,
 		outside:     outside,
 		notify:      notify,
 		coordinator: cs,
+		scheduler:   scheduler,
 		loadgen:     lg,
 	}
 }
@@ -66,6 +70,9 @@ func (s *CoordinatorLoadgenSystem) Start(
 	must.NoError(ctx, err)
 	liblog.Infof("all counterparties are up; starting coordinator benchmark")
 
+	// start scheduler system
+	s.scheduler.StartScheduler(ctx, opcfg)
+
 	// record the beginning of the benchmark
 	t0 := time.Now()
 
@@ -73,11 +80,13 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.loadgen.Start(ctx, loadgenAddr)
 	ctl := s.coordinator.Start(ctx, opcfg)
 
-	// pump genesis
+	// genesis
 	genesis := s.loadgen.WaitGenesis(ctx)
 	_, err = ctl.LoadGenesisBlock(ctx, *genesis)
 	must.NoError(ctx, err)
 	ctl.GenesisIsReady()
+
+	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
 	// pump transactions
 pump:
