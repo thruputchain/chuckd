@@ -80,6 +80,8 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	// apply key/value substitutions in spec
 	rwSpec := spec.Rewrite(ctx, kv)
 
+	liblog.Infof("Rewritten spec:\n%#v\n", rwSpec)
+
 	liblog.Infof("locks for %v acquired as %v, starting jobs", hostMap, xid)
 
 	// copy files into host
