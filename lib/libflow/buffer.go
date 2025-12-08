@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/lib/libtime"
+	"github.com/groundhogchain/chuckd/lib/must"
 )
 
 type Flusher[T any] func(context.Context, []T)
@@ -24,6 +25,8 @@ func NewBuffer[T any](
 	maxSize int,
 	maxWait time.Duration,
 ) *Buffer[T] {
+	must.Assert(ctx, maxSize > 0)
+	must.Assert(ctx, maxWait > 0)
 	buf := &Buffer[T]{
 		time:    time,
 		flush:   flush,

@@ -346,6 +346,14 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	}
 }
 
+func (s *System) PauseNominating() {
+	s.Baton.PauseNominating()
+}
+
+func (s *System) ResumeNominating() {
+	s.Baton.ResumeNominating()
+}
+
 func (s *System) Close() {
 	liblog.Infof("coordinator stopping inside network")
 	s.insideSrv.Close()

@@ -26,9 +26,9 @@ func (x Control) GenesisIsReady() {
 }
 
 func (x Control) PauseNominating() {
-	x.system.Baton.PauseNominating()
+	x.system.PauseNominating()
 }
 
 func (x Control) ResumeNominating() {
-	x.system.Baton.ResumeNominating()
+	x.system.ResumeNominating()
 }

@@ -76,11 +76,13 @@ func (s *CoordinatorLoadgenSystem) Start(
 	// record the beginning of the benchmark
 	t0 := time.Now()
 
-	// start
+	// start reception fromloadgen
 	s.loadgen.Start(ctx, loadgenAddr)
+
+	// start coordinator
 	ctl := s.coordinator.Start(ctx, opcfg)
 
-	// genesis
+	// process genesis
 	genesis := s.loadgen.WaitGenesis(ctx)
 	_, err = ctl.LoadGenesisBlock(ctx, *genesis)
 	must.NoError(ctx, err)
@@ -108,9 +110,11 @@ pump:
 		default:
 		}
 
+		liblog.Infof("submitting tx batch")
 		ctl.SubmitTxs(ctx, txs)
 
 		// wait until the block is committed
+		liblog.Infof("waiting for block commit")
 		s.notify.ReceiveCommitted(ctx)
 	}
 

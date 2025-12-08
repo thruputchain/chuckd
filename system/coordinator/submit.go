@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libflow"
 	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/lib/must"
@@ -13,7 +12,6 @@ import (
 )
 
 type WalletSubmitter struct {
-	buf *libflow.Buffer[*proto.SignedTransaction]
 	lot chan []*proto.SignedTransaction
 }
 
@@ -23,15 +21,13 @@ func NewWalletSubmitter(
 	maxSize int,
 	maxWait time.Duration,
 ) *WalletSubmitter {
-	x := &WalletSubmitter{
+	return &WalletSubmitter{
 		lot: make(chan []*proto.SignedTransaction),
 	}
-	x.buf = libflow.NewBuffer(ctx, time, x.flush, maxSize, maxWait)
-	return x
 }
 
 func (x *WalletSubmitter) SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction) {
-	x.buf.Submit(ctx, txs...)
+	x.lot <- txs
 }
 
 func (x *WalletSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1) {
@@ -47,8 +43,4 @@ func (x *WalletSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1
 			}
 		}
 	}()
-}
-
-func (x *WalletSubmitter) flush(ctx context.Context, txs []*proto.SignedTransaction) {
-	x.lot <- txs
 }
