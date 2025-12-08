@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 )
 
@@ -42,7 +43,10 @@ func (x *DiskStorage) reclaimSCPEnvelopes(ctx context.Context) {
 	slotsDir := x.SCPEnvelopesDirpath()
 
 	slotdirs, err := ListSCPSlotDirs(slotsDir)
-	must.NoError(ctx, err)
+	if err != nil {
+		liblog.Errorf("reclaiming scp envelopes storage: %v", err)
+		return
+	}
 
 	if len(slotdirs) <= x.cfg.MaxSCPSlots {
 		return
