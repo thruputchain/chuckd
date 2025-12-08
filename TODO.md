@@ -1,22 +1,8 @@
 SCHEDULER INTEGRATION
 
-- [x] support pause/resume nominate
-- [x] no buffering on tx submission
-- [ ] rig loadgen to use pause/resume and no txs buffering
-
 HOGTOOLS
 
-- [ ] separate hogtools (and libXXX) from chuckd
 - [ ] upgrade coordinator bench to use any available host
-  - [x] use maps.Clone/Copy
-  - [x] hosts -> key/value map
-    - [ ] update .tomls: host kv, hog_host_index_plus1/***
-      - [x] chuckd
-      - [ ] hogd
-  - [ ] get rid of go template substitution?
-
-  - changes
-    - removed hog_host_index, hog_host_index_plus1; added hog_host_key
 
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?

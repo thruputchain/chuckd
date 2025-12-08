@@ -1,4 +1,3 @@
-### launch-coordinator-bench-hog6.sh
 #!/bin/sh
 set -e
 
@@ -7,29 +6,29 @@ if [ $# -ne 2 ]; then
   exit 1
 fi
 
-cat > config-hog6.json << EOF
+cat > config-${HOG_HOST_1}.json << EOF
 
 {
     "validator_config": {
         "private_info": {
             "public_info": {
                 "public_key": "970c9ba081452fa7f094bbba51966f4a64c9108ea6fec6d1dcbbad38e25e0f56",
-                "address": "hog6:50000"
+                "address": "${HOG_HOST_1}:50000"
             },
             "secret_key": "b9cb6de12b73f1969adeeb7c1102d9420f692da1c977cdeb15271c6a090d06b8970c9ba081452fa7f094bbba51966f4a64c9108ea6fec6d1dcbbad38e25e0f56"
         },
         "known_validators": [
             {
                 "public_key": "970c9ba081452fa7f094bbba51966f4a64c9108ea6fec6d1dcbbad38e25e0f56",
-                "address": "hog6:50000"
+                "address": "${HOG_HOST_1}:50000"
             },
             {
                 "public_key": "982951c7de7f91bde1770134b6f301b7e4b8a4f4ce250a1ce5f9fd7ecde52bd7",
-                "address": "hog7:50000"
+                "address": "${HOG_HOST_2}:50000"
             },
             {
                 "public_key": "24454aa846034d3d8bb9110797c97132cb63f91794db548d9a6ff03249eea12e",
-                "address": "hog8:50000"
+                "address": "${HOG_HOST_3}:50000"
             }
         ]
     },
@@ -117,20 +116,20 @@ cat > config-hog6.json << EOF
     }
 }
 EOF
-rm -rf ./validator-storage-hog6
-$1 -l info --stack --config config-hog6.json \
+rm -rf ./validator-storage-${HOG_HOST_1}
+$1 -l info --stack --config config-${HOG_HOST_1}.json \
 	--instance 970c9b \
 	--seed 7704454085476916988 \
 	--metrics :2223 \
 		bench coordinator \
             --debug-port 5500 \
 			--txs-per-sec 1000 \
-			--storage-dir ./validator-storage-hog6 \
+			--storage-dir ./validator-storage-${HOG_HOST_1} \
 			--out-addr :50000 \
 			--wallet-addr :40000 \
 			--scpd-path $2 \
 			--scp-handle-addr 127.0.0.1:3300 \
 			--scp-control-addr 127.0.0.1:4400 \
 			--scp-is-validator true \
-                > >(tee validator-hog6.report) \
-                2> >(tee validator-hog6.log >&2)
+                > >(tee validator-${HOG_HOST_1}.report) \
+                2> >(tee validator-${HOG_HOST_1}.log >&2)

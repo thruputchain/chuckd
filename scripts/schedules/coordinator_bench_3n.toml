@@ -19,7 +19,7 @@ source ./scripts/setup_cargo.sh
 
 METRIC="coordinator" \
 LABEL="3n" \
-HOST="${HOG_HOST}" \
+HOST="{{ .hog_host_key }}" \
 NODE="{{ .hog_host_key }}-of-{{ .hog_host_count }}" \
 HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 ./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev ./scpd.dev
@@ -30,9 +30,9 @@ killall scpd.dev chuckd.dev || true
 """
 
 [jobs.host]
-1 = "hog6"
-2 = "hog7"
-3 = "hog8"
+1 = "?"
+2 = "?"
+3 = "?"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"
