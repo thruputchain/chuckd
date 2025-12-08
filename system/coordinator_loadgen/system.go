@@ -15,6 +15,8 @@ import (
 	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/systemkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -91,6 +93,9 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
 	// pump transactions
+	i := 0
+	txm := xdrutil.NewXdrMarshaler()
+	uncommitted := map[proto.SignedTransactionHash]bool{}
 pump:
 	for {
 		select {
@@ -99,6 +104,7 @@ pump:
 		default:
 		}
 
+		liblog.Infof("waiting for tx batch %d to arrive from loadgen", i)
 		txs := s.loadgen.WaitBlockTxs(ctx)
 		if txs == nil {
 			break pump
@@ -110,12 +116,24 @@ pump:
 		default:
 		}
 
-		liblog.Infof("submitting tx batch")
+		liblog.Infof("submitting tx batch %d with %d transactions", i, len(txs))
+		for _, tx := range txs {
+			uncommitted[protoutil.HashSignedTx(txm, tx)] = true
+		}
 		ctl.SubmitTxs(ctx, txs)
 
-		// wait until the block is committed
-		liblog.Infof("waiting for block commit")
-		s.notify.ReceiveCommitted(ctx)
+		liblog.Infof("waiting for batch %d to commit", i)
+		for {
+			cb := s.notify.ReceiveCommitted(ctx)
+			for _, tx := range cb.SignedTransactions() {
+				delete(uncommitted, protoutil.HashSignedTx(txm, &tx))
+			}
+			if len(uncommitted) == 0 {
+				break
+			}
+		}
+
+		i += 1
 	}
 
 	// print results

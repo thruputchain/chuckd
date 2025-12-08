@@ -47,7 +47,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	must.NoError(ctx, err)
 	must.Assert(ctx, outcome == proto.SchedulerCommitOK)
 
-	b.handler.Committed(ctx, cb.BlockHeight())
+	b.handler.Committed(ctx, cb)
 
 	b.handler.Emit(ctx, batonkit.EventCommitted{
 		Onto:   cb.Onto,

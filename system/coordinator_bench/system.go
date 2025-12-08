@@ -90,7 +90,7 @@ func (s *CoordinatorBenchSystem) Start(
 
 	// wait for numCommits and signal ready
 	go func() {
-		for i := 0; i < numCommits; i++ {
+		for range numCommits {
 			s.notify.ReceiveCommitted(ctx)
 		}
 		benchDuration := time.Since(t0)

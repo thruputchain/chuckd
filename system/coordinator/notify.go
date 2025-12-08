@@ -3,31 +3,31 @@ package coordinator
 import (
 	"context"
 
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 )
 
 type Notify interface {
-	Committed(ctx context.Context, height proto.BlockHeight)
+	Committed(ctx context.Context, cb *batonkit.CommittableBlock)
 }
 
 type IgnoreNotify struct{}
 
-func (IgnoreNotify) Committed(ctx context.Context, height proto.BlockHeight) {}
+func (IgnoreNotify) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 type NotifyReceive struct {
-	committed chan proto.BlockHeight
+	committed chan *batonkit.CommittableBlock
 }
 
 func NewNotifyReceive() *NotifyReceive {
 	return &NotifyReceive{
-		committed: make(chan proto.BlockHeight),
+		committed: make(chan *batonkit.CommittableBlock),
 	}
 }
 
-func (x *NotifyReceive) Committed(ctx context.Context, height proto.BlockHeight) {
-	x.committed <- height
+func (x *NotifyReceive) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {
+	x.committed <- cb
 }
 
-func (x *NotifyReceive) ReceiveCommitted(ctx context.Context) proto.BlockHeight {
+func (x *NotifyReceive) ReceiveCommitted(ctx context.Context) *batonkit.CommittableBlock {
 	return <-x.committed
 }

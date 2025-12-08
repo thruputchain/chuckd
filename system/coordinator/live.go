@@ -145,9 +145,9 @@ func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.Cons
 	return x.storage.FindHighestConsensusValue(ctx)
 }
 
-func (x *LiveHandler) Committed(ctx context.Context, height proto.BlockHeight) {
-	x.cvpool.PurgeNotAbove(ctx, height)
-	x.notify.Committed(ctx, height)
+func (x *LiveHandler) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {
+	x.cvpool.PurgeNotAbove(ctx, cb.BlockHeight())
+	x.notify.Committed(ctx, cb)
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {

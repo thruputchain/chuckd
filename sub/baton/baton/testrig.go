@@ -224,7 +224,7 @@ func (h *TestRig) FindHighestConsensusValue(ctx context.Context) *proto.Consensu
 	return &h.consensusValues[len(h.consensusValues)-1]
 }
 
-func (h *TestRig) Committed(ctx context.Context, height proto.BlockHeight) {}
+func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
 func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {}

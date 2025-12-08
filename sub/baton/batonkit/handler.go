@@ -48,5 +48,5 @@ type ConsensusController interface {
 }
 
 type BlockHandler interface {
-	Committed(ctx context.Context, height proto.BlockHeight)
+	Committed(ctx context.Context, cb *CommittableBlock)
 }
