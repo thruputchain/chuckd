@@ -51,6 +51,9 @@ type Baton struct {
 	cond             *sync.Cond
 	lk               sync.Mutex
 
+	// levers
+	pauseNominating bool
+
 	// state, read/write under lk
 	committing      bool
 	nominating      *nominating
@@ -79,6 +82,26 @@ type validated struct {
 
 type invalidated struct {
 	*proto.ConsensusValue
+}
+
+func (b *Baton) PauseNominating() {
+	b.lockNoDrive()
+	defer b.unlockNoDrive()
+	b.pauseNominating = true
+}
+
+func (b *Baton) ResumeNominating() {
+	b.lockNoDrive()
+	defer b.unlockNoDrive()
+	b.pauseNominating = false
+}
+
+func (b *Baton) lockNoDrive() {
+	b.lk.Lock()
+}
+
+func (b *Baton) unlockNoDrive() {
+	b.lk.Unlock()
 }
 
 func (b *Baton) lock() {

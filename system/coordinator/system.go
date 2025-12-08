@@ -340,7 +340,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	}()
 
 	return Control{
-		s:            s,
+		system:       s,
 		conn:         schedConn,
 		genesisReady: genesisReady,
 	}

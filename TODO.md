@@ -1,7 +1,8 @@
 SCHEDULER INTEGRATION
 
-- [ ] pause/resume nominate
+- [x] support pause/resume nominate
 - [ ] no buffering on tx submission
+- [ ] rig loadgen to use pause/resume and no txs buffering
 
 HOGTOOLS
 
