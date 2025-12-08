@@ -5,10 +5,6 @@ import (
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/lib/libmetrics"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
@@ -19,6 +15,10 @@ import (
 	"github.com/groundhogchain/chuckd/system/scheduler"
 	"github.com/groundhogchain/chuckd/system/systemkit"
 	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/groundhogchain/lib-go/libmetrics"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/must"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 )

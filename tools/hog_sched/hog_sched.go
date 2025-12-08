@@ -10,11 +10,11 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/tools/hogsched"
 	"github.com/groundhogchain/chuckd/tools/libtools"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libruntime"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 )

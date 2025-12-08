@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libmath"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libmath"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

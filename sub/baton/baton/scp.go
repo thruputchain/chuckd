@@ -3,11 +3,11 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/libtext"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -55,7 +55,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue
-	if err := xdrutil.UnmarshalXdr(&cvc, value); err != nil {
+	if err := libxdr.UnmarshalXdr(&cvc, value); err != nil {
 		liblog.Fatalf("scp externalized value for slot %d which cannot be decoded", slot)
 		return
 	}

@@ -3,13 +3,13 @@ package dogwood
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libmem"
-	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libmem"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -18,8 +18,8 @@ type Multiplex struct {
 	sender   *TransmissionSender
 	receiver *TransmissionReceiver
 	nav      *Navigator
-	mMsg     xdrutil.XdrMarshaler
-	mTree    xdrutil.XdrMarshaler
+	mMsg     libxdr.XdrMarshaler
+	mTree    libxdr.XdrMarshaler
 }
 
 func NewMultiplex(
@@ -34,8 +34,8 @@ func NewMultiplex(
 		sender:   s,
 		receiver: r,
 		nav:      n,
-		mMsg:     xdrutil.NewXdrMarshaler(),
-		mTree:    xdrutil.NewXdrMarshaler(),
+		mMsg:     libxdr.NewXdrMarshaler(),
+		mTree:    libxdr.NewXdrMarshaler(),
 	}
 }
 
@@ -84,7 +84,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 
 	routing := proto.DogwoodRouting{}
 
-	err := xdrutil.UnmarshalXdr(&routing, p)
+	err := libxdr.UnmarshalXdr(&routing, p)
 	if err != nil {
 		liblog.Errorf("dogwood multiplex at %v: unmarshalling routing message: %v", x.selfString(), err)
 		return

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

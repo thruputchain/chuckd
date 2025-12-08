@@ -1,8 +1,8 @@
 package dogwood
 
 import (
-	"github.com/groundhogchain/chuckd/lib/libtext"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/lib-go/libtext"
 )
 
 type Stats struct {

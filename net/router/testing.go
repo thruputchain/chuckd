@@ -6,11 +6,11 @@ import (
 
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-var testM = xdrutil.NewXdrMarshaler()
+var testM = libxdr.NewXdrMarshaler()
 
 type TestRouter struct {
 	self  proto.ValidatorPublicInfo

@@ -5,19 +5,19 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/librand"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testmempool"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/librand"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestScheduler struct {
-	m       xdrutil.XdrMarshaler
+	m       libxdr.XdrMarshaler
 	signer  proto.ValidatorPublicInfo
 	mempool *testmempool.TestMempool
 	db      *testdb.TestDb
@@ -32,7 +32,7 @@ type TestScheduler struct {
 
 func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip proto.DbTip) *TestScheduler {
 	return &TestScheduler{
-		m:       xdrutil.NewXdrMarshaler(),
+		m:       libxdr.NewXdrMarshaler(),
 		signer:  signer,
 		db:      testdb.NewTestDb(ctx, tip),
 		ready:   make(chan struct{}),

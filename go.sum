@@ -50,6 +50,8 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/groundhogchain/lib-go v0.0.0-20251208175244-fc435d6185a8 h1:X/5CRQcgRtQcweg5ZiRvg8rrwaq02TN4AsVsNx8eB3w=
+github.com/groundhogchain/lib-go v0.0.0-20251208175244-fc435d6185a8/go.mod h1:U8Uluazz56Dy+ohJ2VQDPT9HQqLphTPzbe/ouOK9j+g=
 github.com/groundhogchain/protocol-go v0.0.0-20251206003618-dfe48018fa62 h1:PW2ZiANWLLKM25h2LtJGYf5NjFIQBQA3N33lfL5thE4=
 github.com/groundhogchain/protocol-go v0.0.0-20251206003618-dfe48018fa62/go.mod h1:puKsd84Zi76JDeR1UPHMYDXYCDUYsHhPZaZy+dsikps=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=

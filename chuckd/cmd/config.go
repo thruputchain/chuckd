@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/lib/libtext"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
 )

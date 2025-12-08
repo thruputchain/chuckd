@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/lib/librand"
+	"github.com/groundhogchain/lib-go/librand"
 )
 
 func TestEncDec(t *testing.T) {

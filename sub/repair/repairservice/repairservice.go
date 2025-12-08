@@ -3,13 +3,13 @@ package repairservice
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/libtext"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

@@ -10,7 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/deploy/common"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -51,7 +51,7 @@ func CoordinatorBenchShellLocal(
 			protoutil.VPublicKeyToID(
 				qcfg.Validator_config.Private_info.Public_info.Public_key))
 		fmt.Fprintf(&sh, "cat > config-%s.json << EOF\n", untypedVID)
-		fmt.Fprintln(&sh, xdrutil.MustXdrToJsonString(&qcfg))
+		fmt.Fprintln(&sh, libxdr.MustXdrToJsonString(&qcfg))
 		fmt.Fprintln(&sh, "EOF")
 	}
 

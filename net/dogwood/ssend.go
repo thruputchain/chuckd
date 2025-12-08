@@ -5,13 +5,13 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/libflow"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libmem"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libflow"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libmem"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -22,7 +22,7 @@ type StreamSender struct {
 	nav       *Navigator
 	caller    Caller
 	// performance
-	m           xdrutil.XdrMarshaler
+	m           libxdr.XdrMarshaler
 	sendWorkers libflow.SubmitWorkerPool
 	// state
 	lk      sync.Mutex
@@ -52,7 +52,7 @@ func NewStreamSender(
 		discovery:   discovery,
 		nav:         nav,
 		caller:      caller,
-		m:           xdrutil.NewXdrMarshaler(),
+		m:           libxdr.NewXdrMarshaler(),
 		sendWorkers: libflow.NewSubmitWorkerPool(ctx, numWorkers),
 		streams:     map[proto.DogwoodStream]*SendStream{},
 	}

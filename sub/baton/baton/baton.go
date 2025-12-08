@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -30,11 +30,11 @@ func NewBaton(
 		catchupWaiting:   map[batonkit.ID64]catchupRequest{},
 		validated:        map[proto.ConsensusValueHash]validated{},
 		invalidated:      map[proto.ConsensusValueHash]invalidated{},
-		cvM:              xdrutil.NewXdrMarshaler(),
-		txM:              xdrutil.NewXdrMarshaler(),
-		nomM:             xdrutil.NewXdrMarshaler(),
-		catchupReqM:      xdrutil.NewXdrMarshaler(),
-		catchupResultM:   xdrutil.NewXdrMarshaler(),
+		cvM:              libxdr.NewXdrMarshaler(),
+		txM:              libxdr.NewXdrMarshaler(),
+		nomM:             libxdr.NewXdrMarshaler(),
+		catchupReqM:      libxdr.NewXdrMarshaler(),
+		catchupResultM:   libxdr.NewXdrMarshaler(),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
@@ -68,11 +68,11 @@ type Baton struct {
 	liveness        liveness
 
 	// xdr marshalers
-	cvM            xdrutil.XdrMarshaler // for marshalling ConsensusValue
-	txM            xdrutil.XdrMarshaler // for marshalling SignedTransaction
-	nomM           xdrutil.XdrMarshaler
-	catchupReqM    xdrutil.XdrMarshaler
-	catchupResultM xdrutil.XdrMarshaler
+	cvM            libxdr.XdrMarshaler // for marshalling ConsensusValue
+	txM            libxdr.XdrMarshaler // for marshalling SignedTransaction
+	nomM           libxdr.XdrMarshaler
+	catchupReqM    libxdr.XdrMarshaler
+	catchupResultM libxdr.XdrMarshaler
 }
 
 type validated struct {

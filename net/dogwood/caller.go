@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libflow"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libmem"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libflow"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libmem"
+	"github.com/groundhogchain/lib-go/libtime"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

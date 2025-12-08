@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

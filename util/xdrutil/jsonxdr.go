@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/must"
 	"github.com/xdrpp/goxdr/xdr"
 )
 

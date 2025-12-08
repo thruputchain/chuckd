@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libflow"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libmem"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libflow"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libmem"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -30,7 +30,7 @@ type StreamReceiver struct {
 	nav       *Navigator
 	caller    Caller
 	// performance
-	m              xdrutil.XdrMarshaler
+	m              libxdr.XdrMarshaler
 	receiveWorkers libflow.SubmitWorkerPool
 	// state
 }
@@ -49,7 +49,7 @@ func NewStreamReceiver(
 		discovery:      discovery,
 		nav:            nav,
 		caller:         caller,
-		m:              xdrutil.NewXdrMarshaler(),
+		m:              libxdr.NewXdrMarshaler(),
 		receiveWorkers: libflow.NewSubmitWorkerPool(ctx, numWorkers),
 	}
 }

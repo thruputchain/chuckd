@@ -4,8 +4,8 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 type BenchEchoExecDef struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libmem"
+	"github.com/groundhogchain/lib-go/libmem"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

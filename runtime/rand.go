@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 var (

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net"
 
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )

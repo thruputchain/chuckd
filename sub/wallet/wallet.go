@@ -11,9 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/sub/kit"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -176,7 +176,7 @@ func (g *WalletGateway) submitEndpoint(c *gin.Context) {
 	}
 
 	// We use JsonToXdr, because xdr unions cannot unmarshal using the standard golang JSON mechanism.
-	err = xdrutil.JsonToXdr(&walletSubmit, postData)
+	err = libxdr.JsonToXdr(&walletSubmit, postData)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid json/xdr format"})
 		return
@@ -189,7 +189,7 @@ func (g *WalletGateway) submitEndpoint(c *gin.Context) {
 	}
 
 	// We use XdrToJson, because xdr unions cannot serialize using the standard golang JSON mechanism.
-	postReply, err := xdrutil.XdrToJson(&ack)
+	postReply, err := libxdr.XdrToJson(&ack)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return

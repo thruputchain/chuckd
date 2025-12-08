@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

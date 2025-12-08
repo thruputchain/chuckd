@@ -3,7 +3,7 @@ package protoutil
 import (
 	"crypto/sha256"
 
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -31,13 +31,13 @@ func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.Propose
 	return Unpack(ts)
 }
 
-func HashSignedTx(m xdrutil.XdrMarshaler, tx *proto.SignedTransaction) proto.SignedTransactionHash {
+func HashSignedTx(m libxdr.XdrMarshaler, tx *proto.SignedTransaction) proto.SignedTransactionHash {
 	bb := m.MarshalXdr(tx)
 	defer bb.Recycle()
 	return sha256.Sum256(bb.Bytes())
 }
 
-func HashSignedTxs(m xdrutil.XdrMarshaler, txs []proto.SignedTransaction) []proto.SignedTransactionHash {
+func HashSignedTxs(m libxdr.XdrMarshaler, txs []proto.SignedTransaction) []proto.SignedTransactionHash {
 	sxs := make([]proto.SignedTransactionHash, len(txs))
 	for i := range txs {
 		sxs[i] = HashSignedTx(m, &txs[i])

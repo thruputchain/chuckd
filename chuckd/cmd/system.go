@@ -5,11 +5,11 @@ import (
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/dogwood"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/must"
 	"github.com/spf13/cobra"
 )
 

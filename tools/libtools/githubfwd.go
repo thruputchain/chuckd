@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/lib-go/liblog"
 )
 
 func ForwardSshForGit(ctx context.Context) error {

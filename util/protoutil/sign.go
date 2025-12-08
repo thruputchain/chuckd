@@ -5,15 +5,15 @@ import (
 	"crypto/ed25519"
 	"crypto/sha512"
 
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
 
 type Signatory interface {
 	Signer() proto.ValidatorPublicInfo
-	SignXdr(xdrutil.XdrMarshaler, xdr.XdrType) proto.Signature
-	VerifyXdr(m xdrutil.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool
+	SignXdr(libxdr.XdrMarshaler, xdr.XdrType) proto.Signature
+	VerifyXdr(m libxdr.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool
 }
 
 type signer struct {
@@ -28,11 +28,11 @@ func (s *signer) Signer() proto.ValidatorPublicInfo {
 	return s.priv.Public_info
 }
 
-func (s *signer) SignXdr(m xdrutil.XdrMarshaler, value xdr.XdrType) proto.Signature {
+func (s *signer) SignXdr(m libxdr.XdrMarshaler, value xdr.XdrType) proto.Signature {
 	return SignXdr(m, s.priv.Secret_key, value)
 }
 
-func (s *signer) VerifyXdr(m xdrutil.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool {
+func (s *signer) VerifyXdr(m libxdr.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool {
 	return VerifyXdr(m, s.Signer().Public_key, value, sig)
 }
 
@@ -51,7 +51,7 @@ func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 	return signature
 }
 
-func SignXdr(m xdrutil.XdrMarshaler, secretKey proto.ValidatorSecretKey, value xdr.XdrType) proto.Signature {
+func SignXdr(m libxdr.XdrMarshaler, secretKey proto.ValidatorSecretKey, value xdr.XdrType) proto.Signature {
 	bb := m.MarshalXdr(value)
 	defer bb.Recycle()
 	return SignBytes(secretKey, bb.Bytes())
@@ -64,7 +64,7 @@ func VerifyBytes(pubKey proto.ValidatorPublicKey, msg []byte, signature []byte) 
 	return err == nil
 }
 
-func VerifyXdr(m xdrutil.XdrMarshaler, pubKey proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
+func VerifyXdr(m libxdr.XdrMarshaler, pubKey proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
 	if sig.Scheme != proto.Ed25519 {
 		return false
 	}

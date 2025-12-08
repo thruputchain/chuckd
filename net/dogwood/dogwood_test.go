@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libruntime"
-	"github.com/groundhogchain/chuckd/lib/libstat"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libruntime"
+	"github.com/groundhogchain/lib-go/libstat"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
 )

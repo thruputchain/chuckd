@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/librand"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

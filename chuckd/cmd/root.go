@@ -9,11 +9,11 @@ import (
 
 	ghc "github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/chuckd/chuckd/api"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
 	chuckd_runtime "github.com/groundhogchain/chuckd/runtime"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
 	"github.com/xdrpp/goxdr/rpc"
@@ -115,7 +115,7 @@ func LoadCoordinatorConfig(ctx context.Context) proto.Config {
 	must.Assertf(ctx, err == nil, "reading config file (%w)", err)
 
 	var config proto.Config
-	err = xdrutil.JsonToXdr(&config, data)
+	err = libxdr.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 
 	return config
@@ -130,7 +130,7 @@ func LoadDogwoodConfig(ctx context.Context) proto.DogwoodStandaloneConfig {
 	must.Assertf(ctx, err == nil, "reading config file (%w)", err)
 
 	var config proto.DogwoodStandaloneConfig
-	err = xdrutil.JsonToXdr(&config, data)
+	err = libxdr.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 
 	return config

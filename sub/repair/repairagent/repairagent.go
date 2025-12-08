@@ -4,13 +4,13 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/librand"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librand"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -21,8 +21,8 @@ type RepairAgent struct {
 	signatory  protoutil.Signatory
 	router     router.Router
 	cvpool     *cvpool.ConsensusValuePool
-	txM        xdrutil.XdrMarshaler
-	cvM        xdrutil.XdrMarshaler
+	txM        libxdr.XdrMarshaler
+	cvM        libxdr.XdrMarshaler
 }
 
 func NewRepairAgent(
@@ -46,7 +46,7 @@ func NewRepairAgent(
 		signatory: signatory,
 		router:    router,
 		cvpool:    cvpool,
-		txM:       xdrutil.NewXdrMarshaler(),
-		cvM:       xdrutil.NewXdrMarshaler(),
+		txM:       libxdr.NewXdrMarshaler(),
+		cvM:       libxdr.NewXdrMarshaler(),
 	}
 }

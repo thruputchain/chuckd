@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 func (x *DiskStorage) reclaimLoop(ctx context.Context) {

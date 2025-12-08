@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -14,7 +14,7 @@ type LinkedTreeNode struct {
 	Children []*LinkedTreeNode
 }
 
-func (l *LinkedTreeNode) TreeNodes(m xdrutil.XdrMarshaler) proto.DogwoodTreeNodes {
+func (l *LinkedTreeNode) TreeNodes(m libxdr.XdrMarshaler) proto.DogwoodTreeNodes {
 	nodes := make(proto.DogwoodTreeNodes, 1, 1+len(l.Children))
 	nodes[0] = proto.DogwoodTreeNode{
 		Node:     l.Node,
@@ -48,18 +48,18 @@ func (l *LinkedTreeNode) FindChildren(v proto.ValidatorID) ([]proto.ValidatorID,
 	return nil, false
 }
 
-func TreeHash(m xdrutil.XdrMarshaler, t *LinkedTreeNode) proto.DogwoodTreeHash {
+func TreeHash(m libxdr.XdrMarshaler, t *LinkedTreeNode) proto.DogwoodTreeHash {
 	return TreeNodeHash(m, t.TreeNodes(m)[0])
 }
 
-func TreeNodeHash(m xdrutil.XdrMarshaler, treeNode proto.DogwoodTreeNode) proto.DogwoodTreeHash {
+func TreeNodeHash(m libxdr.XdrMarshaler, treeNode proto.DogwoodTreeNode) proto.DogwoodTreeHash {
 	bb := m.MarshalXdr(&treeNode)
 	defer bb.Recycle()
 	return sha256.Sum256(bb.Bytes())
 }
 
 func ReconstructLinkedTree(
-	m xdrutil.XdrMarshaler,
+	m libxdr.XdrMarshaler,
 	h proto.DogwoodTreeHash,
 	treeNodes proto.DogwoodTreeNodes,
 ) (*LinkedTreeNode, error) {
@@ -75,7 +75,7 @@ func ReconstructLinkedTree(
 }
 
 // The first node must be the root. All nodes must be part of the same tree.
-func BuildLinkedTree(m xdrutil.XdrMarshaler, treeNodes proto.DogwoodTreeNodes) (*LinkedTreeNode, error) {
+func BuildLinkedTree(m libxdr.XdrMarshaler, treeNodes proto.DogwoodTreeNodes) (*LinkedTreeNode, error) {
 
 	if len(treeNodes) == 0 {
 		return nil, fmt.Errorf("no tree nodes")

@@ -3,8 +3,8 @@ package dogwood
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/lib-go/libnet"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

@@ -1,34 +1,35 @@
 name: Dogwood benchmark 300m
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-    build-test:
-        runs-on: self-hosted
-        steps:
-            - name: Clean up .gitconfig
-              run: |
-                  echo "Cleaning up .gitconfig"
-                  rm -f /home/hogci/.gitconfig
+  build-test:
+    runs-on: self-hosted
+    steps:
+      - name: Clean up .gitconfig
+        run: |
+          echo "Cleaning up .gitconfig"
+          rm -f /home/hogci/.gitconfig
 
-            - uses: webfactory/ssh-agent@v0.9.1
-              with:
-                  ssh-private-key: |
-                      ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
-                      ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
-                      ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+      - uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: |
+            ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+            ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
+            ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+            ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
 
-            - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-            - name: Run hog schedule
-              run: |
-                  hog_sched \
-                    --i="github-${{ github.run_id }}" \
-                    --key=github_repo --value=${{ github.repository }} \
-                    --key=git_commit --value=${{ github.sha }} \
-                    --key=git_branch --value=${{ github.head_ref || github.ref_name }} \
-                    ./scripts/schedules/dogwood_bench_300m.toml
+      - name: Run hog schedule
+        run: |
+          hog_sched \
+            --i="github-${{ github.run_id }}" \
+            --key=github_repo --value=${{ github.repository }} \
+            --key=git_commit --value=${{ github.sha }} \
+            --key=git_branch --value=${{ github.head_ref || github.ref_name }} \
+            ./scripts/schedules/dogwood_bench_300m.toml

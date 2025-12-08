@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
-	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/lib-go/liblog"
 )
 
 type DotHogtools struct {

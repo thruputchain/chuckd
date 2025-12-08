@@ -6,11 +6,11 @@ import (
 	"os/user"
 	"path"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/tools/hoglock"
 	"github.com/groundhogchain/chuckd/tools/libtools"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 type Scheduler struct {

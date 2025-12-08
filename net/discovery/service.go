@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -43,7 +43,7 @@ type DiscoveryService struct {
 	cachedSnapshots  []proto.SignedQuorumSetSnapshot
 	cachedValidators []proto.SignedValidatorInfoSnapshot
 	//
-	m xdrutil.XdrMarshaler
+	m libxdr.XdrMarshaler
 }
 
 func NewDiscoveryService(
@@ -65,7 +65,7 @@ func NewDiscoveryService(
 		knownQSets:    map[proto.ValidatorID]proto.SignedQuorumSetSnapshot{},
 		hashQSet:      map[proto.SCPHash]proto.SCPQuorumSet{},
 		knownVs:       map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{},
-		m:             xdrutil.NewXdrMarshaler(),
+		m:             libxdr.NewXdrMarshaler(),
 	}
 
 	s.ourVIDs = map[proto.ValidatorID]proto.ValidatorPublicInfo{}
@@ -74,7 +74,7 @@ func NewDiscoveryService(
 		s.ourVIDs[protoutil.PublicVID(v)] = v
 	}
 
-	s.hashQSet[xdrutil.HashXdr(s.m, &s.ourQSet)] = s.ourQSet
+	s.hashQSet[libxdr.HashXdr(s.m, &s.ourQSet)] = s.ourQSet
 
 	go s.advertise(ctx)
 	return s
@@ -176,7 +176,7 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 
 	// index by qset hash
 	scpkit.NormalizeQSet(&qset.Quorum_set_snapshot.Quorum_set, nil)
-	s.hashQSet[xdrutil.HashXdr(s.m, &qset.Quorum_set_snapshot.Quorum_set)] = qset.Quorum_set_snapshot.Quorum_set
+	s.hashQSet[libxdr.HashXdr(s.m, &qset.Quorum_set_snapshot.Quorum_set)] = qset.Quorum_set_snapshot.Quorum_set
 }
 
 func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {

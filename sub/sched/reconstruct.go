@@ -6,7 +6,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

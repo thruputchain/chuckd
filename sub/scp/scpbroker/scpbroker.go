@@ -3,12 +3,12 @@ package scpbroker
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/lib-go/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

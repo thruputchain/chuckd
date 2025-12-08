@@ -5,11 +5,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libflow"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/multiplex"
@@ -26,7 +21,12 @@ import (
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/sub/wallet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libflow"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -310,7 +310,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 		// drive received txs into mempool
 		go func() {
-			m := xdrutil.NewXdrMarshaler()
+			m := libxdr.NewXdrMarshaler()
 			_ = m
 			for {
 				sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)

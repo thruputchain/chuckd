@@ -5,7 +5,7 @@ import (
 	"context"
 	"text/template"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 type M map[string]any

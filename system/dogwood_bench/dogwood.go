@@ -10,16 +10,16 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/groundhogchain/chuckd/lib/libtext"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libstat"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libstat"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libtime"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

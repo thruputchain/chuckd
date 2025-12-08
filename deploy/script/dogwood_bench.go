@@ -8,7 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/deploy/common"
 	"github.com/groundhogchain/chuckd/util/textutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -196,7 +196,7 @@ EOF
 		"Name":             name,
 		"Host":             host,
 		"ConfigName":       "dogwood-bench-config-" + name + ".json",
-		"ConfigJSON":       xdrutil.MustXdrToJsonString(&cfg),
+		"ConfigJSON":       libxdr.MustXdrToJsonString(&cfg),
 		"NodeIndex":        index,
 		"Seed":             rand.Int63(),
 		"ChuckdPath":       chuckdPath,

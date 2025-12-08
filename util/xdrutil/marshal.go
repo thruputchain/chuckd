@@ -3,7 +3,7 @@ package xdrutil
 import (
 	"bytes"
 
-	"github.com/groundhogchain/chuckd/lib/libmem"
+	"github.com/groundhogchain/lib-go/libmem"
 	"github.com/xdrpp/goxdr/xdr"
 )
 

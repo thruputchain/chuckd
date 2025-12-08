@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 // if ctx is cancelled, the process will be killed

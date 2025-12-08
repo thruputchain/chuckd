@@ -3,7 +3,7 @@ package libtools
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/lib-go/liblog"
 )
 
 func ShExecPar(

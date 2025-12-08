@@ -3,19 +3,19 @@ package multiplex
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/libtext"
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 // scp msgs, proposed txsets,
 type Multiplex struct {
 	self                   proto.ValidatorID
-	m                      xdrutil.XdrMarshaler
-	dbgM                   xdrutil.XdrMarshaler
+	m                      libxdr.XdrMarshaler
+	dbgM                   libxdr.XdrMarshaler
 	dogwood                *dogwood.DogwoodService
 	receivedSubmittedTxs   chan submittedTxsFrom
 	receivedConsensusValue chan consensusValueFrom
@@ -40,8 +40,8 @@ type consensusValueFrom struct {
 func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.DogwoodService) *Multiplex {
 	x := &Multiplex{
 		self:                   self,
-		m:                      xdrutil.NewXdrMarshaler(),
-		dbgM:                   xdrutil.NewXdrMarshaler(),
+		m:                      libxdr.NewXdrMarshaler(),
+		dbgM:                   libxdr.NewXdrMarshaler(),
 		dogwood:                dogwood,
 		receivedSubmittedTxs:   make(chan submittedTxsFrom),
 		receivedConsensusValue: make(chan consensusValueFrom),
@@ -59,7 +59,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 			continue
 		}
 		var xmsg proto.MultiplexMessage
-		if err := xdrutil.UnmarshalXdr(&xmsg, payload); err != nil {
+		if err := libxdr.UnmarshalXdr(&xmsg, payload); err != nil {
 			liblog.Errorf("cannot unmarshal multiplex message: %v", err)
 			continue
 		}

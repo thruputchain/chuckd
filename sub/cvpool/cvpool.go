@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -14,14 +14,14 @@ type ConsensusValuePool struct {
 	lk     sync.Mutex
 	bottom proto.BlockHeight // height of highest externalized slot
 	cv     map[proto.ConsensusValueHash]proto.ConsensusValue
-	m      xdrutil.XdrMarshaler
+	m      libxdr.XdrMarshaler
 }
 
 func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
 		cv:     map[proto.ConsensusValueHash]proto.ConsensusValue{},
 		bottom: 0,
-		m:      xdrutil.NewXdrMarshaler(),
+		m:      libxdr.NewXdrMarshaler(),
 	}
 	cvp.cond = sync.NewCond(&cvp.lk)
 	var _ CVPool = cvp

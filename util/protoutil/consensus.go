@@ -3,11 +3,11 @@ package protoutil
 import (
 	"crypto/sha256"
 
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashCV(m xdrutil.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
+func HashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	bb := m.MarshalXdr(cv)
 	defer bb.Recycle()
 	return sha256.Sum256(bb.Bytes())
@@ -20,7 +20,7 @@ func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
 	return true
 }
 
-func CueFromConsensusValue(m xdrutil.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueCue {
+func CueFromConsensusValue(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueCue {
 	return proto.ConsensusValueCue{
 		Proposer:        cv.Nomination.Proposer,
 		Cv_hash:         HashCV(m, cv),

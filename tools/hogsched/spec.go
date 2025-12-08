@@ -9,8 +9,8 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/textutil"
+	"github.com/groundhogchain/lib-go/must"
 )
 
 type Spec struct {

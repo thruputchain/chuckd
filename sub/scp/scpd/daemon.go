@@ -10,13 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libruntime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/textutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libruntime"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -35,7 +35,7 @@ func StartSCPDaemon(
 
 	// prepare config
 
-	// cfgText := xdrutil.MustXdrToJsonString(&cfg)
+	// cfgText := libxdr.MustXdrToJsonString(&cfg)
 	// TODO: replace the shim when we have XDR-JSON for both Go and Rust
 	cfgBytes, err := json.MarshalIndent(SCPConfigToShim(cfg), "", "   ")
 	must.NoError(ctx, err)

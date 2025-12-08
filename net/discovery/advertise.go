@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

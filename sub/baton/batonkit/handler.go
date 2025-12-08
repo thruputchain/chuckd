@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
@@ -13,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libtime"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )

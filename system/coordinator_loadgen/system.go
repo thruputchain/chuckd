@@ -6,17 +6,17 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/librand"
-	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/debug"
 	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/systemkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librand"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -94,7 +94,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 
 	// pump transactions
 	i := 0
-	txm := xdrutil.NewXdrMarshaler()
+	txm := libxdr.NewXdrMarshaler()
 	uncommitted := map[proto.SignedTransactionHash]bool{}
 pump:
 	for {

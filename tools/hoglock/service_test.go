@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libruntime"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libruntime"
 	proto "github.com/groundhogchain/protocol-go"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/lib/libnet"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/lib-go/libnet"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )

@@ -4,15 +4,15 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestDb struct {
-	m   xdrutil.XdrMarshaler
+	m   libxdr.XdrMarshaler
 	lk  sync.Mutex
 	id  map[proto.BlockID]*testDbSnapshot
 	top *testDbSnapshot
@@ -28,7 +28,7 @@ type testDbSnapshot struct {
 func NewTestDb(ctx context.Context, tip proto.DbTip) *TestDb {
 	must.Assert(ctx, tip.Height > 0)
 	db := &TestDb{
-		m:  xdrutil.NewXdrMarshaler(),
+		m:  libxdr.NewXdrMarshaler(),
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
 	db.top = &testDbSnapshot{

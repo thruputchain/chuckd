@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/dustin/go-humanize"
-	"github.com/groundhogchain/chuckd/lib/librand"
-	"github.com/groundhogchain/chuckd/lib/libstat"
+	"github.com/groundhogchain/lib-go/librand"
+	"github.com/groundhogchain/lib-go/libstat"
 )
 
 func TestBenchEncDec(t *testing.T) {

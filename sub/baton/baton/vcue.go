@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/groundhogchain/chuckd/lib/libtext"
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -31,7 +31,7 @@ func (x scpHandler) ValidateCue(
 	}()
 
 	var cvc proto.ConsensusValueCue
-	err := xdrutil.UnmarshalXdr(&cvc, value)
+	err := libxdr.UnmarshalXdr(&cvc, value)
 	if err != nil {
 		return scpkit.InvalidValue
 	}

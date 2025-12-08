@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -27,8 +27,8 @@ type CatchupService struct {
 	highest proto.BlockHeight
 	block   map[proto.BlockHeight]stampedCatchupBlock
 	//
-	reqM    xdrutil.XdrMarshaler
-	resultM xdrutil.XdrMarshaler
+	reqM    libxdr.XdrMarshaler
+	resultM libxdr.XdrMarshaler
 }
 
 type stampedCatchupBlock struct {
@@ -53,8 +53,8 @@ func NewCatchupService(
 		ttl:     ttl,
 		age:     age,
 		block:   map[proto.BlockHeight]stampedCatchupBlock{},
-		reqM:    xdrutil.NewXdrMarshaler(),
-		resultM: xdrutil.NewXdrMarshaler(),
+		reqM:    libxdr.NewXdrMarshaler(),
+		resultM: libxdr.NewXdrMarshaler(),
 	}
 	go svc.expire(ctx)
 	return svc

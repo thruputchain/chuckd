@@ -5,10 +5,10 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/libtime"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -16,7 +16,7 @@ type TestGen struct {
 	time      libtime.Time
 	validator proto.ValidatorPrivateInfo
 	user      proto.ValidatorSecretKey // wallet user who signs txs
-	m         xdrutil.XdrMarshaler
+	m         libxdr.XdrMarshaler
 	lk        sync.Mutex
 	rand      *rand.Rand
 }
@@ -32,7 +32,7 @@ func NewTestGen(
 		time:      time,
 		validator: validator,
 		user:      user,
-		m:         xdrutil.NewXdrMarshaler(),
+		m:         libxdr.NewXdrMarshaler(),
 		rand:      rand,
 	}
 }
@@ -148,11 +148,11 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 }
 
-func BlendPropopsedTx(m xdrutil.XdrMarshaler, base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
+func BlendPropopsedTx(m libxdr.XdrMarshaler, base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
 	return xorBlockHash(base, protoutil.HashSignedTx(m, &ptx.Signed_tx))
 }
 
-func BlendSignedTx(m xdrutil.XdrMarshaler, base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
+func BlendSignedTx(m libxdr.XdrMarshaler, base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
 	return xorBlockHash(base, protoutil.HashSignedTx(m, stx))
 }
 

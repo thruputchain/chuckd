@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libruntime"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libruntime"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
 )
 
-var testMarshaler = xdrutil.NewXdrMarshaler()
+var testMarshaler = libxdr.NewXdrMarshaler()
 
 func TestMain(m *testing.M) {
 	liblog.LogLevel(zerolog.DebugLevel)

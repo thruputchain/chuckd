@@ -3,7 +3,7 @@ package magnolia
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/must"
 	"github.com/klauspost/reedsolomon"
 )
 

@@ -4,23 +4,23 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestCatchupStaged struct {
 	time   libtime.Time
 	Signer proto.ValidatorPrivateInfo
-	m      xdrutil.XdrMarshaler
+	m      libxdr.XdrMarshaler
 	lk     sync.Mutex
 	result [][]proto.CatchupBlock
 }
 
 func NewTestCatchup(time libtime.Time, signer proto.ValidatorPrivateInfo) *TestCatchupStaged {
-	return &TestCatchupStaged{time: time, Signer: signer, m: xdrutil.NewXdrMarshaler()}
+	return &TestCatchupStaged{time: time, Signer: signer, m: libxdr.NewXdrMarshaler()}
 }
 
 func (x *TestCatchupStaged) Catchup_null(context.Context) error {

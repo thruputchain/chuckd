@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/catchup"
@@ -19,7 +17,9 @@ import (
 	"github.com/groundhogchain/chuckd/test/testsched"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
@@ -146,11 +146,11 @@ func (h *TestRig) Signer() proto.ValidatorPublicInfo {
 	return h.signer.Public_info
 }
 
-func (h *TestRig) SignXdr(m xdrutil.XdrMarshaler, v xdr.XdrType) proto.Signature {
+func (h *TestRig) SignXdr(m libxdr.XdrMarshaler, v xdr.XdrType) proto.Signature {
 	return protoutil.SignXdr(m, h.signer.Secret_key, v)
 }
 
-func (h *TestRig) VerifyXdr(m xdrutil.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool {
+func (h *TestRig) VerifyXdr(m libxdr.XdrMarshaler, value xdr.XdrType, sig proto.Signature) bool {
 	panic("not used")
 	// return protoutil.VerifyXdr(m, h.signer.Public_info.Public_key, value, sig)
 }

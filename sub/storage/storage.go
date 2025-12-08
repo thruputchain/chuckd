@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
-	"github.com/groundhogchain/chuckd/lib/must"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -25,8 +25,8 @@ type DiskStorage struct {
 	scpLk       sync.Mutex
 	consensusLk sync.Mutex
 	//
-	catchupM xdrutil.XdrMarshaler
-	scpM     xdrutil.XdrMarshaler
+	catchupM libxdr.XdrMarshaler
+	scpM     libxdr.XdrMarshaler
 	//
 	ready chan struct{}
 }
@@ -34,8 +34,8 @@ type DiskStorage struct {
 func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
 	return &DiskStorage{
 		cfg:      cfg,
-		catchupM: xdrutil.NewXdrMarshaler(),
-		scpM:     xdrutil.NewXdrMarshaler(),
+		catchupM: libxdr.NewXdrMarshaler(),
+		scpM:     libxdr.NewXdrMarshaler(),
 		ready:    make(chan struct{}),
 	}
 }
@@ -96,7 +96,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 	must.NoError(ctx, err)
 
 	cb := &proto.CatchupBlock{}
-	err = xdrutil.UnmarshalXdr(cb, bytes)
+	err = libxdr.UnmarshalXdr(cb, bytes)
 	must.NoError(ctx, err)
 
 	return cb
@@ -141,7 +141,7 @@ func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.Block
 	must.NoError(ctx, err)
 
 	cv := &proto.ConsensusValue{}
-	err = xdrutil.UnmarshalXdr(cv, bytes)
+	err = libxdr.UnmarshalXdr(cv, bytes)
 	must.NoError(ctx, err)
 
 	return cv
@@ -188,7 +188,7 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 	x.scpLk.Lock()
 	defer x.scpLk.Unlock()
 
-	hash := xdrutil.HashXdr(x.scpM, &env)
+	hash := libxdr.HashXdr(x.scpM, &env)
 
 	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, time.Now(), hash[:5])
 	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
@@ -227,7 +227,7 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 		bytes, err := os.ReadFile(envpath)
 		must.NoError(ctx, err)
 
-		xdrutil.UnmarshalXdr(&env, bytes)
+		libxdr.UnmarshalXdr(&env, bytes)
 		must.NoError(ctx, err)
 
 		found = append(found, env)

@@ -7,9 +7,9 @@ import (
 	"net"
 	"strings"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/must"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/must"
 	"github.com/xdrpp/goxdr/rpc"
 	"github.com/xdrpp/goxdr/xdr"
 )

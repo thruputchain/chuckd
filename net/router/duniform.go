@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type dynamicUniformRouter struct {
-	m          xdrutil.XdrMarshaler
+	m          libxdr.XdrMarshaler
 	discovery  *discovery.DiscoveryService
 	treeFanOut int
 }
@@ -26,7 +26,7 @@ func NewDynamicUniformRouter(
 ) Router {
 	return &dynamicUniformRouter{
 		discovery:  discovery,
-		m:          xdrutil.NewXdrMarshaler(),
+		m:          libxdr.NewXdrMarshaler(),
 		treeFanOut: treeFanOut,
 	}
 }

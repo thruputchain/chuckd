@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -24,7 +24,7 @@ func IsNodeInQuorumSet(node proto.SCPNodeID, qset proto.SCPQuorumSet) bool {
 }
 
 func MakeSignedQuorumSetSnapshot(
-	m xdrutil.XdrMarshaler,
+	m libxdr.XdrMarshaler,
 	privInfo proto.ValidatorPrivateInfo,
 	qset proto.SCPQuorumSet,
 ) proto.SignedQuorumSetSnapshot {
@@ -40,7 +40,7 @@ func MakeSignedQuorumSetSnapshot(
 }
 
 func MakeSignedValidatorInfoSnapshot(
-	m xdrutil.XdrMarshaler,
+	m libxdr.XdrMarshaler,
 	privInfo proto.ValidatorPrivateInfo,
 	v proto.ValidatorPublicInfo,
 ) proto.SignedValidatorInfoSnapshot {
@@ -101,11 +101,11 @@ func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Sort() { sort.Sort(x
 
 // verification
 
-func VerifySignedQuorumSetSnapshot(m xdrutil.XdrMarshaler, v proto.SignedQuorumSetSnapshot) bool {
+func VerifySignedQuorumSetSnapshot(m libxdr.XdrMarshaler, v proto.SignedQuorumSetSnapshot) bool {
 	return VerifyXdr(m, v.Signer.Public_key, &v.Quorum_set_snapshot, v.Signature)
 }
 
-func VerifySignedValidatorInfoSnapshot(m xdrutil.XdrMarshaler, v proto.SignedValidatorInfoSnapshot) bool {
+func VerifySignedValidatorInfoSnapshot(m libxdr.XdrMarshaler, v proto.SignedValidatorInfoSnapshot) bool {
 	return VerifyXdr(m, v.Signer.Public_key, &v.Validator_snapshot, v.Signature)
 }
 

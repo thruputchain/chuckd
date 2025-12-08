@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/groundhogchain/chuckd"
-	"github.com/groundhogchain/chuckd/lib/liblog"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"

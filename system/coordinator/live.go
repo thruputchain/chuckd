@@ -5,10 +5,6 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/lib/liblog"
-	"github.com/groundhogchain/chuckd/lib/libnet"
-	"github.com/groundhogchain/chuckd/lib/libtime"
-	"github.com/groundhogchain/chuckd/lib/must"
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
@@ -20,7 +16,11 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
@@ -41,7 +41,7 @@ type LiveHandler struct {
 	storage       *storage.DiskStorage
 	scpBroker     *scpbroker.SCPBroker
 	scpController scpkit.SCPController
-	m             xdrutil.XdrMarshaler
+	m             libxdr.XdrMarshaler
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -78,7 +78,7 @@ func NewLiveHandler(
 		multiplex:               multiplex,
 		storage:                 storage,
 		scpBroker:               scpBroker,
-		m:                       xdrutil.NewXdrMarshaler(),
+		m:                       libxdr.NewXdrMarshaler(),
 		rand:                    rand,
 		scpReady:                make(chan struct{}),
 		schedReady:              make(chan struct{}),

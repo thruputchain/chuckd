@@ -3,7 +3,7 @@ package batonkit
 import (
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/lib/libtext"
+	"github.com/groundhogchain/lib-go/libtext"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
