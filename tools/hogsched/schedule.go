@@ -80,8 +80,6 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	// apply key/value substitutions in spec
 	rwSpec := spec.Rewrite(ctx, kv)
 
-	liblog.Infof("Rewritten spec:\n%#v\n", rwSpec)
-
 	liblog.Infof("locks for %v acquired as %v, starting jobs", hostMap, xid)
 
 	// copy files into host
@@ -98,10 +96,13 @@ func (x Scheduler) Schedule(ctx context.Context, xid string, spec Spec, kv map[s
 	must.NoError(ctx, err)
 	inject["HOG_USER"] = user.Username
 
-	scripts := rwSpec.ScriptsWithJobDir(x.JobDir, user.Username, x.DumpDir)
-	afters := rwSpec.AftersWithJobDir(x.JobDir, user.Username, x.DumpDir)
-	envs := rwSpec.Envs(inject)
-	err = libtools.SshExecPar(ctx, hostMapValues(hostMap), scripts, afters, envs)
+	err = libtools.SshExecPar(
+		ctx,
+		rwSpec.HostValues(),
+		rwSpec.ScriptsWithJobDir(x.JobDir, user.Username, x.DumpDir),
+		rwSpec.AftersWithJobDir(x.JobDir, user.Username, x.DumpDir),
+		rwSpec.Envs(inject),
+	)
 	if err != nil {
 		return err
 	}

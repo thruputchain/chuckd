@@ -22,6 +22,14 @@ type RewrittenJob struct {
 	FileOut   []string          `toml:"file_out"`
 }
 
+func (x RewrittenSpec) HostValues() []string {
+	hvs := make([]string, len(x.Jobs))
+	for i, job := range x.Jobs {
+		hvs[i] = job.HostValue
+	}
+	return hvs
+}
+
 func (x RewrittenSpec) ScriptsWithJobDir(jobDir string, user string, dumpDir string) []string {
 	jobDir = filepath.Clean(jobDir)
 	prefix := fmt.Sprintf(`
