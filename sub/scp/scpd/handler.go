@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -33,7 +33,7 @@ func (x *SCPHandler) SetHandlers(
 
 func (x *SCPHandler) Start(ctx context.Context, addr string) {
 	// must use parallel because validations are long-running
-	rpcutil.StartParallel(ctx, libnet.TCPNet{}, addr, proto.SCP_Handle1_Server{Srv: x})
+	librpc.StartParallel(ctx, libnet.TCPNet{}, addr, proto.SCP_Handle1_Server{Srv: x})
 }
 
 func (x *SCPHandler) Scp_handle_null(context.Context) error {

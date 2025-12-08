@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
@@ -61,7 +61,7 @@ func NewCatchupService(
 }
 
 func (svc *CatchupService) Start(ctx context.Context, address string) {
-	rpcutil.StartSerial(ctx, svc.net, address, proto.Catchup1_Server{Srv: svc})
+	librpc.StartSerial(ctx, svc.net, address, proto.Catchup1_Server{Srv: svc})
 }
 
 func (svc *CatchupService) Add(ctx context.Context, cb *proto.CatchupBlock) {

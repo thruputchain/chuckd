@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -53,7 +53,7 @@ func NewService(allHosts []string) *Service {
 
 func (x *Service) Start(ctx context.Context, n libnet.Network, address string) {
 	go x.start(ctx)
-	l := rpcutil.StartParallel(ctx, n, address, proto.HogLock1_Server{Srv: x})
+	l := librpc.StartParallel(ctx, n, address, proto.HogLock1_Server{Srv: x})
 	liblog.Infof("hog_lockd is listening on %v", l.Addr().String())
 }
 

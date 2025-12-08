@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -24,7 +24,7 @@ func DialLoadgenClient(ctx context.Context, dialer libnet.AddressDialer, address
 }
 
 func NewLoadgenClient(ctx context.Context, sock net.Conn) *LoadgenClient {
-	driver := rpcutil.NewDriverSerial(ctx, sock)
+	driver := librpc.NewDriverSerial(ctx, sock)
 	go driver.Go()
 
 	return &LoadgenClient{

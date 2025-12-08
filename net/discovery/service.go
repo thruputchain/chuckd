@@ -7,9 +7,9 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -82,7 +82,7 @@ func NewDiscoveryService(
 
 func (svc *DiscoveryService) Start(ctx context.Context, address string) {
 	liblog.Infof("starting discovery service")
-	rpcutil.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
+	librpc.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
 }
 
 func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {

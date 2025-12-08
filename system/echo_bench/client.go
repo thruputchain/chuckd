@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/xdrpp/goxdr/rpc"
 )
 
@@ -28,7 +28,7 @@ func DialEchoClient(ctx context.Context, dialer libnet.AddressDialer, addr strin
 }
 
 func NewEchoClient(ctx context.Context, sock net.Conn) *EchoClient {
-	driver := rpcutil.NewDriverSerial(ctx, sock)
+	driver := librpc.NewDriverSerial(ctx, sock)
 	go driver.Go()
 
 	return &EchoClient{

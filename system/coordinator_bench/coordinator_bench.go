@@ -10,9 +10,9 @@ import (
 	"github.com/groundhogchain/chuckd/test/testsched"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -74,7 +74,7 @@ func (x *CoordinatorBenchCluster) SchedAddress() string {
 func (x *CoordinatorBenchCluster) Start(ctx context.Context) {
 
 	liblog.Infof("testcluster starting")
-	rpcutil.StartSerial(ctx, x.net, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
+	librpc.StartSerial(ctx, x.net, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
 
 	go x.pumpTxs(ctx)
 }

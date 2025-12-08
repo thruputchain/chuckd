@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
@@ -29,7 +29,7 @@ func DialRepairClient(ctx context.Context, dialer libnet.AddressDialer, addr str
 }
 
 func NewRepairClient(ctx context.Context, sock net.Conn) *RepairClient {
-	driver := rpcutil.NewDriverSerial(ctx, sock)
+	driver := librpc.NewDriverSerial(ctx, sock)
 	go driver.Go()
 
 	return &RepairClient{
