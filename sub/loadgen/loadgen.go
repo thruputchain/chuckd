@@ -23,7 +23,7 @@ type LoadGen struct {
 	rand   *rand.Rand
 	inside libnet.Network
 	//
-	genesisCh  chan *proto.GenesisBlock
+	genesisCh  chan *proto.GenesisConfiguration
 	blockTxsCh chan []*proto.SignedTransaction
 	done       chan struct{}
 }
@@ -38,7 +38,7 @@ func NewLoadGen(
 		Cfg:        cfg,
 		rand:       rand,
 		inside:     inside,
-		genesisCh:  make(chan *proto.GenesisBlock, 1),
+		genesisCh:  make(chan *proto.GenesisConfiguration, 1),
 		blockTxsCh: make(chan []*proto.SignedTransaction),
 		done:       make(chan struct{}),
 	}
@@ -55,7 +55,7 @@ func (x *LoadGen) Start(ctx context.Context, loadgenAddr string) {
 	go x.obtainTxs(ctx, lgConn)
 }
 
-func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisBlock {
+func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisConfiguration {
 	return <-x.genesisCh
 }
 
@@ -85,7 +85,7 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	ctxID := result.Context_id
 
 	liblog.Infof("delivering genesis block")
-	x.genesisCh <- &result.Genesis_block
+	x.genesisCh <- &result.Genesis_configuration
 
 	liblog.Infof("delivering init blocks")
 	for _, blockInitTxs := range result.Initialization_txs {

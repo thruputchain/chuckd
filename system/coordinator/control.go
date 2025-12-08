@@ -13,8 +13,8 @@ type Control struct {
 	genesisReady chan struct{}
 }
 
-func (x Control) LoadGenesisBlock(ctx context.Context, gb proto.GenesisBlock) (proto.DbSchedResult, error) {
-	return x.conn.Schedcoord_load_genesis_block(ctx, gb)
+func (x Control) LoadGenesisConfiguration(ctx context.Context, gb proto.GenesisConfiguration) (proto.DbSchedResult, error) {
+	return x.conn.Schedcoord_load_genesis_configuration(ctx, gb)
 }
 
 func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) {

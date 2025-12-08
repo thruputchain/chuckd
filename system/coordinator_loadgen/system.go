@@ -86,7 +86,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 
 	// process genesis
 	genesis := s.loadgen.WaitGenesis(ctx)
-	_, err = ctl.LoadGenesisBlock(ctx, *genesis)
+	_, err = ctl.LoadGenesisConfiguration(ctx, *genesis)
 	must.NoError(ctx, err)
 	ctl.GenesisIsReady()
 

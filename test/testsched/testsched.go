@@ -193,6 +193,6 @@ func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.DbTip, er
 	return x.db.GetTip(), nil
 }
 
-func (x *TestScheduler) Schedcoord_load_genesis_block(context.Context, proto.GenesisBlock) (proto.DbSchedResult, error) {
+func (x *TestScheduler) Schedcoord_load_genesis_configuration(context.Context, proto.GenesisConfiguration) (proto.DbSchedResult, error) {
 	panic("not used")
 }
