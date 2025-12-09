@@ -92,37 +92,35 @@ func (s *CoordinatorLoadgenSystem) Start(
 
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
-	// pump transactions
+	s.PumpInitTxs(ctx, ctl)
+	s.PumpWorkTxs(ctx, ctl)
+
+	// print results
+	benchDuration := time.Since(t0)
+	fmt.Println(
+		float64(benchDuration.Milliseconds()) / float64(s.loadgen.Cfg.NumBlocks), // milliseconds/commit
+	)
+}
+
+func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {
 	i := 0
 	txm := libxdr.NewXdrMarshaler()
 	uncommitted := map[proto.SignedTransactionHash]bool{}
-pump:
+
 	for {
-		select {
-		case <-ctx.Done():
-			break pump
-		default:
-		}
-
-		liblog.Infof("waiting for tx batch %d to arrive from loadgen", i)
-		txs := s.loadgen.WaitBlockTxs(ctx)
+		liblog.Infof("waiting for init tx batch %d to arrive from loadgen", i)
+		txs := s.loadgen.WaitInitTxs(ctx)
 		if txs == nil {
-			break pump
+			return
 		}
 
-		select {
-		case <-ctx.Done():
-			break pump
-		default:
-		}
-
-		liblog.Infof("submitting tx batch %d with %d transactions", i, len(txs))
+		liblog.Infof("submitting init tx batch %d with %d transactions", i, len(txs))
 		for _, tx := range txs {
 			uncommitted[protoutil.HashSignedTx(txm, tx)] = true
 		}
 		ctl.SubmitTxs(ctx, txs)
 
-		liblog.Infof("waiting for batch %d to commit", i)
+		liblog.Infof("waiting for init batch %d to commit", i)
 		for {
 			cb := s.notify.ReceiveCommitted(ctx)
 			for _, h := range cb.SignedTransactionHashes(txm) {
@@ -135,12 +133,31 @@ pump:
 
 		i += 1
 	}
+}
 
-	// print results
-	benchDuration := time.Since(t0)
-	fmt.Println(
-		float64(benchDuration.Milliseconds()) / float64(s.loadgen.Cfg.NumBlocks), // milliseconds/commit
-	)
+func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordinator.Control) {
+
+	go func() {
+		for {
+			s.notify.ReceiveCommitted(ctx)
+		}
+	}()
+
+	i := 0
+	for {
+		liblog.Infof("waiting for work tx batch %d to arrive from loadgen", i)
+		txs := s.loadgen.WaitWorkTxs(ctx)
+		if txs == nil {
+			return
+		}
+
+		liblog.Infof("submitting work tx batch %d with %d transactions", i, len(txs))
+		ctl.SubmitTxs(ctx, txs)
+
+		liblog.Infof("waiting for work batch %d to commit", i)
+
+		i += 1
+	}
 }
 
 func (s *CoordinatorLoadgenSystem) Close() {

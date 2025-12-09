@@ -23,9 +23,10 @@ type LoadGen struct {
 	rand   *rand.Rand
 	inside libnet.Network
 	//
-	genesisCh  chan *proto.GenesisConfiguration
-	blockTxsCh chan []*proto.SignedTransaction
-	done       chan struct{}
+	genesisCh chan *proto.GenesisConfiguration
+	initTxsCh chan []*proto.SignedTransaction
+	workTxsCh chan []*proto.SignedTransaction
+	done      chan struct{}
 }
 
 func NewLoadGen(
@@ -35,12 +36,13 @@ func NewLoadGen(
 	cfg Config,
 ) *LoadGen {
 	x := &LoadGen{
-		Cfg:        cfg,
-		rand:       rand,
-		inside:     inside,
-		genesisCh:  make(chan *proto.GenesisConfiguration, 1),
-		blockTxsCh: make(chan []*proto.SignedTransaction),
-		done:       make(chan struct{}),
+		Cfg:       cfg,
+		rand:      rand,
+		inside:    inside,
+		genesisCh: make(chan *proto.GenesisConfiguration, 1),
+		initTxsCh: make(chan []*proto.SignedTransaction),
+		workTxsCh: make(chan []*proto.SignedTransaction),
+		done:      make(chan struct{}),
 	}
 	return x
 }
@@ -59,8 +61,12 @@ func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisConfiguration {
 	return <-x.genesisCh
 }
 
-func (x *LoadGen) WaitBlockTxs(ctx context.Context) []*proto.SignedTransaction {
-	return <-x.blockTxsCh
+func (x *LoadGen) WaitInitTxs(ctx context.Context) []*proto.SignedTransaction {
+	return <-x.initTxsCh
+}
+
+func (x *LoadGen) WaitWorkTxs(ctx context.Context) []*proto.SignedTransaction {
+	return <-x.workTxsCh
 }
 
 func (x *LoadGen) WaitDone() {
@@ -73,8 +79,6 @@ func (x *LoadGen) Close() {
 func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	defer lgConn.Close()
 	defer close(x.done)
-	defer close(x.blockTxsCh)
-	defer close(x.genesisCh)
 
 	cfg := proto.ExperimentConfig{}
 	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{Num_accounts: uint64(x.Cfg.NumAccts)}
@@ -86,18 +90,21 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 
 	liblog.Infof("delivering genesis block")
 	x.genesisCh <- &result.Genesis_configuration
+	close(x.genesisCh)
 
 	liblog.Infof("delivering init blocks")
 	for _, blockInitTxs := range result.Initialization_txs {
-		x.blockTxsCh <- protoutil.Unpack(blockInitTxs)
+		x.initTxsCh <- protoutil.Unpack(blockInitTxs)
 	}
+	close(x.initTxsCh)
 
 	liblog.Infof("delivering work blocks")
-	for i := 0; i < x.Cfg.NumBlocks; i++ {
+	for range x.Cfg.NumBlocks {
 		r, err := lgConn.Extend_experiment(ctx, ctxID, uint64(x.Cfg.NumTxsPerBlock), 1e9)
 		must.NoError(ctx, err)
 
 		ext := r.Success()
-		x.blockTxsCh <- protoutil.Unpack(ext.Work_txs)
+		x.workTxsCh <- protoutil.Unpack(ext.Work_txs)
 	}
+	close(x.workTxsCh)
 }
