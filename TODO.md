@@ -9,6 +9,11 @@ HOGTOOLS
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 
+
+QUESTIONS
+
+- [ ] SCPController.ReceivedEnvelope can block calling scpd controller; what flow is blocking in scpd?
+
 BUGS
 
 - [ ] validators must be able to respond to missing txs request even for past blocks

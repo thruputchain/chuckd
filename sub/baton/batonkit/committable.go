@@ -1,6 +1,8 @@
 package batonkit
 
 import (
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -10,7 +12,8 @@ type Committable interface {
 	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
 	AsConsensusValue() *proto.ConsensusValue
-	SignedTransactions() []proto.SignedTransaction
+	UnsubmittedSignedTransactions() []proto.SignedTransaction
+	SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash
 }
 
 type CommittableNomination struct {
@@ -41,8 +44,12 @@ func (cb *CommittableNomination) AsConsensusValue() *proto.ConsensusValue {
 	return cb.ConsensusValue
 }
 
-func (cb *CommittableNomination) SignedTransactions() []proto.SignedTransaction {
+func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedTransaction {
 	return nil
+}
+
+func (cb *CommittableNomination) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
+	return cb.ConsensusValue.Nomination.Transaction_hashes
 }
 
 type CommittableCatchup struct {
@@ -70,8 +77,12 @@ func (cb *CommittableCatchup) AsConsensusValue() *proto.ConsensusValue {
 	return &cb.Catchup.Consensus_value
 }
 
-func (cb *CommittableCatchup) SignedTransactions() []proto.SignedTransaction {
+func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTransaction {
 	return cb.Catchup.Signed_transactions
+}
+
+func (cb *CommittableCatchup) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
+	return protoutil.HashSignedTxs(m, cb.Catchup.Signed_transactions)
 }
 
 type CommittableBlock struct {

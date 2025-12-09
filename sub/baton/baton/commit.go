@@ -21,7 +21,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 		cv := cb.AsConsensusValue()
 		proposer := protoutil.PublicVID(cv.Nomination.Proposer)
 
-		if txs := cb.SignedTransactions(); txs != nil {
+		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
 			// submit catchup transactions
 			err := b.handler.Schedulercoord_submit_vetted(ctx, proposer, txs)
 			must.NoError(ctx, err)

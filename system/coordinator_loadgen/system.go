@@ -125,8 +125,8 @@ pump:
 		liblog.Infof("waiting for batch %d to commit", i)
 		for {
 			cb := s.notify.ReceiveCommitted(ctx)
-			for _, tx := range cb.SignedTransactions() {
-				delete(uncommitted, protoutil.HashSignedTx(txm, &tx))
+			for _, h := range cb.SignedTransactionHashes(txm) {
+				delete(uncommitted, h)
 			}
 			if len(uncommitted) == 0 {
 				break
