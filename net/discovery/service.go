@@ -76,12 +76,12 @@ func NewDiscoveryService(
 
 	s.hashQSet[libxdr.HashXdr(s.m, &s.ourQSet)] = s.ourQSet
 
-	go s.advertise(ctx)
 	return s
 }
 
 func (svc *DiscoveryService) Start(ctx context.Context, address string) {
 	liblog.Infof("starting discovery service")
+	go svc.advertise(ctx)
 	librpc.StartSerial(ctx, svc.net, address, proto.Discovery1_Server{Srv: svc})
 }
 

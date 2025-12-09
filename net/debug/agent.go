@@ -55,7 +55,7 @@ func WaitCounterpartiesReady(
 		}(ctx, addr)
 	}
 
-	for i := 0; i < len(addr); i++ {
+	for range len(addr) {
 		err := <-ech
 		if err != nil {
 			cancel()
