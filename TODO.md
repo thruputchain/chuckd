@@ -12,12 +12,11 @@ HOGTOOLS
 
 QUESTIONS
 
-- [ ] SCPController.ReceivedEnvelope can block calling scpd controller; what flow is blocking in scpd?
+- [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
 
 BUGS
 
 - [ ] validators must be able to respond to missing txs request even for past blocks
-- [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
 
 
 
