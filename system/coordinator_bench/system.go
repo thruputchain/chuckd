@@ -77,7 +77,7 @@ func (s *CoordinatorBenchSystem) Start(
 	t0 := time.Now()
 
 	// start scheduler rpc, needed by coordinator system
-	s.CoordinatorBenchCluster.Start(ctx)
+	s.CoordinatorBenchCluster.StartScheduler(ctx)
 
 	// start coordinator
 	ctl := s.System.Start(ctx, opcfg)
@@ -87,6 +87,8 @@ func (s *CoordinatorBenchSystem) Start(
 	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, s.inside, opcfg.InAddr)
 	must.NoError(ctx, err)
 	s.sched.SetCoordScheduler(coordSchedConn)
+
+	s.CoordinatorBenchCluster.StartPump(ctx)
 
 	// wait for numCommits and signal ready
 	go func() {

@@ -9,7 +9,6 @@ HOGTOOLS
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 
-
 QUESTIONS
 
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
