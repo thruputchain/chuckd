@@ -1,8 +1,10 @@
+TROUBLESHOOTING
+
+- [ ] dump stack trace when scpd killed
+
 SCHEDULER INTEGRATION
 
 HOGTOOLS
-
-- [ ] upgrade coordinator bench to use any available host
 
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
