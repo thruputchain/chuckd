@@ -6,7 +6,7 @@ SCHEDULER INTEGRATION
 
 HOGTOOLS
 
-- [ ] variable hosts in chuckd
+- [x] variable hosts in chuckd
 - [ ] variable hosts in hogd
 
 - [ ] use a single build tree in experiments
