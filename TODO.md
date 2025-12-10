@@ -6,8 +6,20 @@ SCHEDULER INTEGRATION
 
 HOGTOOLS
 
+- [ ] variable hosts in chuckd
+- [ ] variable hosts in hogd
+
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
+
+- [ ] Here's the exact list of things I want from a failed program in a CI run:
+  - [ ] Git commit hash
+  - [ ] Path of source tree when everything was compiled
+  - [ ] Exact cmake command line that was used to configure the build directory
+  - [ ] Exact command line that was used to execute the failing program
+  - [ ] Standard error of failing program
+  - [ ] Binary of failing program
+  - [ ] Core dump of failed run
 
 QUESTIONS
 
