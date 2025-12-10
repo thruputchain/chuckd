@@ -20,7 +20,7 @@ file_in = []
 file_out = ["coverage.out"]
 
 [jobs.host]
-1 = "hog6"
+1 = "?"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"

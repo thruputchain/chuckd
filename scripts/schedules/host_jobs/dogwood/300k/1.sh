@@ -1,38 +1,32 @@
 #!/bin/sh
-# chmod +x dogwood-bench-host=hog6,seq=0.sh
-
-set -xe
-
+# chmod +x dogwood-bench-host=${HOG_HOST_1},seq=0.sh
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <chuckd_path>"
   exit 1
 fi
 
+set -xe
 
-cat > dogwood-bench-config-host=hog6,seq=0.json << EOF
+cat > dogwood-bench-config-host=${HOG_HOST_1},seq=0.json << EOF
 
 {
     "validator_config": {
         "private_info": {
             "public_info": {
-                "public_key": "26f0a0b4e6429136e5c2a4f060c83bc44e955f717862e740ba2b7a79e6c16c5c",
-                "address": "hog6:4000"
+                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
+                "address": "${HOG_HOST_1}:4000"
             },
-            "secret_key": "47a0ab57c1d41d7e29f223ee5c6740da7f9e8b4ac3dab64127ba9bec44ae38fd26f0a0b4e6429136e5c2a4f060c83bc44e955f717862e740ba2b7a79e6c16c5c"
+            "secret_key": "6ddfd88d90ef5d5e499b0b39364e9fddb94f6abf96735e684cfde237f4ae97cfe94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
         },
         "known_validators": [
             {
-                "public_key": "26f0a0b4e6429136e5c2a4f060c83bc44e955f717862e740ba2b7a79e6c16c5c",
-                "address": "hog6:4000"
+                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
+                "address": "${HOG_HOST_1}:4000"
             },
             {
-                "public_key": "586b8958193dd81237bc09d4fda7a9e11b1638c775871d1d9d9980108e628700",
-                "address": "hog7:4000"
-            },
-            {
-                "public_key": "4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69",
-                "address": "hog8:4000"
+                "public_key": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c",
+                "address": "${HOG_HOST_2}:4000"
             }
         ]
     },
@@ -71,15 +65,11 @@ cat > dogwood-bench-config-host=hog6,seq=0.json << EOF
             "validators": [
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "26f0a0b4e6429136e5c2a4f060c83bc44e955f717862e740ba2b7a79e6c16c5c"
+                    "ed25519": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
                 },
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "586b8958193dd81237bc09d4fda7a9e11b1638c775871d1d9d9980108e628700"
-                },
-                {
-                    "scheme": "Ed25519",
-                    "ed25519": "4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69"
+                    "ed25519": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c"
                 }
             ],
             "inner_sets": [
@@ -95,17 +85,17 @@ EOF
 perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults \
 	$1 \
 	-l info \
-	--config dogwood-bench-config-host=hog6,seq=0.json \
+	--config dogwood-bench-config-host=${HOG_HOST_1},seq=0.json \
 	 \
 	 \
 	 \
 	 \
 	 \
 	--instance node-0 \
-	--seed 2056001763466157503 \
+	--seed 8411425272792254308 \
 	--metrics :2222 \
 	bench dogwood \
 	--addr :4000 \
-	--bytes-per-pay 300000000 \
-	--num-iterations 200 \
-	 2> dogwood-bench-host=hog6,seq=0.log | tee dogwood-bench-host=hog6,seq=0.report
+	--bytes-per-pay 300000 \
+	--num-iterations 50000 \
+	 2> dogwood-bench-host=${HOG_HOST_1},seq=0.log | tee dogwood-bench-host=${HOG_HOST_1},seq=0.report

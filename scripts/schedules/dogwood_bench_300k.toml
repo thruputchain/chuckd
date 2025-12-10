@@ -15,7 +15,7 @@ source ./scripts/setup_go.sh
 
 METRIC="dogwood" \
 LABEL="300k" \
-HOST="${HOG_HOST}" \
+HOST="{{ .hog_host_key }}" \
 NODE="{{ .hog_host_key }}-of-{{ .hog_host_count }}" \
 HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 ./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev
@@ -23,8 +23,8 @@ HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 """
 
 [jobs.host]
-1 = "hog7"
-2 = "hog8"
+1 = "?"
+2 = "?"
 
 [jobs.env]
 GIT_REPO = "{{ .github_repo }}"

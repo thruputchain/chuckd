@@ -1,5 +1,5 @@
 #!/bin/sh
-# chmod +x dogwood-bench-host=hog6,seq=0.sh
+# chmod +x dogwood-bench-host=${HOG_HOST_3},seq=2.sh
 
 set -xe
 
@@ -10,29 +10,29 @@ if [ $# -ne 1 ]; then
 fi
 
 
-cat > dogwood-bench-config-host=hog6,seq=0.json << EOF
+cat > dogwood-bench-config-host=${HOG_HOST_3},seq=2.json << EOF
 
 {
     "validator_config": {
         "private_info": {
             "public_info": {
-                "public_key": "56ba670c40af9594a7cd8243d6aa97c4266a17e30ffc0f82c3e7990bda314c84",
-                "address": "hog6:4000"
+                "public_key": "8a53342f221abfb9769a48ab199d1c584718cfac2f4e6ae33322bbb8b00dfa09",
+                "address": "${HOG_HOST_3}:4000"
             },
-            "secret_key": "9990d6393487f4b809fc3a07673be8623281ed8efbed8f6f5be28223342f828f56ba670c40af9594a7cd8243d6aa97c4266a17e30ffc0f82c3e7990bda314c84"
+            "secret_key": "fd47232248673d886bf1d4cbee35e04455d18075fe63e6fac906db8800cd54ca8a53342f221abfb9769a48ab199d1c584718cfac2f4e6ae33322bbb8b00dfa09"
         },
         "known_validators": [
             {
                 "public_key": "56ba670c40af9594a7cd8243d6aa97c4266a17e30ffc0f82c3e7990bda314c84",
-                "address": "hog6:4000"
+                "address": "${HOG_HOST_1}:4000"
             },
             {
                 "public_key": "cf570ca0095853d21adcce9798b4f585756fce7f9aa4301ca0916ed08f8248f5",
-                "address": "hog7:4000"
+                "address": "${HOG_HOST_2}:4000"
             },
             {
                 "public_key": "8a53342f221abfb9769a48ab199d1c584718cfac2f4e6ae33322bbb8b00dfa09",
-                "address": "hog8:4000"
+                "address": "${HOG_HOST_3}:4000"
             }
         ]
     },
@@ -95,17 +95,17 @@ EOF
 perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults \
 	$1 \
 	-l info \
-	--config dogwood-bench-config-host=hog6,seq=0.json \
+	--config dogwood-bench-config-host=${HOG_HOST_3},seq=2.json \
 	 \
 	 \
 	 \
 	 \
 	 \
-	--instance node-0 \
-	--seed 6866147834797564697 \
+	--instance node-2 \
+	--seed 5204676597745257764 \
 	--metrics :2222 \
 	bench dogwood \
 	--addr :4000 \
 	--bytes-per-pay 30000000 \
 	--num-iterations 1000 \
-	 2> dogwood-bench-host=hog6,seq=0.log | tee dogwood-bench-host=hog6,seq=0.report
+	 2> dogwood-bench-host=${HOG_HOST_3},seq=2.log | tee dogwood-bench-host=${HOG_HOST_3},seq=2.report

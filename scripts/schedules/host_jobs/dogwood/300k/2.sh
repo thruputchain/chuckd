@@ -1,5 +1,5 @@
 #!/bin/sh
-# chmod +x dogwood-bench-host=hog7,seq=0.sh
+# chmod +x dogwood-bench-host=${HOG_HOST_2},seq=1.sh
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <chuckd_path>"
@@ -8,25 +8,25 @@ fi
 
 set -xe
 
-cat > dogwood-bench-config-host=hog7,seq=0.json << EOF
+cat > dogwood-bench-config-host=${HOG_HOST_2},seq=1.json << EOF
 
 {
     "validator_config": {
         "private_info": {
             "public_info": {
-                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
-                "address": "hog7:4000"
+                "public_key": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c",
+                "address": "${HOG_HOST_2}:4000"
             },
-            "secret_key": "6ddfd88d90ef5d5e499b0b39364e9fddb94f6abf96735e684cfde237f4ae97cfe94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
+            "secret_key": "3061009c1fb320376b6c80dc50d054148cc5e26d0d02222f3b793327fd07f5b6a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c"
         },
         "known_validators": [
             {
                 "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
-                "address": "hog7:4000"
+                "address": "${HOG_HOST_1}:4000"
             },
             {
                 "public_key": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c",
-                "address": "hog8:4000"
+                "address": "${HOG_HOST_2}:4000"
             }
         ]
     },
@@ -85,17 +85,17 @@ EOF
 perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults \
 	$1 \
 	-l info \
-	--config dogwood-bench-config-host=hog7,seq=0.json \
+	--config dogwood-bench-config-host=${HOG_HOST_2},seq=1.json \
 	 \
 	 \
 	 \
 	 \
 	 \
-	--instance node-0 \
-	--seed 8411425272792254308 \
+	--instance node-1 \
+	--seed 1432401676018881212 \
 	--metrics :2222 \
 	bench dogwood \
 	--addr :4000 \
 	--bytes-per-pay 300000 \
 	--num-iterations 50000 \
-	 2> dogwood-bench-host=hog7,seq=0.log | tee dogwood-bench-host=hog7,seq=0.report
+	 2> dogwood-bench-host=${HOG_HOST_2},seq=1.log | tee dogwood-bench-host=${HOG_HOST_2},seq=1.report
