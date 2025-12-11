@@ -14,6 +14,7 @@ type Committable interface {
 	AsConsensusValue() *proto.ConsensusValue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash
+	NumTransactions() int
 }
 
 type CommittableNomination struct {
@@ -52,6 +53,10 @@ func (cb *CommittableNomination) SignedTransactionHashes(m libxdr.XdrMarshaler) 
 	return cb.ConsensusValue.Nomination.Transaction_hashes
 }
 
+func (cb *CommittableNomination) NumTransactions() int {
+	return len(cb.ConsensusValue.Nomination.Transaction_hashes)
+}
+
 type CommittableCatchup struct {
 	Catchup   *proto.CatchupBlock // always present
 	Validated *proto.BlockID      // optional
@@ -83,6 +88,10 @@ func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTran
 
 func (cb *CommittableCatchup) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
 	return protoutil.HashSignedTxs(m, cb.Catchup.Signed_transactions)
+}
+
+func (cb *CommittableCatchup) NumTransactions() int {
+	return len(cb.Catchup.Signed_transactions)
 }
 
 type CommittableBlock struct {

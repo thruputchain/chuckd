@@ -31,3 +31,7 @@ func (x *NotifyReceive) Committed(ctx context.Context, cb *batonkit.CommittableB
 func (x *NotifyReceive) ReceiveCommitted(ctx context.Context) *batonkit.CommittableBlock {
 	return <-x.committed
 }
+
+func (x *NotifyReceive) ReceiveCommittedChannel() <-chan *batonkit.CommittableBlock {
+	return x.committed
+}

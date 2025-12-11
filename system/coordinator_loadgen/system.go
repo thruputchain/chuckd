@@ -75,9 +75,6 @@ func (s *CoordinatorLoadgenSystem) Start(
 	// start scheduler system
 	s.scheduler.StartScheduler(ctx, opcfg)
 
-	// record the beginning of the benchmark
-	t0 := time.Now()
-
 	// start reception fromloadgen
 	s.loadgen.Start(ctx, loadgenAddr)
 
@@ -93,13 +90,13 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
 	s.PumpInitTxs(ctx, ctl)
-	s.PumpWorkTxs(ctx, ctl)
+	blockStats := s.PumpWorkTxs(ctx, ctl)
 
 	// print results
-	benchDuration := time.Since(t0)
-	fmt.Println(
-		float64(benchDuration.Milliseconds()) / float64(s.loadgen.Cfg.NumBlocks), // milliseconds/commit
-	)
+	for _, blockStats := range blockStats {
+		fmt.Println(blockStats)
+	}
+	fmt.Println(ExperimentStats(blockStats))
 }
 
 func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {
@@ -135,20 +132,67 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 	}
 }
 
-func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordinator.Control) {
+type BlockStats struct {
+	Height          proto.BlockHeight
+	NumTransactions int
+	Duration        time.Duration
+}
 
-	go func() {
+func (x BlockStats) String() string {
+	return fmt.Sprintf("block_height=%d, block_num_txs=%d, block_duration_sec=%.2f, block_txs_per_sec=%d",
+		x.Height,
+		x.NumTransactions,
+		x.Duration.Seconds(),
+		int64(float64(x.NumTransactions)/max(x.Duration.Seconds(), 0.001)),
+	)
+}
+
+func ExperimentStats(stats []BlockStats) string {
+	duration := time.Duration(0)
+	ntxs := 0
+	for _, stat := range stats {
+		duration += stat.Duration
+		ntxs += stat.NumTransactions
+	}
+	return fmt.Sprintf("experiment_duration_sec=%.2f, experiment_num_txs=%d, experiment_txs_per_sec=%d",
+		duration.Seconds(),
+		ntxs,
+		int64(float64(ntxs)/max(duration.Seconds(), 0.001)),
+	)
+}
+
+func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordinator.Control) []BlockStats {
+
+	stop := make(chan struct{})
+	report := make(chan []BlockStats)
+
+	go func(stop <-chan struct{}, report chan<- []BlockStats) {
+		stats := []BlockStats{}
 		for {
-			s.notify.ReceiveCommitted(ctx)
+			t0 := time.Now()
+			select {
+			case <-stop:
+				report <- stats
+				return
+			case cb := <-s.notify.ReceiveCommittedChannel():
+				stats = append(stats,
+					BlockStats{
+						Height:          cb.BlockHeight(),
+						NumTransactions: cb.NumTransactions(),
+						Duration:        time.Since(t0),
+					},
+				)
+			}
 		}
-	}()
+	}(stop, report)
 
 	i := 0
 	for {
 		liblog.Infof("waiting for work tx batch %d to arrive from loadgen", i)
 		txs := s.loadgen.WaitWorkTxs(ctx)
 		if txs == nil {
-			return
+			close(stop)
+			return <-report
 		}
 
 		liblog.Infof("submitting work tx batch %d with %d transactions", i, len(txs))
