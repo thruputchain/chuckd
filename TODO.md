@@ -6,9 +6,6 @@ SCHEDULER INTEGRATION
 
 HOGTOOLS
 
-- [x] variable hosts in chuckd
-- [ ] variable hosts in hogd
-
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 
