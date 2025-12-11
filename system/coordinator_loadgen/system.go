@@ -90,13 +90,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
 	s.PumpInitTxs(ctx, ctl)
-	blockStats := s.PumpWorkTxs(ctx, ctl)
-
-	// print results
-	for _, blockStats := range blockStats {
-		fmt.Println(blockStats)
-	}
-	fmt.Println(ExperimentStats(blockStats))
+	s.PumpWorkTxs(ctx, ctl)
 }
 
 func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {
@@ -133,31 +127,20 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 }
 
 type BlockStats struct {
-	Height          proto.BlockHeight
-	NumTransactions int
-	Duration        time.Duration
+	Height        proto.BlockHeight
+	BlockNTxs     int
+	BlockDuration time.Duration
+	TotalNTxs     int
+	TotalDuration time.Duration
 }
 
-func (x BlockStats) String() string {
-	return fmt.Sprintf("block_height=%d, block_num_txs=%d, block_duration_sec=%.2f, block_txs_per_sec=%d",
-		x.Height,
-		x.NumTransactions,
-		x.Duration.Seconds(),
-		int64(float64(x.NumTransactions)/max(x.Duration.Seconds(), 0.001)),
-	)
-}
-
-func ExperimentStats(stats []BlockStats) string {
-	duration := time.Duration(0)
-	ntxs := 0
-	for _, stat := range stats {
-		duration += stat.Duration
-		ntxs += stat.NumTransactions
-	}
-	return fmt.Sprintf("experiment_duration_sec=%.2f, experiment_num_txs=%d, experiment_txs_per_sec=%d",
-		duration.Seconds(),
-		ntxs,
-		int64(float64(ntxs)/max(duration.Seconds(), 0.001)),
+func (x BlockStats) PrintHogdReport() {
+	fmt.Printf("Block duration (s), %.2f, Num txs in block, %d, Overall "+
+		"duration (s), %.2f, Overall number of txs, %d\n",
+		x.BlockDuration.Seconds(), x.BlockNTxs, x.TotalDuration.Seconds(), x.TotalNTxs)
+	fmt.Printf("Block throughput (tx/s), %.2f, Overall throughput (tx/s), %.2f\n",
+		float64(x.BlockNTxs)/max(float64(x.BlockDuration.Seconds()), 0.001),
+		float64(x.TotalNTxs)/max(float64(x.TotalDuration.Seconds()), 0.001),
 	)
 }
 
@@ -168,20 +151,25 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordina
 
 	go func(stop <-chan struct{}, report chan<- []BlockStats) {
 		stats := []BlockStats{}
+		totalNTxs := 0
+		totalStartTime := time.Now()
 		for {
-			t0 := time.Now()
+			blockStartTime := time.Now()
 			select {
 			case <-stop:
 				report <- stats
 				return
 			case cb := <-s.notify.ReceiveCommittedChannel():
-				stats = append(stats,
-					BlockStats{
-						Height:          cb.BlockHeight(),
-						NumTransactions: cb.NumTransactions(),
-						Duration:        time.Since(t0),
-					},
-				)
+				totalNTxs += cb.NumTransactions()
+				blockStats := BlockStats{
+					Height:        cb.BlockHeight(),
+					BlockNTxs:     cb.NumTransactions(),
+					BlockDuration: time.Since(blockStartTime),
+					TotalNTxs:     totalNTxs,
+					TotalDuration: time.Since(totalStartTime),
+				}
+				blockStats.PrintHogdReport()
+				stats = append(stats, blockStats)
 			}
 		}
 	}(stop, report)
