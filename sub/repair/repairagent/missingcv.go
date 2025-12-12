@@ -29,6 +29,7 @@ attempting:
 	for {
 		cv, err := x.attemptRepairMissingCV(ctx, from, missing, height)
 		if err != nil {
+			liblog.Errorf("failed attempt to repair missing cv at height %d from %s: %v", height, protoutil.VPublicShortString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)
@@ -53,24 +54,22 @@ func (x *RepairAgent) attemptRepairMissingCV(
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dialing repair endpoint: %w", err)
 	}
 	defer c.Close()
 
 	reply, err := c.Repair_missing_cv(ctx, missing, height)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("calling Repair_missing_cv: %w", err)
 	}
 
 	if reply == nil {
-		liblog.Errorf("no repaired consensus value returned, cvh %s, vid %s",
+		return nil, fmt.Errorf("no repaired consensus value returned, cvh %s, vid %s",
 			libtext.Display(missing), protoutil.VIDString(protoutil.PublicVID(from)))
-		return nil, fmt.Errorf("no repaired consensus value returned")
 	}
 
 	// verify returned cv matches hash
 	if missing != protoutil.HashCV(x.cvM, reply) {
-		liblog.Errorf("repaired consensus value hash mismatch")
 		return nil, fmt.Errorf("repaired consensus value hash mismatch")
 	}
 
