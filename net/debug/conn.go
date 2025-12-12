@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
@@ -24,7 +25,7 @@ func DialDebugClient(ctx context.Context, dialer libnet.AddressDialer, address s
 }
 
 func NewDebugClient(ctx context.Context, sock net.Conn) *DebugClient {
-	driver := librpc.NewDriverSerial(ctx, sock)
+	driver := librpc.NewDriverSerial(ctx, sock, netutil.MaxMessageSize)
 	go driver.Go()
 
 	return &DebugClient{

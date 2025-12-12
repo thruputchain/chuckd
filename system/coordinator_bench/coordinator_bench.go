@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/kit"
 	"github.com/groundhogchain/chuckd/test/testsched"
 	"github.com/groundhogchain/chuckd/test/testutil"
+	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
@@ -73,7 +74,7 @@ func (x *CoordinatorBenchCluster) SchedAddress() string {
 
 func (x *CoordinatorBenchCluster) StartScheduler(ctx context.Context) {
 	liblog.Infof("starting mock scheduler")
-	librpc.StartSerial(ctx, x.net, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
+	librpc.StartSerial(ctx, x.net, netutil.MaxMessageSize, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
 }
 
 func (x *CoordinatorBenchCluster) StartPump(ctx context.Context) {

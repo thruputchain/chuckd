@@ -6,6 +6,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testsched"
+	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
@@ -31,7 +32,7 @@ func NewMockScheduler(
 
 func (x *MockScheduler) StartScheduler(ctx context.Context, opcfg coordinator.OperationalConfig) {
 	liblog.Infof("mock scheduler starting on %v at %v", x.inside, opcfg.SchedAddr)
-	librpc.StartSerial(ctx, x.inside, opcfg.SchedAddr, proto.SchedulerCoord1_Server{Srv: x.sched})
+	librpc.StartSerial(ctx, x.inside, netutil.MaxMessageSize, opcfg.SchedAddr, proto.SchedulerCoord1_Server{Srv: x.sched})
 }
 
 func (x *MockScheduler) ConnectSchedulerToCoordinator(ctx context.Context, opcfg coordinator.OperationalConfig) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
@@ -24,7 +25,7 @@ func DialLoadgenClient(ctx context.Context, dialer libnet.AddressDialer, address
 }
 
 func NewLoadgenClient(ctx context.Context, sock net.Conn) *LoadgenClient {
-	driver := librpc.NewDriverSerial(ctx, sock)
+	driver := librpc.NewDriverSerial(ctx, sock, netutil.MaxMessageSize)
 	go driver.Go()
 
 	return &LoadgenClient{

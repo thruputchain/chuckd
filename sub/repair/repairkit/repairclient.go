@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
@@ -29,7 +30,7 @@ func DialRepairClient(ctx context.Context, dialer libnet.AddressDialer, addr str
 }
 
 func NewRepairClient(ctx context.Context, sock net.Conn) *RepairClient {
-	driver := librpc.NewDriverSerial(ctx, sock)
+	driver := librpc.NewDriverSerial(ctx, sock, netutil.MaxMessageSize)
 	go driver.Go()
 
 	return &RepairClient{
