@@ -1,8 +1,7 @@
-OPS
+BUGS
 
-- [ ] dump stack trace when scpd killed
-
-SCHEDULER INTEGRATION
+- [ ] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188
+- [ ] validators must be able to respond to missing txs request even for past blocks
 
 HOGTOOLS
 
@@ -18,13 +17,13 @@ HOGTOOLS
   - [ ] Binary of failing program
   - [ ] Core dump of failed run
 
+- [ ] dump stack trace when scpd killed
+
 QUESTIONS
 
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
 
-BUGS
 
-- [ ] validators must be able to respond to missing txs request even for past blocks
 
 
 
