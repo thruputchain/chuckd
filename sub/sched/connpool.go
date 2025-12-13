@@ -2,21 +2,76 @@ package sched
 
 import (
 	"context"
+	"sync"
+	"time"
 
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// type SchedulerConnPool struct {
-// 	lk    sync.Mutex
-// 	conns map[SchedulerCoordConn]int // conn -> number of outstanding requests
-// }
+func ConnectPoolToScheduler(
+	ctx context.Context,
+	net libnet.AddressDialer,
+	schedAddr string,
+) (SchedulerCoordConn, error) {
+	const N = 10
+	conns := make([]SchedulerCoordConn, N)
 
-// func ConnectPoolToScheduler() {
-// 	XXX
-// }
+	var wg sync.WaitGroup
+	wg.Add(len(conns))
+	for i := range conns {
+		go func(i int) {
+			defer wg.Done()
+			conns[i], _ = DialSchedulerCoordClient(ctx, net, schedAddr)
+		}(i)
+	}
+	wg.Wait()
+
+	return NewConnPool(ctx, conns), ctx.Err()
+}
+
+func dialSchedulerUntilSuccess(
+	ctx context.Context,
+	net libnet.AddressDialer,
+	schedAddr string,
+) (schedConn SchedulerCoordConn, err error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		schedConn, err = DialSchedulerCoordClient(ctx, net, schedAddr)
+		if err != nil {
+			liblog.Infof("connecting to scheduler at %s failed (%v), retrying in 1 sec", schedAddr, err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		return
+	}
+}
 
 type ConnPool struct {
-	req chan<- SchedCoordRequest
+	cancel context.CancelFunc
+	req    chan<- SchedCoordRequest
+}
+
+func NewConnPool(ctx context.Context, conns []SchedulerCoordConn) *ConnPool {
+	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+
+	rr := make(chan SchedCoordRequest, len(conns))
+	p := &ConnPool{cancel: cancel, req: rr}
+	for _, conn := range conns {
+		go driveConn(ctx, conn, rr)
+	}
+	return p
+}
+
+func (p *ConnPool) Close() {
+	p.cancel()
 }
 
 func (p *ConnPool) Schedulercoord_null(ctx context.Context) error {

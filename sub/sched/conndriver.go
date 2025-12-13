@@ -4,15 +4,12 @@ import (
 	"context"
 )
 
-type ConnLoop struct {
-	conn SchedulerCoordConn
-}
-
-func startConnLoop(
+func driveConn(
 	ctx context.Context,
 	conn SchedulerCoordConn,
 	req <-chan SchedCoordRequest,
 ) error {
+	defer conn.Close()
 	for {
 		select {
 		case <-ctx.Done():

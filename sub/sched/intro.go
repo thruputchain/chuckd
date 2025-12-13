@@ -3,7 +3,6 @@ package sched
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
@@ -17,25 +16,7 @@ func ConnectToScheduler(
 	coordInAddr string,
 ) (SchedulerCoordConn, error) {
 
-	var err error
-	var schedConn SchedulerCoordConn
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
-		schedConn, err = DialSchedulerCoordClient(ctx, net, schedAddr)
-		if err != nil {
-			liblog.Infof("connecting to scheduler failed (%v), retrying in 1 sec", err)
-			time.Sleep(time.Second)
-			continue
-		}
-
-		break
-	}
+	schedConn, err := ConnectPoolToScheduler(ctx, net, schedAddr)
 
 	err = intro(ctx, schedConn, coordInAddr)
 	if err != nil {
