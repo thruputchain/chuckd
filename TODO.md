@@ -1,6 +1,7 @@
 BUGS
 
-- [ ] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188
+- [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188
+  - [ ] what if consensus value for a non-externalized block is missing and externalizations have gone beyond?
 - [ ] validators must be able to respond to missing txs request even for past blocks
 
 HOGTOOLS
