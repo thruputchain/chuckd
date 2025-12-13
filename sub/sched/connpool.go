@@ -23,7 +23,7 @@ func ConnectPoolToScheduler(
 	for i := range conns {
 		go func(i int) {
 			defer wg.Done()
-			conns[i], _ = DialSchedulerCoordClient(ctx, net, schedAddr)
+			conns[i], _ = dialSchedulerUntilSuccess(ctx, net, schedAddr)
 		}(i)
 	}
 	wg.Wait()
