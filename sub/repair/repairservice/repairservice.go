@@ -7,8 +7,10 @@ import (
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -20,6 +22,7 @@ type RepairService struct {
 	storage     *storage.DiskStorage
 	schedReady  chan struct{}
 	brokerReady chan struct{}
+	m           libxdr.XdrMarshaler
 }
 
 func NewRepairService(
@@ -31,6 +34,7 @@ func NewRepairService(
 		storage:     storage,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
+		m:           libxdr.NewXdrMarshaler(),
 	}
 }
 
@@ -104,10 +108,20 @@ func (x *RepairService) Repair_missing_cv(
 
 	cv := x.cvpool.ConsensusValuePoolLookup(ctx, cvh)
 	if cv != nil {
+		liblog.Infof("serving missing cv from pool, hash=%s height=%d cv=%s", libtext.Display(cvh), height, libtext.Display(cv))
 		return cv, nil
 	}
 
-	return x.storage.FindConsensusValue(ctx, height), nil
+	cv = x.storage.FindConsensusValue(ctx, height)
+	if cv != nil {
+		if protoutil.HashCV(x.m, cv) != cvh {
+			cv = nil // the requested cv was not externalized
+			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libtext.Display(cvh), height)
+		} else {
+			liblog.Infof("serving missing cv from storage, hash=%s height=%d cv=%s", libtext.Display(cvh), height, libtext.Display(cv))
+		}
+	}
+	return cv, nil
 }
 
 // XXX: dos protection
