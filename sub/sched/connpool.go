@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -23,7 +24,9 @@ func ConnectPoolToScheduler(
 	for i := range conns {
 		go func(i int) {
 			defer wg.Done()
-			conns[i], _ = dialSchedulerUntilSuccess(ctx, net, schedAddr)
+			var err error
+			conns[i], err = dialSchedulerUntilSuccess(ctx, net, schedAddr)
+			must.NoError(ctx, err)
 		}(i)
 	}
 	wg.Wait()
