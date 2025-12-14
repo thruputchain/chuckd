@@ -108,7 +108,7 @@ func (x *RepairService) Repair_missing_cv(
 
 	cv := x.cvpool.ConsensusValuePoolLookup(ctx, cvh)
 	if cv != nil {
-		liblog.Infof("serving missing cv from pool, hash=%s height=%d cv=%s", libtext.Display(cvh), height, libtext.Display(cv))
+		liblog.Infof("serving missing cv from pool, hash=%s height=%d", libtext.Display(cvh), height)
 		return cv, nil
 	}
 
@@ -118,7 +118,7 @@ func (x *RepairService) Repair_missing_cv(
 			cv = nil // the requested cv was not externalized
 			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libtext.Display(cvh), height)
 		} else {
-			liblog.Infof("serving missing cv from storage, hash=%s height=%d cv=%s", libtext.Display(cvh), height, libtext.Display(cv))
+			liblog.Infof("serving missing cv from storage, hash=%s height=%d", libtext.Display(cvh), height)
 		}
 	}
 	return cv, nil
