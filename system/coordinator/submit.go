@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -38,9 +39,28 @@ func (x *WalletSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1
 				return
 			case txs := <-x.lot:
 				liblog.Debugf("submitting %d unvetted txs from wallet to scheduler", len(txs))
-				err := sched.Schedulercoord_submit_unvetted(ctx, protoutil.Pack(txs))
-				must.NoError(ctx, err)
+
+				var wg sync.WaitGroup
+				for _, lot := range breakupTxs(txs) {
+					wg.Add(1)
+					go func(lot []*proto.SignedTransaction) {
+						defer wg.Done()
+						err := sched.Schedulercoord_submit_unvetted(ctx, protoutil.Pack(lot))
+						must.NoError(ctx, err)
+					}(lot)
+				}
+				wg.Wait()
 			}
 		}
 	}()
+}
+
+func breakupTxs(txs []*proto.SignedTransaction) [][]*proto.SignedTransaction {
+	const batchSize = 10e3 // 10K
+	var lots [][]*proto.SignedTransaction
+	for i := 0; i < len(txs); i += batchSize {
+		end := min(i+batchSize, len(txs))
+		lots = append(lots, txs[i:end])
+	}
+	return lots
 }
