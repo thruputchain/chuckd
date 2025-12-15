@@ -134,7 +134,7 @@ func (p *ConnPool) Schedcoord_get_tip(ctx context.Context) (proto.DbTip, error) 
 
 func (p *ConnPool) Schedcoord_load_genesis_configuration(ctx context.Context, gc proto.GenesisConfiguration) (proto.DbSchedResult, error) {
 	reply := make(chan Reply_Schedcoord_load_genesis_configuration, 1)
-	p.req <- Request_Schedcoord_load_genesis_configuration{Reply: reply, GC: gc}
+	p.req <- Request_Schedcoord_load_genesis_configuration{Reply: reply, Ctx: ctx, GC: gc}
 	r := <-reply
 	return r.Result, r.Err
 }
