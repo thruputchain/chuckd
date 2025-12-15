@@ -4,8 +4,6 @@ BUGS
   - [ ] what if consensus value for a non-externalized block is missing and externalizations have gone beyond?
 - [ ] validators must be able to respond to missing txs request even for past blocks
 
-- [ ] dont print cv in log when serving repairs
-
 HOGTOOLS
 
 - [ ] use a single build tree in experiments
