@@ -98,7 +98,7 @@ cat > config-${HOG_HOST_1}.json << EOF
         }
     },
     "baton_config": {
-        "skew_msec": "20",
+        "skew_msec": "40",
         "heartbeat_msec": "600",
         "patience_msec": "3000",
         "max_catchup_height": 10000
