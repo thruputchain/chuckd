@@ -1,3 +1,9 @@
+SCHEDULER INTEGRATION
+
+- [ ] return immediately from submit_vetted
+  - increase submission_lot_size to 50'000
+  - tune number of workers in multiplex
+
 BUGS
 
 - [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188

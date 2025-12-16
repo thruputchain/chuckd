@@ -5,8 +5,8 @@ import (
 
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libflow"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -20,6 +20,7 @@ type Multiplex struct {
 	receivedSubmittedTxs   chan submittedTxsFrom
 	receivedConsensusValue chan consensusValueFrom
 	receivedEnvelope       chan envelopeFrom
+	marshalWorker          libflow.SubmitWorkerPool
 }
 
 type submittedTxsFrom struct {
@@ -46,6 +47,7 @@ func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.
 		receivedSubmittedTxs:   make(chan submittedTxsFrom),
 		receivedConsensusValue: make(chan consensusValueFrom),
 		receivedEnvelope:       make(chan envelopeFrom),
+		marshalWorker:          libflow.NewSubmitWorkerPool(ctx, 20), //XXX: needs parameter control
 	}
 	go x.multiplex(ctx)
 	return x
@@ -78,9 +80,16 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 }
 
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	liblog.Debugf("%v multiplex sending txs: %v",
-		protoutil.VIDString(x.self),
-		libtext.Display(protoutil.HashSignedTxs(x.dbgM, submitted.Transactions)))
+	ctx = context.WithoutCancel(ctx)
+	x.marshalWorker.Submit(
+		func() {
+			x.sendSubmittedTxs(ctx, submitted)
+		},
+	)
+}
+
+func (x *Multiplex) sendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
+	liblog.Debugf("%v multiplex sending %d txs", protoutil.VIDString(x.self), len(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
