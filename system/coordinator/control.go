@@ -18,7 +18,7 @@ func (x Control) LoadGenesisConfiguration(ctx context.Context, gb proto.GenesisC
 }
 
 func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) {
-	x.system.WalletSubmitter.SubmitTxs(ctx, txs...)
+	x.system.UnvettedSubmitter.SubmitTxs(ctx, txs...)
 }
 
 func (x Control) GenesisIsReady() {

@@ -48,7 +48,7 @@ func NewCoordinatorBenchSystem(
 			runtime.NewRandFromRand(rand),
 			inside,
 			cfg.Validator_config.Private_info,
-			s.WalletSubmitter,
+			s.UnvettedSubmitter,
 			testCfg,
 			false, // use slower testdb with consistency checks
 		),

@@ -12,26 +12,26 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type WalletSubmitter struct {
+type UnvettedSubmitter struct {
 	lot chan []*proto.SignedTransaction
 }
 
-func NewWalletSubmitter(
+func NewUnvettedSubmitter(
 	ctx context.Context,
 	time libtime.Time,
 	maxSize int,
 	maxWait time.Duration,
-) *WalletSubmitter {
-	return &WalletSubmitter{
+) *UnvettedSubmitter {
+	return &UnvettedSubmitter{
 		lot: make(chan []*proto.SignedTransaction),
 	}
 }
 
-func (x *WalletSubmitter) SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction) {
+func (x *UnvettedSubmitter) SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction) {
 	x.lot <- txs
 }
 
-func (x *WalletSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1) {
+func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1) {
 	go func() {
 		for {
 			select {
@@ -56,7 +56,7 @@ func (x *WalletSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1
 }
 
 func breakupTxs(txs []*proto.SignedTransaction) [][]*proto.SignedTransaction {
-	const batchSize = 10e3 // 10K
+	const batchSize = 100e3 // 100K
 	var lots [][]*proto.SignedTransaction
 	for i := 0; i < len(txs); i += batchSize {
 		end := min(i+batchSize, len(txs))

@@ -56,7 +56,7 @@ type System struct {
 	RepairService *repairservice.RepairService
 	RepairAgent   *repairagent.RepairAgent
 	//
-	WalletSubmitter *WalletSubmitter
+	UnvettedSubmitter *UnvettedSubmitter
 	//
 	Wallet *wallet.WalletGateway
 	//
@@ -159,7 +159,7 @@ func NewSystem(
 		cfg.Catchup_config.Catchup_block_age,
 	)
 
-	s.WalletSubmitter = NewWalletSubmitter(
+	s.UnvettedSubmitter = NewUnvettedSubmitter(
 		ctx,
 		libtime.RealTime{},
 		int(cfg.Mempool_config.Submission_lot_size),
@@ -168,7 +168,7 @@ func NewSystem(
 
 	s.Wallet = wallet.NewWalletGateway(
 		ctx,
-		s.WalletSubmitter,
+		s.UnvettedSubmitter,
 		cfg.Wallet_config.Secret_key,
 		cfg.Wallet_config.Users,
 	)
@@ -248,7 +248,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	s.RepairService.SetSchedConn(schedConn)
 	s.Live.SetScheduler(schedConn)
 
-	s.WalletSubmitter.Start(ctx, schedConn)
+	s.UnvettedSubmitter.Start(ctx, schedConn)
 
 	// handshake with scpd
 	scpHandler, scpController, scpdKill := scpd.StartSCPDaemon(
