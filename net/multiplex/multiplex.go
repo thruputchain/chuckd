@@ -2,6 +2,7 @@ package multiplex
 
 import (
 	"context"
+	"time"
 
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -81,14 +82,21 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	ctx = context.WithoutCancel(ctx)
+	t0 := time.Now()
 	x.sendVettedTxsWorker.Submit(
 		func() {
-			x.sendSubmittedTxs(ctx, submitted)
+			x.doSendSubmittedTxs(ctx, submitted)
 		},
 	)
+	liblog.Infof("XXX SendSubmittedTxs, %d txs, duration %v", len(submitted.Transactions), time.Since(t0))
 }
 
-func (x *Multiplex) sendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
+func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
+	t0 := time.Now()
+	defer func() {
+		liblog.Infof("XXX doSendSubmittedTxs, %d txs, duration %v", len(submitted.Transactions), time.Since(t0))
+	}()
+
 	liblog.Debugf("%v multiplex sending %d txs", protoutil.VIDString(x.self), len(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs

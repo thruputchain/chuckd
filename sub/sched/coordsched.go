@@ -3,9 +3,11 @@ package sched
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
@@ -33,7 +35,9 @@ func (x *CoordSchedulerService) Coordscheduler_null(ctx context.Context) error {
 }
 
 func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
+	t0 := time.Now()
 	x.vetted <- txs
+	liblog.Infof("XXX coordscheduler_notify_vetted, %d txs, duration %v", len(txs), time.Since(t0))
 	return nil
 }
 
