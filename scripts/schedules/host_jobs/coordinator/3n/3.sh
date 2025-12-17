@@ -118,6 +118,7 @@ cat > config-${HOG_HOST_3}.json << EOF
 EOF
 rm -rf ./validator-storage-${HOG_HOST_3}
 $1 -l info --stack --config config-${HOG_HOST_3}.json \
+    --rpc-log-stats \
 	--instance 24454a \
 	--seed 4090419587568630594 \
 	--metrics :2223 \

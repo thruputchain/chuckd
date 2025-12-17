@@ -12,6 +12,7 @@ import (
 	chuckd_runtime "github.com/groundhogchain/chuckd/runtime"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -46,6 +47,8 @@ var (
 	rootStackTrace       bool
 	rootLogLevel         string
 	rootMaxMsgSize       int
+	rootRpcLogCalls      bool
+	rootRpcLogStats      bool
 )
 
 func init() {
@@ -67,6 +70,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&rootStackTrace, "stack", "s", false, "stack trace on error")
 	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
 	rootCmd.PersistentFlags().IntVar(&rootMaxMsgSize, "max-msg-size", 100e6, "maximum message size")
+	rootCmd.PersistentFlags().BoolVar(&rootRpcLogCalls, "rpc-log-calls", false, "log rpc call arguments and replies")
+	rootCmd.PersistentFlags().BoolVar(&rootRpcLogStats, "rpc-log-stats", false, "log rpc call latencies")
 }
 
 func initAfterFlags() {
@@ -76,6 +81,9 @@ func initAfterFlags() {
 		log.Fatal(err)
 	}
 	liblog.LogLevel(level)
+
+	librpc.SetLogCalls(rootRpcLogCalls)
+	librpc.SetLogStats(rootRpcLogStats)
 
 	if rootStackTrace {
 		cmdkit.SetStackTrace(true)
