@@ -294,7 +294,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 			for {
 				txs := s.CoordScheduler.ReceiveVetted()
 				liblog.Debugf("received %d vetted txs from scheduler", len(txs))
-				buf.Submit(ctx, txs...)
+				buf.Submit(ctx, txs)
 			}
 		}()
 

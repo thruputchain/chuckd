@@ -20,7 +20,7 @@ type Multiplex struct {
 	receivedSubmittedTxs   chan submittedTxsFrom
 	receivedConsensusValue chan consensusValueFrom
 	receivedEnvelope       chan envelopeFrom
-	marshalWorker          libflow.SubmitWorkerPool
+	sendVettedTxsWorker    libflow.SubmitWorkerPool
 }
 
 type submittedTxsFrom struct {
@@ -47,7 +47,7 @@ func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.
 		receivedSubmittedTxs:   make(chan submittedTxsFrom),
 		receivedConsensusValue: make(chan consensusValueFrom),
 		receivedEnvelope:       make(chan envelopeFrom),
-		marshalWorker:          libflow.NewSubmitWorkerPool(ctx, 20), //XXX: needs parameter control
+		sendVettedTxsWorker:    libflow.NewSubmitWorkerPool(ctx, 100), //XXX: needs parameter control
 	}
 	go x.multiplex(ctx)
 	return x
@@ -81,7 +81,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	ctx = context.WithoutCancel(ctx)
-	x.marshalWorker.Submit(
+	x.sendVettedTxsWorker.Submit(
 		func() {
 			x.sendSubmittedTxs(ctx, submitted)
 		},

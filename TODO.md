@@ -3,6 +3,7 @@ SCHEDULER INTEGRATION
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
   - tune number of workers in multiplex
+  - take concurrent connections?
 
 BUGS
 
