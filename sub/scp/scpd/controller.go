@@ -7,6 +7,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/netutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/must"
@@ -28,7 +29,7 @@ func DialSCPController(ctx context.Context, dialer libnet.AddressDialer, address
 }
 
 func NewSCPController(ctx context.Context, sock net.Conn) *SCPController {
-	driver := librpc.NewDriverSerial(ctx, sock, netutil.MaxMessageSize)
+	driver := librpc.NewDriverSerial(ctx, sock, netutil.MaxMessageSize, rpcutil.BaseDriverRegime)
 	go driver.Go()
 
 	return &SCPController{

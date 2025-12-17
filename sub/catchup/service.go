@@ -9,6 +9,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
@@ -62,7 +63,7 @@ func NewCatchupService(
 }
 
 func (svc *CatchupService) Start(ctx context.Context, address string) {
-	librpc.StartSerial(ctx, svc.net, netutil.MaxMessageSize, address, proto.Catchup1_Server{Srv: svc})
+	librpc.StartSerial(ctx, svc.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, address, proto.Catchup1_Server{Srv: svc})
 }
 
 func (svc *CatchupService) Add(ctx context.Context, cb *proto.CatchupBlock) {

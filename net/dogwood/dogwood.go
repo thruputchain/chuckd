@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/discovery"
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/util/netutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librand"
@@ -107,7 +108,7 @@ func (x *DogwoodService) StartStandalone(ctx context.Context, extAddr string, in
 
 		// enable peers to connect and call us
 		// navigation and delivery will not function until navigator is started later
-		librpc.StartSerial(ctx, x.netOutside, netutil.MaxMessageSize, extAddr, proto.Dogwood1_Server{Srv: x})
+		librpc.StartSerial(ctx, x.netOutside, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, extAddr, proto.Dogwood1_Server{Srv: x})
 
 		// allow a grace period for peers to start serving
 		x.time.Sleep(grace)
@@ -116,7 +117,7 @@ func (x *DogwoodService) StartStandalone(ctx context.Context, extAddr string, in
 		x.nav.WaitReady(ctx)      // wait until the first set of routes are disseminated
 
 		if inAddr != "" {
-			librpc.StartSerial(ctx, x.netInside, netutil.MaxMessageSize, inAddr, proto.DogwoodAPI1_Server{Srv: x})
+			librpc.StartSerial(ctx, x.netInside, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, inAddr, proto.DogwoodAPI1_Server{Srv: x})
 		}
 	}()
 }

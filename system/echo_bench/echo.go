@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libflow"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
@@ -103,7 +104,7 @@ func (x *EchoBenchmark) Run(ctx context.Context, ourAddress string, theirAddress
 	} else {
 
 		x.updateReceptionTime()
-		librpc.StartSerial(ctx, x.net, netutil.MaxMessageSize, ourAddress, Echo1_Server{Srv: x})
+		librpc.StartSerial(ctx, x.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, ourAddress, Echo1_Server{Srv: x})
 
 		// watch for no activity
 		go func() {

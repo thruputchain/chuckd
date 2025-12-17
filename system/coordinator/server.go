@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
@@ -22,7 +23,7 @@ func NewServer(ctx context.Context, srv ...xdr.XdrSrv) *Server {
 
 func (s *Server) Start(ctx context.Context, net libnet.Network, address string) {
 	liblog.Infof("starting server on network %s at address %s", net, address)
-	s.l = librpc.StartSerial(ctx, net, netutil.MaxMessageSize, address, s.srv...)
+	s.l = librpc.StartSerial(ctx, net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, address, s.srv...)
 }
 
 func (s *Server) Close() {

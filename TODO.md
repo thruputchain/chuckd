@@ -4,6 +4,8 @@ SCHEDULER INTEGRATION
   - increase submission_lot_size to 50'000
   - tune number of workers in multiplex
   - take concurrent connections?
+  - rpc parallel?
+  - transactions as byte blob
 
 BUGS
 
