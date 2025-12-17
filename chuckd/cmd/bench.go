@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
@@ -36,7 +36,7 @@ var (
 		Short: "start coordinator benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench coordinator"),
 					attribute.Int64("txs_per_sec", benchTxsPerSec),
@@ -81,7 +81,7 @@ var (
 		Short: "start coordinator with loadgen benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench coordinator"),
 					attribute.Int("txs_per_block", benchTxsPerBlock),
@@ -139,7 +139,7 @@ var (
 		Short: "start dogwood benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				cfg := LoadCoordinatorConfig(ctx)
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench dogwood"),
@@ -168,7 +168,7 @@ var (
 		Short: "start echo benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 
 				srv := echo_bench.NewEchoBench(
 					ctx,

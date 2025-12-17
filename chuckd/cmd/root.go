@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	ghc "github.com/groundhogchain/chuckd"
-	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	chuckd_runtime "github.com/groundhogchain/chuckd/runtime"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -55,7 +55,7 @@ func init() {
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
 	rootCmd.PersistentFlags().StringVarP(&rootConfigPath, "config", "c", "",
-		"config file (default is $HOME/"+api.LocalAgentPath+"/"+api.LocalAgentConfigFilebase+")")
+		"config file (default is $HOME/"+cmdkit.LocalAgentPath+"/"+cmdkit.LocalAgentConfigFilebase+")")
 	rootCmd.PersistentFlags().Int64Var(&rootSeed, "seed", 0x0102030405060708, "randomness seed")
 	rootCmd.PersistentFlags().StringVarP(&rootLogLevel, "level", "l", "info", "log level")
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
@@ -78,16 +78,16 @@ func initAfterFlags() {
 	liblog.LogLevel(level)
 
 	if rootStackTrace {
-		api.SetStackTrace(true)
+		cmdkit.SetStackTrace(true)
 	}
 	liblog.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
-	api.SetCPUProfilePath(rootCPUProfilePath)
-	api.SetTraceProfilePath(rootTraceProfilePath)
-	api.SetMemProfilePath(rootMemProfilePath)
-	api.SetMutexProfilePath(rootMutexProfilePath)
-	api.SetBlockProfilePath(rootBlockProfilePath)
-	api.SetInstanceID(rootInstanceID)
-	api.SetMetricsAddr(rootMetricsAddr)
+	cmdkit.SetCPUProfilePath(rootCPUProfilePath)
+	cmdkit.SetTraceProfilePath(rootTraceProfilePath)
+	cmdkit.SetMemProfilePath(rootMemProfilePath)
+	cmdkit.SetMutexProfilePath(rootMutexProfilePath)
+	cmdkit.SetBlockProfilePath(rootBlockProfilePath)
+	cmdkit.SetInstanceID(rootInstanceID)
+	cmdkit.SetMetricsAddr(rootMetricsAddr)
 	rpc.DefaultMaxMsgSize = rootMaxMsgSize
 	chuckdruntime.SetRootSeed(rootSeed)
 }
@@ -101,7 +101,7 @@ func effectiveConfigPath(ctx context.Context) string {
 			liblog.Fatalf("looking for home dir (%v)", err)
 		}
 		must.NoError(ctx, err)
-		cfgPath = filepath.Join(home, api.LocalAgentPath, api.LocalAgentConfigFilebase)
+		cfgPath = filepath.Join(home, cmdkit.LocalAgentPath, cmdkit.LocalAgentConfigFilebase)
 	}
 	return cfgPath
 }

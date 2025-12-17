@@ -1,4 +1,4 @@
-package api
+package cmdkit
 
 const (
 	LocalAgentPath           = ".chuckd"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/dogwood"
@@ -26,7 +26,7 @@ var (
 		Short: "start coordinator system",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
 				inside := libnet.Network(libnet.TCPNet{})
@@ -63,7 +63,7 @@ var (
 		Short: "start dogwood (standalone disseminator) system",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				cfg := LoadDogwoodConfig(ctx)
 				srv := dogwood.NewSystem(
 					ctx,

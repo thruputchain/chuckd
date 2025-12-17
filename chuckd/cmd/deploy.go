@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/chuckd/api"
+	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	"github.com/groundhogchain/chuckd/deploy/script"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
@@ -23,7 +23,7 @@ var (
 		Short: "generate a local coordinator benchmark deploy script",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				fmt.Println(
 					script.CoordinatorBenchShellLocal(
 						ctx,
@@ -42,7 +42,7 @@ var (
 		Short: "generate multi-node coordinator benchmark deploy scripts",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				bcfg := script.CoordinatorBenchConfig{
 					ValidatorPort:  deployValidatorPort,
 					WalletPort:     deployWalletPort,
@@ -74,7 +74,7 @@ var (
 		Short: "generate multi-node coordinator/loadgen benchmark deploy scripts",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return api.Invoke(ctx, func() {
+			return cmdkit.Invoke(ctx, func() {
 				bcfg := script.CoordinatorLoadgenConfig{
 					ValidatorPort:  deployValidatorPort,
 					WalletPort:     deployWalletPort,
