@@ -12,10 +12,10 @@ import (
 
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/textutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libruntime"
+	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -70,8 +70,8 @@ func StartSCPDaemon(
 		"--secret-key", secretKeyText,
 	)
 	cmd.Env = []string{"RUST_BACKTRACE=1", "RUST_LOG=" + runtime.GetLogLevel()}
-	cmd.Stdout = textutil.NewPrefixWriter(os.Stderr, "[scpd:out] ")
-	cmd.Stderr = textutil.NewPrefixWriter(os.Stderr, "[scpd:err] ")
+	cmd.Stdout = libtext.NewPrefixWriter(os.Stderr, "[scpd:out] ")
+	cmd.Stderr = libtext.NewPrefixWriter(os.Stderr, "[scpd:err] ")
 
 	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	// cmd.SysProcAttr = &syscall.SysProcAttr{

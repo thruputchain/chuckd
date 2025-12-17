@@ -4,7 +4,7 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/groundhogchain/chuckd/util/textutil"
+	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/must"
 )
 
@@ -79,7 +79,7 @@ set -xe
 	--no-echo={{ .Def.NoEcho }} \
 	{{ .Suffix }} 2> {{ .LogName }} | tee {{ .ReportName }}
 `
-	return textutil.Apply(ctx, format, textutil.M{
+	return libtext.Apply(ctx, format, libtext.M{
 		"LogLevel":         "debug",
 		"Prefix":           "perf stat -e cache-misses,cache-references,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,branch-misses,page-faults",
 		"Def":              def,
