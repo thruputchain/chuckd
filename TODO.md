@@ -15,6 +15,9 @@ BUGS
 
 HOGTOOLS
 
+- [ ] release some locks early
+- [ ] automate groundhog-go updates (read through go.mod files, etc)
+
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 

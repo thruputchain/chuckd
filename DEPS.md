@@ -1,0 +1,7 @@
+- chuckd:
+  - goxdr
+  - lib-go
+    - goxdr
+    - protocol-go
+  - protocol-go
+    - goxdr

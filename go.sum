@@ -48,8 +48,8 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/groundhogchain/lib-go v0.0.0-20251217012637-13662a50ef39 h1:7LOhOd5AMY6Ks8ODiy7SipwHkFb9/sCoog/ulVk5FVE=
-github.com/groundhogchain/lib-go v0.0.0-20251217012637-13662a50ef39/go.mod h1:0yZRtOjtlNBmQzJBTVdlsBsQno1N7xB3xUVdsbS22Vc=
+github.com/groundhogchain/lib-go v0.0.0-20251217191055-3d757cbe2f16 h1:kl/Ov55sio4a3BflKZRJlggbFAnbX+FPtRkIRjSAqM8=
+github.com/groundhogchain/lib-go v0.0.0-20251217191055-3d757cbe2f16/go.mod h1:2/bZiElZmnVzfmNukz8NScnj1uPp+BawYREgwNwqsU0=
 github.com/groundhogchain/protocol-go v0.0.0-20251211213559-753eda4dd3f2 h1:KhVWbRbKCmV82Rl/0qdDrV0rLAoaE7o2c1L+Jc/2JEM=
 github.com/groundhogchain/protocol-go v0.0.0-20251211213559-753eda4dd3f2/go.mod h1:puKsd84Zi76JDeR1UPHMYDXYCDUYsHhPZaZy+dsikps=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
@@ -127,8 +127,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/xdrpp/goxdr v0.0.0-20251217010214-76c10a305f3d h1:92wYybl0SUCv5DZag6iQhDjTWgIA/TwFOq2K5gzPEXQ=
-github.com/xdrpp/goxdr v0.0.0-20251217010214-76c10a305f3d/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
+github.com/xdrpp/goxdr v0.0.0-20251217190119-f07419e12831 h1:acAkWpcY1zijlwqW0UH2cAqPRtb1okMeWkvE0mJtq8s=
+github.com/xdrpp/goxdr v0.0.0-20251217190119-f07419e12831/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.35.0 h1:xKWKPxrxB6OtMCbmMY021CqC45J+3Onta9MqjhnusiQ=
