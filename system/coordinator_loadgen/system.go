@@ -174,6 +174,7 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordina
 		}
 	}(stop, report)
 
+	var lastBurst time.Time
 	i := 0
 	for {
 		liblog.Infof("waiting for work tx batch %d to arrive from loadgen", i)
@@ -182,6 +183,12 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordina
 			close(stop)
 			return <-report
 		}
+
+		// wait until at least a second since last burst of submission
+		if delay := time.Until(lastBurst.Add(time.Second)); delay > 0 {
+			time.Sleep(delay)
+		}
+		lastBurst = time.Now()
 
 		liblog.Infof("submitting work tx batch %d with %d transactions", i, len(txs))
 		ctl.SubmitTxs(ctx, txs)
