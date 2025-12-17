@@ -17,6 +17,7 @@ source ./scripts/setup_cargo.sh
 
 # start benchmark
 
+GOXDR_LOG_STATS="1" \
 METRIC="coordinator" \
 LABEL="3n" \
 HOST="{{ .hog_host_key }}" \
