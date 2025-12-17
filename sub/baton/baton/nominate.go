@@ -62,6 +62,7 @@ func (b *Baton) nominate(
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
+	t0 := b.handler.Now()
 	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
 
 	must.NoError(ctx, err)
@@ -75,6 +76,11 @@ func (b *Baton) nominate(
 	}
 
 	must.Assert(ctx, nomBlockID == *result.Block_id())
+
+	nomLatency := b.handler.Now().Sub(t0)
+
+	liblog.Infof("nomination for height %d with %d txs produced in %v",
+		nom.Block_height, len(nom.Transaction_hashes), nomLatency)
 
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 
