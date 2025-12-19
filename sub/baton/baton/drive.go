@@ -41,6 +41,13 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
+
+		// log duration between nomination complete to commit begins
+		if b.nominated != nil && b.nominated.BlockHeight() == cb.BlockHeight() {
+			liblog.Infof("duration between completion of nomination and start of commit for height %d is %v",
+				cb.BlockHeight(), b.handler.Now().Sub(b.nominated.Time))
+		}
+
 		go func() {
 			blockID := b.commit(ctx, cb)
 

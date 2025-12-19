@@ -3,7 +3,6 @@ SCHEDULER INTEGRATION
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
   - tune number of workers in multiplex
-  - take concurrent connections?
   - rpc parallel?
   - transactions as byte blob
 
@@ -15,7 +14,6 @@ BUGS
 
 HOGTOOLS
 
-- [ ] release some locks early
 - [ ] automate groundhog-go updates (read through go.mod files, etc)
 
 - [ ] use a single build tree in experiments
