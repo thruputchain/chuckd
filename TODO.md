@@ -1,5 +1,7 @@
 SCHEDULER INTEGRATION
 
+- [ ] print hashes as 10 hex chars
+
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
   - tune number of workers in multiplex
@@ -34,7 +36,9 @@ QUESTIONS
 
 - [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
 
+OPTIMIZATIONS
 
+- [ ] ask scp whether we should bother nominating this round
 
 
 
