@@ -40,6 +40,9 @@ func (b *Baton) nominate(
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
+	b.stampNominationStart(ontoDb.Height + 1)
+	defer b.stampNominationEnd(ontoDb.Height + 1)
+
 	t0 := b.handler.Now()
 	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
 
@@ -57,8 +60,8 @@ func (b *Baton) nominate(
 
 	nomLatency := b.handler.Now().Sub(t0)
 
-	liblog.Infof("nomination for height %d with %d txs produced in %v",
-		nom.Block_height, len(nom.Transaction_hashes), nomLatency)
+	liblog.Debugf("scheduler_nomination_latency=%v | height=%d, num_txs=%d",
+		nomLatency, nom.Block_height, len(nom.Transaction_hashes))
 
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 

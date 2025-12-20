@@ -13,6 +13,9 @@ import (
 // XXX: commit currently does not handle the upgrades in the consensus value
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
+	b.stampCommitStart(cb.BlockHeight())
+	defer b.stampCommitEnd(cb.BlockHeight())
+
 	validatedBlockID := cb.AlreadyValidated()
 
 	// validate, if not already validated
