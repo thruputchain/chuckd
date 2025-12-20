@@ -94,11 +94,6 @@ func (b *Baton) purgeNotAboveTipHeight(ctx context.Context) {
 		}
 	}
 
-	// purge nominations
-	if b.nominated != nil && b.nominated.BlockHeight() <= b.tipDb.Height {
-		b.nominated = nil
-	}
-
 	// purge partial nominations
 	b.handler.UpdateNoPartialNominationsBelow(ctx, b.tipDb.Height+1)
 }

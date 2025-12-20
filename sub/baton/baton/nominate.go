@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
@@ -22,36 +21,15 @@ type nominating struct {
 	Cancel  context.CancelFunc
 }
 
-type nominated struct {
-	time.Time
-	Rejected       *proto.BlockHeight    // set if scp rejected nomination
-	ConsensusValue *proto.ConsensusValue // set if scp accepted nomination
-}
-
-func (x *nominated) BlockHeight() proto.BlockHeight {
-	if x.Rejected != nil {
-		return *x.Rejected
-	} else {
-		return x.ConsensusValue.Nomination.Block_height
-	}
-}
-
-func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating, nominated *nominated) bool {
+func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating) bool {
 	if tipToNominateOn == nil {
 		return false
 	}
-	switch {
-	case nominating == nil && nominated == nil:
+	if nominating == nil {
 		return true
-	case nominating == nil && nominated != nil:
-		return tipToNominateOn.Height+1 > nominated.BlockHeight()
-	case nominating != nil && nominated == nil:
+	} else {
 		return tipToNominateOn.Height > nominating.OntoDb.Height
-	case nominating != nil && nominated != nil:
-		return tipToNominateOn.Height > nominating.OntoDb.Height &&
-			tipToNominateOn.Height+1 > nominated.BlockHeight()
 	}
-	panic("unreachable")
 }
 
 var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")

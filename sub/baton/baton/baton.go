@@ -57,7 +57,6 @@ type Baton struct {
 	// state, read/write under lk
 	committing      bool
 	nominating      *nominating
-	nominated       *nominated
 	tipDb           proto.DbTip
 	tipExt          externalizedConsensus
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
