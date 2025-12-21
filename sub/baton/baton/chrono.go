@@ -17,12 +17,18 @@ type blockChrono struct {
 }
 
 type chrono struct {
-	lk                sync.Mutex
-	block             [2]blockChrono
+	lk    sync.Mutex
+	block [2]blockChrono
+	//
 	lastNominateStart time.Time
 	lastNominateEnd   time.Time
 	lastCommitStart   time.Time
 	lastCommitEnd     time.Time
+	//
+	lastNominateStartHeight proto.BlockHeight
+	lastNominateEndHeight   proto.BlockHeight
+	lastCommitStartHeight   proto.BlockHeight
+	lastCommitEndHeight     proto.BlockHeight
 }
 
 func (x *chrono) at(height proto.BlockHeight) *blockChrono {
@@ -40,10 +46,13 @@ func (b *Baton) stampNominateStart(height proto.BlockHeight) {
 	now := b.handler.Now()
 	b.chrono.at(height).nominateStart = now
 	b.chrono.lastNominateStart = now
+	b.chrono.lastNominateStartHeight = height
 
 	if !b.chrono.lastCommitStart.IsZero() {
-		liblog.Debugf("commit_start_to_nominate_start_latency=%v",
-			b.chrono.lastNominateStart.Sub(b.chrono.lastCommitStart))
+		liblog.Debugf("commit_start_to_nominate_start_latency=%v | commit_height=%d, nominate_height=%d",
+			b.chrono.lastNominateStart.Sub(b.chrono.lastCommitStart),
+			b.chrono.lastCommitStartHeight, b.chrono.lastNominateStartHeight,
+		)
 	}
 }
 
@@ -54,6 +63,7 @@ func (b *Baton) stampNominateEnd(height proto.BlockHeight) {
 	now := b.handler.Now()
 	b.chrono.at(height).nominateEnd = now
 	b.chrono.lastNominateEnd = now
+	b.chrono.lastNominateEndHeight = height
 }
 
 func (b *Baton) stampCommitStart(height proto.BlockHeight) {
@@ -63,10 +73,13 @@ func (b *Baton) stampCommitStart(height proto.BlockHeight) {
 	now := b.handler.Now()
 	b.chrono.at(height).commitStart = now
 	b.chrono.lastCommitStart = now
+	b.chrono.lastCommitStartHeight = height
 
 	if !b.chrono.lastNominateStart.IsZero() {
-		liblog.Debugf("nominate_start_to_commit_start_latency=%v",
-			b.chrono.lastCommitStart.Sub(b.chrono.lastNominateStart))
+		liblog.Debugf("nominate_start_to_commit_start_latency=%v | nominate_height=%d, commit_height=%d",
+			b.chrono.lastCommitStart.Sub(b.chrono.lastNominateStart),
+			b.chrono.lastNominateStartHeight, b.chrono.lastCommitStartHeight,
+		)
 	}
 }
 
@@ -77,7 +90,5 @@ func (b *Baton) stampCommitEnd(height proto.BlockHeight) {
 	now := b.handler.Now()
 	b.chrono.at(height).commitEnd = now
 	b.chrono.lastCommitEnd = now
+	b.chrono.lastCommitEndHeight = height
 }
-
-// nominate_start -> commit_start
-// commit_start -> nominate_start
