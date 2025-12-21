@@ -54,10 +54,9 @@ type Baton struct {
 	// levers
 	pauseNominating bool
 
-	// state, read/write under lk
+	// state, under lk
 	committing      bool
 	nominating      *nominating
-	nominated       *nominated
 	tipDb           proto.DbTip
 	tipExt          externalizedConsensus
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
@@ -67,7 +66,10 @@ type Baton struct {
 	invalidated     map[proto.ConsensusValueHash]invalidated
 	liveness        liveness
 
-	// xdr marshalers
+	// metrics (no lock necessary)
+	chrono chrono
+
+	// xdr marshalers (no lock necessary)
 	cvM            libxdr.XdrMarshaler // for marshalling ConsensusValue
 	txM            libxdr.XdrMarshaler // for marshalling SignedTransaction
 	nomM           libxdr.XdrMarshaler

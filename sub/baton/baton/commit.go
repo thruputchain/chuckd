@@ -13,6 +13,9 @@ import (
 // XXX: commit currently does not handle the upgrades in the consensus value
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
+	b.stampCommitStart(cb.BlockHeight())
+	defer b.stampCommitEnd(cb.BlockHeight())
+
 	validatedBlockID := cb.AlreadyValidated()
 
 	// validate, if not already validated
@@ -92,11 +95,6 @@ func (b *Baton) purgeNotAboveTipHeight(ctx context.Context) {
 		if p.Nomination.Block_height <= b.tipDb.Height {
 			delete(b.invalidated, h)
 		}
-	}
-
-	// purge nominations
-	if b.nominated != nil && b.nominated.BlockHeight() <= b.tipDb.Height {
-		b.nominated = nil
 	}
 
 	// purge partial nominations

@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/must"
@@ -42,12 +41,6 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
-		// log duration between nomination complete to commit begins
-		if b.nominated != nil && b.nominated.BlockHeight() == cb.BlockHeight() {
-			liblog.Infof("duration between completion of nomination and start of commit for height %d is %v",
-				cb.BlockHeight(), b.handler.Now().Sub(b.nominated.Time))
-		}
-
 		go func() {
 			blockID := b.commit(ctx, cb)
 
@@ -76,67 +69,61 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 
 // driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started
 func (b *Baton) driveNominate(ctx context.Context, v *View) {
-	if ontoDb, ontoExt := v.NominateOnto(); b.canNominate(ontoDb, b.nominating, b.nominated) {
-		// liblog.Debugf("nominating onto %v", tipToNominateOn)
-		// cancel prior unfinished nominations
-		if b.nominating != nil {
-			b.nominating.Cancel()
-			b.nominating = nil
-		}
-		nomCtx, nomCancel := context.WithCancel(ctx)
-		current := &nominating{
-			OntoDb:  *ontoDb,
-			OntoExt: *ontoExt,
-			Cancel: func() {
-				// liblog.Debugf("cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
-				nomCancel()
-			},
-		}
-		b.nominating = current
-		go func() {
-			cv, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
-			current.Cancel()
-
-			b.lock()
-			defer b.unlock()
-
-			// if nomination was cancelled, b.nominating may point at a different nomination
-			currentWasReplaced := b.nominating != current
-			if !currentWasReplaced {
-				b.nominating = nil
-			}
-
-			if err != nil {
-				// scp rejects nominations when it is not our turn to nominate
-				if errors.Is(err, ErrNominationRejected) {
-					if !currentWasReplaced {
-						height := ontoDb.Height + 1
-						b.nominated = &nominated{
-							Time:     b.handler.Now(),
-							Rejected: &height,
-						}
-					}
-				} else {
-					must.Assert(ctx, errors.Is(err, sched.ErrHeightTooLow) ||
-						errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-				}
-				return
-			}
-
-			if !currentWasReplaced {
-				b.nominated = &nominated{
-					Time:           protoutil.TimeFromTimepoint(cv.Timestamp),
-					ConsensusValue: cv,
-				}
-				b.setValidated(cv, blockID)
-				liblog.Infof("nominated block at height %d with block hash %s and consensus value hash %s",
-					cv.Nomination.Block_height,
-					libtext.Display(cv.Nomination.Block_hash),
-					libtext.Display(b.hashCV(cv)),
-				)
-			}
-		}()
+	ontoDb, ontoExt := v.NominateOnto()
+	if !b.canNominate(ontoDb, b.nominating) {
+		return
 	}
+
+	// cancel prior finished or unfinished nominations
+	if b.nominating != nil {
+		b.nominating.Cancel()
+		b.nominating = nil
+	}
+	nomCtx, nomCancel := context.WithCancel(ctx)
+	current := &nominating{
+		OntoDb:  *ontoDb,
+		OntoExt: *ontoExt,
+		Cancel: func() {
+			// liblog.Debugf("cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
+			nomCancel()
+		},
+	}
+	b.nominating = current
+	go func() {
+		cv, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
+		current.Cancel()
+
+		b.lock()
+		defer b.unlock()
+
+		// if nomination was superceded, b.nominating may point at a different nomination
+		currentWasReplaced := b.nominating != current
+
+		if err != nil {
+			// scp rejects nominations when it is not our turn to nominate, or
+			// when an externalization happens during nomination (usually only in a single-node network)
+			if !errors.Is(err, ErrNominationRejected) {
+				must.Assert(ctx, errors.Is(err, sched.ErrHeightTooLow) ||
+					errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+			}
+			return
+		}
+
+		if !currentWasReplaced {
+			b.setValidated(cv, blockID)
+			liblog.Infof("nominated block at height %d with block hash %s and consensus value hash %s",
+				cv.Nomination.Block_height,
+				libtext.Display(cv.Nomination.Block_hash),
+				libtext.Display(b.hashCV(cv)),
+			)
+		} else {
+			liblog.Infof("superceded nomination for block at height %d with block hash %s and consensus value hash %s",
+				cv.Nomination.Block_height,
+				libtext.Display(cv.Nomination.Block_hash),
+				libtext.Display(b.hashCV(cv)),
+			)
+		}
+	}()
 }
 
 // driveCatchup sends catchup requests, if needed

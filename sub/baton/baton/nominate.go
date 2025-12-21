@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
@@ -22,36 +21,15 @@ type nominating struct {
 	Cancel  context.CancelFunc
 }
 
-type nominated struct {
-	time.Time
-	Rejected       *proto.BlockHeight    // set if scp rejected nomination
-	ConsensusValue *proto.ConsensusValue // set if scp accepted nomination
-}
-
-func (x *nominated) BlockHeight() proto.BlockHeight {
-	if x.Rejected != nil {
-		return *x.Rejected
-	} else {
-		return x.ConsensusValue.Nomination.Block_height
-	}
-}
-
-func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating, nominated *nominated) bool {
+func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating) bool {
 	if tipToNominateOn == nil {
 		return false
 	}
-	switch {
-	case nominating == nil && nominated == nil:
+	if nominating == nil {
 		return true
-	case nominating == nil && nominated != nil:
-		return tipToNominateOn.Height+1 > nominated.BlockHeight()
-	case nominating != nil && nominated == nil:
+	} else {
 		return tipToNominateOn.Height > nominating.OntoDb.Height
-	case nominating != nil && nominated != nil:
-		return tipToNominateOn.Height > nominating.OntoDb.Height &&
-			tipToNominateOn.Height+1 > nominated.BlockHeight()
 	}
-	panic("unreachable")
 }
 
 var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")
@@ -61,6 +39,9 @@ func (b *Baton) nominate(
 	ontoDb proto.DbTip,
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
+
+	b.stampNominateStart(ontoDb.Height + 1)
+	defer b.stampNominateEnd(ontoDb.Height + 1)
 
 	t0 := b.handler.Now()
 	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
@@ -79,8 +60,8 @@ func (b *Baton) nominate(
 
 	nomLatency := b.handler.Now().Sub(t0)
 
-	liblog.Infof("nomination for height %d with %d txs produced in %v",
-		nom.Block_height, len(nom.Transaction_hashes), nomLatency)
+	liblog.Debugf("scheduler_nomination_latency=%v | height=%d, num_txs=%d",
+		nomLatency, nom.Block_height, len(nom.Transaction_hashes))
 
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 
