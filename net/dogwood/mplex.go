@@ -8,7 +8,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libmem"
-	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -97,7 +96,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 			continue
 		}
 		h := dogwoodutil.TreeNodeHash(x.mTree, treeNodes[0])
-		liblog.Tracef("dogwood multiplex at %v: caching route %v", x.selfString(), libtext.Display(h))
+		liblog.Tracef("dogwood multiplex at %v: caching route %v", x.selfString(), libxdr.HashString(h))
 		x.nav.CacheRoute(ctx, linked)
 	}
 }

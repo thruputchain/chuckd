@@ -10,7 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -111,7 +111,7 @@ func (b *Baton) nominate(
 		// if nomination accepted, broadcast consensus value
 		liblog.Debugf("disseminating consensus value for slot %d with hash %s",
 			nom.Block_height,
-			libtext.Display(cvc.Cv_hash))
+			libxdr.HashString(cvc.Cv_hash))
 		b.handler.DisseminateCV(ctx, *cv)
 
 		b.handler.Emit(ctx, batonkit.EventNominated{

@@ -8,8 +8,8 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -22,7 +22,7 @@ func (b *Baton) validateConsensus(
 ) {
 
 	liblog.Infof("validating consensus value at height %d with block hash %s",
-		slot, libtext.Display(cv.Nomination.Block_hash))
+		slot, libxdr.HashString(cv.Nomination.Block_hash))
 
 	if b.tryValidateConsensusFast(ctx, slot, cv, reply) {
 		return
@@ -50,16 +50,16 @@ func (b *Baton) validateConsensus(
 
 	if cv.Nomination.Prev_block_hash != dbTip.Hash {
 		liblog.Infof("cannot validate, previous block mismatch, nomination %v vs ours %v",
-			libtext.Display(cv.Nomination.Prev_block_hash),
-			libtext.Display(dbTip.Hash))
+			libxdr.HashString(cv.Nomination.Prev_block_hash),
+			libxdr.HashString(dbTip.Hash))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
 	if cv.Prev_cv_hash != extTip.ConsensusValueHash() {
 		liblog.Infof("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
-			libtext.Display(cv.Prev_cv_hash),
-			libtext.Display(extTip.ConsensusValueHash()))
+			libxdr.HashString(cv.Prev_cv_hash),
+			libxdr.HashString(extTip.ConsensusValueHash()))
 		reply <- scpkit.InvalidValue
 		return
 	}
@@ -112,8 +112,8 @@ func (b *Baton) validateConsensus(
 
 	// cache validated blocks
 	liblog.Debugf("caching validation for block %s and consensus %s",
-		libtext.Display(cv.Nomination.Block_hash),
-		libtext.Display(b.hashCV(cv)))
+		libxdr.HashString(cv.Nomination.Block_hash),
+		libxdr.HashString(b.hashCV(cv)))
 	b.lock()
 	b.setValidated(cv, validatedTip.Id)
 	b.unlock()

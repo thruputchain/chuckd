@@ -8,7 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 )
 
@@ -36,7 +36,7 @@ func (b *Baton) drive(ctx context.Context) {
 // driveCommit commits the next block, if one is available and no commit is in progress
 func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
-		liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), libtext.Display(cb.BlockHash()))
+		liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), libxdr.HashString(cb.BlockHash()))
 		b.committing = true
 		// cancel ongoing nominations trumped by this commit to save compute
 		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
@@ -113,14 +113,14 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 			b.setValidated(cv, blockID)
 			liblog.Infof("nominated block at height %d with block hash %s and consensus value hash %s",
 				cv.Nomination.Block_height,
-				libtext.Display(cv.Nomination.Block_hash),
-				libtext.Display(b.hashCV(cv)),
+				libxdr.HashString(cv.Nomination.Block_hash),
+				libxdr.HashString(b.hashCV(cv)),
 			)
 		} else {
 			liblog.Infof("superceded nomination for block at height %d with block hash %s and consensus value hash %s",
 				cv.Nomination.Block_height,
-				libtext.Display(cv.Nomination.Block_hash),
-				libtext.Display(b.hashCV(cv)),
+				libxdr.HashString(cv.Nomination.Block_hash),
+				libxdr.HashString(b.hashCV(cv)),
 			)
 		}
 	}()

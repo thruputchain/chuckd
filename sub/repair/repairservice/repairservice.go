@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -90,7 +89,7 @@ func (x *RepairService) Repair_missing_cv(
 	height proto.BlockHeight,
 ) (proto.OptConsensusValue, error) {
 
-	liblog.Debugf("repair missing consensus value request, cv hash %s", libtext.Display(cvh))
+	liblog.Debugf("repair missing consensus value request, cv hash %s", libxdr.HashString(cvh))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.
@@ -108,7 +107,7 @@ func (x *RepairService) Repair_missing_cv(
 
 	cv := x.cvpool.ConsensusValuePoolLookup(ctx, cvh)
 	if cv != nil {
-		liblog.Infof("serving missing cv from pool, hash=%s height=%d", libtext.Display(cvh), height)
+		liblog.Infof("serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
 		return cv, nil
 	}
 
@@ -116,9 +115,9 @@ func (x *RepairService) Repair_missing_cv(
 	if cv != nil {
 		if protoutil.HashCV(x.m, cv) != cvh {
 			cv = nil // the requested cv was not externalized
-			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libtext.Display(cvh), height)
+			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libxdr.HashString(cvh), height)
 		} else {
-			liblog.Infof("serving missing cv from storage, hash=%s height=%d", libtext.Display(cvh), height)
+			liblog.Infof("serving missing cv from storage, hash=%s height=%d", libxdr.HashString(cvh), height)
 		}
 	}
 	return cv, nil

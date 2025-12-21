@@ -6,7 +6,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -55,7 +54,7 @@ func (b *Baton) validateCue(
 	}
 
 	liblog.Infof("validating cue at height %d with block hash %s and consensus value hash %s",
-		slot, libtext.Display(cvc.Block_hash), libtext.Display(cvc.Cv_hash))
+		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	// check if the value was already validated
 	b.lock()
@@ -82,7 +81,7 @@ func (b *Baton) validateCue(
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
 		liblog.Infof("cancelling validating cue at height %d, block hash %s, consensus hash %s",
-			slot, libtext.Display(cvc.Block_hash), libtext.Display(cvc.Cv_hash))
+			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 		vCtxCancel()
 	}()
 	defer vCtxCancel()
@@ -112,7 +111,7 @@ func (b *Baton) fetchCV(
 ) (*proto.ConsensusValue, error) {
 
 	liblog.Infof("fetching consensus value at height %d, block hash %s, consensus hash %s",
-		slot, libtext.Display(cvc.Block_hash), libtext.Display(cvc.Cv_hash))
+		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	// lookup in cvpool
 	cv := b.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)

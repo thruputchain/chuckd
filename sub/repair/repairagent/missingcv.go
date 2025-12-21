@@ -10,7 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -65,7 +65,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 
 	if reply == nil {
 		return nil, fmt.Errorf("no repaired consensus value returned, cvh %s, vid %s",
-			libtext.Display(missing), protoutil.VIDString(protoutil.PublicVID(from)))
+			libxdr.HashString(missing), protoutil.VIDString(protoutil.PublicVID(from)))
 	}
 
 	// verify returned cv matches hash

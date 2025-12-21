@@ -5,7 +5,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -62,8 +61,8 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	liblog.Infof("received externalization for slot %d with block hash %s and consensus value hash %s",
 		slot,
-		libtext.Display(cvc.Block_hash),
-		libtext.Display(cvc.Cv_hash))
+		libxdr.HashString(cvc.Block_hash),
+		libxdr.HashString(cvc.Cv_hash))
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
