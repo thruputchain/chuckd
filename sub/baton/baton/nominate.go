@@ -40,8 +40,8 @@ func (b *Baton) nominate(
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, proto.BlockID, error) {
 
-	b.stampNominationStart(ontoDb.Height + 1)
-	defer b.stampNominationEnd(ontoDb.Height + 1)
+	b.stampNominateStart(ontoDb.Height + 1)
+	defer b.stampNominateEnd(ontoDb.Height + 1)
 
 	t0 := b.handler.Now()
 	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
