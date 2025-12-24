@@ -331,10 +331,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 		// drive received consensus values into cvpool
 		go func() {
+			m := libxdr.NewXdrMarshaler()
 			for {
 				sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
 				_ = sender
-				s.CVPool.ConsensusValuePoolAdd(ctx, *cv)
+				s.CVPool.ConsensusValuePoolAddWithHash(ctx, *cv, protoutil.HashCV(m, cv))
 			}
 		}()
 	}()

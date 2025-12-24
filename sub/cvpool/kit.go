@@ -7,9 +7,10 @@ import (
 )
 
 type CVPool interface {
-	ConsensusValuePoolAdd(
+	ConsensusValuePoolAddWithHash(
 		ctx context.Context,
 		cv proto.ConsensusValue,
+		cvh proto.ConsensusValueHash,
 	)
 	ConsensusValuePoolLookup(
 		ctx context.Context,

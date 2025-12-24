@@ -45,6 +45,8 @@ type TestRig struct {
 	//
 	cvlk            sync.Mutex
 	consensusValues []proto.ConsensusValue
+	//
+	cvM libxdr.XdrMarshaler
 }
 
 func NewTestRig(
@@ -74,6 +76,7 @@ func NewTestRig(
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
 		backfeed:           make(chan struct{}),
+		cvM:                libxdr.NewXdrMarshaler(),
 	}
 	h.TestCoord = testcoord.NewTestCoord()
 	h.TestScheduler = testsched.NewTestScheduler(
@@ -227,10 +230,11 @@ func (h *TestRig) FindHighestConsensusValue(ctx context.Context) *proto.Consensu
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
-func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue) {}
+func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
+}
 
 func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv)
+	h.ConsensusValuePool.ConsensusValuePoolAddWithHash(ctx, cv, protoutil.HashCV(h.cvM, &cv))
 }
 
 func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {

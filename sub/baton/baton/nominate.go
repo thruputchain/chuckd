@@ -69,6 +69,7 @@ func (b *Baton) nominate(
 	prevStamp := protoutil.TimeFromTimepoint(ontoExt.cv.Timestamp)
 	stamp := b.handler.Now()
 	for stamp.Sub(prevStamp) < 2*b.skew {
+		liblog.Debugf("delaying block %d by %v to overcome clock skew", nom.Block_height, b.skew)
 		b.handler.Sleep(b.skew)
 		stamp = b.handler.Now()
 	}
@@ -80,7 +81,9 @@ func (b *Baton) nominate(
 		Prev_cv_hash: ontoExt.ConsensusValueHash(),
 	}
 
+	q0 := b.handler.Now()
 	cvc := b.cueFromConsensusValue(cv)
+	liblog.Debugf("hashing cv for block %d took %v", nom.Block_height, b.handler.Now().Sub(q0))
 
 	b.handler.Emit(ctx, batonkit.EventNominating{
 		Onto:   ontoDb,
@@ -96,7 +99,7 @@ func (b *Baton) nominate(
 	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
 	// not be able to externalize the value (and look for catchup when no other nodes exist).
 	// to fix this, we populate the cv in the local pool optimistically.
-	b.handler.ConsensusValuePoolAdd(ctx, *cv)
+	b.handler.ConsensusValuePoolAddWithHash(ctx, *cv, cvc.Cv_hash)
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
@@ -112,7 +115,7 @@ func (b *Baton) nominate(
 		liblog.Debugf("disseminating consensus value for slot %d with hash %s",
 			nom.Block_height,
 			libxdr.HashString(cvc.Cv_hash))
-		b.handler.DisseminateCV(ctx, *cv)
+		b.handler.DisseminateCV(ctx, *cv, cvc.Cv_hash)
 
 		b.handler.Emit(ctx, batonkit.EventNominated{
 			Onto:   ontoDb,

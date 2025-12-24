@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -28,15 +27,14 @@ func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
 	return cvp
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(ctx context.Context, cv proto.ConsensusValue) {
+func (cvp *ConsensusValuePool) ConsensusValuePoolAddWithHash(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
 	if cv.Nomination.Block_height <= cvp.bottom {
 		return
 	}
-	h := protoutil.HashCV(cvp.m, &cv)
-	cvp.cv[h] = cv
+	cvp.cv[cvh] = cv
 }
 
 func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.BlockHeight) {

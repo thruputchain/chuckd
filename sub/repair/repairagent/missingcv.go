@@ -40,7 +40,7 @@ attempting:
 				continue attempting
 			}
 		}
-		x.cvpool.ConsensusValuePoolAdd(ctx, *cv) // repaired cvs should go in the cvpool to be accessible later
+		x.cvpool.ConsensusValuePoolAddWithHash(ctx, *cv, missing) // repaired cvs should go in the cvpool to be accessible later
 		return cv, nil
 	}
 }

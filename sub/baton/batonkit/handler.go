@@ -30,7 +30,7 @@ type Handler interface {
 	scpbroker.SCPBackfeed
 	catchup.CatchupAgent
 
-	DisseminateCV(context.Context, proto.ConsensusValue)
+	DisseminateCV(context.Context, proto.ConsensusValue, proto.ConsensusValueHash)
 
 	GenerateID64(context.Context) ID64
 	RestoreDb(context.Context) (proto.DbTip, error)
