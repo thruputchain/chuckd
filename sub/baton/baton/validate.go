@@ -16,15 +16,11 @@ func (b *Baton) cueFromConsensusValue(cv *proto.ConsensusValue) *proto.Consensus
 
 // validated cache
 
-func (b *Baton) setValidated(cv *proto.ConsensusValue, blockID proto.BlockID) {
-	b.validated[b.hashCV(cv)] = validated{
+func (b *Baton) setValidated(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash, blockID proto.BlockID) {
+	b.validated[cvh] = validated{
 		ConsensusValue: cv,
 		BlockID:        blockID,
 	}
-}
-
-func (b *Baton) getValidatedBlockIDFromCV(cv *proto.ConsensusValue) *proto.BlockID {
-	return b.getValidatedBlockIDFromCVH(b.hashCV(cv))
 }
 
 func (b *Baton) getValidatedConsensusFromCVH(cvh proto.ConsensusValueHash) *proto.ConsensusValue {
@@ -45,12 +41,8 @@ func (b *Baton) getValidatedBlockIDFromCVH(cvh proto.ConsensusValueHash) *proto.
 
 // invalidated cache
 
-func (b *Baton) setInvalidated(cv *proto.ConsensusValue) {
-	b.invalidated[b.hashCV(cv)] = invalidated{ConsensusValue: cv}
-}
-
-func (b *Baton) isInvalidatedCV(cv *proto.ConsensusValue) bool {
-	return b.isInvalidatedCVH(b.hashCV(cv))
+func (b *Baton) setInvalidated(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash) {
+	b.invalidated[cvh] = invalidated{ConsensusValue: cv}
 }
 
 func (b *Baton) isInvalidatedCVH(cvh proto.ConsensusValueHash) bool {

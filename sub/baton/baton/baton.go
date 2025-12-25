@@ -140,16 +140,16 @@ func (b *Baton) start(ctx context.Context) {
 		tipCV := b.handler.FindConsensusValue(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
-		b.tipExt = b.newExternalized(tipCV)
+		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
 	} else {
 		acv := assumedConsensusValueAtHeight(b.tipDb.Height)
-		b.tipExt = b.newExternalized(&acv)
+		b.tipExt = b.newExternalized(&acv, b.hashCV(&acv))
 	}
 
 	// load known externalizations above db tip
 	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tipDb.Height)
 	for _, cv := range higherCV {
-		b.externalized = append(b.externalized, b.newExternalized(&cv))
+		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
 	}
 
 	liblog.Infof("baton db restored at height %d", b.tipDb.Height)

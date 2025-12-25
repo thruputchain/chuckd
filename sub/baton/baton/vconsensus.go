@@ -18,13 +18,14 @@ func (b *Baton) validateConsensus(
 	ctx context.Context,
 	slot scpkit.Slot,
 	cv *proto.ConsensusValue,
+	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
 	liblog.Infof("validating consensus value at height %d with block hash %s",
 		slot, libxdr.HashString(cv.Nomination.Block_hash))
 
-	if b.tryValidateConsensusFast(ctx, slot, cv, reply) {
+	if b.tryValidateConsensusFast(ctx, slot, cv, cvc, reply) {
 		return
 	}
 
@@ -40,7 +41,7 @@ func (b *Baton) validateConsensus(
 			errors.Is(err, ErrTipAlreadyAhead) || // from WaitCommittedAt
 				errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded), // from WaitExternalizedBeyond
 		)
-		b.validateExternalizedConsensus(ctx, slot, cv, reply)
+		b.validateExternalizedConsensus(ctx, slot, cv, cvc, reply)
 		return
 	}
 
@@ -85,7 +86,7 @@ func (b *Baton) validateConsensus(
 
 	// check if block previous invalidated to prevent expensive validation
 	b.lock()
-	alreadyInvalidated := b.isInvalidatedCV(cv)
+	alreadyInvalidated := b.isInvalidatedCVH(cvc.Cv_hash)
 	b.unlock()
 	if alreadyInvalidated {
 		reply <- scpkit.InvalidValue
@@ -96,7 +97,7 @@ func (b *Baton) validateConsensus(
 	if errors.Is(err, batonkit.ErrNotValid) {
 		// cache invalidation to prevent dos
 		b.lock()
-		b.setInvalidated(cv)
+		b.setInvalidated(cv, cvc.Cv_hash)
 		b.unlock()
 
 		reply <- scpkit.InvalidValue
@@ -106,16 +107,16 @@ func (b *Baton) validateConsensus(
 		// err can only ever be context cancelled or deadline exceeded.
 		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 		// it occurs only if scp has externalized newer blocks
-		b.validateExternalizedConsensus(ctx, slot, cv, reply)
+		b.validateExternalizedConsensus(ctx, slot, cv, cvc, reply)
 		return
 	}
 
 	// cache validated blocks
 	liblog.Debugf("caching validation for block %s and consensus %s",
 		libxdr.HashString(cv.Nomination.Block_hash),
-		libxdr.HashString(b.hashCV(cv)))
+		libxdr.HashString(cvc.Cv_hash))
 	b.lock()
-	b.setValidated(cv, validatedTip.Id)
+	b.setValidated(cv, cvc.Cv_hash, validatedTip.Id)
 	b.unlock()
 
 	reply <- scpkit.FullyValidValue
@@ -126,6 +127,7 @@ func (b *Baton) tryValidateConsensusFast(
 	ctx context.Context,
 	slot scpkit.Slot,
 	cv *proto.ConsensusValue,
+	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) bool {
 
@@ -140,7 +142,7 @@ func (b *Baton) tryValidateConsensusFast(
 
 	b.lock()
 	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidatedBlockIDFromCV(cv)
+	alreadyValidated := b.getValidatedBlockIDFromCVH(cvc.Cv_hash)
 	b.unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {
@@ -150,7 +152,7 @@ func (b *Baton) tryValidateConsensusFast(
 	}
 
 	if cv.Nomination.Block_height <= dbTipOnRequest.Height {
-		b.validateExternalizedConsensus(ctx, slot, cv, reply)
+		b.validateExternalizedConsensus(ctx, slot, cv, cvc, reply)
 		return true
 	}
 

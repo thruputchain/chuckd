@@ -58,7 +58,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			b.tipDb.Height = cb.BlockHeight()
 			b.tipDb.Id = blockID
 
-			b.tipExt = b.newExternalized(cb.AsConsensusValue())
+			b.tipExt = b.newExternalized(cb.AsConsensusValue(), cb.ConsensusValueHash())
 			b.noteCommitted(cb.BlockHeight())
 
 			// purge catchup or consensus blocks no higher than the newly committed one
@@ -90,7 +90,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	}
 	b.nominating = current
 	go func() {
-		cv, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
+		cv, cvc, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
 		current.Cancel()
 
 		b.lock()
@@ -110,17 +110,15 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		}
 
 		if !currentWasReplaced {
-			b.setValidated(cv, blockID)
-			liblog.Infof("nominated block at height %d with block hash %s and consensus value hash %s",
+			b.setValidated(cv, cvc.Cv_hash, blockID)
+			liblog.Infof("nominated block at height %d with block hash %s",
 				cv.Nomination.Block_height,
 				libxdr.HashString(cv.Nomination.Block_hash),
-				libxdr.HashString(b.hashCV(cv)),
 			)
 		} else {
-			liblog.Infof("superceded nomination for block at height %d with block hash %s and consensus value hash %s",
+			liblog.Infof("superceded nomination for block at height %d with block hash %s",
 				cv.Nomination.Block_height,
 				libxdr.HashString(cv.Nomination.Block_hash),
-				libxdr.HashString(b.hashCV(cv)),
 			)
 		}
 	}()

@@ -72,10 +72,11 @@ func (x ViewCatchupBlock) Committable() batonkit.Committable {
 	if !x.Linked {
 		return nil
 	}
-	return &batonkit.CommittableCatchup{
-		Catchup:   x.Candidate.Block(),
-		Validated: x.Validated,
-	}
+	return batonkit.NewCommittableCatchup(
+		x.Candidate.Block(),
+		x.Candidate.ConsensusValueHash(),
+		x.Validated,
+	)
 }
 func (x ViewCatchupBlock) Icon() string {
 	if x.Linked {
@@ -116,14 +117,17 @@ func (x ViewExtConsensusBlock) IsDb() bool           { return false }
 func (x ViewExtConsensusBlock) Committable() batonkit.Committable {
 	switch {
 	case x.Validated != nil:
-		return &batonkit.CommittableNomination{
-			ConsensusValue: x.Ext.ConsensusValue(),
-			Validated:      x.Validated,
-		}
+		return batonkit.NewCommittableNomination(
+			x.Ext.ConsensusValue(),
+			x.Ext.ConsensusValueHash(),
+			x.Validated,
+		)
 	case x.Catchup != nil:
-		return &batonkit.CommittableCatchup{
-			Catchup: x.Catchup.Block(),
-		}
+		return batonkit.NewCommittableCatchup(
+			x.Catchup.Block(),
+			x.Catchup.ConsensusValueHash(),
+			nil,
+		)
 	}
 	return nil
 }
@@ -160,9 +164,11 @@ func (x ViewExtCueBlock) IsCatchup() bool      { return false }
 func (x ViewExtCueBlock) IsDb() bool           { return false }
 func (x ViewExtCueBlock) Committable() batonkit.Committable {
 	if x.Catchup != nil {
-		return &batonkit.CommittableCatchup{
-			Catchup: x.Catchup.Block(),
-		}
+		return batonkit.NewCommittableCatchup(
+			x.Catchup.Block(),
+			x.Catchup.ConsensusValueHash(),
+			nil,
+		)
 	}
 	return nil
 }

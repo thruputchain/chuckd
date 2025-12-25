@@ -101,7 +101,7 @@ func (b *Baton) validateCue(
 		return
 	}
 
-	b.validateConsensus(vCtx, slot, cv, reply)
+	b.validateConsensus(vCtx, slot, cv, cvc, reply)
 }
 
 func (b *Baton) fetchCV(

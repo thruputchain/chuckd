@@ -38,7 +38,7 @@ func (b *Baton) nominate(
 	ctx context.Context,
 	ontoDb proto.DbTip,
 	ontoExt externalizedConsensus,
-) (*proto.ConsensusValue, proto.BlockID, error) {
+) (*proto.ConsensusValue, *proto.ConsensusValueCue, proto.BlockID, error) {
 
 	b.stampNominateStart(ontoDb.Height + 1)
 	defer b.stampNominateEnd(ontoDb.Height + 1)
@@ -53,7 +53,7 @@ func (b *Baton) nominate(
 	if err != nil {
 		must.Assert(ctx, errors.Is(err, sched.ErrHeightTooLow) ||
 			errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 
 	must.Assert(ctx, nomBlockID == *result.Block_id())
@@ -104,7 +104,7 @@ func (b *Baton) nominate(
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
 	b.lock()
-	b.setValidated(cv, nomBlockID)
+	b.setValidated(cv, cvc.Cv_hash, nomBlockID)
 	b.unlock()
 
 	// nominate to consensus
@@ -126,10 +126,10 @@ func (b *Baton) nominate(
 			DbgConsensusValue:    cv,
 			DbgConsensusValueCue: cvc,
 		})
-		return cv, nomBlockID, nil
+		return cv, cvc, nomBlockID, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
-		return nil, 0, ErrNominationRejected
+		return nil, nil, 0, ErrNominationRejected
 	}
 }
 

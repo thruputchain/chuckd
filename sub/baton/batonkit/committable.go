@@ -11,6 +11,7 @@ type Committable interface {
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
+	ConsensusValueHash() proto.ConsensusValueHash
 	AsConsensusValue() *proto.ConsensusValue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash
@@ -18,31 +19,44 @@ type Committable interface {
 }
 
 type CommittableNomination struct {
-	ConsensusValue *proto.ConsensusValue // always present
-	Validated      *proto.BlockID        // always present
+	cv        *proto.ConsensusValue // always present
+	cvhash    proto.ConsensusValueHash
+	validated *proto.BlockID // always present
+}
+
+func NewCommittableNomination(
+	cv *proto.ConsensusValue,
+	cvh proto.ConsensusValueHash,
+	validated *proto.BlockID,
+) *CommittableNomination {
+	return &CommittableNomination{cv: cv, cvhash: cvh, validated: validated}
 }
 
 func (cb *CommittableNomination) BlockHeight() proto.BlockHeight {
-	return cb.ConsensusValue.Nomination.Block_height
+	return cb.cv.Nomination.Block_height
 }
 
 func (cb *CommittableNomination) BlockHash() proto.BlockHash {
-	return cb.ConsensusValue.Nomination.Block_hash
+	return cb.cv.Nomination.Block_hash
 }
 
 func (cb *CommittableNomination) PrevBlockHash() proto.BlockHash {
-	return cb.ConsensusValue.Nomination.Prev_block_hash
+	return cb.cv.Nomination.Prev_block_hash
 }
 
 func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
-	if cb.Validated == nil {
+	if cb.validated == nil {
 		panic("bug")
 	}
-	return cb.Validated
+	return cb.validated
+}
+
+func (cb *CommittableNomination) ConsensusValueHash() proto.ConsensusValueHash {
+	return cb.cvhash
 }
 
 func (cb *CommittableNomination) AsConsensusValue() *proto.ConsensusValue {
-	return cb.ConsensusValue
+	return cb.cv
 }
 
 func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedTransaction {
@@ -50,48 +64,65 @@ func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedT
 }
 
 func (cb *CommittableNomination) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
-	return cb.ConsensusValue.Nomination.Transaction_hashes
+	return cb.cv.Nomination.Transaction_hashes
 }
 
 func (cb *CommittableNomination) NumTransactions() int {
-	return len(cb.ConsensusValue.Nomination.Transaction_hashes)
+	return len(cb.cv.Nomination.Transaction_hashes)
 }
 
 type CommittableCatchup struct {
-	Catchup   *proto.CatchupBlock // always present
-	Validated *proto.BlockID      // optional
+	catchup   *proto.CatchupBlock // always present
+	cvhash    proto.ConsensusValueHash
+	validated *proto.BlockID // optional
+}
+
+func NewCommittableCatchup(
+	catchup *proto.CatchupBlock,
+	cvhash proto.ConsensusValueHash,
+	validated *proto.BlockID,
+) *CommittableCatchup {
+	return &CommittableCatchup{
+		catchup:   catchup,
+		cvhash:    cvhash,
+		validated: validated,
+	}
 }
 
 func (cb *CommittableCatchup) BlockHeight() proto.BlockHeight {
-	return cb.Catchup.Consensus_value.Nomination.Block_height
+	return cb.catchup.Consensus_value.Nomination.Block_height
 }
 
 func (cb *CommittableCatchup) BlockHash() proto.BlockHash {
-	return cb.Catchup.Consensus_value.Nomination.Block_hash
+	return cb.catchup.Consensus_value.Nomination.Block_hash
 }
 
 func (cb *CommittableCatchup) PrevBlockHash() proto.BlockHash {
-	return cb.Catchup.Consensus_value.Nomination.Prev_block_hash
+	return cb.catchup.Consensus_value.Nomination.Prev_block_hash
 }
 
 func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {
-	return cb.Validated
+	return cb.validated
+}
+
+func (cb *CommittableCatchup) ConsensusValueHash() proto.ConsensusValueHash {
+	return cb.cvhash
 }
 
 func (cb *CommittableCatchup) AsConsensusValue() *proto.ConsensusValue {
-	return &cb.Catchup.Consensus_value
+	return &cb.catchup.Consensus_value
 }
 
 func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTransaction {
-	return cb.Catchup.Signed_transactions
+	return cb.catchup.Signed_transactions
 }
 
 func (cb *CommittableCatchup) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
-	return protoutil.HashSignedTxs(m, cb.Catchup.Signed_transactions)
+	return protoutil.HashSignedTxs(m, cb.catchup.Signed_transactions)
 }
 
 func (cb *CommittableCatchup) NumTransactions() int {
-	return len(cb.Catchup.Signed_transactions)
+	return len(cb.catchup.Signed_transactions)
 }
 
 type CommittableBlock struct {

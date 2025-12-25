@@ -146,7 +146,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 				v.Blocks[i] = ViewCatchupBlock{
 					Candidate: ca,
 					Linked:    false, // linked will be computed later
-					Validated: b.getValidatedBlockIDFromCV(ca.ConsensusValue()),
+					Validated: b.getValidatedBlockIDFromCVH(ca.ConsensusValueHash()),
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}

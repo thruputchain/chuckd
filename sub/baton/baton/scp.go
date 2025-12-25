@@ -86,7 +86,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 			return
 		}
 
-		extConsensus := x.baton.newExternalized(cv)
+		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			x.baton.handler.PersistConsensusValue(ctx, *cv)
 		}

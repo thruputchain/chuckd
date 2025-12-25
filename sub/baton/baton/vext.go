@@ -30,7 +30,8 @@ func (b *Baton) validateExternalizedCue(
 func (b *Baton) validateExternalizedConsensus(
 	ctx context.Context,
 	slot scpkit.Slot,
-	cv *proto.ConsensusValue,
+	_ *proto.ConsensusValue,
+	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
 	liblog.Debugf("validating consensus value for already externalized slot %d", slot)
@@ -38,7 +39,7 @@ func (b *Baton) validateExternalizedConsensus(
 	cvx := b.handler.FindConsensusValue(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cvx != nil)
 
-	if b.hashCV(cvx) == b.hashCV(cv) {
+	if b.hashCV(cvx) == cvc.Cv_hash {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue

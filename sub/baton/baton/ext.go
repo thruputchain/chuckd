@@ -15,10 +15,10 @@ type externalizedConsensus struct {
 	hash proto.ConsensusValueHash
 }
 
-func (b *Baton) newExternalized(cv *proto.ConsensusValue) externalizedConsensus {
+func (b *Baton) newExternalized(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash) externalizedConsensus {
 	return externalizedConsensus{
 		cv:   cv,
-		hash: b.hashCV(cv),
+		hash: cvh,
 	}
 }
 
