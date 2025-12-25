@@ -1,7 +1,5 @@
 SCHEDULER INTEGRATION
 
-- [ ] impl FastHashCV
-- [ ] use 20 conns to scheduler
 - [ ] tell jack to use 20 conns to coordinator
 
 - [ ] return immediately from submit_vetted
@@ -40,6 +38,7 @@ QUESTIONS
 
 OPTIMIZATIONS
 
+- [ ] push quorum set knowledge to scpd to avoid chuckd/scpd serial network calls
 - [ ] ask scp whether we should bother nominating this round
 
 

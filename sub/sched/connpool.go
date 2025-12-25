@@ -16,7 +16,7 @@ func ConnectPoolToScheduler(
 	net libnet.AddressDialer,
 	schedAddr string,
 ) (SchedulerCoordConn, error) {
-	const N = 10
+	const N = 20
 	conns := make([]SchedulerCoordConn, N)
 
 	var wg sync.WaitGroup
