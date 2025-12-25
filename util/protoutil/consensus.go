@@ -23,7 +23,7 @@ func FastHashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.Consensus
 	cvz := *cv
 	cvz.Nomination.Transaction_hashes = nil
 	cvz.Nomination.Transaction_nominations = nil
-	bb := m.MarshalXdr(cv)
+	bb := m.MarshalXdr(&cvz)
 	h0 := sha256.Sum256(bb.Bytes())
 	bb.Recycle()
 
@@ -37,10 +37,10 @@ func FastHashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.Consensus
 	var wg sync.WaitGroup
 	wg.Add(k)
 	for i := range k {
-		go func(i int) {
+		go func() {
 			defer wg.Done()
 			lo := i * TxsPerThread
-			hi := min(len(cv.Nomination.Transaction_hashes), (i+1)*TxsPerThread)
+			hi := min(n, (i+1)*TxsPerThread)
 			o := proto.NominationTxsOnly{
 				Transaction_hashes:      cv.Nomination.Transaction_hashes[lo:hi],
 				Transaction_nominations: cv.Nomination.Transaction_nominations[lo:hi],
@@ -48,7 +48,7 @@ func FastHashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.Consensus
 			bb := m.MarshalXdr(&o)
 			defer bb.Recycle()
 			hashes[i] = sha256.Sum256(bb.Bytes())
-		}(i)
+		}()
 	}
 	wg.Wait()
 

@@ -9,6 +9,7 @@ import (
 )
 
 func Benchmark_HashCV_1M(b *testing.B) {
+	// liblog.SetLogLevelDebug()
 	cv := &proto.ConsensusValue{
 		Nomination: proto.Nomination{
 			Transaction_hashes:      make([]proto.SignedTransactionHash, 1e6), // 1M
@@ -22,6 +23,7 @@ func Benchmark_HashCV_1M(b *testing.B) {
 }
 
 func Benchmark_FastHashCV_1M(b *testing.B) {
+	// liblog.SetLogLevelDebug()
 	cv := &proto.ConsensusValue{
 		Nomination: proto.Nomination{
 			Transaction_hashes:      make([]proto.SignedTransactionHash, 1e6), // 1M
