@@ -3,7 +3,6 @@ SCHEDULER INTEGRATION
 - [ ] impl FastHashCV
 - [ ] use 20 conns to scheduler
 - [ ] tell jack to use 20 conns to coordinator
-- [ ] coordinator logs still not showing nanos
 
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
