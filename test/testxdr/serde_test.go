@@ -18,7 +18,7 @@ func Benchmark_HashCV_1M(b *testing.B) {
 	}
 	m := libxdr.NewXdrMarshaler()
 	for b.Loop() {
-		protoutil.HashCV(m, cv)
+		protoutil.SimpleHashCV(m, cv)
 	}
 }
 
@@ -32,6 +32,6 @@ func Benchmark_FastHashCV_1M(b *testing.B) {
 	}
 	m := libxdr.NewXdrMarshaler()
 	for b.Loop() {
-		protoutil.FastHashCV(m, cv)
+		protoutil.HashCV(m, cv)
 	}
 }

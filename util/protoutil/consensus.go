@@ -9,13 +9,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
+func SimpleHashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	bb := m.MarshalXdr(cv)
 	defer bb.Recycle()
 	return sha256.Sum256(bb.Bytes())
 }
 
-func FastHashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
+func HashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
 
 	// XXX: len(Transaction_hashes) = len(Transaction_nominations), check in validate logic
 
