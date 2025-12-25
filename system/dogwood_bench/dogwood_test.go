@@ -15,7 +15,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	liblog.LogLevel(zerolog.InfoLevel)
+	liblog.SetLogLevel(zerolog.InfoLevel)
 	runtime.SetRootSeed(0)
 	libruntime.InstallStackTraceOnInterrupt()
 	exitCode := m.Run()

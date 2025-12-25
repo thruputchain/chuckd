@@ -9,7 +9,6 @@ import (
 
 	ghc "github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
-	chuckd_runtime "github.com/groundhogchain/chuckd/runtime"
 	chuckdruntime "github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/librpc"
@@ -75,12 +74,11 @@ func init() {
 }
 
 func initAfterFlags() {
-	chuckd_runtime.SetLogLevel(rootLogLevel)
 	level, err := zerolog.ParseLevel(rootLogLevel)
 	if err != nil {
 		log.Fatal(err)
 	}
-	liblog.LogLevel(level)
+	liblog.SetLogLevel(level)
 
 	librpc.SetLogCalls(rootRpcLogCalls)
 	librpc.SetLogStats(rootRpcLogStats)

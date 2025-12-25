@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
@@ -69,7 +68,7 @@ func StartSCPDaemon(
 		"--config-path", tmpPath,
 		"--secret-key", secretKeyText,
 	)
-	cmd.Env = []string{"RUST_BACKTRACE=1", "RUST_LOG=" + runtime.GetLogLevel()}
+	cmd.Env = []string{"RUST_BACKTRACE=1", "RUST_LOG=" + liblog.GetLogLevel().String()}
 	cmd.Stdout = libtext.NewPrefixWriter(os.Stderr, "[scpd:out] ")
 	cmd.Stderr = libtext.NewPrefixWriter(os.Stderr, "[scpd:err] ")
 

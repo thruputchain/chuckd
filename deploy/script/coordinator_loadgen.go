@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/deploy/common"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -138,7 +138,7 @@ fi
 			--scp-handle-addr %s \
 			--scp-control-addr %s \
 			--scp-is-validator true`,
-		runtime.GetLogLevel(),
+		liblog.GetLogLevel().String(),
 		host,
 		untypedVID,
 		rand.Int63(),
