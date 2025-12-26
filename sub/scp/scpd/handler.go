@@ -76,7 +76,7 @@ func (x *SCPHandler) Scp_handle_value_externalized(ctx context.Context, slotInde
 
 func (x *SCPHandler) Scp_handle_get_quorum_set(ctx context.Context, hash proto.SCPHash) (proto.SCPOptQuorumSet, error) {
 	<-x.ready
-	return x.qset.GetQuorumSet(ctx, hash)
+	return x.qset.GetQuorumSetLocally(ctx, hash)
 }
 
 func (x *SCPHandler) Scp_handle_nominating_value(context.Context, proto.SCPSlotIndex, proto.SCPValue) error {

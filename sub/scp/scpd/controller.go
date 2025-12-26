@@ -64,6 +64,24 @@ func (cc *SCPController) UpdateQuorumSet(ctx context.Context, qset proto.SCPQuor
 	must.NoError(ctx, err)
 }
 
+func (cc *SCPController) SetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet {
+	oqset, err := cc.Scp_control_set_qset(ctx, qset)
+	must.NoError(ctx, err)
+	return oqset
+}
+
+func (cc *SCPController) GetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
+	oqset, err := cc.Scp_control_get_qset(ctx, qhash)
+	must.NoError(ctx, err)
+	return oqset
+}
+
+func (cc *SCPController) RemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
+	oqset, err := cc.Scp_control_remove_qset(ctx, qhash)
+	must.NoError(ctx, err)
+	return oqset
+}
+
 func (cc *SCPController) Close() {
 	cc.driver.Close()
 }

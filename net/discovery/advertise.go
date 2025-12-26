@@ -60,5 +60,5 @@ func (s *DiscoveryService) advertiseToValidator(
 		liblog.Errorf("advertise to %s at epoch %d: %s", protoutil.VPublicShortString(v), epoch, err)
 		return
 	}
-	s.updateKnown(r)
+	s.updateKnown(ctx, r)
 }

@@ -261,6 +261,8 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		protoutil.ToSecretKey(s.cfg.Validator_config.Private_info.Secret_key),
 	)
 	s.scpdKill = scpdKill
+
+	s.Discovery.Start(ctx, scpController)
 	s.Live.SetSCP(scpController)
 	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
 

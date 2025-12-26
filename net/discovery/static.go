@@ -50,6 +50,6 @@ func (x *StaticDiscovery) CachedSnapshots() proto.KnownQuorumSets {
 	panic("not used")
 }
 
-func (x *StaticDiscovery) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
+func (x *StaticDiscovery) GetQuorumSetLocally(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
 	panic("not used")
 }

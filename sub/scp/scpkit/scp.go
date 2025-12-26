@@ -35,7 +35,7 @@ type SCPEmitEnvelope interface {
 }
 
 type SCPGetQuorumSet interface {
-	GetQuorumSet(context.Context, proto.SCPHash) (*proto.SCPQuorumSet, error)
+	GetQuorumSetLocally(context.Context, proto.SCPHash) (*proto.SCPQuorumSet, error)
 }
 
 type SCPHandler interface {
@@ -51,4 +51,11 @@ type SCPController interface {
 	StopNomination(ctx context.Context, slot Slot)
 	UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
 	ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
+	SCPKnownQSets
+}
+
+type SCPKnownQSets interface {
+	SetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet
+	GetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
+	RemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
 }

@@ -6,12 +6,9 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -23,7 +20,7 @@ type Discovery interface {
 	LookupValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
 	LookupTrustedValidator(vid proto.ValidatorID) (proto.ValidatorPublicInfo, bool)
 	CachedSnapshots() proto.KnownQuorumSets
-	GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error)
+	GetQuorumSetLocally(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error)
 }
 
 type DiscoveryService struct {
@@ -39,6 +36,8 @@ type DiscoveryService struct {
 	knownQSets map[proto.ValidatorID]proto.SignedQuorumSetSnapshot // validator_id -> their own qset
 	hashQSet   map[proto.SCPHash]proto.SCPQuorumSet                // hash of qset -> qset
 	knownVs    map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot
+	//
+	scpController scpkit.SCPKnownQSets
 	//
 	cachedLk         sync.Mutex
 	cachedStamp      time.Time
@@ -76,22 +75,40 @@ func NewDiscoveryService(
 		s.ourVIDs[protoutil.PublicVID(v)] = v
 	}
 
-	s.hashQSet[libxdr.HashXdr(s.m, &s.ourQSet)] = s.ourQSet
-
 	return s
 }
 
-func (svc *DiscoveryService) Start(ctx context.Context, address string) {
+func (s *DiscoveryService) Start(ctx context.Context, controller scpkit.SCPKnownQSets) {
 	liblog.Infof("starting discovery service")
-	go svc.advertise(ctx)
-	librpc.StartSerial(ctx, svc.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, address, proto.Discovery1_Server{Srv: svc})
+
+	s.scpController = controller
+
+	s.lk.Lock()
+	s.setQuorumSet(ctx, s.ourQSet)
+	s.lk.Unlock()
+
+	go s.advertise(ctx)
 }
 
 func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {
 	return s.ourQSet
 }
 
-func (s *DiscoveryService) GetQuorumSet(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
+func (s *DiscoveryService) setQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
+	s.scpController.SetKnownQuorumSet(ctx, qset)
+	s.hashQSet[libxdr.HashXdr(s.m, &qset)] = qset
+}
+
+// XXX: qset garbage collection not implemented
+func (s *DiscoveryService) removeQuorumSet(ctx context.Context, qhash proto.SCPHash) {
+	_, ok := s.hashQSet[qhash]
+	delete(s.hashQSet, qhash)
+	if ok {
+		s.scpController.RemoveKnownQuorumSet(ctx, qhash)
+	}
+}
+
+func (s *DiscoveryService) GetQuorumSetLocally(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 
@@ -145,23 +162,23 @@ func (s *DiscoveryService) Discovery_update_quorums(
 ) (proto.KnownQuorumSets, error) {
 
 	cachedKnown := s.CachedSnapshots()
-	s.updateKnown(known)
+	s.updateKnown(ctx, known)
 	return cachedKnown, nil
 }
 
-func (s *DiscoveryService) updateKnown(known proto.KnownQuorumSets) {
+func (s *DiscoveryService) updateKnown(ctx context.Context, known proto.KnownQuorumSets) {
 	s.lk.Lock()
 	defer s.lk.Unlock()
 
 	for _, qs := range known.Quorum_set_snapshots {
-		s.addQuorumSet(qs)
+		s.addQuorumSet(ctx, qs)
 	}
 	for _, vs := range known.Validator_snapshots {
 		s.addValidator(vs)
 	}
 }
 
-func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
+func (s *DiscoveryService) addQuorumSet(ctx context.Context, qset proto.SignedQuorumSetSnapshot) {
 	if !protoutil.VerifySignedQuorumSetSnapshot(s.m, qset) {
 		return
 	}
@@ -178,7 +195,7 @@ func (s *DiscoveryService) addQuorumSet(qset proto.SignedQuorumSetSnapshot) {
 
 	// index by qset hash
 	scpkit.NormalizeQSet(&qset.Quorum_set_snapshot.Quorum_set, nil)
-	s.hashQSet[libxdr.HashXdr(s.m, &qset.Quorum_set_snapshot.Quorum_set)] = qset.Quorum_set_snapshot.Quorum_set
+	s.setQuorumSet(ctx, qset.Quorum_set_snapshot.Quorum_set)
 }
 
 func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
