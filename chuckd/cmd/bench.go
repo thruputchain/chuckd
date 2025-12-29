@@ -113,6 +113,7 @@ var (
 					cfg,
 					testCfg,
 					schedSystem,
+					benchSkip,
 				)
 				opcfg := coordinator.OperationalConfig{
 					StorageDir:     benchStorageDir,
@@ -220,6 +221,8 @@ var (
 	benchSchedAddr   string
 	//
 	benchMockScheduler bool
+	//
+	benchSkip int
 )
 
 func init() {
@@ -262,6 +265,7 @@ func init() {
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 100, "number of blocks to generate")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchLoadgenAddr, "loadgen-addr", "localhost:44400", "loadgen address")
 	benchCoordinatorLoadgenCmd.Flags().BoolVar(&benchMockScheduler, "mock-scheduler", false, "use a mock scheduler")
+	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchSkip, "skip", 0, "number of initial blocks to skip reporting")
 
 	benchCmd.AddCommand(benchEchoCmd)
 	benchEchoCmd.Flags().BoolVar(&benchDoSend, "do-send", true, "send workload")

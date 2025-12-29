@@ -27,6 +27,7 @@ type CoordinatorLoadgenSystem struct {
 	coordinator *coordinator.System
 	scheduler   systemkit.SchedulerSystem
 	loadgen     *loadgen.LoadGen
+	skip        int
 }
 
 func NewCoordinatorLoadgenSystem(
@@ -38,6 +39,7 @@ func NewCoordinatorLoadgenSystem(
 	config proto.Config,
 	loadgenConfig loadgen.Config,
 	scheduler systemkit.SchedulerSystem,
+	skip int,
 ) *CoordinatorLoadgenSystem {
 	notify := coordinator.NewNotifyReceive()
 	cs := coordinator.NewSystem(ctx, notify, librand.NewRandFrom(rand), config, inside, outside)
@@ -49,6 +51,7 @@ func NewCoordinatorLoadgenSystem(
 		coordinator: cs,
 		scheduler:   scheduler,
 		loadgen:     lg,
+		skip:        skip,
 	}
 }
 
@@ -90,7 +93,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
 	s.PumpInitTxs(ctx, ctl)
-	s.PumpWorkTxs(ctx, ctl)
+	s.PumpWorkTxs(ctx, ctl, s.skip)
 }
 
 func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {
@@ -144,7 +147,11 @@ func (x BlockStats) PrintHogdReport() {
 	)
 }
 
-func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordinator.Control) []BlockStats {
+func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
+	ctx context.Context,
+	ctl coordinator.Control,
+	skip int,
+) []BlockStats {
 
 	stop := make(chan struct{})
 	report := make(chan []BlockStats)
@@ -153,6 +160,7 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordina
 		stats := []BlockStats{}
 		totalNTxs := 0
 		totalStartTime := time.Now()
+		j := 0
 		for {
 			blockStartTime := time.Now()
 			select {
@@ -168,9 +176,12 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(ctx context.Context, ctl coordina
 					TotalNTxs:     totalNTxs,
 					TotalDuration: time.Since(totalStartTime),
 				}
-				blockStats.PrintHogdReport()
-				stats = append(stats, blockStats)
+				if j+1 > skip {
+					blockStats.PrintHogdReport()
+					stats = append(stats, blockStats)
+				}
 			}
+			j += 1
 		}
 	}(stop, report)
 
