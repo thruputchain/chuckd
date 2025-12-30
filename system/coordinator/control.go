@@ -26,6 +26,10 @@ func (x Control) GenesisIsReady() {
 	close(x.genesisReady)
 }
 
+func (x Control) GetLevers() batonkit.BatonLevers {
+	return x.system.GetLevers()
+}
+
 func (x Control) SetHooks(hooks batonkit.BatonHooks) {
 	x.system.SetHooks(hooks)
 }

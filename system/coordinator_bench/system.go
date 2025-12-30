@@ -8,6 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/net/debug"
 	"github.com/groundhogchain/chuckd/runtime"
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testnet"
@@ -80,7 +81,7 @@ func (s *CoordinatorBenchSystem) Start(
 	s.CoordinatorBenchCluster.StartScheduler(ctx)
 
 	// start coordinator
-	ctl := s.System.Start(ctx, opcfg)
+	ctl := s.System.Start(ctx, opcfg, batonkit.BatonLevers{})
 	ctl.GenesisIsReady()
 
 	// connect the test scheduler to the coordinator

@@ -17,11 +17,11 @@ import (
 func NewBaton(
 	ctx context.Context,
 	cfg proto.BatonConfig,
-	h batonkit.Handler,
+	handler batonkit.Handler,
 ) *Baton {
 	b := &Baton{
 		ctx:              ctx,
-		handler:          h,
+		handler:          handler,
 		skew:             time.Millisecond * time.Duration(cfg.Skew_msec),
 		heartbeat:        time.Millisecond * time.Duration(cfg.Heartbeat_msec),
 		patience:         time.Millisecond * time.Duration(cfg.Patience_msec),
@@ -48,8 +48,10 @@ type Baton struct {
 	patience         time.Duration // if no externalization seen for this duration, request a backfeed
 	maxCatchupHeight int
 	ready            chan struct{}
-	cond             *sync.Cond
-	lk               sync.Mutex
+
+	// main lock
+	cond *sync.Cond
+	lk   sync.Mutex
 
 	// hooks and levers
 	hooks  batonkit.BatonHooks
@@ -85,6 +87,12 @@ type validated struct {
 
 type invalidated struct {
 	*proto.ConsensusValue
+}
+
+func (b *Baton) GetLevers() batonkit.BatonLevers {
+	b.lockNoDrive()
+	defer b.unlockNoDrive()
+	return b.levers
 }
 
 func (b *Baton) SetHooks(hooks batonkit.BatonHooks) {
@@ -127,7 +135,8 @@ func (b *Baton) Kick() {
 	defer b.unlock()
 }
 
-func (b *Baton) Start(ctx context.Context) {
+func (b *Baton) Start(ctx context.Context, levers batonkit.BatonLevers) {
+	b.levers = levers
 	go b.start(ctx)
 	<-b.ready
 }

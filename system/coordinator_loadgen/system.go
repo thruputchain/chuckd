@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/net/debug"
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/loadgen"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/systemkit"
@@ -82,7 +83,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.loadgen.Start(ctx, loadgenAddr)
 
 	// start coordinator
-	ctl := s.coordinator.Start(ctx, opcfg)
+	ctl := s.coordinator.Start(ctx, opcfg, batonkit.BatonLevers{PauseNominating: true})
 
 	// process genesis
 	genesis := s.loadgen.WaitGenesis(ctx)
@@ -97,11 +98,33 @@ func (s *CoordinatorLoadgenSystem) Start(
 }
 
 func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {
-	i := 0
+	// nominations are paused on entry
+
+	// install nomination gating hook
 	txm := libxdr.NewXdrMarshaler()
 	uncommitted := map[proto.SignedTransactionHash]bool{}
+	ctl.SetHooks(
+		batonkit.JustCommitHook(
+			// hook pauses nominations iff uncommitted is empty
+			func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
+				for _, h := range cb.SignedTransactionHashes(txm) {
+					delete(uncommitted, h)
+				}
+				if len(uncommitted) == 0 {
+					liblog.Debugf("hook: pause nominating")
+				} else {
+					liblog.Debugf("hook: continue nominating")
+				}
+				return batonkit.BatonLevers{PauseNominating: len(uncommitted) == 0}
+			},
+		),
+	)
+	defer ctl.SetHooks(nil)
 
+	i := 0
 	for {
+		// nominations are paused
+
 		liblog.Infof("waiting for init tx batch %d to arrive from loadgen", i)
 		txs := s.loadgen.WaitInitTxs(ctx)
 		if len(txs) == 0 {
@@ -114,13 +137,22 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 		}
 		ctl.SubmitTxs(ctx, txs)
 
+		// nominations resume
+
+		// after resuming, an empty nomination can slip in before submitted txs reach mempool,
+		// so we wait for a bit to avoid this
+		liblog.Debugf("sleeping for 500ms before we resume nominating")
+		time.Sleep(500 * time.Millisecond)
+
+		liblog.Debugf("resume nominating")
+		ctl.ResumeNominating()
+
 		liblog.Infof("waiting for init batch %d to commit", i)
 		for {
-			cb := s.notify.ReceiveCommitted(ctx)
-			for _, h := range cb.SignedTransactionHashes(txm) {
-				delete(uncommitted, h)
-			}
+			s.notify.ReceiveCommitted(ctx) // returns after the hook is called
 			if len(uncommitted) == 0 {
+				// the hook has paused nominations
+				must.Assert(ctx, ctl.GetLevers().PauseNominating)
 				break
 			}
 		}
@@ -152,6 +184,7 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 	ctl coordinator.Control,
 	skip int,
 ) []BlockStats {
+	ctl.ResumeNominating()
 
 	stop := make(chan struct{})
 	report := make(chan []BlockStats)
