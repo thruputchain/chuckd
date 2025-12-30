@@ -35,17 +35,20 @@ func (b *Baton) drive(ctx context.Context) {
 
 // driveCommit commits the next block, if one is available and no commit is in progress
 func (b *Baton) driveCommit(ctx context.Context, v *View) {
-	if cb := v.NextBlockToCommit(); cb != nil && !b.committing {
-		liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), libxdr.HashString(cb.BlockHash()))
-		b.committing = true
-		// cancel ongoing nominations trumped by this commit to save compute
-		b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
+	cb := v.NextBlockToCommit()
+	if cb == nil || b.committing {
+		return
+	}
 
-		go func() {
-			blockID := b.commit(ctx, cb)
+	liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), libxdr.HashString(cb.BlockHash()))
+	b.committing = true
+	// cancel ongoing nominations trumped by this commit to save compute
+	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
+	go func() {
+		blockID := b.commit(ctx, cb)
+		{
 			b.lock()
-			defer b.unlock()
 
 			must.Assertf(ctx, b.committing, "race committing")
 			b.committing = false
@@ -59,12 +62,20 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			b.tipDb.Id = blockID
 
 			b.tipExt = b.newExternalized(cb.AsConsensusValue(), cb.ConsensusValueHash())
-			b.noteCommitted(cb.BlockHeight())
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)
-		}()
-	}
+
+			b.noteCommitted(cb.BlockHeight())
+
+			if b.hooks != nil {
+				b.levers = b.hooks.CommitHook(cb)
+			}
+
+			b.unlock()
+		}
+		b.handler.Committed(ctx, cb) // must be outside of the baton lock
+	}()
 }
 
 // driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started

@@ -104,7 +104,7 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 	for {
 		liblog.Infof("waiting for init tx batch %d to arrive from loadgen", i)
 		txs := s.loadgen.WaitInitTxs(ctx)
-		if txs == nil {
+		if len(txs) == 0 {
 			return
 		}
 

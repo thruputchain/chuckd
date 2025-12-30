@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/baton/baton"
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
@@ -347,6 +348,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		conn:         schedConn,
 		genesisReady: genesisReady,
 	}
+}
+
+func (s *System) SetHooks(hooks batonkit.BatonHooks) {
+	s.Baton.SetHooks(hooks)
 }
 
 func (s *System) PauseNominating() {

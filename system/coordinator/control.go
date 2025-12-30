@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -23,6 +24,10 @@ func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) 
 
 func (x Control) GenesisIsReady() {
 	close(x.genesisReady)
+}
+
+func (x Control) SetHooks(hooks batonkit.BatonHooks) {
+	x.system.SetHooks(hooks)
 }
 
 func (x Control) PauseNominating() {
