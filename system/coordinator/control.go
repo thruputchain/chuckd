@@ -22,8 +22,12 @@ func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) 
 	x.system.UnvettedSubmitter.SubmitTxs(ctx, txs...)
 }
 
-func (x Control) GenesisIsReady() {
+func (x Control) SignalGenesisIsReady() {
 	close(x.genesisReady)
+}
+
+func (x Control) SetLevers(levers batonkit.BatonLevers) {
+	x.system.SetLevers(levers)
 }
 
 func (x Control) GetLevers() batonkit.BatonLevers {

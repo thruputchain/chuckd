@@ -6,7 +6,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/dogwood"
 	"github.com/groundhogchain/lib-go/libnet"
@@ -52,8 +51,8 @@ var (
 					SCPControlAddr: serverSCPControlAddr,
 					IsValidator:    serverSCPIsValidator,
 				}
-				ctl := srv.Start(ctx, opcfg, batonkit.BatonLevers{})
-				ctl.GenesisIsReady()
+				ctl := srv.Start(ctx, opcfg)
+				ctl.SignalGenesisIsReady()
 				select {} // hang
 			})
 		},

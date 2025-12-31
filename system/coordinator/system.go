@@ -236,7 +236,7 @@ type OperationalConfig struct {
 	IsValidator    bool
 }
 
-func (s *System) Start(ctx context.Context, opcfg OperationalConfig, levers batonkit.BatonLevers) Control {
+func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	s.Storage.Start(ctx, opcfg.StorageDir)
 
@@ -280,7 +280,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig, levers bato
 		<-genesisReady // wait for genesis to be in the db
 		liblog.Infof("genesis ready")
 
-		s.Baton.Start(ctx, levers)
+		s.Baton.Start(ctx)
 
 		// drive vetted transactions to dissemination
 		go func() {
@@ -348,6 +348,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig, levers bato
 		conn:         schedConn,
 		genesisReady: genesisReady,
 	}
+}
+
+func (s *System) SetLevers(levers batonkit.BatonLevers) {
+	s.Baton.SetLevers(levers)
 }
 
 func (s *System) GetLevers() batonkit.BatonLevers {

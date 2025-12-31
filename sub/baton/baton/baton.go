@@ -89,6 +89,12 @@ type invalidated struct {
 	*proto.ConsensusValue
 }
 
+func (b *Baton) SetLevers(levers batonkit.BatonLevers) {
+	b.lockNoDrive()
+	defer b.unlockNoDrive()
+	b.levers = levers
+}
+
 func (b *Baton) GetLevers() batonkit.BatonLevers {
 	b.lockNoDrive()
 	defer b.unlockNoDrive()
@@ -135,8 +141,7 @@ func (b *Baton) Kick() {
 	defer b.unlock()
 }
 
-func (b *Baton) Start(ctx context.Context, levers batonkit.BatonLevers) {
-	b.levers = levers
+func (b *Baton) Start(ctx context.Context) {
 	go b.start(ctx)
 	<-b.ready
 }

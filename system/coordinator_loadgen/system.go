@@ -83,13 +83,15 @@ func (s *CoordinatorLoadgenSystem) Start(
 	s.loadgen.Start(ctx, loadgenAddr)
 
 	// start coordinator
-	ctl := s.coordinator.Start(ctx, opcfg, batonkit.BatonLevers{PauseNominating: true})
+	ctl := s.coordinator.Start(ctx, opcfg)
 
 	// process genesis
 	genesis := s.loadgen.WaitGenesis(ctx)
 	_, err = ctl.LoadGenesisConfiguration(ctx, *genesis)
 	must.NoError(ctx, err)
-	ctl.GenesisIsReady()
+
+	ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
+	ctl.SignalGenesisIsReady()
 
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
