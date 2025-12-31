@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"time"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -51,10 +52,6 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, val
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
-	go x.externalizedValue(context.WithoutCancel(ctx), slot, value)
-}
-
-func (x scpHandler) externalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue
@@ -92,7 +89,9 @@ func (x scpHandler) externalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash)
 		if x.baton.placeExternalization(ctx, extConsensus) {
+			t0 := time.Now()
 			x.baton.handler.PersistConsensusValue(ctx, *cv)
+			liblog.Debugf("persist cv %d took %v", cv.Nomination.Block_height, time.Since(t0))
 		}
 
 	}
