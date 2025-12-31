@@ -82,6 +82,10 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 
 // driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started
 func (b *Baton) driveNominate(ctx context.Context, v *View) {
+	if b.levers.PauseNominating {
+		return
+	}
+
 	ontoDb, ontoExt := v.NominateOnto()
 	if !b.canNominate(ontoDb, b.nominating) {
 		return
