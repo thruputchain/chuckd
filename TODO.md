@@ -1,5 +1,8 @@
 SCHEDULER INTEGRATION
 
+- [ ] parallel rpc serving of scp_handle
+- [ ] scpd with separate connections for validation calls vs other calls
+
 - [ ] tell jack to use 20 conns to coordinator
 
 - [ ] return immediately from submit_vetted
