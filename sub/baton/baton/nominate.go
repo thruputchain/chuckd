@@ -43,6 +43,8 @@ func (b *Baton) nominate(
 	b.stampNominateStart(ontoDb.Height + 1)
 	defer b.stampNominateEnd(ontoDb.Height + 1)
 
+	// --- prepare nomination ---
+
 	t0 := b.handler.Now()
 	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
 
@@ -58,10 +60,12 @@ func (b *Baton) nominate(
 
 	must.Assert(ctx, nomBlockID == *result.Block_id())
 
-	nomLatency := b.handler.Now().Sub(t0)
-
 	liblog.Debugf("scheduler_nomination_latency=%v | height=%d, num_txs=%d",
-		nomLatency, nom.Block_height, len(nom.Transaction_hashes))
+		b.handler.Now().Sub(t0), nom.Block_height, len(nom.Transaction_hashes))
+
+	// --- fire nomination ---
+
+	t1 := b.handler.Now()
 
 	nom.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
 
@@ -129,9 +133,16 @@ func (b *Baton) nominate(
 		liblog.Infof("%v", evNominated)
 		b.handler.Emit(ctx, evNominated)
 
+		liblog.Debugf("fire_accepted_nomination_latency=%v | height=%d, num_txs=%d",
+			b.handler.Now().Sub(t1), nom.Block_height, len(nom.Transaction_hashes))
+
 		return cv, cvc, nomBlockID, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
+
+		liblog.Debugf("fire_rejected_nomination_latency=%v | height=%d, num_txs=%d",
+			b.handler.Now().Sub(t1), nom.Block_height, len(nom.Transaction_hashes))
+
 		return nil, nil, 0, ErrNominationRejected
 	}
 }
