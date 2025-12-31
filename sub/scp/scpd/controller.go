@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"net"
+	"time"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/must"
@@ -44,6 +46,11 @@ func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnve
 }
 
 func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
+	t0 := time.Now()
+	defer func() {
+		liblog.Debugf("scpd_nominate_latency=%v | slot=%d", time.Since(t0), slot)
+	}()
+
 	r, err := cc.Scp_control_nominate(ctx, slot, value, prev)
 	if err != nil {
 		// the context can be cancelled if an externalization occurs during the call to Scp_control_nominate.
