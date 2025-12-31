@@ -19,7 +19,7 @@ type EventNominating struct {
 }
 
 func (x EventNominating) String() string {
-	return fmt.Sprintf("NOMINATING [tx_count %d; height %d; hash %s]", x.NumTx, x.Height, libxdr.HashString(x.Hash))
+	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.Hash))
 }
 
 type EventNominated struct {
@@ -34,7 +34,7 @@ type EventNominated struct {
 }
 
 func (x EventNominated) String() string {
-	return fmt.Sprintf("NOMINATED [tx_count %d; height %d; hash %s]", x.NumTx, x.Height, libxdr.HashString(x.Hash))
+	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.Hash))
 }
 
 type EventCommitted struct {
@@ -47,7 +47,7 @@ type EventCommitted struct {
 }
 
 func (x EventCommitted) String() string {
-	return fmt.Sprintf("COMMITTED [height %d; hash %s]", x.Height, libxdr.HashString(x.Hash))
+	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; hash %s", x.Height, x.DbgValidatable.NumTransactions(), libxdr.HashString(x.Hash))
 }
 
 type EventValidating struct {
@@ -59,7 +59,7 @@ type EventValidating struct {
 }
 
 func (x EventValidating) String() string {
-	return fmt.Sprintf("VALIDATING [tx_count %d; height %d; hash %s]", x.NumTx, x.Height, libxdr.HashString(x.Hash))
+	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.Hash))
 }
 
 type EventValidated struct {
@@ -71,5 +71,5 @@ type EventValidated struct {
 }
 
 func (x EventValidated) String() string {
-	return fmt.Sprintf("VALIDATED [tx_count %d; height %d; hash %s]", x.NumTx, x.Height, libxdr.HashString(x.Hash))
+	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.Hash))
 }

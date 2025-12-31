@@ -18,20 +18,24 @@ func (b *Baton) validateProposal(
 	nomination proto.Nomination,
 ) (proto.DbTip, error) {
 
-	b.handler.Emit(ctx, batonkit.EventValidating{
+	evValidating := batonkit.EventValidating{
 		Onto:   onto,
 		NumTx:  len(nomination.Transaction_hashes),
 		Height: nomination.Block_height,
 		Hash:   nomination.Block_hash,
-	})
+	}
+	liblog.Infof("%v", evValidating)
+	b.handler.Emit(ctx, evValidating)
 
 	defer func() {
-		b.handler.Emit(ctx, batonkit.EventValidated{
+		evValidated := batonkit.EventValidated{
 			Onto:   onto,
 			NumTx:  len(nomination.Transaction_hashes),
 			Height: nomination.Block_height,
 			Hash:   nomination.Block_hash,
-		})
+		}
+		liblog.Infof("%v", evValidated)
+		b.handler.Emit(ctx, evValidated)
 	}()
 
 	for {

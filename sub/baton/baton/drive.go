@@ -40,10 +40,12 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 		return
 	}
 
-	liblog.Debugf("committing [height %v; hash %s]", cb.BlockHeight(), libxdr.HashString(cb.BlockHash()))
 	b.committing = true
 	// cancel ongoing nominations trumped by this commit to save compute
 	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
+
+	liblog.Debugf("COMMITTING: height %v; tx_count %d; hash %s",
+		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.BlockHash()))
 
 	go func() {
 		blockID := b.commit(ctx, cb)
@@ -100,6 +102,9 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		},
 	}
 	b.nominating = current
+
+	liblog.Infof("PREPARING: height %d", ontoDb.Height+1)
+
 	go func() {
 		cv, cvc, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
 		current.Cancel()

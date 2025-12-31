@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -50,13 +51,14 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	must.NoError(ctx, err)
 	must.Assert(ctx, outcome == proto.SchedulerCommitOK)
 
-	b.handler.Emit(ctx, batonkit.EventCommitted{
-		Onto:   cb.Onto,
-		Height: cb.BlockHeight(),
-		Hash:   cb.BlockHash(),
-		//
+	evCommitted := batonkit.EventCommitted{
+		Onto:           cb.Onto,
+		Height:         cb.BlockHeight(),
+		Hash:           cb.BlockHash(),
 		DbgValidatable: cb,
-	})
+	}
+	liblog.Infof("%v", evCommitted)
+	b.handler.Emit(ctx, evCommitted)
 
 	return *validatedBlockID
 }

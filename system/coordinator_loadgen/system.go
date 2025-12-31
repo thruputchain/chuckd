@@ -98,7 +98,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 }
 
 func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {
-	// nominations are paused on entry
+	must.Assert(ctx, ctl.GetLevers().PauseNominating)
 
 	// install nomination gating hook
 	txm := libxdr.NewXdrMarshaler()
@@ -111,9 +111,9 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 					delete(uncommitted, h)
 				}
 				if len(uncommitted) == 0 {
-					liblog.Debugf("hook: pause nominating")
+					liblog.Debugf("commit hook: pause nominating")
 				} else {
-					liblog.Debugf("hook: continue nominating")
+					liblog.Debugf("commit hook: continue nominating (%d uncommitted)", len(uncommitted))
 				}
 				return batonkit.BatonLevers{PauseNominating: len(uncommitted) == 0}
 			},
@@ -123,7 +123,7 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 
 	i := 0
 	for {
-		// nominations are paused
+		must.Assert(ctx, ctl.GetLevers().PauseNominating)
 
 		liblog.Infof("waiting for init tx batch %d to arrive from loadgen", i)
 		txs := s.loadgen.WaitInitTxs(ctx)
@@ -141,7 +141,7 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 
 		// after resuming, an empty nomination can slip in before submitted txs reach mempool,
 		// so we wait for a bit to avoid this
-		liblog.Debugf("sleeping for 500ms before we resume nominating")
+		liblog.Debugf("sleeping for 500ms before nominating")
 		time.Sleep(500 * time.Millisecond)
 
 		liblog.Debugf("resume nominating")

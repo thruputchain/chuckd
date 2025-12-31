@@ -16,7 +16,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -129,9 +128,7 @@ func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
 	return batonkit.ID64(x.rand.Int63())
 }
 
-func (x *LiveHandler) Emit(ctx context.Context, event any) {
-	liblog.Infof("%v", event)
-}
+func (x *LiveHandler) Emit(ctx context.Context, event any) {}
 
 func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	x.storage.PersistConsensusValue(ctx, cv)

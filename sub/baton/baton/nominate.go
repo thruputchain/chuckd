@@ -85,15 +85,16 @@ func (b *Baton) nominate(
 	cvc := b.cueFromConsensusValue(cv)
 	liblog.Debugf("hashing cv for block %d took %v", nom.Block_height, b.handler.Now().Sub(q0))
 
-	b.handler.Emit(ctx, batonkit.EventNominating{
-		Onto:   ontoDb,
-		NumTx:  len(nom.Transaction_hashes),
-		Height: nom.Block_height,
-		Hash:   nom.Block_hash,
-		//
+	evNominating := batonkit.EventNominating{
+		Onto:                 ontoDb,
+		NumTx:                len(nom.Transaction_hashes),
+		Height:               nom.Block_height,
+		Hash:                 nom.Block_hash,
 		DbgConsensusValue:    cv,
 		DbgConsensusValueCue: cvc,
-	})
+	}
+	liblog.Infof("%v", evNominating)
+	b.handler.Emit(ctx, evNominating)
 
 	// in a single-node setup, the externalization resulting from calling scp.nominate (handler.Nominate below)
 	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
@@ -117,15 +118,17 @@ func (b *Baton) nominate(
 			libxdr.HashString(cvc.Cv_hash))
 		b.handler.DisseminateCV(ctx, *cv, cvc.Cv_hash)
 
-		b.handler.Emit(ctx, batonkit.EventNominated{
-			Onto:   ontoDb,
-			NumTx:  len(nom.Transaction_hashes),
-			Height: nom.Block_height,
-			Hash:   nom.Block_hash,
-			//
+		evNominated := batonkit.EventNominated{
+			Onto:                 ontoDb,
+			NumTx:                len(nom.Transaction_hashes),
+			Height:               nom.Block_height,
+			Hash:                 nom.Block_hash,
 			DbgConsensusValue:    cv,
 			DbgConsensusValueCue: cvc,
-		})
+		}
+		liblog.Infof("%v", evNominated)
+		b.handler.Emit(ctx, evNominated)
+
 		return cv, cvc, nomBlockID, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
