@@ -32,6 +32,10 @@ type DiskStorage struct {
 }
 
 func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
+	return NewDiskStorage(ctx, cfg)
+}
+
+func NewDiskStorage(ctx context.Context, cfg Config) *DiskStorage {
 	return &DiskStorage{
 		cfg:      cfg,
 		catchupM: libxdr.NewXdrMarshaler(),

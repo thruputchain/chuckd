@@ -1,9 +1,8 @@
+CHAIN BACKOFF WHEN CV NOT PERSISTED
+
 SCHEDULER INTEGRATION
 
 - [ ] handle value externalized is slow to respond
-- [ ] scpd with separate connections for validation calls vs other calls
-
-- [ ] tell jack to use 20 conns to coordinator
 
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
