@@ -51,6 +51,10 @@ func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, val
 }
 
 func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
+	go x.externalizedValue(context.WithoutCancel(ctx), slot, value)
+}
+
+func (x scpHandler) externalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue

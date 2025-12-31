@@ -1,6 +1,6 @@
 SCHEDULER INTEGRATION
 
-- [ ] parallel rpc serving of scp_handle
+- [ ] handle value externalized is slow to respond
 - [ ] scpd with separate connections for validation calls vs other calls
 
 - [ ] tell jack to use 20 conns to coordinator
