@@ -1,9 +1,6 @@
 SCHEDULER INTEGRATION
 
-- [ ] handle value externalized is slow to respond
-- [ ] scpd with separate connections for validation calls vs other calls
-
-- [ ] tell jack to use 20 conns to coordinator
+- [ ] use parallel batches in broadcast
 
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
@@ -41,7 +38,6 @@ QUESTIONS
 
 OPTIMIZATIONS
 
-- [ ] push quorum set knowledge to scpd to avoid chuckd/scpd serial network calls
 - [ ] ask scp whether we should bother nominating this round
 
 

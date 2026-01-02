@@ -1,0 +1,92 @@
+package xdrutil
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"sync"
+
+	"github.com/groundhogchain/lib-go/libxdr"
+	proto "github.com/groundhogchain/protocol-go"
+	"github.com/xdrpp/goxdr/xdr"
+)
+
+func UnmarshalSignedTransactionBatch(batch proto.ParallelBatch) ([]proto.SignedTransaction, error) {
+	return unmarshalBatch(batch,
+		func(x *proto.SignedTransaction) xdr.XdrType {
+			return proto.XDR_SignedTransaction(x)
+		},
+	)
+}
+
+func UnmarshalSignedTransactionHashBatch(batch proto.ParallelBatch) ([]proto.SignedTransactionHash, error) {
+	return unmarshalBatch(batch,
+		func(x *proto.SignedTransactionHash) xdr.XdrType {
+			return proto.XDR_SignedTransactionHash(x)
+		},
+	)
+}
+
+func UnmarshalNondeterministicProposalDataBatch(batch proto.ParallelBatch) ([]proto.NondeterministicProposalData, error) {
+	return unmarshalBatch(batch,
+		func(x *proto.NondeterministicProposalData) xdr.XdrType {
+			return proto.XDR_NondeterministicProposalData(x)
+		},
+	)
+}
+
+func unmarshalBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType) ([]T, error) {
+
+	// XXX: validate
+	if len(batch.Segment_bytes) != len(batch.Segment_tokens) {
+		return nil, fmt.Errorf("number of byte and token segments mismatch")
+	}
+	numSegments := len(batch.Segment_bytes)
+
+	// determine total number of tokens
+	numTokens := 0
+	for _, nSegmentTokens := range batch.Segment_tokens {
+		numTokens += int(nSegmentTokens)
+	}
+	tokens := make([]T, numTokens)
+
+	// unmarshal segments
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+
+	var wg sync.WaitGroup
+	wg.Add(numSegments)
+
+	offsetTokens := 0
+	offsetBytes := 0
+	fmt.Println("u", numSegments)
+	for i := range numSegments {
+		segmentNumTokens := int(batch.Segment_tokens[i])
+		segmentNumBytes := int(batch.Segment_bytes[i])
+
+		go func(offsetTokens int, offsetBytes int) {
+			defer wg.Done()
+
+			buf := bytes.NewBuffer(batch.Xdr[offsetBytes : offsetBytes+segmentNumBytes])
+
+			for j := range segmentNumTokens {
+				if ctx.Err() != nil {
+					return // context cancelled
+				}
+				fmt.Println("u")
+				err := libxdr.UnmarshalXdrBuffer(toXDR(&tokens[offsetTokens+j]), buf)
+				if err != nil {
+					cancel(err) // abort all goroutines
+					return
+				}
+			}
+
+		}(offsetTokens, offsetBytes)
+
+		offsetTokens += segmentNumTokens
+		offsetBytes += segmentNumBytes
+	}
+	wg.Wait()
+
+	return tokens, ctx.Err()
+}
