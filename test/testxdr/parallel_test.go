@@ -10,8 +10,8 @@ import (
 func BenchmarkMarshalParallel(b *testing.B) {
 	const n = 1e6
 	x := proto.ParallelSignedTransactionHashBatch{
-		Index: make([]uint32, n*4),
-		Xdr:   make([]byte, n*32),
+		Segment_bytes: make([]uint32, n*4),
+		Xdr:           make([]byte, n*32),
 	}
 	m := libxdr.NewXdrMarshaler()
 	for b.Loop() {
@@ -23,8 +23,8 @@ func BenchmarkMarshalParallel(b *testing.B) {
 func BenchmarkUnmarshalParallel(b *testing.B) {
 	const n = 1e6
 	x := proto.ParallelSignedTransactionHashBatch{
-		Index: make([]uint32, n*4),
-		Xdr:   make([]byte, n*32),
+		Segment_bytes: make([]uint32, n*4),
+		Xdr:           make([]byte, n*32),
 	}
 	m := libxdr.NewXdrMarshaler()
 	bb := m.MarshalXdr(&x)
