@@ -2,7 +2,6 @@ package xdrutil
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -69,7 +68,6 @@ func marshalBatch[T any](
 	// marshal sections
 	var wg sync.WaitGroup
 	wg.Add(numSegments)
-	fmt.Println("m", maxSegments, numSegments)
 	for i := range numSegments {
 		go func() {
 			defer wg.Done()
@@ -82,7 +80,6 @@ func marshalBatch[T any](
 			xout := xdr.XdrOut{Out: segmentBuf[i]}
 
 			for _, token := range tokens[lo:hi] {
-				fmt.Println("m")
 				xout.Marshal("", toXDR(&token))
 			}
 

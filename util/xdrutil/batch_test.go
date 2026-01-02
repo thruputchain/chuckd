@@ -1,6 +1,8 @@
 package xdrutil
 
 import (
+	crand "crypto/rand"
+	"math/rand"
 	"reflect"
 	"testing"
 
@@ -11,16 +13,61 @@ import (
 const n = 1e6
 const nseg = 30
 
-func TestMarshalSignedTxRoundtrip(t *testing.T) {
+func TestMarshalSignedTxHashRoundtrip(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	in := make([]proto.SignedTransaction, 3)
-	x := MarshalSignedTransactionBatch(m, nseg, in)
-	out, err := UnmarshalSignedTransactionBatch(x)
+	in := make([]proto.SignedTransactionHash, 10)
+	for i := range in {
+		crand.Read(in[i][:])
+	}
+	x := MarshalSignedTransactionHashBatch(m, nseg, in)
+	out, err := UnmarshalSignedTransactionHashBatch(x)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(in, out) {
 		t.Fatal("not equal")
+	}
+}
+
+func TestMarshalSignedTxRoundtrip(t *testing.T) {
+	m := libxdr.NewXdrMarshaler()
+	in := make([]proto.SignedTransaction, 10)
+	for i := range in {
+		in[i].Tx.Uniquifier.Nonce = uint64(rand.Int63())
+	}
+	x := MarshalSignedTransactionBatch(m, nseg, in)
+	out, err := UnmarshalSignedTransactionBatch(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(in) != len(out) {
+		t.Fatal("not equal length")
+	}
+	for i := range in {
+		if in[i].Tx.Uniquifier.Nonce != out[i].Tx.Uniquifier.Nonce {
+			t.Fatal("not equal")
+		}
+	}
+}
+
+func TestMarshalNondeterministicProposalDataRoundtrip(t *testing.T) {
+	m := libxdr.NewXdrMarshaler()
+	in := make([]proto.NondeterministicProposalData, 10)
+	for i := range in {
+		in[i].Nondeterministic_bit_count = rand.Uint32()
+	}
+	x := MarshalNondeterministicProposalDataBatch(m, nseg, in)
+	out, err := UnmarshalNondeterministicProposalDataBatch(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(in) != len(out) {
+		t.Fatal("not equal length")
+	}
+	for i := range in {
+		if in[i].Nondeterministic_bit_count != out[i].Nondeterministic_bit_count {
+			t.Fatal("not equal")
+		}
 	}
 }
 

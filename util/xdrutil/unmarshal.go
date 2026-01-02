@@ -59,7 +59,6 @@ func unmarshalBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 
 	offsetTokens := 0
 	offsetBytes := 0
-	fmt.Println("u", numSegments)
 	for i := range numSegments {
 		segmentNumTokens := int(batch.Segment_tokens[i])
 		segmentNumBytes := int(batch.Segment_bytes[i])
@@ -73,12 +72,12 @@ func unmarshalBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 				if ctx.Err() != nil {
 					return // context cancelled
 				}
-				fmt.Println("u")
 				err := libxdr.UnmarshalXdrBuffer(toXDR(&tokens[offsetTokens+j]), buf)
 				if err != nil {
 					cancel(err) // abort all goroutines
 					return
 				}
+
 			}
 
 		}(offsetTokens, offsetBytes)
