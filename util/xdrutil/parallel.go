@@ -12,14 +12,53 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func marshalParallel(
+func MarshalParallelSignedTransaction(
+	sectionM libxdr.XdrMarshaler,
+	nGo int,
+	tokens []proto.SignedTransaction,
+) proto.ParallelSignedTransactionBatch {
+	index, xdr := marshalParallel(sectionM, nGo, tokens,
+		func(x *proto.SignedTransaction) xdr.XdrType {
+			return proto.XDR_SignedTransaction(x)
+		},
+	)
+	return proto.ParallelSignedTransactionBatch{Index: index, Xdr: xdr}
+}
+
+func MarshalParallelSignedTransactionHash(
 	sectionM libxdr.XdrMarshaler,
 	nGo int,
 	tokens []proto.SignedTransactionHash,
 ) proto.ParallelSignedTransactionHashBatch {
+	index, xdr := marshalParallel(sectionM, nGo, tokens,
+		func(x *proto.SignedTransactionHash) xdr.XdrType {
+			return proto.XDR_SignedTransactionHash(x)
+		},
+	)
+	return proto.ParallelSignedTransactionHashBatch{Index: index, Xdr: xdr}
+}
+
+func MarshalParallelNondeterministicProposalData(
+	sectionM libxdr.XdrMarshaler,
+	nGo int,
+	tokens []proto.NondeterministicProposalData,
+) proto.ParallelNondeterministicProposalDataBatch {
+	index, xdr := marshalParallel(sectionM, nGo, tokens,
+		func(x *proto.NondeterministicProposalData) xdr.XdrType {
+			return proto.XDR_NondeterministicProposalData(x)
+		},
+	)
+	return proto.ParallelNondeterministicProposalDataBatch{Index: index, Xdr: xdr}
+}
+
+func marshalParallel[T any](
+	sectionM libxdr.XdrMarshaler,
+	nGo int,
+	tokens []T,
+	toXDR func(*T) xdr.XdrType, // proto.XDR_SignedTransactionHash
+) ([]uint32, []byte) {
 
 	// determine number of sections
-
 	nTokens := len(tokens)
 	nTokensPerGo := util.CeilDivSigned(nTokens, nGo)       // tokens per goroutine = num tokens / num goroutines
 	nSections := util.CeilDivSigned(nTokens, nTokensPerGo) // num useful goroutines = num tokens / num tokens per goroutine
@@ -29,7 +68,6 @@ func marshalParallel(
 	var ntotal atomic.Uint32
 
 	// marshal sections
-
 	var wg sync.WaitGroup
 	wg.Add(nSections)
 	for i := range nSections {
@@ -43,7 +81,7 @@ func marshalParallel(
 			xout := xdr.XdrOut{Out: sections[i]}
 
 			for _, token := range tokens[lo:hi] {
-				xout.Marshal("", proto.XDR_SignedTransactionHash(&token))
+				xout.Marshal("", toXDR(&token))
 			}
 
 			k := uint32(sections[i].Len())
@@ -54,21 +92,11 @@ func marshalParallel(
 	wg.Wait()
 
 	// merge sections
-
 	xbuf := bytes.NewBuffer(make([]byte, 0, int(ntotal.Load())))
 	for _, section := range sections {
 		xbuf.Write(section.Bytes())
 		section.Recycle()
 	}
 
-	return proto.ParallelSignedTransactionHashBatch{
-		Index: index,
-		Xdr:   xbuf.Bytes(),
-	}
+	return index, xbuf.Bytes()
 }
-
-// 1'000'000 xs / 20 = 50'000 xs per go
-// 1'000'000 xs / 50'000 xs per go = 20 go
-
-// 2 xs / 10 go = 1 xs per go
-// 2 xs / 1 xs per go = 2 go
