@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/test/testmempool"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/librand"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -80,7 +81,9 @@ func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs 
 	return nil
 }
 
-func (x *TestScheduler) Schedulercoord_submit_vetted(ctx context.Context, vid proto.ValidatorID, txs proto.SignedTransactionBatch) error {
+func (x *TestScheduler) Schedulercoord_submit_vetted(ctx context.Context, vid proto.ValidatorID, batch proto.ParallelSignedTransactionBatch) error {
+	txs, err := xdrutil.UnmarshalSignedTransactionBatch(batch)
+	must.NoError(ctx, err)
 	x.mempool.AddTxs(txs)
 	return nil
 }

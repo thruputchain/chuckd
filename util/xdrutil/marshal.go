@@ -14,10 +14,10 @@ import (
 
 func MarshalSignedTransactionBatch(
 	m libxdr.XdrMarshaler,
-	nSegment int,
+	maxSegments int,
 	tokens []proto.SignedTransaction,
 ) proto.ParallelSignedTransactionBatch {
-	return marshalBatch(m, nSegment, tokens,
+	return marshalBatch(m, maxSegments, tokens,
 		func(x *proto.SignedTransaction) xdr.XdrType {
 			return proto.XDR_SignedTransaction(x)
 		},
@@ -26,10 +26,10 @@ func MarshalSignedTransactionBatch(
 
 func MarshalSignedTransactionHashBatch(
 	m libxdr.XdrMarshaler,
-	nGo int,
+	maxSegments int,
 	tokens []proto.SignedTransactionHash,
 ) proto.ParallelSignedTransactionHashBatch {
-	return marshalBatch(m, nGo, tokens,
+	return marshalBatch(m, maxSegments, tokens,
 		func(x *proto.SignedTransactionHash) xdr.XdrType {
 			return proto.XDR_SignedTransactionHash(x)
 		},
@@ -38,10 +38,10 @@ func MarshalSignedTransactionHashBatch(
 
 func MarshalNondeterministicProposalDataBatch(
 	m libxdr.XdrMarshaler,
-	nGo int,
+	maxSegments int,
 	tokens []proto.NondeterministicProposalData,
 ) proto.ParallelNondeterministicProposalDataBatch {
-	return marshalBatch(m, nGo, tokens,
+	return marshalBatch(m, maxSegments, tokens,
 		func(x *proto.NondeterministicProposalData) xdr.XdrType {
 			return proto.XDR_NondeterministicProposalData(x)
 		},
@@ -102,4 +102,12 @@ func marshalBatch[T any](
 		Segment_bytes:  segmentNumBytes,
 		Xdr:            xbuf.Bytes(),
 	}
+}
+
+func BatchSize(x proto.ParallelBatch) int {
+	n := 0
+	for _, s := range x.Segment_tokens {
+		n += int(s)
+	}
+	return n
 }

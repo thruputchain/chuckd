@@ -35,6 +35,8 @@ func NewBaton(
 		nomM:             libxdr.NewXdrMarshaler(),
 		catchupReqM:      libxdr.NewXdrMarshaler(),
 		catchupResultM:   libxdr.NewXdrMarshaler(),
+		batchCatchupM:    libxdr.NewXdrMarshaler(),
+		batchRepairM:     libxdr.NewXdrMarshaler(),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
@@ -78,6 +80,8 @@ type Baton struct {
 	nomM           libxdr.XdrMarshaler
 	catchupReqM    libxdr.XdrMarshaler
 	catchupResultM libxdr.XdrMarshaler
+	batchCatchupM  libxdr.XdrMarshaler
+	batchRepairM   libxdr.XdrMarshaler
 }
 
 type validated struct {

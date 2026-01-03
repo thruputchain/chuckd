@@ -21,7 +21,9 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/sub/wallet"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libflow"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
@@ -284,12 +286,14 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 		// drive vetted transactions to dissemination
 		go func() {
+			m := libxdr.NewXdrMarshaler()
 			buf := libflow.NewBuffer(
 				ctx,
 				s.time,
 				func(ctx context.Context, txs []proto.SignedTransaction) {
 					liblog.Debugf("disseminating %d vetted txs", len(txs))
-					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: txs})
+					batch := xdrutil.MarshalSignedTransactionBatch(m, systemfixed.BroadcastTxBatchMaxSegments, txs)
+					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: batch})
 				},
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,

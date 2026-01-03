@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -95,7 +97,8 @@ func (b *Baton) repairMissingTxs(
 		return err
 	}
 
-	err = b.handler.Schedulercoord_submit_vetted(ctx, protoutil.PublicVID(proposer), stxs)
+	batch := xdrutil.MarshalSignedTransactionBatch(b.batchRepairM, systemfixed.RepairTxBatchMaxSegments, stxs)
+	err = b.handler.Schedulercoord_submit_vetted(ctx, protoutil.PublicVID(proposer), batch)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return err

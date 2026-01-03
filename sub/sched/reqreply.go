@@ -50,7 +50,7 @@ type Request_Schedulercoord_submit_vetted struct {
 	Reply chan<- Reply_Schedulercoord_submit_vetted
 	Ctx   context.Context
 	VID   proto.ValidatorID
-	STB   proto.SignedTransactionBatch
+	STB   proto.ParallelSignedTransactionBatch
 }
 
 func (Request_Schedulercoord_submit_vetted) IsSchedCoordRequest() {}
