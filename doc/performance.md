@@ -2,7 +2,7 @@
 
 ## Latency incurred by calls from `scpd` into `chuckd`
 
-### Case notes: Single-node benchmark
+### Case notes: Single-node benchmark (resolved)
 
 I discovered that for commit block 10:
 - `scheduler_nomination_latency=249.9212ms`

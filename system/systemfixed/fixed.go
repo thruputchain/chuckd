@@ -1,5 +1,10 @@
 package systemfixed
 
-const BroadcastTxBatchMaxSegments = 20
-const CatchupTxBatchMaxSegments = 20
-const RepairTxBatchMaxSegments = 20
+const (
+	NominationSignedTransactionHashBatchMaxSegments = 20
+	NominationNondeterministicDataBatchMaxSegments  = 20
+
+	BroadcastTxBatchMaxSegments = 20
+	CatchupTxBatchMaxSegments   = 20
+	RepairTxBatchMaxSegments    = 20
+)

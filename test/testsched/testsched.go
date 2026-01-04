@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/sub/sched"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/test/testdb"
 	"github.com/groundhogchain/chuckd/test/testmempool"
 	"github.com/groundhogchain/chuckd/test/testutil"
@@ -110,23 +111,23 @@ func (x *TestScheduler) Schedulercoord_nominate(
 
 		txs := x.mempool.DrainTxs()
 
-		txnoms := make([]proto.NominatedTransaction, len(txs))
+		txnds := make([]proto.NondeterministicProposalData, len(txs))
 		for i, tx := range txs {
 			x.db.AddSignedTx(ctx, blockID, tx)
-			txnoms[i] = proto.NominatedTransaction{
-				Nondeterministic_proposal_data: testutil.TestNondeterministicData,
-			}
+			txnds[i] = testutil.TestNondeterministicData
 		}
 
 		blockHash := x.db.CloseSnapshot(ctx, blockID)
 
 		nomination := proto.Nomination{
-			Proposer:                x.signer,
-			Block_height:            onto.Height + 1,
-			Block_hash:              blockHash,
-			Prev_block_hash:         onto.Hash,
-			Transaction_hashes:      protoutil.HashSignedTxs(x.m, protoutil.Pack(txs)),
-			Transaction_nominations: txnoms,
+			Proposer:        x.signer,
+			Block_height:    onto.Height + 1,
+			Block_hash:      blockHash,
+			Prev_block_hash: onto.Hash,
+			Transactions_hash: xdrutil.MarshalSignedTransactionHashBatch(
+				x.m, systemfixed.NominationSignedTransactionHashBatchMaxSegments, protoutil.HashSignedTxs(x.m, protoutil.Pack(txs))),
+			Transactions_nondeterministic_data: xdrutil.MarshalNondeterministicProposalDataBatch(
+				x.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, txnds),
 		}
 
 		chunk := proto.SchedulerNominationChunk{
@@ -151,10 +152,19 @@ func (x *TestScheduler) Schedulercoord_nominate(
 
 func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.DbTip, nomination proto.Nomination) (proto.SchedulerValidationResult, error) {
 
+	nomTxhs, err := xdrutil.UnmarshalSignedTransactionHashBatch(nomination.Transactions_hash)
+	if err != nil {
+		return proto.SchedulerValidationResult{}, err
+	}
+	nomNDs, err := xdrutil.UnmarshalNondeterministicProposalDataBatch(nomination.Transactions_nondeterministic_data)
+	if err != nil {
+		return proto.SchedulerValidationResult{}, err
+	}
+
 	blockID := x.generateBlockID()
 	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeValidation)
 
-	txs, missingTxHashes, _ := x.mempool.LookupTxs(nomination.Transaction_hashes)
+	txs, missingTxHashes, _ := x.mempool.LookupTxs(nomTxhs)
 	if len(missingTxHashes) > 0 {
 		x.db.AbandonSnapshot(ctx, blockID)
 		r := proto.SchedulerValidationResult{
@@ -167,7 +177,7 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 	for i, tx := range txs {
 		ptx := &proto.ProposedTransaction{
 			Signed_tx:                      tx,
-			Nondeterministic_proposal_data: nomination.Transaction_nominations[i].Nondeterministic_proposal_data,
+			Nondeterministic_proposal_data: nomNDs[i],
 		}
 		x.db.AddProposedTx(ctx, blockID, ptx)
 	}

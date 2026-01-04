@@ -1,6 +1,11 @@
-SCHEDULER INTEGRATION
+SCHEDULER INTEGRATION & PERF
 
 - [ ] use parallel batches in broadcast
+- [ ] attach/cache xdr encoding of parallel structures with their decoded analogs
+  - [ ] nomination
+  - [ ] catchup block
+- [ ] address // XXX(perf)
+
 
 - [ ] return immediately from submit_vetted
   - increase submission_lot_size to 50'000
