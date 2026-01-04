@@ -27,7 +27,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 	cv := newConsensusValue(time.Unix(1700000000, 0).UTC(), 42)
 	cb := proto.CatchupBlock{
 		Consensus_value:     cv,
-		Signed_transactions: nil,
+		Signed_transactions: proto.ParallelSignedTransactionBatch{},
 	}
 
 	st.PersistCatchupBlock(ctx, cb)

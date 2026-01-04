@@ -6,7 +6,9 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
@@ -110,14 +112,14 @@ func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *Te
 
 func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
 	txs := make([]proto.SignedTransaction, numTxs)
-	ntxs := make([]proto.NominatedTransaction, numTxs)
+	ntxs := make([]proto.NondeterministicProposalData, numTxs)
 	ptxs := make([]proto.ProposedTransaction, numTxs)
 	hashes := make([]proto.SignedTransactionHash, numTxs)
 	hash := onto.Hash
 	for i := range txs {
 		txs[i] = *h.GenSignedTx(ctx)
 		hashes[i] = protoutil.HashSignedTx(h.m, &txs[i])
-		ntxs[i] = proto.NominatedTransaction{Nondeterministic_proposal_data: TestNondeterministicData}
+		ntxs[i] = TestNondeterministicData
 		ptxs[i] = proto.ProposedTransaction{
 			Signed_tx:                      txs[i],
 			Nondeterministic_proposal_data: TestNondeterministicData,
@@ -127,12 +129,14 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	cv := proto.ConsensusValue{
 		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
 		Nomination: proto.Nomination{
-			Proposer:                h.validator.Public_info,
-			Block_height:            onto.Height + 1,
-			Block_hash:              hash,
-			Prev_block_hash:         onto.Hash,
-			Transaction_hashes:      hashes,
-			Transaction_nominations: ntxs,
+			Proposer:        h.validator.Public_info,
+			Block_height:    onto.Height + 1,
+			Block_hash:      hash,
+			Prev_block_hash: onto.Hash,
+			Transactions_hash: xdrutil.MarshalSignedTransactionHashBatch(
+				h.m, systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
+			Transactions_nondeterministic_data: xdrutil.MarshalNondeterministicProposalDataBatch(
+				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
 		Upgrades:     nil, // XXX: upgrades not yet supported in test
 		Prev_cv_hash: protoutil.HashCV(h.m, &onto.CV),
@@ -142,8 +146,9 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		ConsensusValueCue: protoutil.CueFromConsensusValue(h.m, &cv),
 		Txs:               txs,
 		Catchup: proto.CatchupBlock{
-			Consensus_value:     cv,
-			Signed_transactions: txs,
+			Consensus_value: cv,
+			Signed_transactions: xdrutil.MarshalSignedTransactionBatch(
+				h.m, systemfixed.CatchupTxBatchMaxSegments, txs),
 		},
 	}
 }
