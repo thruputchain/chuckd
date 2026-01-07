@@ -38,7 +38,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(*got, cb) {
-		t.Fatalf("FindCatchupBlock mismatch:\n got: %+v\nwant: %+v", got, cb)
+		t.Fatalf("FindCatchupBlock mismatch:\n got: %#v\nwant: %#v", *got, cb)
 	}
 
 	found := st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
