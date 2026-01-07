@@ -48,6 +48,9 @@ func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 	for _, nSegmentTokens := range batch.Segment_tokens {
 		numTokens += int(nSegmentTokens)
 	}
+	if numTokens == 0 {
+		return []T{}, nil
+	}
 	tokens := make([]T, numTokens)
 
 	// unmarshal segments

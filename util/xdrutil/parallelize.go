@@ -57,6 +57,9 @@ func parallelizeBatch[T any](
 
 	// determine number of sections
 	nTokens := len(tokens)
+	if nTokens == 0 {
+		return proto.ParallelBatch{}
+	}
 	nTokensPerSegment := util.CeilDivSigned(nTokens, maxSegments) // tokens per segment = num tokens / num segments
 	numSegments := util.CeilDivSigned(nTokens, nTokensPerSegment) // num useful segments = num tokens / num tokens per segment
 
