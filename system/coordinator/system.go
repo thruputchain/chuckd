@@ -340,7 +340,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 			for {
 				sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
 				_ = sender
-				s.CVPool.ConsensusValuePoolAddWithHash(ctx, *cv, protoutil.HashCV(m, cv))
+				s.CVPool.ConsensusValuePoolAdd(ctx, *cv, protoutil.HashCV(m, cv))
 			}
 		}()
 	}()

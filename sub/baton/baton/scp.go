@@ -88,7 +88,6 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 			return
 		}
 
-		//XXX(perf): this cv comes from cvpool; store serialized nomination there and extract (dont compute)
 		ns, err := protoutil.SerializeNomination(&cv.Nomination)
 		must.NoError(ctx, err)
 		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash, ns)

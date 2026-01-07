@@ -27,7 +27,7 @@ func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
 	return cvp
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolAddWithHash(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
+func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 

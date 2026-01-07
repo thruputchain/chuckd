@@ -100,7 +100,7 @@ func (b *Baton) nominate(
 	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
 	// not be able to externalize the value (and look for catchup when no other nodes exist).
 	// to fix this, we populate the cv in the local pool optimistically.
-	b.handler.ConsensusValuePoolAddWithHash(ctx, *cv, cvc.Cv_hash)
+	b.handler.ConsensusValuePoolAdd(ctx, *cv, cvc.Cv_hash)
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.

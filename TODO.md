@@ -1,9 +1,5 @@
 SCHEDULER INTEGRATION & PERF
 
-- [ ] attach/cache xdr encoding of parallel structures with their decoded analogs, generically?
-  - [ ] hash serialized nominations in consensus value pool as well?
-- [ ] address // XXX(perf) 
-
 BUGS
 
 - [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188
