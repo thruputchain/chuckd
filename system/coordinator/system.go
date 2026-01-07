@@ -23,7 +23,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/wallet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/libflow"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libtime"
@@ -284,20 +283,17 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 		// drive vetted transactions to dissemination
 		go func() {
-			buf := libflow.NewBatchingBuffer[proto.ParallelSignedTransactionBatch](
+			buf := NewBatchingBufferForParallelSignedTxs(
 				ctx,
 				s.time,
-				func(ctx context.Context, batches []proto.ParallelSignedTransactionBatch) {
-					liblog.Debugf("disseminating %d vetted txs", xdrutil.SizeOfBatches(batches))
-					s.Multiplex.SendSubmittedTxs(
-						ctx,
-						&proto.SubmittedTransactions{Transactions: xdrutil.JoinBatches(batches)},
-					)
-				},
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
-				func(batch proto.ParallelSignedTransactionBatch) int {
-					return xdrutil.SizeOfBatch(batch)
+				func(ctx context.Context, batch proto.ParallelSignedTransactionBatch) {
+					liblog.Debugf("disseminating %d vetted txs", xdrutil.SizeOfBatch(batch))
+					s.Multiplex.SendSubmittedTxs(
+						ctx,
+						&proto.SubmittedTransactions{Transactions: batch},
+					)
 				},
 			)
 			for {

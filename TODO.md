@@ -1,6 +1,5 @@
 SCHEDULER INTEGRATION & PERF
 
-- [ ] parallelize batches in coordscheduler_notify_vetted
 - [ ] attach/cache xdr encoding of parallel structures with their decoded analogs, generically?
   - [ ] hash serialized nominations in consensus value pool as well?
 - [ ] address // XXX(perf)
