@@ -2,7 +2,7 @@ SCHEDULER INTEGRATION & PERF
 
 - [ ] attach/cache xdr encoding of parallel structures with their decoded analogs, generically?
   - [ ] hash serialized nominations in consensus value pool as well?
-- [ ] address // XXX(perf)
+- [ ] address // XXX(perf) 
 
 BUGS
 
