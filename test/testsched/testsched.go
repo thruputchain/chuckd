@@ -70,14 +70,16 @@ func (x *TestScheduler) AddTxs(ctx context.Context, txs ...*proto.SignedTransact
 	x.mempool.AddTxs(protoutil.Pack(txs))
 }
 
-func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
+func (x *TestScheduler) Schedulercoord_submit_unvetted(ctx context.Context, batch proto.ParallelSignedTransactionBatch) error {
 	go func() {
 		<-x.ready // wait for x.coord != nil
 
-		err := x.coord.Coordscheduler_notify_vetted(ctx, txs)
+		err := x.coord.Coordscheduler_notify_vetted(ctx, batch)
 		must.NoError(ctx, err)
 	}()
 
+	txs, err := xdrutil.SerializeSignedTransactionBatch(batch)
+	must.NoError(ctx, err)
 	x.mempool.AddTxs(txs)
 	return nil
 }

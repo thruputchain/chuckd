@@ -91,7 +91,7 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 
 func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	liblog.Debugf("%v multiplex sending %d txs",
-		protoutil.VIDString(x.self), xdrutil.BatchSize(submitted.Transactions))
+		protoutil.VIDString(x.self), xdrutil.SizeOfBatch(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
@@ -136,7 +136,7 @@ func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID,
 	submittedTxsFrom := <-x.receivedSubmittedTxs
 	liblog.Debugf("%v multiplex received txs %d from %v",
 		protoutil.VIDString(x.self),
-		xdrutil.BatchSize(submittedTxsFrom.Transactions),
+		xdrutil.SizeOfBatch(submittedTxsFrom.Transactions),
 		protoutil.VIDString(submittedTxsFrom.From))
 	return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions
 }

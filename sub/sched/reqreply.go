@@ -37,7 +37,7 @@ type Reply_Schedulercoord_intro_coord struct {
 type Request_Schedulercoord_submit_unvetted struct {
 	Reply chan<- Reply_Schedulercoord_submit_unvetted
 	Ctx   context.Context
-	STB   proto.SignedTransactionBatch
+	STB   proto.ParallelSignedTransactionBatch
 }
 
 func (Request_Schedulercoord_submit_unvetted) IsSchedCoordRequest() {}

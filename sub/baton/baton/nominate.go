@@ -51,7 +51,7 @@ func (b *Baton) nominate(
 
 	nominatedBlock := result.Nominated_block()
 	nomination := nominatedBlock.Nomination
-	numTxs := xdrutil.BatchSize(nomination.Transactions_hash)
+	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
 
 	liblog.Debugf("scheduler_nomination_latency=%v | height=%d, num_txs=%d",
 		b.handler.Now().Sub(t0),

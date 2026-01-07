@@ -29,7 +29,7 @@ func VerifyCatchupBlock(txm libxdr.XdrMarshaler, cb *proto.CatchupBlock) (
 		return NominationSerialized{}, nil, false
 	}
 
-	if xdrutil.BatchSize(cb.Consensus_value.Nomination.Transactions_hash) != len(txs) {
+	if xdrutil.SizeOfBatch(cb.Consensus_value.Nomination.Transactions_hash) != len(txs) {
 		return NominationSerialized{}, nil, false
 	}
 	for i, txh := range txh {

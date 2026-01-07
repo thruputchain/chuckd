@@ -15,8 +15,8 @@ func HashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValu
 }
 
 func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
-	if xdrutil.BatchSize(cv.Nomination.Transactions_hash) !=
-		xdrutil.BatchSize(cv.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.SizeOfBatch(cv.Nomination.Transactions_hash) !=
+		xdrutil.SizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
 		return false
 	}
 	return true

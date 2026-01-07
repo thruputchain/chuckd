@@ -136,8 +136,8 @@ func (b *Baton) tryValidateConsensusFast(
 		reply <- scpkit.InvalidValue
 		return true
 	}
-	if xdrutil.BatchSize(cv.Nomination.Transactions_hash) !=
-		xdrutil.BatchSize(cv.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.SizeOfBatch(cv.Nomination.Transactions_hash) !=
+		xdrutil.SizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
 		reply <- scpkit.InvalidValue
 		return true
 	}

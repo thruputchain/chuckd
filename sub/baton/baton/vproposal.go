@@ -20,7 +20,7 @@ func (b *Baton) validateProposal(
 	nomination proto.Nomination,
 ) (proto.DbTip, error) {
 
-	numTxs := xdrutil.BatchSize(nomination.Transactions_hash)
+	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
 
 	evValidating := batonkit.EventValidating{
 		Onto:   onto,

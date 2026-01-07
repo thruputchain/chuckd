@@ -17,7 +17,7 @@ func (x *TestCoord) Coordscheduler_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *TestCoord) Coordscheduler_notify_vetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
+func (x *TestCoord) Coordscheduler_notify_vetted(ctx context.Context, txs proto.ParallelSignedTransactionBatch) error {
 	return nil
 }
 

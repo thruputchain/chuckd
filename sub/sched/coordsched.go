@@ -13,16 +13,16 @@ import (
 )
 
 type CoordSchedulerService struct {
-	vetted chan proto.SignedTransactionBatch
+	vetted chan proto.ParallelSignedTransactionBatch
 }
 
 func NewCoordSchedulerService() *CoordSchedulerService {
 	return &CoordSchedulerService{
-		vetted: make(chan proto.SignedTransactionBatch, 1),
+		vetted: make(chan proto.ParallelSignedTransactionBatch, 1),
 	}
 }
 
-func (x *CoordSchedulerService) ReceiveVetted() proto.SignedTransactionBatch {
+func (x *CoordSchedulerService) ReceiveVetted() proto.ParallelSignedTransactionBatch {
 	return <-x.vetted
 }
 
@@ -30,7 +30,7 @@ func (x *CoordSchedulerService) Coordscheduler_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
+func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.ParallelSignedTransactionBatch) error {
 	x.vetted <- txs
 	return nil
 }

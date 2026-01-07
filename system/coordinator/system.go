@@ -21,7 +21,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/sub/wallet"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libflow"
@@ -285,25 +284,26 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 		// drive vetted transactions to dissemination
 		go func() {
-			m := libxdr.NewXdrMarshaler()
-			buf := libflow.NewBatchingBuffer(
+			buf := libflow.NewBatchingBuffer[proto.ParallelSignedTransactionBatch](
 				ctx,
 				s.time,
-				func(ctx context.Context, txs []proto.SignedTransaction) {
-					liblog.Debugf("disseminating %d vetted txs", len(txs))
-					batch := xdrutil.ParallelizeSignedTransactionBatch(
-						m,
-						systemfixed.MultiplexTxBatchMaxSegments,
-						txs)
-					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: batch})
+				func(ctx context.Context, batches []proto.ParallelSignedTransactionBatch) {
+					liblog.Debugf("disseminating %d vetted txs", xdrutil.SizeOfBatches(batches))
+					s.Multiplex.SendSubmittedTxs(
+						ctx,
+						&proto.SubmittedTransactions{Transactions: xdrutil.JoinBatches(batches)},
+					)
 				},
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
+				func(batch proto.ParallelSignedTransactionBatch) int {
+					return xdrutil.SizeOfBatch(batch)
+				},
 			)
 			for {
-				txs := s.CoordScheduler.ReceiveVetted()
-				liblog.Debugf("received %d vetted txs from scheduler", len(txs))
-				buf.Submit(ctx, txs)
+				batch := s.CoordScheduler.ReceiveVetted()
+				liblog.Debugf("received %d vetted txs from scheduler", xdrutil.SizeOfBatch(batch))
+				buf.Submit(ctx, batch)
 			}
 		}()
 
