@@ -90,7 +90,8 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 }
 
 func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	liblog.Debugf("%v multiplex sending %d txs", protoutil.VIDString(x.self), xdrutil.BatchSize(submitted.Transactions))
+	liblog.Debugf("%v multiplex sending %d txs",
+		protoutil.VIDString(x.self), xdrutil.BatchSize(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted

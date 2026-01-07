@@ -286,12 +286,15 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		// drive vetted transactions to dissemination
 		go func() {
 			m := libxdr.NewXdrMarshaler()
-			buf := libflow.NewBuffer(
+			buf := libflow.NewBatchingBuffer(
 				ctx,
 				s.time,
 				func(ctx context.Context, txs []proto.SignedTransaction) {
 					liblog.Debugf("disseminating %d vetted txs", len(txs))
-					batch := xdrutil.ParallelizeSignedTransactionBatch(m, systemfixed.BroadcastTxBatchMaxSegments, txs)
+					batch := xdrutil.ParallelizeSignedTransactionBatch(
+						m,
+						systemfixed.MultiplexTxBatchMaxSegments,
+						txs)
 					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: batch})
 				},
 				int(s.cfg.Mempool_config.Submission_lot_size),

@@ -1,18 +1,9 @@
 SCHEDULER INTEGRATION & PERF
 
-- [ ] use parallel batches in broadcast
-- [ ] attach/cache xdr encoding of parallel structures with their decoded analogs
-  - [ ] nomination
-  - [ ] catchup block
+- [ ] parallelize batches in Coordscheduler_notify_vetted
+- [ ] attach/cache xdr encoding of parallel structures with their decoded analogs, generically?
   - [ ] hash serialized nominations in consensus value pool as well?
 - [ ] address // XXX(perf)
-
-
-- [ ] return immediately from submit_vetted
-  - increase submission_lot_size to 50'000
-  - tune number of workers in multiplex
-  - rpc parallel?
-  - transactions as byte blob
 
 BUGS
 
