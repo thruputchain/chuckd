@@ -4,6 +4,7 @@ SCHEDULER INTEGRATION & PERF
 - [ ] attach/cache xdr encoding of parallel structures with their decoded analogs
   - [ ] nomination
   - [ ] catchup block
+  - [ ] hash serialized nominations in consensus value pool as well?
 - [ ] address // XXX(perf)
 
 
@@ -43,6 +44,7 @@ QUESTIONS
 
 OPTIMIZATIONS
 
+- [ ] parallelize block proposal, optimistically pipeline by proposing on top of all currently being proposed blocks
 - [ ] ask scp whether we should bother nominating this round
 
 
