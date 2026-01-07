@@ -31,6 +31,8 @@ type CatchupArrival struct {
 	stamp  time.Time
 	block  *proto.CatchupBlock
 	cvhash proto.ConsensusValueHash
+	ns     protoutil.NominationSerialized
+	txs    []proto.SignedTransaction
 }
 
 func (a CatchupArrival) Provider() proto.ValidatorID {
@@ -59,6 +61,14 @@ func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
 
 func (a CatchupArrival) ConsensusValueHash() proto.ConsensusValueHash {
 	return a.cvhash
+}
+
+func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {
+	return a.txs
+}
+
+func (a CatchupArrival) NominationSerialized() protoutil.NominationSerialized {
+	return a.ns
 }
 
 type catchupRequest struct {
@@ -151,14 +161,18 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
-			if protoutil.VerifyCatchupBlock(b.txM, &block) {
+			if ns, txs, ok := protoutil.VerifyCatchupBlock(b.txM, &block); ok {
 				result = append(result,
 					CatchupArrival{
 						source: protoutil.PublicVID(src),
 						stamp:  now,
 						block:  &block,
 						cvhash: b.hashCV(&block.Consensus_value),
+						ns:     ns,
+						txs:    txs,
 					})
+			} else {
+				liblog.Infof("invalid catchup block")
 			}
 		}
 

@@ -13,14 +13,14 @@ import (
 const n = 1e6
 const nseg = 30
 
-func TestMarshalSignedTxHashRoundtrip(t *testing.T) {
+func TestParallelizeSignedTxHashRoundtrip(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
 	in := make([]proto.SignedTransactionHash, 10)
 	for i := range in {
 		crand.Read(in[i][:])
 	}
-	x := MarshalSignedTransactionHashBatch(m, nseg, in)
-	out, err := UnmarshalSignedTransactionHashBatch(x)
+	x := ParallelizeSignedTransactionHashBatch(m, nseg, in)
+	out, err := SerializeSignedTransactionHashBatch(x)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,14 +29,14 @@ func TestMarshalSignedTxHashRoundtrip(t *testing.T) {
 	}
 }
 
-func TestMarshalSignedTxRoundtrip(t *testing.T) {
+func TestParallelizeSignedTxRoundtrip(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
 	in := make([]proto.SignedTransaction, 10)
 	for i := range in {
 		in[i].Tx.Uniquifier.Nonce = uint64(rand.Int63())
 	}
-	x := MarshalSignedTransactionBatch(m, nseg, in)
-	out, err := UnmarshalSignedTransactionBatch(x)
+	x := ParallelizeSignedTransactionBatch(m, nseg, in)
+	out, err := SerializeSignedTransactionBatch(x)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,14 +50,14 @@ func TestMarshalSignedTxRoundtrip(t *testing.T) {
 	}
 }
 
-func TestMarshalNondeterministicProposalDataRoundtrip(t *testing.T) {
+func TestParallelizeNondeterministicProposalDataRoundtrip(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
 	in := make([]proto.NondeterministicProposalData, 10)
 	for i := range in {
 		in[i].Nondeterministic_bit_count = rand.Uint32()
 	}
-	x := MarshalNondeterministicProposalDataBatch(m, nseg, in)
-	out, err := UnmarshalNondeterministicProposalDataBatch(x)
+	x := ParallelizeNondeterministicProposalDataBatch(m, nseg, in)
+	out, err := SerializeNondeterministicProposalDataBatch(x)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,60 +71,60 @@ func TestMarshalNondeterministicProposalDataRoundtrip(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalSignedTx(b *testing.B) {
+func BenchmarkParallelizeSignedTx(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	tokens := make([]proto.SignedTransaction, n)
 	for b.Loop() {
-		MarshalSignedTransactionBatch(m, nseg, tokens)
+		ParallelizeSignedTransactionBatch(m, nseg, tokens)
 	}
 }
 
-func BenchmarkMarshalSignedTxHash(b *testing.B) {
+func BenchmarkParallelizeSignedTxHash(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	tokens := make([]proto.SignedTransactionHash, n)
 	for b.Loop() {
-		MarshalSignedTransactionHashBatch(m, nseg, tokens)
+		ParallelizeSignedTransactionHashBatch(m, nseg, tokens)
 	}
 }
 
-func BenchmarkMarshalNondeterministicProposalData(b *testing.B) {
+func BenchmarkParallelizeNondeterministicProposalData(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	tokens := make([]proto.NondeterministicProposalData, n)
 	for b.Loop() {
-		MarshalNondeterministicProposalDataBatch(m, nseg, tokens)
+		ParallelizeNondeterministicProposalDataBatch(m, nseg, tokens)
 	}
 }
 
-func BenchmarkUnmarshalSignedTx(b *testing.B) {
+func BenchmarkSerializeSignedTx(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	tokens := make([]proto.SignedTransaction, n)
-	x := MarshalSignedTransactionBatch(m, nseg, tokens)
+	x := ParallelizeSignedTransactionBatch(m, nseg, tokens)
 	for b.Loop() {
-		_, err := UnmarshalSignedTransactionBatch(x)
+		_, err := SerializeSignedTransactionBatch(x)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkUnmarshalSignedTxHash(b *testing.B) {
+func BenchmarkSerializeSignedTxHash(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	tokens := make([]proto.SignedTransactionHash, n)
-	x := MarshalSignedTransactionHashBatch(m, nseg, tokens)
+	x := ParallelizeSignedTransactionHashBatch(m, nseg, tokens)
 	for b.Loop() {
-		_, err := UnmarshalSignedTransactionHashBatch(x)
+		_, err := SerializeSignedTransactionHashBatch(x)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkUnmarshalNondeterministicProposalData(b *testing.B) {
+func BenchmarkSerializeNondeterministicProposalData(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	tokens := make([]proto.NondeterministicProposalData, n)
-	x := MarshalNondeterministicProposalDataBatch(m, nseg, tokens)
+	x := ParallelizeNondeterministicProposalDataBatch(m, nseg, tokens)
 	for b.Loop() {
-		_, err := UnmarshalNondeterministicProposalDataBatch(x)
+		_, err := SerializeNondeterministicProposalDataBatch(x)
 		if err != nil {
 			b.Fatal(err)
 		}

@@ -133,9 +133,9 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 			Block_height:    onto.Height + 1,
 			Block_hash:      hash,
 			Prev_block_hash: onto.Hash,
-			Transactions_hash: xdrutil.MarshalSignedTransactionHashBatch(
+			Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
 				h.m, systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
-			Transactions_nondeterministic_data: xdrutil.MarshalNondeterministicProposalDataBatch(
+			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
 				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
 		Upgrades:     nil, // XXX: upgrades not yet supported in test
@@ -147,7 +147,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		Txs:               txs,
 		Catchup: proto.CatchupBlock{
 			Consensus_value: cv,
-			Signed_transactions: xdrutil.MarshalSignedTransactionBatch(
+			Signed_transactions: xdrutil.ParallelizeSignedTransactionBatch(
 				h.m, systemfixed.CatchupTxBatchMaxSegments, txs),
 		},
 	}

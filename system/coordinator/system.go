@@ -141,7 +141,6 @@ func NewSystem(
 		libtime.RealTime{},
 		inside,
 		outside,
-		s.CoordScheduler,
 		s.Router,
 		s.RepairAgent,
 		s.CVPool,
@@ -292,7 +291,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				s.time,
 				func(ctx context.Context, txs []proto.SignedTransaction) {
 					liblog.Debugf("disseminating %d vetted txs", len(txs))
-					batch := xdrutil.MarshalSignedTransactionBatch(m, systemfixed.BroadcastTxBatchMaxSegments, txs)
+					batch := xdrutil.ParallelizeSignedTransactionBatch(m, systemfixed.BroadcastTxBatchMaxSegments, txs)
 					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: batch})
 				},
 				int(s.cfg.Mempool_config.Submission_lot_size),

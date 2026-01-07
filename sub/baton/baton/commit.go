@@ -29,7 +29,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 
 		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
 			// submit catchup transactions
-			batch := xdrutil.MarshalSignedTransactionBatch(b.batchCatchupM, systemfixed.CatchupTxBatchMaxSegments, txs)
+			batch := xdrutil.ParallelizeSignedTransactionBatch(b.batchCatchupM, systemfixed.CatchupTxBatchMaxSegments, txs)
 			err := b.handler.Schedulercoord_submit_vetted(ctx, proposer, batch)
 			must.NoError(ctx, err)
 		}
@@ -99,7 +99,4 @@ func (b *Baton) purgeNotAboveTipHeight(ctx context.Context) {
 			delete(b.invalidated, h)
 		}
 	}
-
-	// purge partial nominations
-	b.handler.UpdateNoPartialNominationsBelow(ctx, b.tipDb.Height+1)
 }

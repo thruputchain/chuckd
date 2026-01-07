@@ -16,13 +16,11 @@ import (
 
 type CoordSchedulerService struct {
 	vetted chan proto.SignedTransactionBatch
-	nr     *NominationReconstructor
 }
 
 func NewCoordSchedulerService() *CoordSchedulerService {
 	return &CoordSchedulerService{
 		vetted: make(chan proto.SignedTransactionBatch, 1),
-		nr:     NewNominationReconstructor(),
 	}
 }
 
@@ -39,23 +37,6 @@ func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context
 	x.vetted <- txs
 	liblog.Infof("XXX coordscheduler_notify_vetted, %d txs, duration %v", len(txs), time.Since(t0))
 	return nil
-}
-
-func (x *CoordSchedulerService) Coordscheduler_finish_nomination(ctx context.Context, chunk proto.SchedulerNominationChunk) error {
-	x.nr.AddChunk(ctx, chunk)
-	return nil
-}
-
-func (x *CoordSchedulerService) UpdateNoPartialNominationsBelow(ctx context.Context, height proto.BlockHeight) {
-	x.nr.UpdateNoPartialNominationsBelow(ctx, height)
-}
-
-func (x *CoordSchedulerService) WaitForPartialNomination(
-	ctx context.Context,
-	id proto.BlockID,
-	height proto.BlockHeight,
-) (proto.Nomination, proto.BlockID, error) {
-	return x.nr.WaitForPartialNomination(ctx, id, height)
 }
 
 // client

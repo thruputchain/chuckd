@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
-	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
@@ -23,7 +22,6 @@ type Handler interface {
 	ConsensusController
 	BlockHandler
 	proto.SchedulerCoord1
-	sched.PartialNominationWaiter
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
 	cvpool.CVPool

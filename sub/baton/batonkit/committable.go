@@ -16,20 +16,28 @@ type Committable interface {
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash
 	NumTransactions() int
+	NominationSerialized() protoutil.NominationSerialized
 }
 
 type CommittableNomination struct {
 	cv        *proto.ConsensusValue // always present
 	cvhash    proto.ConsensusValueHash
+	ns        protoutil.NominationSerialized
 	validated *proto.BlockID // always present
 }
 
 func NewCommittableNomination(
 	cv *proto.ConsensusValue,
 	cvh proto.ConsensusValueHash,
+	ns protoutil.NominationSerialized,
 	validated *proto.BlockID,
 ) *CommittableNomination {
-	return &CommittableNomination{cv: cv, cvhash: cvh, validated: validated}
+	return &CommittableNomination{
+		cv:        cv,
+		cvhash:    cvh,
+		ns:        ns,
+		validated: validated,
+	}
 }
 
 func (cb *CommittableNomination) BlockHeight() proto.BlockHeight {
@@ -64,27 +72,37 @@ func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedT
 }
 
 func (cb *CommittableNomination) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
-	return cb.cv.Nomination.Transaction_hashes
+	return cb.ns.Transaction_hash
 }
 
 func (cb *CommittableNomination) NumTransactions() int {
-	return len(cb.cv.Nomination.Transaction_hashes)
+	return len(cb.ns.Transaction_hash)
+}
+
+func (cb *CommittableNomination) NominationSerialized() protoutil.NominationSerialized {
+	return cb.ns
 }
 
 type CommittableCatchup struct {
 	catchup   *proto.CatchupBlock // always present
 	cvhash    proto.ConsensusValueHash
+	ns        protoutil.NominationSerialized
+	txs       []proto.SignedTransaction
 	validated *proto.BlockID // optional
 }
 
 func NewCommittableCatchup(
 	catchup *proto.CatchupBlock,
 	cvhash proto.ConsensusValueHash,
+	ns protoutil.NominationSerialized,
+	txs []proto.SignedTransaction,
 	validated *proto.BlockID,
 ) *CommittableCatchup {
 	return &CommittableCatchup{
 		catchup:   catchup,
 		cvhash:    cvhash,
+		txs:       txs,
+		ns:        ns,
 		validated: validated,
 	}
 }
@@ -114,15 +132,19 @@ func (cb *CommittableCatchup) AsConsensusValue() *proto.ConsensusValue {
 }
 
 func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTransaction {
-	return cb.catchup.Signed_transactions
+	return cb.txs
 }
 
 func (cb *CommittableCatchup) SignedTransactionHashes(m libxdr.XdrMarshaler) []proto.SignedTransactionHash {
-	return protoutil.HashSignedTxs(m, cb.catchup.Signed_transactions)
+	return protoutil.HashSignedTxs(m, cb.txs)
 }
 
 func (cb *CommittableCatchup) NumTransactions() int {
-	return len(cb.catchup.Signed_transactions)
+	return len(cb.txs)
+}
+
+func (cb *CommittableCatchup) NominationSerialized() protoutil.NominationSerialized {
+	return cb.ns
 }
 
 type CommittableBlock struct {

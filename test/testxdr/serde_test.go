@@ -16,8 +16,8 @@ func Benchmark_HashCV_1M(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
 	cv := &proto.ConsensusValue{
 		Nomination: proto.Nomination{
-			Transactions_hash:                  xdrutil.MarshalSignedTransactionHashBatch(m, 20, txh),
-			Transactions_nondeterministic_data: xdrutil.MarshalNondeterministicProposalDataBatch(m, 20, txn),
+			Transactions_hash:                  xdrutil.ParallelizeSignedTransactionHashBatch(m, 20, txh),
+			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(m, 20, txn),
 		},
 	}
 	for b.Loop() {

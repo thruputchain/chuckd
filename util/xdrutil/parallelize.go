@@ -12,43 +12,43 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func MarshalSignedTransactionBatch(
+func ParallelizeSignedTransactionBatch(
 	m libxdr.XdrMarshaler,
 	maxSegments int,
 	tokens []proto.SignedTransaction,
 ) proto.ParallelSignedTransactionBatch {
-	return marshalBatch(m, maxSegments, tokens,
+	return parallelizeBatch(m, maxSegments, tokens,
 		func(x *proto.SignedTransaction) xdr.XdrType {
 			return proto.XDR_SignedTransaction(x)
 		},
 	)
 }
 
-func MarshalSignedTransactionHashBatch(
+func ParallelizeSignedTransactionHashBatch(
 	m libxdr.XdrMarshaler,
 	maxSegments int,
 	tokens []proto.SignedTransactionHash,
 ) proto.ParallelSignedTransactionHashBatch {
-	return marshalBatch(m, maxSegments, tokens,
+	return parallelizeBatch(m, maxSegments, tokens,
 		func(x *proto.SignedTransactionHash) xdr.XdrType {
 			return proto.XDR_SignedTransactionHash(x)
 		},
 	)
 }
 
-func MarshalNondeterministicProposalDataBatch(
+func ParallelizeNondeterministicProposalDataBatch(
 	m libxdr.XdrMarshaler,
 	maxSegments int,
 	tokens []proto.NondeterministicProposalData,
 ) proto.ParallelNondeterministicProposalDataBatch {
-	return marshalBatch(m, maxSegments, tokens,
+	return parallelizeBatch(m, maxSegments, tokens,
 		func(x *proto.NondeterministicProposalData) xdr.XdrType {
 			return proto.XDR_NondeterministicProposalData(x)
 		},
 	)
 }
 
-func marshalBatch[T any](
+func parallelizeBatch[T any](
 	m libxdr.XdrMarshaler,
 	maxSegments int,
 	tokens []T,
