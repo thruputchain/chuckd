@@ -5,15 +5,14 @@ set -xeuo pipefail
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 ROOT=$(pwd)
 
-#git clone --depth 1 git@github.com:groundhogchain/scp.git --quiet --no-progress
-#cd scp
-#git checkout -q $(cat ${SCRIPT_DIR}/../scp.commit)
-
 # Clone only if ./scp isn't already a git repo
 if [ -d scp/.git ]; then
   : "scp repo already present; reusing"
 else
-  git clone --depth 1 git@github.com:groundhogchain/scp.git --quiet --no-progress scp
+  # TODO: This clones the whole history, but there is no way to avoid this if targetting a specific commit.
+  # In the future, it is possible to shallow clone targetting a branch!
+  git clone --no-checkout git@github.com:groundhogchain/scp.git --quiet --no-progress scp
+# git clone --depth 1 git@github.com:groundhogchain/scp.git --quiet --no-progress scp
 fi
 
 cd scp
@@ -24,10 +23,12 @@ want_commit="$(cat "${SCRIPT_DIR}/../scp.commit")"
 if git checkout -q "$want_commit"; then
   : "checked out $want_commit"
 else
+  git fetch --depth 1 origin "$want_commit"
+  git checkout "$want_commit"
   # Ensure the commit exists locally, then retry checkout.
   # (This works even if the commit isn't in the shallow clone yet.)
-  git fetch --quiet --no-tags origin || git pull --quiet --ff-only
-  git checkout -q "$want_commit"
+  # git fetch --quiet --no-tags origin || git pull --quiet --ff-only
+  # git checkout -q "$want_commit"
 fi
 
 
