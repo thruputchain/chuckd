@@ -1,5 +1,11 @@
 SCHEDULER INTEGRATION & PERF
 
+SCP
+
+- [ ] use SCP proto definitions from the SCP module (chuckd -> scp-go -> scp)
+- [ ] purpose of MaybeValid?
+- [ ] ask stellar folks how they deal with messages coming after an externalization
+
 BUGS
 
 - [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188
@@ -8,7 +14,7 @@ BUGS
 
 HOGTOOLS
 
-- [ ] automate groundhog-go updates (read through go.mod files, etc)
+- [ ] serde support in x23c
 
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
@@ -32,15 +38,6 @@ OPTIMIZATIONS
 
 - [ ] parallelize block proposal, optimistically pipeline by proposing on top of all currently being proposed blocks
 - [ ] ask scp whether we should bother nominating this round
-
-
-
-
-
-SCP MISC
-
-- [ ] purpose of MaybeValid?
-- [ ] ask stellar folks how they deal with messages coming after an externalization
 
 UPGRADES
 
