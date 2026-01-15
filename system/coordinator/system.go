@@ -22,7 +22,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/sub/wallet"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libflow"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libtime"
@@ -139,7 +139,6 @@ func NewSystem(
 		libtime.RealTime{},
 		inside,
 		outside,
-		s.CoordScheduler,
 		s.Router,
 		s.RepairAgent,
 		s.CVPool,
@@ -284,20 +283,23 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 		// drive vetted transactions to dissemination
 		go func() {
-			buf := libflow.NewBuffer(
+			buf := NewBatchingBufferForParallelSignedTxs(
 				ctx,
 				s.time,
-				func(ctx context.Context, txs []proto.SignedTransaction) {
-					liblog.Debugf("disseminating %d vetted txs", len(txs))
-					s.Multiplex.SendSubmittedTxs(ctx, &proto.SubmittedTransactions{Transactions: txs})
-				},
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
+				func(ctx context.Context, batch proto.ParallelSignedTransactionBatch) {
+					liblog.Debugf("disseminating %d vetted txs", xdrutil.SizeOfBatch(batch))
+					s.Multiplex.SendSubmittedTxs(
+						ctx,
+						&proto.SubmittedTransactions{Transactions: batch},
+					)
+				},
 			)
 			for {
-				txs := s.CoordScheduler.ReceiveVetted()
-				liblog.Debugf("received %d vetted txs from scheduler", len(txs))
-				buf.Submit(ctx, txs)
+				batch := s.CoordScheduler.ReceiveVetted()
+				liblog.Debugf("received %d vetted txs from scheduler", xdrutil.SizeOfBatch(batch))
+				buf.Submit(ctx, batch)
 			}
 		}()
 
@@ -338,7 +340,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 			for {
 				sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
 				_ = sender
-				s.CVPool.ConsensusValuePoolAddWithHash(ctx, *cv, protoutil.HashCV(m, cv))
+				s.CVPool.ConsensusValuePoolAdd(ctx, *cv, protoutil.HashCV(m, cv))
 			}
 		}()
 	}()

@@ -1,12 +1,10 @@
-SCHEDULER INTEGRATION
+SCHEDULER INTEGRATION & PERF
 
-- [ ] use parallel batches in broadcast
+SCP
 
-- [ ] return immediately from submit_vetted
-  - increase submission_lot_size to 50'000
-  - tune number of workers in multiplex
-  - rpc parallel?
-  - transactions as byte blob
+- [ ] use SCP proto definitions from the SCP module (chuckd -> scp-go -> scp)
+- [ ] purpose of MaybeValid?
+- [ ] ask stellar folks how they deal with messages coming after an externalization
 
 BUGS
 
@@ -16,7 +14,7 @@ BUGS
 
 HOGTOOLS
 
-- [ ] automate groundhog-go updates (read through go.mod files, etc)
+- [ ] serde support in x23c
 
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
@@ -38,16 +36,8 @@ QUESTIONS
 
 OPTIMIZATIONS
 
+- [ ] parallelize block proposal, optimistically pipeline by proposing on top of all currently being proposed blocks
 - [ ] ask scp whether we should bother nominating this round
-
-
-
-
-
-SCP MISC
-
-- [ ] purpose of MaybeValid?
-- [ ] ask stellar folks how they deal with messages coming after an externalization
 
 UPGRADES
 

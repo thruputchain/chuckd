@@ -90,14 +90,14 @@ func (p *ConnPool) Schedulercoord_intro_coord(ctx context.Context, card proto.Co
 	return r.Outcome, r.Err
 }
 
-func (p *ConnPool) Schedulercoord_submit_unvetted(ctx context.Context, stb proto.SignedTransactionBatch) error {
+func (p *ConnPool) Schedulercoord_submit_unvetted(ctx context.Context, stb proto.ParallelSignedTransactionBatch) error {
 	reply := make(chan Reply_Schedulercoord_submit_unvetted, 1)
 	p.req <- Request_Schedulercoord_submit_unvetted{Reply: reply, Ctx: ctx, STB: stb}
 	r := <-reply
 	return r.Err
 }
 
-func (p *ConnPool) Schedulercoord_submit_vetted(ctx context.Context, vid proto.ValidatorID, stb proto.SignedTransactionBatch) error {
+func (p *ConnPool) Schedulercoord_submit_vetted(ctx context.Context, vid proto.ValidatorID, stb proto.ParallelSignedTransactionBatch) error {
 	reply := make(chan Reply_Schedulercoord_submit_vetted, 1)
 	p.req <- Request_Schedulercoord_submit_vetted{Reply: reply, Ctx: ctx, VID: vid, STB: stb}
 	r := <-reply

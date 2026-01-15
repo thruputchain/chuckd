@@ -31,7 +31,6 @@ type LiveHandler struct {
 	libtime.Time
 	inside  libnet.Network
 	outside libnet.Network
-	sched.PartialNominationWaiter
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
@@ -55,7 +54,6 @@ func NewLiveHandler(
 	time libtime.Time,
 	inside libnet.Network,
 	outside libnet.Network,
-	nw sched.PartialNominationWaiter,
 	router router.Router,
 	repairAgent *repairagent.RepairAgent,
 	cvpool *cvpool.ConsensusValuePool,
@@ -65,22 +63,21 @@ func NewLiveHandler(
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
-		notify:                  notify,
-		Signatory:               signer,
-		Time:                    time,
-		inside:                  inside,
-		outside:                 outside,
-		PartialNominationWaiter: nw,
-		router:                  router,
-		RepairAgent:             repairAgent,
-		cvpool:                  cvpool,
-		multiplex:               multiplex,
-		storage:                 storage,
-		scpBroker:               scpBroker,
-		m:                       libxdr.NewXdrMarshaler(),
-		rand:                    rand,
-		scpReady:                make(chan struct{}),
-		schedReady:              make(chan struct{}),
+		notify:      notify,
+		Signatory:   signer,
+		Time:        time,
+		inside:      inside,
+		outside:     outside,
+		router:      router,
+		RepairAgent: repairAgent,
+		cvpool:      cvpool,
+		multiplex:   multiplex,
+		storage:     storage,
+		scpBroker:   scpBroker,
+		m:           libxdr.NewXdrMarshaler(),
+		rand:        rand,
+		scpReady:    make(chan struct{}),
+		schedReady:  make(chan struct{}),
 	}
 }
 
@@ -148,16 +145,16 @@ func (x *LiveHandler) Committed(ctx context.Context, cb *batonkit.CommittableBlo
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
-	x.cvpool.ConsensusValuePoolAddWithHash(ctx, cv, cvh)
+	x.cvpool.ConsensusValuePoolAdd(ctx, cv, cvh)
 	x.multiplex.SendConsensusValue(ctx, cv)
 }
 
-func (x *LiveHandler) ConsensusValuePoolAddWithHash(
+func (x *LiveHandler) ConsensusValuePoolAdd(
 	ctx context.Context,
 	cv proto.ConsensusValue,
 	cvh proto.ConsensusValueHash,
 ) {
-	x.cvpool.ConsensusValuePoolAddWithHash(ctx, cv, cvh)
+	x.cvpool.ConsensusValuePoolAdd(ctx, cv, cvh)
 }
 
 func (x *LiveHandler) ConsensusValuePoolLookup(

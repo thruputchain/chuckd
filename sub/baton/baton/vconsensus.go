@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -135,7 +136,8 @@ func (b *Baton) tryValidateConsensusFast(
 		reply <- scpkit.InvalidValue
 		return true
 	}
-	if len(cv.Nomination.Transaction_hashes) != len(cv.Nomination.Transaction_nominations) {
+	if xdrutil.SizeOfBatch(cv.Nomination.Transactions_hash) !=
+		xdrutil.SizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
 		reply <- scpkit.InvalidValue
 		return true
 	}

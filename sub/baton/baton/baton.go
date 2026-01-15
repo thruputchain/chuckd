@@ -8,6 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -35,6 +36,8 @@ func NewBaton(
 		nomM:             libxdr.NewXdrMarshaler(),
 		catchupReqM:      libxdr.NewXdrMarshaler(),
 		catchupResultM:   libxdr.NewXdrMarshaler(),
+		batchCatchupM:    libxdr.NewXdrMarshaler(),
+		batchRepairM:     libxdr.NewXdrMarshaler(),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
@@ -78,6 +81,8 @@ type Baton struct {
 	nomM           libxdr.XdrMarshaler
 	catchupReqM    libxdr.XdrMarshaler
 	catchupResultM libxdr.XdrMarshaler
+	batchCatchupM  libxdr.XdrMarshaler
+	batchRepairM   libxdr.XdrMarshaler
 }
 
 type validated struct {
@@ -161,16 +166,22 @@ func (b *Baton) start(ctx context.Context) {
 		tipCV := b.handler.FindConsensusValue(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
-		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
+		ns, err := protoutil.SerializeNomination(&tipCV.Nomination)
+		must.NoError(ctx, err)
+		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV), ns)
 	} else {
-		acv := assumedConsensusValueAtHeight(b.tipDb.Height)
-		b.tipExt = b.newExternalized(&acv, b.hashCV(&acv))
+		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
+		ns, err := protoutil.SerializeNomination(&assumedCV.Nomination)
+		must.NoError(ctx, err)
+		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV), ns)
 	}
 
 	// load known externalizations above db tip
 	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tipDb.Height)
 	for _, cv := range higherCV {
-		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
+		ns, err := protoutil.SerializeNomination(&cv.Nomination)
+		must.NoError(ctx, err)
+		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv), ns))
 	}
 
 	liblog.Infof("baton db restored at height %d", b.tipDb.Height)

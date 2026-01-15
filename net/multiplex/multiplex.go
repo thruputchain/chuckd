@@ -2,10 +2,10 @@ package multiplex
 
 import (
 	"context"
-	"time"
 
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libflow"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -82,22 +82,16 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 
 func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	ctx = context.WithoutCancel(ctx)
-	t0 := time.Now()
 	x.sendVettedTxsWorker.Submit(
 		func() {
 			x.doSendSubmittedTxs(ctx, submitted)
 		},
 	)
-	liblog.Infof("XXX SendSubmittedTxs, %d txs, duration %v", len(submitted.Transactions), time.Since(t0))
 }
 
 func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	t0 := time.Now()
-	defer func() {
-		liblog.Infof("XXX doSendSubmittedTxs, %d txs, duration %v", len(submitted.Transactions), time.Since(t0))
-	}()
-
-	liblog.Debugf("%v multiplex sending %d txs", protoutil.VIDString(x.self), len(submitted.Transactions))
+	liblog.Debugf("%v multiplex sending %d txs",
+		protoutil.VIDString(x.self), xdrutil.SizeOfBatch(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
@@ -142,7 +136,7 @@ func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID,
 	submittedTxsFrom := <-x.receivedSubmittedTxs
 	liblog.Debugf("%v multiplex received txs %d from %v",
 		protoutil.VIDString(x.self),
-		len(submittedTxsFrom.Transactions),
+		xdrutil.SizeOfBatch(submittedTxsFrom.Transactions),
 		protoutil.VIDString(submittedTxsFrom.From))
 	return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions
 }

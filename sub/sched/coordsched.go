@@ -3,11 +3,9 @@ package sched
 import (
 	"context"
 	"net"
-	"time"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
@@ -15,18 +13,16 @@ import (
 )
 
 type CoordSchedulerService struct {
-	vetted chan proto.SignedTransactionBatch
-	nr     *NominationReconstructor
+	vetted chan proto.ParallelSignedTransactionBatch
 }
 
 func NewCoordSchedulerService() *CoordSchedulerService {
 	return &CoordSchedulerService{
-		vetted: make(chan proto.SignedTransactionBatch, 1),
-		nr:     NewNominationReconstructor(),
+		vetted: make(chan proto.ParallelSignedTransactionBatch, 1),
 	}
 }
 
-func (x *CoordSchedulerService) ReceiveVetted() proto.SignedTransactionBatch {
+func (x *CoordSchedulerService) ReceiveVetted() proto.ParallelSignedTransactionBatch {
 	return <-x.vetted
 }
 
@@ -34,28 +30,9 @@ func (x *CoordSchedulerService) Coordscheduler_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.SignedTransactionBatch) error {
-	t0 := time.Now()
+func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.ParallelSignedTransactionBatch) error {
 	x.vetted <- txs
-	liblog.Infof("XXX coordscheduler_notify_vetted, %d txs, duration %v", len(txs), time.Since(t0))
 	return nil
-}
-
-func (x *CoordSchedulerService) Coordscheduler_finish_nomination(ctx context.Context, chunk proto.SchedulerNominationChunk) error {
-	x.nr.AddChunk(ctx, chunk)
-	return nil
-}
-
-func (x *CoordSchedulerService) UpdateNoPartialNominationsBelow(ctx context.Context, height proto.BlockHeight) {
-	x.nr.UpdateNoPartialNominationsBelow(ctx, height)
-}
-
-func (x *CoordSchedulerService) WaitForPartialNomination(
-	ctx context.Context,
-	id proto.BlockID,
-	height proto.BlockHeight,
-) (proto.Nomination, proto.BlockID, error) {
-	return x.nr.WaitForPartialNomination(ctx, id, height)
 }
 
 // client

@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -27,7 +29,8 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 
 		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
 			// submit catchup transactions
-			err := b.handler.Schedulercoord_submit_vetted(ctx, proposer, txs)
+			batch := xdrutil.ParallelizeSignedTransactionBatch(b.batchCatchupM, systemfixed.CatchupTxBatchMaxSegments, txs)
+			err := b.handler.Schedulercoord_submit_vetted(ctx, proposer, batch)
 			must.NoError(ctx, err)
 		}
 
@@ -96,7 +99,4 @@ func (b *Baton) purgeNotAboveTipHeight(ctx context.Context) {
 			delete(b.invalidated, h)
 		}
 	}
-
-	// purge partial nominations
-	b.handler.UpdateNoPartialNominationsBelow(ctx, b.tipDb.Height+1)
 }

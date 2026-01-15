@@ -11,31 +11,31 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func UnmarshalSignedTransactionBatch(batch proto.ParallelBatch) ([]proto.SignedTransaction, error) {
-	return unmarshalBatch(batch,
+func SerializeSignedTransactionBatch(batch proto.ParallelBatch) ([]proto.SignedTransaction, error) {
+	return serializeBatch(batch,
 		func(x *proto.SignedTransaction) xdr.XdrType {
 			return proto.XDR_SignedTransaction(x)
 		},
 	)
 }
 
-func UnmarshalSignedTransactionHashBatch(batch proto.ParallelBatch) ([]proto.SignedTransactionHash, error) {
-	return unmarshalBatch(batch,
+func SerializeSignedTransactionHashBatch(batch proto.ParallelBatch) ([]proto.SignedTransactionHash, error) {
+	return serializeBatch(batch,
 		func(x *proto.SignedTransactionHash) xdr.XdrType {
 			return proto.XDR_SignedTransactionHash(x)
 		},
 	)
 }
 
-func UnmarshalNondeterministicProposalDataBatch(batch proto.ParallelBatch) ([]proto.NondeterministicProposalData, error) {
-	return unmarshalBatch(batch,
+func SerializeNondeterministicProposalDataBatch(batch proto.ParallelBatch) ([]proto.NondeterministicProposalData, error) {
+	return serializeBatch(batch,
 		func(x *proto.NondeterministicProposalData) xdr.XdrType {
 			return proto.XDR_NondeterministicProposalData(x)
 		},
 	)
 }
 
-func unmarshalBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType) ([]T, error) {
+func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType) ([]T, error) {
 
 	// XXX: validate
 	if len(batch.Segment_bytes) != len(batch.Segment_tokens) {
@@ -47,6 +47,9 @@ func unmarshalBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 	numTokens := 0
 	for _, nSegmentTokens := range batch.Segment_tokens {
 		numTokens += int(nSegmentTokens)
+	}
+	if numTokens == 0 {
+		return []T{}, nil
 	}
 	tokens := make([]T, numTokens)
 

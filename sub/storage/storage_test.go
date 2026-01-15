@@ -27,7 +27,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 	cv := newConsensusValue(time.Unix(1700000000, 0).UTC(), 42)
 	cb := proto.CatchupBlock{
 		Consensus_value:     cv,
-		Signed_transactions: nil,
+		Signed_transactions: proto.ParallelSignedTransactionBatch{},
 	}
 
 	st.PersistCatchupBlock(ctx, cb)
@@ -38,7 +38,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(*got, cb) {
-		t.Fatalf("FindCatchupBlock mismatch:\n got: %+v\nwant: %+v", got, cb)
+		t.Fatalf("FindCatchupBlock mismatch:\n got: %#v\nwant: %#v", *got, cb)
 	}
 
 	found := st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)

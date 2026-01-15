@@ -12,43 +12,43 @@ import (
 	"github.com/xdrpp/goxdr/xdr"
 )
 
-func MarshalSignedTransactionBatch(
+func ParallelizeSignedTransactionBatch(
 	m libxdr.XdrMarshaler,
-	nSegment int,
+	maxSegments int,
 	tokens []proto.SignedTransaction,
 ) proto.ParallelSignedTransactionBatch {
-	return marshalBatch(m, nSegment, tokens,
+	return parallelizeBatch(m, maxSegments, tokens,
 		func(x *proto.SignedTransaction) xdr.XdrType {
 			return proto.XDR_SignedTransaction(x)
 		},
 	)
 }
 
-func MarshalSignedTransactionHashBatch(
+func ParallelizeSignedTransactionHashBatch(
 	m libxdr.XdrMarshaler,
-	nGo int,
+	maxSegments int,
 	tokens []proto.SignedTransactionHash,
 ) proto.ParallelSignedTransactionHashBatch {
-	return marshalBatch(m, nGo, tokens,
+	return parallelizeBatch(m, maxSegments, tokens,
 		func(x *proto.SignedTransactionHash) xdr.XdrType {
 			return proto.XDR_SignedTransactionHash(x)
 		},
 	)
 }
 
-func MarshalNondeterministicProposalDataBatch(
+func ParallelizeNondeterministicProposalDataBatch(
 	m libxdr.XdrMarshaler,
-	nGo int,
+	maxSegments int,
 	tokens []proto.NondeterministicProposalData,
 ) proto.ParallelNondeterministicProposalDataBatch {
-	return marshalBatch(m, nGo, tokens,
+	return parallelizeBatch(m, maxSegments, tokens,
 		func(x *proto.NondeterministicProposalData) xdr.XdrType {
 			return proto.XDR_NondeterministicProposalData(x)
 		},
 	)
 }
 
-func marshalBatch[T any](
+func parallelizeBatch[T any](
 	m libxdr.XdrMarshaler,
 	maxSegments int,
 	tokens []T,
@@ -57,6 +57,9 @@ func marshalBatch[T any](
 
 	// determine number of sections
 	nTokens := len(tokens)
+	if nTokens == 0 {
+		return proto.ParallelBatch{}
+	}
 	nTokensPerSegment := util.CeilDivSigned(nTokens, maxSegments) // tokens per segment = num tokens / num segments
 	numSegments := util.CeilDivSigned(nTokens, nTokensPerSegment) // num useful segments = num tokens / num tokens per segment
 
@@ -102,4 +105,30 @@ func marshalBatch[T any](
 		Segment_bytes:  segmentNumBytes,
 		Xdr:            xbuf.Bytes(),
 	}
+}
+
+func SizeOfBatch(x proto.ParallelBatch) int {
+	n := 0
+	for _, s := range x.Segment_tokens {
+		n += int(s)
+	}
+	return n
+}
+
+func SizeOfBatches(x []proto.ParallelBatch) int {
+	n := 0
+	for _, b := range x {
+		n += SizeOfBatch(b)
+	}
+	return n
+}
+
+func JoinBatches(bs []proto.ParallelBatch) proto.ParallelBatch {
+	r := proto.ParallelBatch{}
+	for _, b := range bs {
+		r.Segment_tokens = append(r.Segment_tokens, b.Segment_tokens...)
+		r.Segment_bytes = append(r.Segment_bytes, b.Segment_bytes...)
+		r.Xdr = append(r.Xdr, b.Xdr...)
+	}
+	return r
 }

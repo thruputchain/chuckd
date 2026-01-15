@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -87,7 +88,9 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 			return
 		}
 
-		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash)
+		ns, err := protoutil.SerializeNomination(&cv.Nomination)
+		must.NoError(ctx, err)
+		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash, ns)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			t0 := time.Now()
 			x.baton.handler.PersistConsensusValue(ctx, *cv)

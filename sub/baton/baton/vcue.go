@@ -150,7 +150,7 @@ func (b *Baton) fetchCV(
 		return nil, ctx.Err()
 	case cv, ok := <-cvReturn:
 		if ok {
-			b.handler.ConsensusValuePoolAddWithHash(ctx, *cv, cvc.Cv_hash)
+			b.handler.ConsensusValuePoolAdd(ctx, *cv, cvc.Cv_hash)
 			return cv, nil
 		}
 		return nil, context.Canceled

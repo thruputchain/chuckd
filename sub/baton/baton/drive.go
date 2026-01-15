@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -63,7 +62,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			b.tipDb.Height = cb.BlockHeight()
 			b.tipDb.Id = blockID
 
-			b.tipExt = b.newExternalized(cb.AsConsensusValue(), cb.ConsensusValueHash())
+			b.tipExt = b.newExternalized(cb.AsConsensusValue(), cb.ConsensusValueHash(), cb.NominationSerialized())
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)
@@ -123,8 +122,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 			// scp rejects nominations when it is not our turn to nominate, or
 			// when an externalization happens during nomination (usually only in a single-node network)
 			if !errors.Is(err, ErrNominationRejected) {
-				must.Assert(ctx, errors.Is(err, sched.ErrHeightTooLow) ||
-					errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			}
 			return
 		}

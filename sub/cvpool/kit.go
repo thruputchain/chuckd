@@ -7,7 +7,7 @@ import (
 )
 
 type CVPool interface {
-	ConsensusValuePoolAddWithHash(
+	ConsensusValuePoolAdd(
 		ctx context.Context,
 		cv proto.ConsensusValue,
 		cvh proto.ConsensusValueHash,
