@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
+	simd "github.com/minio/sha256-simd"
 )
 
 func mkCV() *proto.ConsensusValue {
@@ -67,5 +68,13 @@ func Benchmark_Marshal_Sha256_1M(b *testing.B) {
 	cv := mkCV()
 	for b.Loop() {
 		libxdr.MarshalXdrWriter(sha256.New(), cv)
+	}
+}
+
+func Benchmark_Marshal_Sha256_SIMD_1M(b *testing.B) {
+	// liblog.SetLogLevelDebug()
+	cv := mkCV()
+	for b.Loop() {
+		libxdr.MarshalXdrWriter(simd.New(), cv)
 	}
 }
