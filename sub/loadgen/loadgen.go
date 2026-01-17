@@ -81,7 +81,7 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	defer close(x.done)
 
 	cfg := proto.ExperimentConfig{}
-	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{Num_accounts: uint64(x.Cfg.NumAccts)}
+	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{Num_addresses: uint64(x.Cfg.NumAccts)}
 	r, err := lgConn.Generate_experiment(ctx, cfg)
 	must.NoError(ctx, err)
 
