@@ -83,6 +83,7 @@ func (b *Baton) nominate(
 
 	q0 := b.handler.Now()
 	cvc := b.cueFromConsensusValue(cv)
+	// PERF: ~35ms for 1'000'000 txs
 	liblog.Debugf("hashing cv for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
 
 	evNominating := batonkit.EventNominating{
