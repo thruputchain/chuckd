@@ -141,6 +141,7 @@ func (b *Baton) nominate(
 
 		liblog.Debugf("fire_rejected_nomination_latency=%v | height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
+		liblog.Debugf("=XXX= NOMINATION-to-COMMIT ENDS at height %d", nomination.Block_height)
 
 		return nil, nil, 0, ErrNominationRejected
 	}
