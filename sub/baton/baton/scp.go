@@ -93,6 +93,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash, ns)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			t0 := time.Now()
+			liblog.Debugf("=XXX= persisting cv begins")
 			x.baton.handler.PersistConsensusValue(ctx, *cv)
 			// PERF: ~46ms for 1'000'000 txs
 			liblog.Debugf("persist cv at height %d took %v", cv.Nomination.Block_height, time.Since(t0))
