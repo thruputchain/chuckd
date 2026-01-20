@@ -69,7 +69,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 
 	// verify returned cv matches hash
-	if missing != protoutil.HashCV(x.cvM, reply) {
+	if missing != protoutil.HashCV(reply) {
 		return nil, fmt.Errorf("repaired consensus value hash mismatch")
 	}
 

@@ -27,9 +27,8 @@ func mkCV() *proto.ConsensusValue {
 func Benchmark_HashCV_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
 	cv := mkCV()
-	m := libxdr.NewXdrMarshaler()
 	for b.Loop() {
-		protoutil.HashCV(m, cv)
+		protoutil.HashCV(cv)
 	}
 }
 

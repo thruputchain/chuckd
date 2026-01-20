@@ -22,7 +22,6 @@ type RepairAgent struct {
 	router     router.Router
 	cvpool     *cvpool.ConsensusValuePool
 	txM        libxdr.XdrMarshaler
-	cvM        libxdr.XdrMarshaler
 }
 
 func NewRepairAgent(
@@ -47,6 +46,5 @@ func NewRepairAgent(
 		router:    router,
 		cvpool:    cvpool,
 		txM:       libxdr.NewXdrMarshaler(),
-		cvM:       libxdr.NewXdrMarshaler(),
 	}
 }

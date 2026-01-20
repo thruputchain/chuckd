@@ -139,11 +139,11 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
 		Upgrades:     nil, // XXX: upgrades not yet supported in test
-		Prev_cv_hash: protoutil.HashCV(h.m, &onto.CV),
+		Prev_cv_hash: protoutil.HashCV(&onto.CV),
 	}
 	return &TestBlock{
 		ConsensusValue:    cv,
-		ConsensusValueCue: protoutil.CueFromConsensusValue(h.m, &cv),
+		ConsensusValueCue: protoutil.CueFromConsensusValue(&cv),
 		Txs:               txs,
 		Catchup: proto.CatchupBlock{
 			Consensus_value: cv,

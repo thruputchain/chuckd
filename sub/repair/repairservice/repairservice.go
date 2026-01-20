@@ -21,7 +21,6 @@ type RepairService struct {
 	storage     *storage.DiskStorage
 	schedReady  chan struct{}
 	brokerReady chan struct{}
-	m           libxdr.XdrMarshaler
 }
 
 func NewRepairService(
@@ -33,7 +32,6 @@ func NewRepairService(
 		storage:     storage,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
-		m:           libxdr.NewXdrMarshaler(),
 	}
 }
 
@@ -113,7 +111,7 @@ func (x *RepairService) Repair_missing_cv(
 
 	cv = x.storage.FindConsensusValue(ctx, height)
 	if cv != nil {
-		if protoutil.HashCV(x.m, cv) != cvh {
+		if protoutil.HashCV(cv) != cvh {
 			cv = nil // the requested cv was not externalized
 			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libxdr.HashString(cvh), height)
 		} else {

@@ -45,8 +45,6 @@ type TestRig struct {
 	//
 	cvlk            sync.Mutex
 	consensusValues []proto.ConsensusValue
-	//
-	cvM libxdr.XdrMarshaler
 }
 
 func NewTestRig(
@@ -76,7 +74,6 @@ func NewTestRig(
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
 		backfeed:           make(chan struct{}),
-		cvM:                libxdr.NewXdrMarshaler(),
 	}
 	h.TestCoord = testcoord.NewTestCoord()
 	h.TestScheduler = testsched.NewTestScheduler(
@@ -234,7 +231,7 @@ func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cv
 }
 
 func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv, protoutil.HashCV(h.cvM, &cv))
+	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv, protoutil.HashCV(&cv))
 }
 
 func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {

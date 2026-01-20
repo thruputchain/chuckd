@@ -8,10 +8,10 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashCV(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueHash {
-	bb := m.MarshalXdr(cv)
-	defer bb.Recycle()
-	return sha256.Sum256(bb.Bytes())
+func HashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
+	h := sha256.New()
+	libxdr.MarshalXdrWriter(h, cv)
+	return proto.ConsensusValueHash(h.Sum(nil))
 }
 
 func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
@@ -22,10 +22,10 @@ func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
 	return true
 }
 
-func CueFromConsensusValue(m libxdr.XdrMarshaler, cv *proto.ConsensusValue) proto.ConsensusValueCue {
+func CueFromConsensusValue(cv *proto.ConsensusValue) proto.ConsensusValueCue {
 	return proto.ConsensusValueCue{
 		Proposer:        cv.Nomination.Proposer,
-		Cv_hash:         HashCV(m, cv),
+		Cv_hash:         HashCV(cv),
 		Prev_cv_hash:    cv.Prev_cv_hash,
 		Block_height:    cv.Nomination.Block_height,
 		Block_hash:      cv.Nomination.Block_hash,
