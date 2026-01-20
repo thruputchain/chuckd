@@ -1,5 +1,17 @@
 SCHEDULER INTEGRATION & PERF
 
+43.32066288 BEGIN
+    [ ] 32ms (nominate.go:87)
+43.352560498 hashed cv
+    [ ] 15ms (SCP calls into coordinator)
+43.368486816 received externalization
+    [ ] 36ms (scp.go:92)
+43.405349934 persisting cv begins
+    [ ] 35ms (scp.go:99)
+43.44038479 persisted cv
+    0ms
+43.440907924 END
+
 SCP
 
 - [ ] use SCP proto definitions from the SCP module (chuckd -> scp-go -> scp)
