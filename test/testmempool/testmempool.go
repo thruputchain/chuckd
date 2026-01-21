@@ -4,19 +4,16 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestMempool struct {
-	m    libxdr.XdrMarshaler
 	lk   sync.Mutex
 	pool map[proto.SignedTransactionHash]*proto.SignedTransaction
 }
 
 func NewTestMempool() *TestMempool {
 	return &TestMempool{
-		m:    libxdr.NewXdrMarshaler(),
 		pool: map[proto.SignedTransactionHash]*proto.SignedTransaction{},
 	}
 }
@@ -25,7 +22,7 @@ func (x *TestMempool) AddTxs(txs []proto.SignedTransaction) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	for _, tx := range txs {
-		x.pool[protoutil.HashSignedTx(x.m, &tx)] = &tx
+		x.pool[protoutil.HashSignedTx(&tx)] = &tx
 	}
 }
 

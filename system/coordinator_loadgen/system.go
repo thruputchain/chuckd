@@ -16,7 +16,6 @@ import (
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librand"
 	"github.com/groundhogchain/lib-go/libtime"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -103,13 +102,12 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 	must.Assert(ctx, ctl.GetLevers().PauseNominating)
 
 	// install nomination gating hook
-	txm := libxdr.NewXdrMarshaler()
 	uncommitted := map[proto.SignedTransactionHash]bool{}
 	ctl.SetHooks(
 		batonkit.JustCommitHook(
 			// hook pauses nominations iff uncommitted is empty
 			func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
-				for _, h := range cb.SignedTransactionHashes(txm) {
+				for _, h := range cb.SignedTransactionHashes() {
 					delete(uncommitted, h)
 				}
 				if len(uncommitted) == 0 {
@@ -135,7 +133,7 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 
 		liblog.Infof("submitting init tx batch %d with %d transactions", i, len(txs))
 		for _, tx := range txs {
-			uncommitted[protoutil.HashSignedTx(txm, tx)] = true
+			uncommitted[protoutil.HashSignedTx(tx)] = true
 		}
 		ctl.SubmitTxs(ctx, txs)
 

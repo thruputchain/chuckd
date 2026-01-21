@@ -161,7 +161,7 @@ func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
 
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
-			if ns, txs, ok := protoutil.VerifyCatchupBlock(b.txM, &block); ok {
+			if ns, txs, ok := protoutil.VerifyCatchupBlock(&block); ok {
 				result = append(result,
 					CatchupArrival{
 						source: protoutil.PublicVID(src),

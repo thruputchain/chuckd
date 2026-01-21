@@ -6,13 +6,11 @@ import (
 
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestDb struct {
-	m   libxdr.XdrMarshaler
 	lk  sync.Mutex
 	id  map[proto.BlockID]*testDbSnapshot
 	top *testDbSnapshot
@@ -28,7 +26,6 @@ type testDbSnapshot struct {
 func NewTestDb(ctx context.Context, tip proto.DbTip) *TestDb {
 	must.Assert(ctx, tip.Height > 0)
 	db := &TestDb{
-		m:  libxdr.NewXdrMarshaler(),
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}
 	db.top = &testDbSnapshot{
@@ -65,8 +62,8 @@ func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *prot
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Hash = testutil.BlendPropopsedTx(db.m, snap.tip.Hash, ptx)
-	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(db.m, &ptx.Signed_tx))
+	snap.tip.Hash = testutil.BlendPropopsedTx(snap.tip.Hash, ptx)
+	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
 func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.SignedTransaction) {
@@ -74,8 +71,8 @@ func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Hash = testutil.BlendSignedTx(db.m, snap.tip.Hash, stx)
-	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(db.m, stx))
+	snap.tip.Hash = testutil.BlendSignedTx(snap.tip.Hash, stx)
+	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(stx))
 }
 
 func (db *TestDb) OpenSnapshot(ctx context.Context, id proto.BlockID) {

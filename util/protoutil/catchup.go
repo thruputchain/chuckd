@@ -2,13 +2,12 @@ package protoutil
 
 import (
 	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 // VerifyCatchupBlock verifies the integrity of the catchup block:
 // the included signed transactions match the signed transaction hashes in the consensus value
-func VerifyCatchupBlock(txm libxdr.XdrMarshaler, cb *proto.CatchupBlock) (
+func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 	NominationSerialized,
 	[]proto.SignedTransaction,
 	bool,
@@ -33,7 +32,7 @@ func VerifyCatchupBlock(txm libxdr.XdrMarshaler, cb *proto.CatchupBlock) (
 		return NominationSerialized{}, nil, false
 	}
 	for i, txh := range txh {
-		if txh != HashSignedTx(txm, &txs[i]) {
+		if txh != HashSignedTx(&txs[i]) {
 			return NominationSerialized{}, nil, false
 		}
 	}

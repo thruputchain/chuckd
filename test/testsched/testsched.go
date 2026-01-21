@@ -128,7 +128,7 @@ func (x *TestScheduler) Schedulercoord_nominate(
 		Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
 			x.m,
 			systemfixed.NominationSignedTransactionHashBatchMaxSegments,
-			protoutil.HashSignedTxs(x.m, protoutil.Pack(txs))),
+			protoutil.HashSignedTxs(protoutil.Pack(txs))),
 		Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
 			x.m,
 			systemfixed.NominationNondeterministicDataBatchMaxSegments,

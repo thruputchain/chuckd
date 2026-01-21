@@ -118,13 +118,13 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	hash := onto.Hash
 	for i := range txs {
 		txs[i] = *h.GenSignedTx(ctx)
-		hashes[i] = protoutil.HashSignedTx(h.m, &txs[i])
+		hashes[i] = protoutil.HashSignedTx(&txs[i])
 		ntxs[i] = TestNondeterministicData
 		ptxs[i] = proto.ProposedTransaction{
 			Signed_tx:                      txs[i],
 			Nondeterministic_proposal_data: TestNondeterministicData,
 		}
-		hash = BlendPropopsedTx(h.m, hash, &ptxs[i])
+		hash = BlendPropopsedTx(hash, &ptxs[i])
 	}
 	cv := proto.ConsensusValue{
 		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
@@ -153,12 +153,12 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 }
 
-func BlendPropopsedTx(m libxdr.XdrMarshaler, base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
-	return xorBlockHash(base, protoutil.HashSignedTx(m, &ptx.Signed_tx))
+func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
+	return xorBlockHash(base, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
-func BlendSignedTx(m libxdr.XdrMarshaler, base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
-	return xorBlockHash(base, protoutil.HashSignedTx(m, stx))
+func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
+	return xorBlockHash(base, protoutil.HashSignedTx(stx))
 }
 
 func xorBlockHash(p, q proto.BlockHash) proto.BlockHash {

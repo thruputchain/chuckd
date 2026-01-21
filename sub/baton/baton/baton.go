@@ -32,7 +32,6 @@ func NewBaton(
 		validated:        map[proto.ConsensusValueHash]validated{},
 		invalidated:      map[proto.ConsensusValueHash]invalidated{},
 		cvM:              libxdr.NewXdrMarshaler(),
-		txM:              libxdr.NewXdrMarshaler(),
 		nomM:             libxdr.NewXdrMarshaler(),
 		catchupReqM:      libxdr.NewXdrMarshaler(),
 		catchupResultM:   libxdr.NewXdrMarshaler(),
@@ -77,7 +76,6 @@ type Baton struct {
 
 	// xdr marshalers (no lock necessary)
 	cvM            libxdr.XdrMarshaler // for marshalling ConsensusValue
-	txM            libxdr.XdrMarshaler // for marshalling SignedTransaction
 	nomM           libxdr.XdrMarshaler
 	catchupReqM    libxdr.XdrMarshaler
 	catchupResultM libxdr.XdrMarshaler
