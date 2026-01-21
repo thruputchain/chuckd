@@ -121,7 +121,7 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	//
 	t0 := time.Now()
 
-	file, err := os.Open(fullStaging)
+	file, err := os.OpenFile(fullStaging, os.O_CREATE, 0o644)
 	must.NoError(ctx, err)
 
 	libxdr.MarshalXdrWriter(file, &cv)
