@@ -121,7 +121,7 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	//
 	t0 := time.Now()
 
-	file, err := os.OpenFile(fullStaging, os.O_CREATE, 0o644)
+	file, err := os.OpenFile(fullStaging, os.O_RDWR|os.O_CREATE, 0o644)
 	must.NoError(ctx, err)
 
 	libxdr.MarshalXdrWriter(file, &cv)
@@ -129,7 +129,7 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	err = file.Close()
 	must.NoError(ctx, err)
 
-	liblog.Debugf("time to write cv to file %v", time.Since(t0))
+	liblog.Debugf("elapsed %v to write cv to %s", time.Since(t0), full)
 
 	// atomicly move staging to permanent
 	err = os.Rename(fullStaging, full)

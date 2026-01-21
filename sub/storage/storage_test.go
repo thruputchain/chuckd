@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -128,7 +129,8 @@ func TestFindConsensusValue(t *testing.T) {
 }
 
 func TestFindConsensusValuesAbove(t *testing.T) {
-	t.Parallel()
+	liblog.SetLogLevelDebug()
+	// t.Parallel()
 
 	ctx := context.Background()
 	dir := t.TempDir()
