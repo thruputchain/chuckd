@@ -1,11 +1,13 @@
 SCHEDULER INTEGRATION & PERF
 
 43.32066288 BEGIN
-    [ ] 32ms (nominate.go:87)
+    [ ] 32ms (nominate.go:87) first computation of cv hash; can change way hash is computed
 43.352560498 hashed cv
     [ ] 15ms (SCP calls into coordinator)
 43.368486816 received externalization
-    [ ] 36ms (scp.go:92)
+    [ ] 36ms (scp.go:92) serialize nomination value on externalization; ???
+        - why does nomination has to be serialized?
+        - can we cache serialized version?
 43.405349934 persisting cv begins
     [x] 35ms (scp.go:99)
 43.44038479 persisted cv
