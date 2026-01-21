@@ -113,29 +113,3 @@ func parallelizeBatch[T any](
 		Xdr:            xbuf.Bytes(),
 	}
 }
-
-func SizeOfBatch(x proto.ParallelBatch) int {
-	n := 0
-	for _, s := range x.Segment_tokens {
-		n += int(s)
-	}
-	return n
-}
-
-func SizeOfBatches(x []proto.ParallelBatch) int {
-	n := 0
-	for _, b := range x {
-		n += SizeOfBatch(b)
-	}
-	return n
-}
-
-func JoinBatches(bs []proto.ParallelBatch) proto.ParallelBatch {
-	r := proto.ParallelBatch{}
-	for _, b := range bs {
-		r.Segment_tokens = append(r.Segment_tokens, b.Segment_tokens...)
-		r.Segment_bytes = append(r.Segment_bytes, b.Segment_bytes...)
-		r.Xdr = append(r.Xdr, b.Xdr...)
-	}
-	return r
-}

@@ -111,7 +111,7 @@ func (x *RepairService) Repair_missing_cv(
 
 	cv := x.storage.FindConsensusValue(ctx, height)
 	if cv != nil {
-		if protoutil.HashCV(cv) != cvh {
+		if protoutil.HashCVFast(cv) != cvh {
 			cv = nil // the requested cv was not externalized
 			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libxdr.HashString(cvh), height)
 		} else {

@@ -339,7 +339,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 			for {
 				sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
 				_ = sender
-				s.CVPool.ConsensusValuePoolAdd(ctx, *cv, protoutil.HashCV(cv))
+				if !protoutil.IsSaneConsensusValue(cv) {
+					liblog.Errorf("received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
+					continue
+				}
+				s.CVPool.ConsensusValuePoolAdd(ctx, *cv, protoutil.HashCVFast(cv))
 			}
 		}()
 	}()

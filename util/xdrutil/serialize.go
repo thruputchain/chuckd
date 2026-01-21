@@ -3,7 +3,6 @@ package xdrutil
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -44,9 +43,8 @@ func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 		liblog.Debugf("elapsed %v to serialize batch with %d tokens from %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
 	}()
 
-	// XXX: validate
-	if len(batch.Segment_bytes) != len(batch.Segment_tokens) {
-		return nil, fmt.Errorf("number of byte and token segments mismatch")
+	if err := ValidateBatch(batch); err != nil {
+		return nil, err
 	}
 	numSegments := len(batch.Segment_bytes)
 

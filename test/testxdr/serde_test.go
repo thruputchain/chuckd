@@ -24,11 +24,19 @@ func mkCV() *proto.ConsensusValue {
 	}
 }
 
-func Benchmark_HashCV_1M(b *testing.B) {
+func Benchmark_HashCVSlow_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
 	cv := mkCV()
 	for b.Loop() {
-		protoutil.HashCV(cv)
+		protoutil.HashCVSlow(cv)
+	}
+}
+
+func Benchmark_HashCVFast_1M(b *testing.B) {
+	// liblog.SetLogLevelDebug()
+	cv := mkCV()
+	for b.Loop() {
+		protoutil.HashCVFast(cv)
 	}
 }
 

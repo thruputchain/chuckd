@@ -6,7 +6,7 @@ import (
 )
 
 func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
-	return protoutil.HashCV(cv)
+	return protoutil.HashCVFast(cv)
 }
 
 func (b *Baton) cueFromConsensusValue(cv *proto.ConsensusValue) *proto.ConsensusValueCue {
