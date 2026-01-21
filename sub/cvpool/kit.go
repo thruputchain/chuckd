@@ -25,5 +25,5 @@ type CVPool interface {
 
 type CVBox interface {
 	CV() *proto.ConsensusValue
-	NS() *protoutil.NominationSerialized
+	NS() protoutil.NominationSerialized
 }

@@ -160,14 +160,14 @@ func (x *LiveHandler) ConsensusValuePoolAdd(
 func (x *LiveHandler) ConsensusValuePoolLookup(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
-) *proto.ConsensusValue {
+) cvpool.CVBox {
 	return x.cvpool.ConsensusValuePoolLookup(ctx, hash)
 }
 
 func (x *LiveHandler) ConsensusValuePoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
-) (*proto.ConsensusValue, error) {
+) (cvpool.CVBox, error) {
 	return x.cvpool.ConsensusValuePoolWaitFor(ctx, hash)
 }
 

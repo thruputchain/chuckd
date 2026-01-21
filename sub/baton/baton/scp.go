@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -83,21 +82,20 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	} else {
 
 		// check that SCP slot equals nomination's block height
-		if slot != proto.SCPSlotIndex(cv.Nomination.Block_height) {
+		if slot != proto.SCPSlotIndex(cv.CV().Nomination.Block_height) {
 			liblog.Errorf("scp slot index does not equal proposed block height")
 			return
 		}
 
 		// PERF: ~35ms for 1'000'000 txs
-		ns, err := protoutil.SerializeNomination(&cv.Nomination)
-		must.NoError(ctx, err)
-		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash, ns)
+		ns := cv.NS()
+		extConsensus := x.baton.newExternalized(cv.CV(), cvc.Cv_hash, ns)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			t0 := time.Now()
 			liblog.Debugf("=XXX= persisting cv begins")
 			// PERF: ~36ms for 1'000'000 txs
-			x.baton.handler.PersistConsensusValue(ctx, *cv)
-			liblog.Debugf("persisted cv at height %d took %v", cv.Nomination.Block_height, time.Since(t0))
+			x.baton.handler.PersistConsensusValue(ctx, *cv.CV())
+			liblog.Debugf("persisted cv at height %d took %v", cv.CV().Nomination.Block_height, time.Since(t0))
 		}
 
 	}
