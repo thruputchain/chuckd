@@ -39,7 +39,7 @@ func (x *cvBox) CV() *proto.ConsensusValue {
 func (x *cvBox) NS() protoutil.NominationSerialized {
 	t0 := time.Now()
 	if ns, ok := <-x.ready; ok {
-		liblog.Debugf("retrieving serialized nomination took %v", time.Since(t0))
+		liblog.Debugf("elapsed %v to retrieve serialized nomination", time.Since(t0))
 		x.ns = &ns
 		return ns
 	} else {

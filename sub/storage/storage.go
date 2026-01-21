@@ -129,7 +129,7 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	err = file.Close()
 	must.NoError(ctx, err)
 
-	liblog.Debugf("elapsed %v to write cv to %s", time.Since(t0), full)
+	liblog.Debugf("elapsed %v to write cv to disk", time.Since(t0))
 
 	// atomicly move staging to permanent
 	err = os.Rename(fullStaging, full)
