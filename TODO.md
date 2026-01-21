@@ -13,6 +13,7 @@ SCHEDULER INTEGRATION & PERF
     0ms
 43.440907924 END
 
+[ ] optimistically write cv to disk
 [ ] make all marshal-write-to-file directly marshal-to-file
 [ ] make all read-from-file-unmarshal directly unmarshal-from-file
 
@@ -66,6 +67,8 @@ UPGRADES
 - [ ] interaction between storage and protocol upgrades???
 
 CATCHUP BLOCK PERSISTENCE
+
+- [ ] optimistically write cb to disk
 
 LIVE UPDATE QUORUM SET
 
