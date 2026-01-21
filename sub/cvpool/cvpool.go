@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -12,29 +11,31 @@ type ConsensusValuePool struct {
 	cond   *sync.Cond
 	lk     sync.Mutex
 	bottom proto.BlockHeight // height of highest externalized slot
-	cv     map[proto.ConsensusValueHash]proto.ConsensusValue
-	m      libxdr.XdrMarshaler
+	cv     map[proto.ConsensusValueHash]*cvBox
 }
 
 func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
-		cv:     map[proto.ConsensusValueHash]proto.ConsensusValue{},
+		cv:     map[proto.ConsensusValueHash]*cvBox{},
 		bottom: 0,
-		m:      libxdr.NewXdrMarshaler(),
 	}
 	cvp.cond = sync.NewCond(&cvp.lk)
 	var _ CVPool = cvp
 	return cvp
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
+func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
+	ctx context.Context,
+	cv proto.ConsensusValue,
+	cvh proto.ConsensusValueHash,
+) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
 	if cv.Nomination.Block_height <= cvp.bottom {
 		return
 	}
-	cvp.cv[cvh] = cv
+	cvp.cv[cvh] = NewCVBox(ctx, cv)
 }
 
 func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.BlockHeight) {
@@ -47,7 +48,7 @@ func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.B
 
 func (cvp *ConsensusValuePool) purge() {
 	for h, cv := range cvp.cv {
-		if cv.Nomination.Block_height <= cvp.bottom {
+		if cv.CV().Nomination.Block_height <= cvp.bottom {
 			delete(cvp.cv, h)
 		}
 	}
@@ -56,12 +57,12 @@ func (cvp *ConsensusValuePool) purge() {
 func (cvp *ConsensusValuePool) ConsensusValuePoolLookup(
 	ctx context.Context,
 	h proto.ConsensusValueHash,
-) *proto.ConsensusValue {
+) CVBox {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
 	if cv, ok := cvp.cv[h]; ok {
-		return &cv
+		return cv
 	} else {
 		return nil
 	}
@@ -70,7 +71,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolLookup(
 func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
-) (*proto.ConsensusValue, error) {
+) (CVBox, error) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
@@ -80,7 +81,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 			return nil, ctx.Err()
 		default:
 			if cv, ok := cvp.cv[hash]; ok {
-				return &cv, nil
+				return cv, nil
 			}
 			cvp.cond.Wait()
 		}
