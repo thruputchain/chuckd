@@ -7,10 +7,13 @@ SCHEDULER INTEGRATION & PERF
 43.368486816 received externalization
     [ ] 36ms (scp.go:92)
 43.405349934 persisting cv begins
-    [ ] 35ms (scp.go:99)
+    [x] 35ms (scp.go:99)
 43.44038479 persisted cv
     0ms
 43.440907924 END
+
+[ ] make all marshal-write-to-file directly marshal-to-file
+[ ] make all read-from-file-unmarshal directly unmarshal-from-file
 
 SCP
 

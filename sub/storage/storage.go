@@ -131,13 +131,6 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 
 	liblog.Debugf("time to write cv to file %v", time.Since(t0))
 
-	// write staging file
-	// borrowBytes := x.catchupM.MarshalXdr(&cv)
-	// defer borrowBytes.Recycle()
-
-	// err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
-	// must.NoError(ctx, err)
-
 	// atomicly move staging to permanent
 	err = os.Rename(fullStaging, full)
 	must.NoError(ctx, err)
