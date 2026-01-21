@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -117,12 +118,25 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	err := os.MkdirAll(filepath.Dir(full), 0o755)
 	must.NoError(ctx, err)
 
-	// write staging file
-	borrowBytes := x.catchupM.MarshalXdr(&cv)
-	defer borrowBytes.Recycle()
+	//
+	t0 := time.Now()
 
-	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
+	file, err := os.Open(fullStaging)
 	must.NoError(ctx, err)
+
+	libxdr.MarshalXdrWriter(file, &cv)
+
+	err = file.Close()
+	must.NoError(ctx, err)
+
+	liblog.Debugf("time to write cv to file %v", time.Since(t0))
+
+	// write staging file
+	// borrowBytes := x.catchupM.MarshalXdr(&cv)
+	// defer borrowBytes.Recycle()
+
+	// err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
+	// must.NoError(ctx, err)
 
 	// atomicly move staging to permanent
 	err = os.Rename(fullStaging, full)
