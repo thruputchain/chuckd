@@ -8,7 +8,7 @@ SCHEDULER INTEGRATION & PERF
     [x] 36ms (scp.go:92) deparallelize nomination value on externalization; pre-compute ns value in background
         [ ] delay ns computation until/if actually needed
 43.405349934 persisting cv begins
-    [x] 35ms (scp.go:99) marshaling cv to file
+    [x] 35ms (scp.go:99) marshaling cv to file (cannot be improved, bottlnecked by fs write speed?)
 43.44038479 persisted cv
     0ms
 43.440907924 END
