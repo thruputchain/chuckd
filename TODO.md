@@ -1,14 +1,14 @@
 SCHEDULER INTEGRATION & PERF
 
 43.32066288 BEGIN
-    [ ] 32ms (nominate.go:87) first computation of cv hash; can change way hash is computed
+    [x] 32ms (nominate.go:87) first computation of cv hash; can change way hash is computed
 43.352560498 hashed cv
     [x] 15ms (SCP calls into coordinator)
 43.368486816 received externalization
     [x] 36ms (scp.go:92) deparallelize nomination value on externalization; pre-compute ns value in background
         [ ] delay ns computation until/if actually needed
 43.405349934 persisting cv begins
-    [x] 35ms (scp.go:99) marshaling cv to file (cannot be improved, bottlnecked by fs write speed?)
+    [ ] 35ms (scp.go:99) marshaling cv to file; use optimistic persistence
 43.44038479 persisted cv
     0ms
 43.440907924 END
