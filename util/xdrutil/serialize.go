@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
@@ -35,7 +37,12 @@ func SerializeNondeterministicProposalDataBatch(batch proto.ParallelBatch) ([]pr
 	)
 }
 
-func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType) ([]T, error) {
+func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType) (tokens []T, _ error) {
+
+	t0 := time.Now()
+	defer func() {
+		liblog.Debugf("elapsed %v to serialize batch with %d tokens from %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
+	}()
 
 	// XXX: validate
 	if len(batch.Segment_bytes) != len(batch.Segment_tokens) {
@@ -51,7 +58,7 @@ func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 	if numTokens == 0 {
 		return []T{}, nil
 	}
-	tokens := make([]T, numTokens)
+	tokens = make([]T, numTokens)
 
 	// unmarshal segments
 	ctx, cancel := context.WithCancelCause(context.Background())

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/groundhogchain/chuckd/util"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libmem"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
@@ -53,7 +55,12 @@ func parallelizeBatch[T any](
 	maxSegments int,
 	tokens []T,
 	toXDR func(*T) xdr.XdrType,
-) proto.ParallelBatch {
+) (batch proto.ParallelBatch) {
+
+	t0 := time.Now()
+	defer func() {
+		liblog.Debugf("elapsed %v to parallelize batch with %d tokens into %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
+	}()
 
 	// determine number of sections
 	nTokens := len(tokens)
