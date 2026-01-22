@@ -39,15 +39,14 @@ func (x *PrePersist) unlock(filepath string) {
 	delete(x.lks, filepath)
 }
 
-func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) error) {
+func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) error) error {
 	x.lock(full)
 	defer x.unlock(full)
 
 	file, err := os.Open(full)
 	must.NoError(ctx, err)
 
-	err = r(file)
-	must.NoError(ctx, err)
+	return r(file)
 }
 
 func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writer) error) {
@@ -63,9 +62,8 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 	defer x.unlock(full)
 
 	prepersist := prepersist(ctx, full)
-	_, err := os.Stat(prepersist) // if pre-persist copy exists, use it
-	if err == nil {
-		err = os.Rename(prepersist, full)
+	if isPresent(prepersist) { // if pre-persist copy exists, use it
+		err := os.Rename(prepersist, full)
 		must.NoError(ctx, err)
 		return
 	}
@@ -75,14 +73,13 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 
 func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) error) {
 
-	_, err := os.Stat(full) // if file exists, already done
-	if err == nil {
+	if isPresent(full) { // if file exists, already done
 		return
 	}
 
 	staging := staging(ctx, full)
 
-	err = os.MkdirAll(filepath.Dir(staging), 0o755)
+	err := os.MkdirAll(filepath.Dir(staging), 0o755)
 	must.NoError(ctx, err)
 
 	file, err := os.OpenFile(staging, os.O_RDWR|os.O_CREATE, 0o644)
@@ -105,4 +102,12 @@ func prepersist(ctx context.Context, full string) string {
 
 func staging(ctx context.Context, full string) string {
 	return path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
+}
+
+func isPresent(full string) bool {
+	_, err := os.Stat(full) // if file exists, already done
+	if err == nil {
+		return true
+	}
+	return false
 }

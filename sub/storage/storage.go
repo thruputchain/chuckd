@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/gofrs/flock"
-	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -22,22 +20,23 @@ type DiskStorage struct {
 	dir string
 	cfg Config
 	//
-	catchupLk   sync.Mutex
-	scpLk       sync.Mutex
-	consensusLk sync.Mutex
+	catchupPP   *PrePersist
+	scpPP       *PrePersist
+	consensusPP *PrePersist
 	//
-	catchupM libxdr.XdrMarshaler
-	scpM     libxdr.XdrMarshaler
+	scpM libxdr.XdrMarshaler
 	//
 	ready chan struct{}
 }
 
 func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
 	return &DiskStorage{
-		cfg:      cfg,
-		catchupM: libxdr.NewXdrMarshaler(),
-		scpM:     libxdr.NewXdrMarshaler(),
-		ready:    make(chan struct{}),
+		cfg:         cfg,
+		catchupPP:   NewPrePersist(),
+		scpPP:       NewPrePersist(),
+		consensusPP: NewPrePersist(),
+		scpM:        libxdr.NewXdrMarshaler(),
+		ready:       make(chan struct{}),
 	}
 }
 
@@ -62,42 +61,27 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
 	<-x.ready
 
-	// lock ensures concurrent duplicate adds don't interfere
-	// no lock is necessary on reading or garbage collection
-	x.catchupLk.Lock()
-	defer x.catchupLk.Unlock()
-
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
-	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
-
-	err := os.MkdirAll(filepath.Dir(full), 0o755)
-	must.NoError(ctx, err)
-
-	// write staging file
-	borrowBytes := x.catchupM.MarshalXdr(&cb)
-	defer borrowBytes.Recycle()
-
-	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
-	must.NoError(ctx, err)
-
-	// atomicly move staging to permanent
-	err = os.Rename(fullStaging, full)
-	must.NoError(ctx, err)
+	x.catchupPP.Persist(ctx, full,
+		func(w io.Writer) error {
+			libxdr.MarshalXdrWriter(w, &cb)
+			return nil
+		},
+	)
 }
 
 func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
 	<-x.ready
 
 	full := x.CatchupBlockFilepath(height)
-
-	bytes, err := os.ReadFile(full)
-	if errors.Is(err, os.ErrNotExist) {
+	if !isPresent(full) {
 		return nil
 	}
-	must.NoError(ctx, err)
 
 	cb := &proto.CatchupBlock{}
-	err = libxdr.UnmarshalXdr(cb, bytes)
+	err := x.catchupPP.Load(ctx, full, func(r io.Reader) error {
+		return libxdr.UnmarshalXdrReader(cb, r)
+	})
 	must.NoError(ctx, err)
 
 	return cb
@@ -105,50 +89,42 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
+func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	<-x.ready
+
+	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
+	x.consensusPP.PrePersist(ctx, full,
+		func(w io.Writer) error {
+			libxdr.MarshalXdrWriter(w, &cv)
+			return nil
+		},
+	)
+}
+
 func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	<-x.ready
 
-	// lock ensures concurrent duplicate adds don't interfere
-	x.consensusLk.Lock()
-	defer x.consensusLk.Unlock()
-
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
-	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
-
-	err := os.MkdirAll(filepath.Dir(full), 0o755)
-	must.NoError(ctx, err)
-
-	//
-	t0 := time.Now()
-
-	file, err := os.OpenFile(fullStaging, os.O_RDWR|os.O_CREATE, 0o644)
-	must.NoError(ctx, err)
-
-	libxdr.MarshalXdrWriter(file, &cv)
-
-	err = file.Close()
-	must.NoError(ctx, err)
-
-	liblog.Debugf("elapsed %v to marshal cv to disk", time.Since(t0))
-
-	// atomicly move staging to permanent
-	err = os.Rename(fullStaging, full)
-	must.NoError(ctx, err)
+	x.consensusPP.Persist(ctx, full,
+		func(w io.Writer) error {
+			libxdr.MarshalXdrWriter(w, &cv)
+			return nil
+		},
+	)
 }
 
 func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
 	<-x.ready
 
 	full := x.ConsensusValueFilepath(height)
-
-	bytes, err := os.ReadFile(full)
-	if errors.Is(err, os.ErrNotExist) {
+	if !isPresent(full) {
 		return nil
 	}
-	must.NoError(ctx, err)
 
 	cv := &proto.ConsensusValue{}
-	err = libxdr.UnmarshalXdr(cv, bytes)
+	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {
+		return libxdr.UnmarshalXdrReader(cv, r)
+	})
 	must.NoError(ctx, err)
 
 	return cv
@@ -190,30 +166,15 @@ var errStopWalking = fmt.Errorf("stop reverse file walk")
 func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.ready
 
-	// lock ensures concurrent duplicate adds don't interfere
-	// note that no lock is necessary when reclaiming or reading
-	x.scpLk.Lock()
-	defer x.scpLk.Unlock()
-
 	hash := libxdr.HashXdr(x.scpM, &env)
-
 	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, time.Now(), hash[:5])
-	fullStaging := path.Join(filepath.Dir(full), filepath.Base(full)+".staging-"+FilenameNonce(ctx))
 
-	err := os.MkdirAll(filepath.Dir(full), 0o755)
-	must.NoError(ctx, err)
-
-	// write staging file
-	borrowBytes := x.scpM.MarshalXdr(&env)
-	defer borrowBytes.Recycle()
-
-	err = os.WriteFile(fullStaging, borrowBytes.Bytes(), 0o644)
-	must.NoError(ctx, err)
-
-	// atomicly move staging to permanent
-	err = os.Rename(fullStaging, full)
-	must.NoError(ctx, err)
-
+	x.scpPP.Persist(ctx, full,
+		func(w io.Writer) error {
+			libxdr.MarshalXdrWriter(w, &env)
+			return nil
+		},
+	)
 }
 
 func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
@@ -230,13 +191,10 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 
 	for _, envpath := range envpaths {
 		env := proto.SCPEnvelope{}
-
-		bytes, err := os.ReadFile(envpath)
+		err := x.consensusPP.Load(ctx, envpath, func(r io.Reader) error {
+			return libxdr.UnmarshalXdrReader(&env, r)
+		})
 		must.NoError(ctx, err)
-
-		libxdr.UnmarshalXdr(&env, bytes)
-		must.NoError(ctx, err)
-
 		found = append(found, env)
 	}
 

@@ -80,7 +80,7 @@ func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 				if ctx.Err() != nil {
 					return // context cancelled
 				}
-				err := libxdr.UnmarshalXdrBuffer(toXDR(&tokens[offsetTokens+j]), buf)
+				err := libxdr.UnmarshalXdrReader(toXDR(&tokens[offsetTokens+j]), buf)
 				if err != nil {
 					cancel(err) // abort all goroutines
 					return
