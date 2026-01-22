@@ -191,7 +191,7 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 
 	for _, envpath := range envpaths {
 		env := proto.SCPEnvelope{}
-		err := x.consensusPP.Load(ctx, envpath, func(r io.Reader) error {
+		err := x.scpPP.Load(ctx, envpath, func(r io.Reader) error {
 			return libxdr.UnmarshalXdrReader(&env, r)
 		})
 		must.NoError(ctx, err)

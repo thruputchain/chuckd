@@ -4,20 +4,23 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/sub/storage"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type ConsensusValuePool struct {
-	cond   *sync.Cond
-	lk     sync.Mutex
-	bottom proto.BlockHeight // height of highest externalized slot
-	cv     map[proto.ConsensusValueHash]*cvBox
+	persist storage.ConsensusValuePrePersistence
+	cond    *sync.Cond
+	lk      sync.Mutex
+	bottom  proto.BlockHeight // height of highest externalized slot
+	cv      map[proto.ConsensusValueHash]*cvBox
 }
 
-func NewConsensusValuePool(ctx context.Context) *ConsensusValuePool {
+func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePrePersistence) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
-		cv:     map[proto.ConsensusValueHash]*cvBox{},
-		bottom: 0,
+		persist: persist,
+		cv:      map[proto.ConsensusValueHash]*cvBox{},
+		bottom:  0,
 	}
 	cvp.cond = sync.NewCond(&cvp.lk)
 	var _ CVPool = cvp
@@ -36,6 +39,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
 		return
 	}
 	cvp.cv[cvh] = NewCVBox(ctx, cv)
+	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv)
 }
 
 func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.BlockHeight) {

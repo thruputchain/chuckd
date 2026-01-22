@@ -9,6 +9,8 @@ import (
 	"github.com/groundhogchain/lib-go/must"
 )
 
+// XXX: reclaim prepersisted cvs
+
 func (x *DiskStorage) reclaimLoop(ctx context.Context) {
 	for {
 		time.Sleep(x.cfg.Freq)

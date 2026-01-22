@@ -47,6 +47,10 @@ type TestRig struct {
 	consensusValues []proto.ConsensusValue
 }
 
+type NoCVPrepersist struct{}
+
+func (NoCVPrepersist) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {}
+
 func NewTestRig(
 	ctx context.Context,
 	rand *rand.Rand,
@@ -70,7 +74,7 @@ func NewTestRig(
 		),
 		TestBus:            NewTestBus(),
 		TestTime:           time,
-		ConsensusValuePool: cvpool.NewConsensusValuePool(ctx),
+		ConsensusValuePool: cvpool.NewConsensusValuePool(ctx, NoCVPrepersist{}),
 		nominateRequest:    make(chan nominateIn, 1),
 		nominateResponse:   make(chan bool, 1),
 		backfeed:           make(chan struct{}),
