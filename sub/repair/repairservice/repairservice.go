@@ -106,7 +106,7 @@ func (x *RepairService) Repair_missing_cv(
 	cvx := x.cvpool.ConsensusValuePoolLookup(ctx, cvh)
 	if cvx != nil {
 		liblog.Infof("serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
-		return cvx.CV(), nil
+		return cvx, nil
 	}
 
 	cv := x.storage.FindConsensusValue(ctx, height)

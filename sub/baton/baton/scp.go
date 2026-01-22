@@ -81,13 +81,13 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	} else {
 
-		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.CV().Nomination.Block_height))
+		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.Nomination.Block_height))
 
-		extConsensus := x.baton.newExternalized(cv.CV(), cvc.Cv_hash)
+		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			t0 := time.Now()
-			x.baton.handler.PersistConsensusValue(ctx, *cv.CV())
-			liblog.Debugf("elapsed %v to post-persist cv at height %d", time.Since(t0), cv.CV().Nomination.Block_height)
+			x.baton.handler.PersistConsensusValue(ctx, *cv)
+			liblog.Debugf("elapsed %v to post-persist cv at height %d", time.Since(t0), cv.Nomination.Block_height)
 		}
 
 	}

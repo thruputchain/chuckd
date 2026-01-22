@@ -3,7 +3,6 @@ package cvpool
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -16,14 +15,9 @@ type CVPool interface {
 	ConsensusValuePoolLookup(
 		ctx context.Context,
 		hash proto.ConsensusValueHash,
-	) CVBox
+	) *proto.ConsensusValue
 	ConsensusValuePoolWaitFor(
 		ctx context.Context,
 		hash proto.ConsensusValueHash,
-	) (CVBox, error)
-}
-
-type CVBox interface {
-	CV() *proto.ConsensusValue
-	NS() protoutil.NominationSerialized
+	) (*proto.ConsensusValue, error)
 }

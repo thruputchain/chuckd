@@ -116,7 +116,7 @@ func (b *Baton) fetchCV(
 	// lookup in cvpool
 	cv := b.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)
 	if cv != nil {
-		return cv.CV(), nil
+		return cv, nil
 	}
 
 	liblog.Debugf("repairing missing consensus value for slot %d", slot)
@@ -142,7 +142,7 @@ func (b *Baton) fetchCV(
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
 		}
-		cvReturn <- cv.CV()
+		cvReturn <- cv
 	}()
 
 	select {

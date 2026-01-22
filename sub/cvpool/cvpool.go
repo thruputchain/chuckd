@@ -13,13 +13,13 @@ type ConsensusValuePool struct {
 	cond    *sync.Cond
 	lk      sync.Mutex
 	bottom  proto.BlockHeight // height of highest externalized slot
-	cv      map[proto.ConsensusValueHash]*cvBox
+	cv      map[proto.ConsensusValueHash]*proto.ConsensusValue
 }
 
 func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePrePersistence) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
 		persist: persist,
-		cv:      map[proto.ConsensusValueHash]*cvBox{},
+		cv:      map[proto.ConsensusValueHash]*proto.ConsensusValue{},
 		bottom:  0,
 	}
 	cvp.cond = sync.NewCond(&cvp.lk)
@@ -38,7 +38,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
 	if cv.Nomination.Block_height <= cvp.bottom {
 		return
 	}
-	cvp.cv[cvh] = NewCVBox(ctx, cv)
+	cvp.cv[cvh] = &cv
 	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv)
 }
 
@@ -52,7 +52,7 @@ func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.B
 
 func (cvp *ConsensusValuePool) purge() {
 	for h, cv := range cvp.cv {
-		if cv.CV().Nomination.Block_height <= cvp.bottom {
+		if cv.Nomination.Block_height <= cvp.bottom {
 			delete(cvp.cv, h)
 		}
 	}
@@ -61,21 +61,16 @@ func (cvp *ConsensusValuePool) purge() {
 func (cvp *ConsensusValuePool) ConsensusValuePoolLookup(
 	ctx context.Context,
 	h proto.ConsensusValueHash,
-) CVBox {
+) *proto.ConsensusValue {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
-
-	if cv, ok := cvp.cv[h]; ok {
-		return cv
-	} else {
-		return nil
-	}
+	return cvp.cv[h]
 }
 
 func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
-) (CVBox, error) {
+) (*proto.ConsensusValue, error) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
