@@ -81,20 +81,15 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	} else {
 
-		// check that SCP slot equals nomination's block height
-		if slot != proto.SCPSlotIndex(cv.CV().Nomination.Block_height) {
-			liblog.Errorf("scp slot index does not equal proposed block height")
-			return
-		}
+		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.CV().Nomination.Block_height))
 
 		// PERF: ~35ms for 1'000'000 txs
 		ns := cv.NS()
 		extConsensus := x.baton.newExternalized(cv.CV(), cvc.Cv_hash, ns)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			t0 := time.Now()
-			// PERF: ~36ms for 1'000'000 txs
 			x.baton.handler.PersistConsensusValue(ctx, *cv.CV())
-			liblog.Debugf("elapsed %v to persist cv at height %d", time.Since(t0), cv.CV().Nomination.Block_height)
+			liblog.Debugf("elapsed %v to post-persist cv at height %d", time.Since(t0), cv.CV().Nomination.Block_height)
 		}
 
 	}

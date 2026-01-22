@@ -19,8 +19,9 @@ type Committable interface {
 }
 
 type CommittableNomination struct {
-	cv        *proto.ConsensusValue // always present
-	cvhash    proto.ConsensusValueHash
+	cv     *proto.ConsensusValue // always present
+	cvhash proto.ConsensusValueHash
+	// PERF
 	ns        protoutil.NominationSerialized
 	validated *proto.BlockID // always present
 }
@@ -83,8 +84,9 @@ func (cb *CommittableNomination) NominationSerialized() protoutil.NominationSeri
 }
 
 type CommittableCatchup struct {
-	catchup   *proto.CatchupBlock // always present
-	cvhash    proto.ConsensusValueHash
+	catchup *proto.CatchupBlock // always present
+	cvhash  proto.ConsensusValueHash
+	// PERF?
 	ns        protoutil.NominationSerialized
 	txs       []proto.SignedTransaction
 	validated *proto.BlockID // optional

@@ -31,6 +31,7 @@ func (b *Baton) newExternalized(
 	}
 }
 
+// PERF
 func (x externalizedConsensus) NominationSerialized() protoutil.NominationSerialized {
 	return x.ns
 }
