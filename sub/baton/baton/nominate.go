@@ -61,7 +61,6 @@ func (b *Baton) nominate(
 
 	// --- fire nomination ---
 
-	liblog.Debugf("=XXX= NOMINATION-to-COMMIT BEGINS at height %d", nomination.Block_height)
 	t1 := b.handler.Now()
 
 	nomination.Proposer = b.handler.Signer() // XXX: Proposer should move to ConsensusValue
@@ -133,7 +132,6 @@ func (b *Baton) nominate(
 
 		liblog.Debugf("fire_accepted_nomination_latency=%v | height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
-		liblog.Debugf("=XXX= NOMINATION-to-COMMIT ENDS at height %d", nomination.Block_height)
 
 		return cv, cvc, nominatedBlock.Block_id, nil
 	} else {
@@ -141,7 +139,6 @@ func (b *Baton) nominate(
 
 		liblog.Debugf("fire_rejected_nomination_latency=%v | height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
-		liblog.Debugf("=XXX= NOMINATION-to-COMMIT ENDS at height %d", nomination.Block_height)
 
 		return nil, nil, 0, ErrNominationRejected
 	}
