@@ -62,7 +62,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			b.tipDb.Height = cb.BlockHeight()
 			b.tipDb.Id = blockID
 
-			b.tipExt = b.newExternalized(cb.AsConsensusValue(), cb.ConsensusValueHash(), cb.NominationSerialized())
+			b.tipExt = b.newExternalized(cb.AsConsensusValue(), cb.ConsensusValueHash())
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)

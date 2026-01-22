@@ -83,9 +83,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.CV().Nomination.Block_height))
 
-		// PERF: ~35ms for 1'000'000 txs
-		ns := cv.NS()
-		extConsensus := x.baton.newExternalized(cv.CV(), cvc.Cv_hash, ns)
+		extConsensus := x.baton.newExternalized(cv.CV(), cvc.Cv_hash)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			t0 := time.Now()
 			x.baton.handler.PersistConsensusValue(ctx, *cv.CV())

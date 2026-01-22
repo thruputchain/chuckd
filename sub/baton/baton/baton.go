@@ -8,7 +8,6 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -164,22 +163,16 @@ func (b *Baton) start(ctx context.Context) {
 		tipCV := b.handler.FindConsensusValue(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
-		ns, err := protoutil.SerializeNomination(&tipCV.Nomination)
-		must.NoError(ctx, err)
-		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV), ns)
+		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
 	} else {
 		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
-		ns, err := protoutil.SerializeNomination(&assumedCV.Nomination)
-		must.NoError(ctx, err)
-		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV), ns)
+		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV))
 	}
 
 	// load known externalizations above db tip
 	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tipDb.Height)
 	for _, cv := range higherCV {
-		ns, err := protoutil.SerializeNomination(&cv.Nomination)
-		must.NoError(ctx, err)
-		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv), ns))
+		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
 	}
 
 	liblog.Infof("baton db restored at height %d", b.tipDb.Height)

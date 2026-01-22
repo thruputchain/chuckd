@@ -6,6 +6,4 @@ CommittableNomination, ns dep:
 - [ ] NominationSerialized
 
 
-
-
-CommittableCatchup???
+remove cvbox? ns not needed any longer

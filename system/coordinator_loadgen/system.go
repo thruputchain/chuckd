@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/systemkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librand"
@@ -107,7 +108,9 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 		batonkit.JustCommitHook(
 			// hook pauses nominations iff uncommitted is empty
 			func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
-				for _, h := range cb.SignedTransactionHashes() {
+				ns, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusValue().Nomination.Transactions_hash)
+				must.NoError(ctx, err)
+				for _, h := range ns {
 					delete(uncommitted, h)
 				}
 				if len(uncommitted) == 0 {

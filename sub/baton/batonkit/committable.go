@@ -1,7 +1,7 @@
 package batonkit
 
 import (
-	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -13,29 +13,23 @@ type Committable interface {
 	ConsensusValueHash() proto.ConsensusValueHash
 	AsConsensusValue() *proto.ConsensusValue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
-	SignedTransactionHashes() []proto.SignedTransactionHash
 	NumTransactions() int
-	NominationSerialized() protoutil.NominationSerialized
 }
 
 type CommittableNomination struct {
-	cv     *proto.ConsensusValue // always present
-	cvhash proto.ConsensusValueHash
-	// PERF
-	ns        protoutil.NominationSerialized
+	cv        *proto.ConsensusValue // always present
+	cvhash    proto.ConsensusValueHash
 	validated *proto.BlockID // always present
 }
 
 func NewCommittableNomination(
 	cv *proto.ConsensusValue,
 	cvh proto.ConsensusValueHash,
-	ns protoutil.NominationSerialized,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
 		cv:        cv,
 		cvhash:    cvh,
-		ns:        ns,
 		validated: validated,
 	}
 }
@@ -71,23 +65,13 @@ func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedT
 	return nil
 }
 
-func (cb *CommittableNomination) SignedTransactionHashes() []proto.SignedTransactionHash {
-	return cb.ns.Transaction_hash
-}
-
 func (cb *CommittableNomination) NumTransactions() int {
-	return len(cb.ns.Transaction_hash)
-}
-
-func (cb *CommittableNomination) NominationSerialized() protoutil.NominationSerialized {
-	return cb.ns
+	return xdrutil.SizeOfBatch(cb.cv.Nomination.Transactions_hash)
 }
 
 type CommittableCatchup struct {
-	catchup *proto.CatchupBlock // always present
-	cvhash  proto.ConsensusValueHash
-	// PERF?
-	ns        protoutil.NominationSerialized
+	catchup   *proto.CatchupBlock // always present
+	cvhash    proto.ConsensusValueHash
 	txs       []proto.SignedTransaction
 	validated *proto.BlockID // optional
 }
@@ -95,7 +79,6 @@ type CommittableCatchup struct {
 func NewCommittableCatchup(
 	catchup *proto.CatchupBlock,
 	cvhash proto.ConsensusValueHash,
-	ns protoutil.NominationSerialized,
 	txs []proto.SignedTransaction,
 	validated *proto.BlockID,
 ) *CommittableCatchup {
@@ -103,7 +86,6 @@ func NewCommittableCatchup(
 		catchup:   catchup,
 		cvhash:    cvhash,
 		txs:       txs,
-		ns:        ns,
 		validated: validated,
 	}
 }
@@ -136,16 +118,8 @@ func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTran
 	return cb.txs
 }
 
-func (cb *CommittableCatchup) SignedTransactionHashes() []proto.SignedTransactionHash {
-	return protoutil.HashSignedTxs(cb.txs)
-}
-
 func (cb *CommittableCatchup) NumTransactions() int {
 	return len(cb.txs)
-}
-
-func (cb *CommittableCatchup) NominationSerialized() protoutil.NominationSerialized {
-	return cb.ns
 }
 
 type CommittableBlock struct {

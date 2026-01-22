@@ -1,7 +1,6 @@
 package baton
 
 import (
-	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -16,24 +15,13 @@ type externalized interface {
 type externalizedConsensus struct {
 	cv   *proto.ConsensusValue
 	hash proto.ConsensusValueHash
-	ns   protoutil.NominationSerialized
 }
 
-func (b *Baton) newExternalized(
-	cv *proto.ConsensusValue,
-	cvh proto.ConsensusValueHash,
-	ns protoutil.NominationSerialized,
-) externalizedConsensus {
+func (b *Baton) newExternalized(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash) externalizedConsensus {
 	return externalizedConsensus{
 		cv:   cv,
 		hash: cvh,
-		ns:   ns,
 	}
-}
-
-// PERF
-func (x externalizedConsensus) NominationSerialized() protoutil.NominationSerialized {
-	return x.ns
 }
 
 func (x externalizedConsensus) ConsensusValue() *proto.ConsensusValue {
