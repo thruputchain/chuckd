@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -110,7 +111,11 @@ func (b *Baton) nominate(
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nomination.Prev_block_hash}
-	if ok := b.handler.Nominate(ctx, scpkit.Slot(nomination.Block_height), cvc, &prevSummary); ok {
+	n0 := time.Now()
+	accepted := b.handler.Nominate(ctx, scpkit.Slot(nomination.Block_height), cvc, &prevSummary)
+	b.reportSCPNominationDelay(nomination.Block_height, time.Since(n0))
+
+	if accepted {
 
 		// if nomination accepted, broadcast consensus value
 		liblog.Debugf("disseminating consensus value for slot %d with hash %s",
@@ -129,14 +134,14 @@ func (b *Baton) nominate(
 		liblog.Infof("%v", evNominated)
 		b.handler.Emit(ctx, evNominated)
 
-		liblog.Debugf("scp_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
+		liblog.Debugf("coordinator_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
 		return cv, cvc, nominatedBlock.Block_id, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 
-		liblog.Debugf("scp_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
+		liblog.Debugf("coordinator_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
 		return nil, nil, 0, ErrNominationRejected

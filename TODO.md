@@ -1,11 +1,5 @@
 SCHEDULER INTEGRATION & PERF
 
-SCP
-
-- [ ] use SCP proto definitions from the SCP module (chuckd -> scp-go -> scp)
-- [ ] purpose of MaybeValid?
-- [ ] ask stellar folks how they deal with messages coming after an externalization
-
 BUGS
 
 - [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188

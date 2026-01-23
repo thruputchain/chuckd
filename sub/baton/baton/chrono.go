@@ -9,29 +9,32 @@ import (
 )
 
 type blockChrono struct {
-	height        proto.BlockHeight
-	nominateStart time.Time
-	nominateEnd   time.Time
-	commitStart   time.Time
-	commitEnd     time.Time
-	persistCV     time.Duration
+	height             proto.BlockHeight
+	nominateStart      time.Time
+	nominateEnd        time.Time
+	commitStart        time.Time
+	commitEnd          time.Time
+	persistCV          time.Duration
+	scpNominationDelay time.Duration
 }
 
 type chrono struct {
 	lk    sync.Mutex
 	block [2]blockChrono
 	//
-	lastNominateStart time.Time
-	lastNominateEnd   time.Time
-	lastCommitStart   time.Time
-	lastCommitEnd     time.Time
-	lastPersistCV     time.Duration
+	lastNominateStart      time.Time
+	lastNominateEnd        time.Time
+	lastCommitStart        time.Time
+	lastCommitEnd          time.Time
+	lastPersistCV          time.Duration
+	lastSCPNominationDelay time.Duration
 	//
-	lastNominateStartHeight proto.BlockHeight
-	lastNominateEndHeight   proto.BlockHeight
-	lastCommitStartHeight   proto.BlockHeight
-	lastCommitEndHeight     proto.BlockHeight
-	lastPersistCVHeight     proto.BlockHeight
+	lastNominateStartHeight      proto.BlockHeight
+	lastNominateEndHeight        proto.BlockHeight
+	lastCommitStartHeight        proto.BlockHeight
+	lastCommitEndHeight          proto.BlockHeight
+	lastPersistCVHeight          proto.BlockHeight
+	lastSCPNominationDelayHeight proto.BlockHeight
 }
 
 func (x *chrono) at(height proto.BlockHeight) *blockChrono {
@@ -56,6 +59,28 @@ func (b *Baton) stampNominateStart(height proto.BlockHeight) {
 			b.chrono.lastNominateStart.Sub(b.chrono.lastCommitStart),
 			b.chrono.lastCommitStartHeight, b.chrono.lastNominateStartHeight,
 		)
+	}
+}
+
+func (b *Baton) reportSCPNominationDelay(height proto.BlockHeight, d time.Duration) {
+	b.chrono.lk.Lock()
+	defer b.chrono.lk.Unlock()
+
+	b.chrono.at(height).scpNominationDelay = d
+	b.chrono.lastSCPNominationDelay = d
+	b.chrono.lastSCPNominationDelayHeight = height
+
+	// single-node
+	// |----- scp nomination -----|
+	// |----- persist ------|
+	//
+	// multi-node
+	// |-- scp nomination --|
+	// |------------ persist ------------|
+	if b.chrono.lastPersistCVHeight == b.chrono.lastSCPNominationDelayHeight {
+		liblog.Debugf("coordinator_non_persist_overhead=%v | height=%d",
+			b.chrono.lastSCPNominationDelay-b.chrono.lastPersistCV,
+			b.chrono.lastPersistCVHeight)
 	}
 }
 
