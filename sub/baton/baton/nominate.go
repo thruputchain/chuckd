@@ -53,7 +53,7 @@ func (b *Baton) nominate(
 	nomination := nominatedBlock.Nomination
 	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
 
-	liblog.Debugf("scheduler_nomination_latency=%v | height=%d, num_txs=%d",
+	liblog.Debugf("mempool_nomination_delay=%v | height=%d, num_txs=%d",
 		b.handler.Now().Sub(t0),
 		nominatedBlock.Nomination.Block_height,
 		numTxs,
@@ -129,14 +129,14 @@ func (b *Baton) nominate(
 		liblog.Infof("%v", evNominated)
 		b.handler.Emit(ctx, evNominated)
 
-		liblog.Debugf("fire_accepted_nomination_latency=%v | height=%d, num_txs=%d",
+		liblog.Debugf("scp_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
 		return cv, cvc, nominatedBlock.Block_id, nil
 	} else {
 		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 
-		liblog.Debugf("fire_rejected_nomination_latency=%v | height=%d, num_txs=%d",
+		liblog.Debugf("scp_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
 		return nil, nil, 0, ErrNominationRejected

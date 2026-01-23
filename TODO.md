@@ -1,8 +1,5 @@
 SCHEDULER INTEGRATION & PERF
 
-[ ] pre-allocate/touch mmapped files for CV persistence
-    - you might even be able to do mprotect(MADV_WILLNEED) rather than touch every page
-
 SCP
 
 - [ ] use SCP proto definitions from the SCP module (chuckd -> scp-go -> scp)

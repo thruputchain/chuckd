@@ -14,6 +14,7 @@ type blockChrono struct {
 	nominateEnd   time.Time
 	commitStart   time.Time
 	commitEnd     time.Time
+	persistCV     time.Duration
 }
 
 type chrono struct {
@@ -24,11 +25,13 @@ type chrono struct {
 	lastNominateEnd   time.Time
 	lastCommitStart   time.Time
 	lastCommitEnd     time.Time
+	lastPersistCV     time.Duration
 	//
 	lastNominateStartHeight proto.BlockHeight
 	lastNominateEndHeight   proto.BlockHeight
 	lastCommitStartHeight   proto.BlockHeight
 	lastCommitEndHeight     proto.BlockHeight
+	lastPersistCVHeight     proto.BlockHeight
 }
 
 func (x *chrono) at(height proto.BlockHeight) *blockChrono {
@@ -49,11 +52,20 @@ func (b *Baton) stampNominateStart(height proto.BlockHeight) {
 	b.chrono.lastNominateStartHeight = height
 
 	if !b.chrono.lastCommitStart.IsZero() {
-		liblog.Debugf("commit_start_to_nominate_start_latency=%v | commit_height=%d, nominate_height=%d",
+		liblog.Debugf("commit_start_to_nominate_start_delay=%v | commit_height=%d, nominate_height=%d",
 			b.chrono.lastNominateStart.Sub(b.chrono.lastCommitStart),
 			b.chrono.lastCommitStartHeight, b.chrono.lastNominateStartHeight,
 		)
 	}
+}
+
+func (b *Baton) reportPersistCV(height proto.BlockHeight, d time.Duration) {
+	b.chrono.lk.Lock()
+	defer b.chrono.lk.Unlock()
+
+	b.chrono.at(height).persistCV = d
+	b.chrono.lastPersistCV = d
+	b.chrono.lastPersistCVHeight = height
 }
 
 func (b *Baton) stampNominateEnd(height proto.BlockHeight) {
@@ -76,7 +88,7 @@ func (b *Baton) stampCommitStart(height proto.BlockHeight) {
 	b.chrono.lastCommitStartHeight = height
 
 	if !b.chrono.lastNominateStart.IsZero() {
-		liblog.Debugf("nominate_start_to_commit_start_latency=%v | nominate_height=%d, commit_height=%d",
+		liblog.Debugf("nominate_start_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
 			b.chrono.lastCommitStart.Sub(b.chrono.lastNominateStart),
 			b.chrono.lastNominateStartHeight, b.chrono.lastCommitStartHeight,
 		)
