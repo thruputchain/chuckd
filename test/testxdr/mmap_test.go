@@ -49,35 +49,22 @@ func xxx(filename string) error {
 	defer unix.Munmap(mmap)
 	liblog.Debugf("mmap took %v", time.Since(mmapStart))
 
-	// Step 4: Write data to the memory-mapped region
-	alpha := "abcdefg"
-	write1Start := time.Now()
-	for i := range mmap {
-		mmap[i] = alpha[i%len(alpha)]
-	}
-	liblog.Debugf("write1 took %v", time.Since(write1Start))
+	for range 10 {
+		// Step 4: Write data to the memory-mapped region
+		alpha := "abcdefg"
+		write1Start := time.Now()
+		for i := range mmap {
+			mmap[i] = alpha[i%len(alpha)]
+		}
+		liblog.Debugf("write took %v", time.Since(write1Start))
 
-	// Step 5: Sync changes to disk (optional but recommended)
-	msync1Start := time.Now()
-	if err := unix.Msync(mmap, unix.MS_SYNC); err != nil {
-		return err
+		// Step 5: Sync changes to disk (optional but recommended)
+		msync1Start := time.Now()
+		if err := unix.Msync(mmap, unix.MS_SYNC); err != nil {
+			return err
+		}
+		liblog.Debugf("msync took %v", time.Since(msync1Start))
 	}
-	liblog.Debugf("msync1 took %v", time.Since(msync1Start))
-
-	// Step 6: Write new data to the memory-mapped region
-	alpha2 := "xyz"
-	write2Start := time.Now()
-	for i := range mmap {
-		mmap[i] = alpha2[i%len(alpha2)]
-	}
-	liblog.Debugf("write2 took %v", time.Since(write2Start))
-
-	// Step 7: Re-sync changes to disk (optional but recommended)
-	msync2Start := time.Now()
-	if err := unix.Msync(mmap, unix.MS_SYNC); err != nil {
-		return err
-	}
-	liblog.Debugf("msync2 took %v", time.Since(msync2Start))
 
 	return nil
 }
