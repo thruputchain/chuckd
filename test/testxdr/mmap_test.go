@@ -49,23 +49,20 @@ func xxx(filename string) error {
 	defer unix.Munmap(mmap)
 	liblog.Debugf("mmap took %v", time.Since(mmapStart))
 
+	data := make([]byte, len(mmap))
+
 	// Step 4: Advise kernel that we'll need this memory
-	madviseStart := time.Now()
-	if err := unix.Madvise(mmap, unix.MADV_WILLNEED); err != nil {
-		return err
-	}
-	liblog.Debugf("madvise took %v", time.Since(madviseStart))
+	// madviseStart := time.Now()
+	// if err := unix.Madvise(mmap, unix.MADV_WILLNEED); err != nil {
+	// 	return err
+	// }
+	// liblog.Debugf("madvise took %v", time.Since(madviseStart))
 
 	for range 10 {
-		// Step 5: Write data to the memory-mapped region
-		alpha := "abcdefg"
 		write1Start := time.Now()
-		for i := range mmap {
-			mmap[i] = alpha[i%len(alpha)]
-		}
+		copy(mmap, data)
 		liblog.Debugf("write took %v", time.Since(write1Start))
 
-		// Step 6: Sync changes to disk (optional but recommended)
 		msync1Start := time.Now()
 		if err := unix.Msync(mmap, unix.MS_SYNC); err != nil {
 			return err
