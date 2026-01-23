@@ -12,6 +12,10 @@ import (
 )
 
 func xxx(filename string) error {
+	t0 := time.Now()
+	defer func() {
+		liblog.Debugf("experiment took %v", time.Since(t0))
+	}()
 
 	pageSize := os.Getpagesize()
 
@@ -31,6 +35,7 @@ func xxx(filename string) error {
 	}
 
 	// Step 3: Memory map the file
+	mmapStart := time.Now()
 	mmap, err := unix.Mmap(
 		int(file.Fd()),                 // file descriptor
 		0,                              // offset
@@ -42,6 +47,7 @@ func xxx(filename string) error {
 		return err
 	}
 	defer unix.Munmap(mmap)
+	liblog.Debugf("mmap took %v", time.Since(mmapStart))
 
 	// Step 4: Write data to the memory-mapped region
 	alpha := "abcdefg"
