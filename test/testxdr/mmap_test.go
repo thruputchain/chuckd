@@ -49,8 +49,15 @@ func xxx(filename string) error {
 	defer unix.Munmap(mmap)
 	liblog.Debugf("mmap took %v", time.Since(mmapStart))
 
+	// Step 4: Advise kernel that we'll need this memory
+	madviseStart := time.Now()
+	if err := unix.Madvise(mmap, unix.MADV_WILLNEED); err != nil {
+		return err
+	}
+	liblog.Debugf("madvise took %v", time.Since(madviseStart))
+
 	for range 10 {
-		// Step 4: Write data to the memory-mapped region
+		// Step 5: Write data to the memory-mapped region
 		alpha := "abcdefg"
 		write1Start := time.Now()
 		for i := range mmap {
@@ -58,7 +65,7 @@ func xxx(filename string) error {
 		}
 		liblog.Debugf("write took %v", time.Since(write1Start))
 
-		// Step 5: Sync changes to disk (optional but recommended)
+		// Step 6: Sync changes to disk (optional but recommended)
 		msync1Start := time.Now()
 		if err := unix.Msync(mmap, unix.MS_SYNC); err != nil {
 			return err
