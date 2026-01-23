@@ -71,6 +71,12 @@ func xxx(filename string) error {
 
 func TestMmap(t *testing.T) {
 	liblog.SetLogLevelDebug()
+
 	filename := path.Join(t.TempDir(), "mmap_test")
+	liblog.Debugf("FILE: %s", filename)
+	xxx(filename)
+
+	filename = path.Join("/home/local/petar/", "mmap_test")
+	liblog.Debugf("FILE: %s", filename)
 	xxx(filename)
 }
