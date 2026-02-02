@@ -27,7 +27,7 @@ func NewMockScheduler(
 ) *MockScheduler {
 	return &MockScheduler{
 		inside: inside,
-		sched:  testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{Height: 1}),
+		sched:  testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{Height: 0}),
 	}
 }
 
