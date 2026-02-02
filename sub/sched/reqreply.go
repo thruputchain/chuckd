@@ -107,7 +107,7 @@ type Request_Schedcoord_get_tip struct {
 func (Request_Schedcoord_get_tip) IsSchedCoordRequest() {}
 
 type Reply_Schedcoord_get_tip struct {
-	Tip proto.DbTip
+	Tip proto.SchedulerGetTipResult
 	Err error
 }
 

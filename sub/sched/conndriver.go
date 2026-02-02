@@ -46,8 +46,8 @@ func driveConn(
 				req.Reply <- Reply_Schedulercoord_commit_block{Outcome: outcome, Err: err}
 
 			case Request_Schedcoord_get_tip:
-				tip, err := conn.Schedcoord_get_tip(req.Ctx)
-				req.Reply <- Reply_Schedcoord_get_tip{Tip: tip, Err: err}
+				tipResult, err := conn.Schedcoord_get_tip(req.Ctx)
+				req.Reply <- Reply_Schedcoord_get_tip{Tip: tipResult, Err: err}
 
 			case Request_Schedcoord_load_genesis_configuration:
 				result, err := conn.Schedcoord_load_genesis_configuration(req.Ctx, req.GC)

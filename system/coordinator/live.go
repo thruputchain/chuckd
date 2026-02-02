@@ -91,12 +91,12 @@ func (x *LiveHandler) SetScheduler(conn sched.SchedulerCoordConn) {
 	close(x.schedReady)
 }
 
-func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.DbTip, error) {
+func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResult, error) {
 	<-x.schedReady
 
-	tip, err := x.Schedcoord_get_tip(ctx)
+	tipResult, err := x.Schedcoord_get_tip(ctx)
 	must.NoError(ctx, err)
-	return tip, nil
+	return tipResult, nil
 }
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {

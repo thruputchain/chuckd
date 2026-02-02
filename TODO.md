@@ -1,3 +1,7 @@
+SCP
+
+- [ ] scp envs contain qset hash; where do the actual qsets come from?
+
 BUGS
 
 - [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188

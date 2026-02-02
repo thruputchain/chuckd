@@ -24,7 +24,7 @@ type testDbSnapshot struct {
 }
 
 func NewTestDb(ctx context.Context, tip proto.DbTip) *TestDb {
-	must.Assert(ctx, tip.Height > 0)
+	must.Assert(ctx, tip.Height >= 0)
 	db := &TestDb{
 		id: map[proto.BlockID]*testDbSnapshot{},
 	}

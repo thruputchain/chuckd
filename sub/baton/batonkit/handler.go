@@ -31,7 +31,7 @@ type Handler interface {
 	DisseminateCV(context.Context, proto.ConsensusValue, proto.ConsensusValueHash)
 
 	GenerateID64(context.Context) ID64
-	RestoreDb(context.Context) (proto.DbTip, error)
+	RestoreDb(context.Context) (proto.SchedulerGetTipResult, error)
 
 	Emit(ctx context.Context, event any)
 }

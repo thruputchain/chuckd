@@ -125,7 +125,7 @@ func (p *ConnPool) Schedulercoord_commit_block(ctx context.Context, id proto.Blo
 	return r.Outcome, r.Err
 }
 
-func (p *ConnPool) Schedcoord_get_tip(ctx context.Context) (proto.DbTip, error) {
+func (p *ConnPool) Schedcoord_get_tip(ctx context.Context) (proto.SchedulerGetTipResult, error) {
 	reply := make(chan Reply_Schedcoord_get_tip, 1)
 	p.req <- Request_Schedcoord_get_tip{Reply: reply, Ctx: ctx}
 	r := <-reply

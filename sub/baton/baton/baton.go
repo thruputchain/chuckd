@@ -154,12 +154,13 @@ func (b *Baton) start(ctx context.Context) {
 
 	// restore db
 	var err error
-	b.tipDb, err = b.handler.RestoreDb(ctx)
+	tipResult, err := b.handler.RestoreDb(ctx)
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
-	must.Assertf(ctx, b.tipDb.Height > 0, "db tip height 0; missing genesis block")
+	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
+	b.tipDb = *tipResult.Db_tip()
 
-	// genesis block has height 1, and no corresponding consensus value
-	if b.tipDb.Height > 1 {
+	// genesis block has height 0, and no corresponding consensus value
+	if b.tipDb.Height > 0 {
 		tipCV := b.handler.FindConsensusValue(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
