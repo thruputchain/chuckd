@@ -48,7 +48,7 @@ func NewCoordinatorBenchCluster(
 	sched := testsched.NewTestScheduler(
 		ctx,
 		validator.Public_info,
-		proto.DbTip{Height: 1},
+		proto.DbTip{Height: 0},
 	)
 
 	userPriv, err := protoutil.GenerateIdentity(rand, "")
