@@ -33,7 +33,7 @@ func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.Propose
 
 func HashSignedTx(tx *proto.SignedTransaction) proto.SignedTransactionHash {
 	h := sha256.New()
-	libxdr.MarshalXdrWriter(h, tx)
+	libxdr.MarshalXdrWriter(h, &tx.Tx)
 	return proto.SignedTransactionHash(h.Sum(nil))
 }
 
