@@ -49,7 +49,7 @@ func NewLoadGen(
 
 func (x *LoadGen) Start(ctx context.Context, loadgenAddr string) {
 
-	lgConn, err := DialLoadgenClient(ctx, x.inside, loadgenAddr)
+	lgConn, err := DialLoadgenClientRetry(ctx, x.inside, loadgenAddr)
 	must.NoError(ctx, err)
 
 	liblog.Infof("num_accounts=%d, num_txs_per_block=%d", x.Cfg.NumAccts, x.Cfg.NumTxsPerBlock)

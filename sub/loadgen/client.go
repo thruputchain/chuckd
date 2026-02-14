@@ -3,6 +3,7 @@ package loadgen
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
@@ -23,6 +24,20 @@ func DialLoadgenClient(ctx context.Context, dialer libnet.AddressDialer, address
 		return nil, err
 	}
 	return NewLoadgenClient(ctx, sock), nil
+}
+
+func DialLoadgenClientRetry(ctx context.Context, dialer libnet.AddressDialer, address string) (*LoadgenClient, error) {
+	for {
+		client, err := DialLoadgenClient(ctx, dialer, address)
+		if err == nil {
+			return client, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
 }
 
 func NewLoadgenClient(ctx context.Context, sock net.Conn) *LoadgenClient {
