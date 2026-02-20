@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -98,12 +97,20 @@ func (b *Baton) purgeCatchup(_ context.Context) {
 	b.catchupArrivals = nil
 }
 
-func (b *Baton) requestCatchup(ctx context.Context, spans []Span) {
+func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
+	if b.sinceLastCatchupAttempt() < b.patience {
+		liblog.Infof("skipping catchup attempt: not enough time since last attempt")
+		return
+	}
+	b.noteCatchupAttempt()
 
 	id := b.handler.GenerateID64(ctx)
 
 	src := b.handler.GetCatchupSources(ctx, int64(id))
-	must.Assertf(ctx, len(src) > 0, "no catchup sources")
+	if len(src) == 0 {
+		liblog.Errorf("no catchup sources found among known validators")
+		return
+	}
 
 	// mark pending request
 	b.catchupWaiting[id] = catchupRequest{

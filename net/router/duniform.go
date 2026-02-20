@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -49,7 +48,7 @@ func (x *dynamicUniformRouter) ResolveAddress(vid proto.ValidatorID) (string, er
 
 func (x *dynamicUniformRouter) ChooseSCPProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
-	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self
+	vs = dedupExcludeSelf(vs, protoutil.PublicVID(x.Self())) // filter out self
 	if len(vs) > 0 {
 		r := rand.New(rand.NewSource(seed))
 		r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
@@ -61,8 +60,10 @@ func (x *dynamicUniformRouter) ChooseSCPProviders(ctx context.Context, seed int6
 
 func (x *dynamicUniformRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
 	vs := protoutil.SnapshotValidators(x.discovery.CachedSnapshots())
-	_, vs = dedupFilterOutValidators(vs, protoutil.PublicVID(x.Self())) // filter out self
-	must.Assertf(ctx, len(vs) > 0, "empty quorum")
+	vs = dedupExcludeSelf(vs, protoutil.PublicVID(x.Self())) // filter out self
+	if len(vs) == 0 {
+		return nil
+	}
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(vs), func(i int, j int) { vs[i], vs[j] = vs[j], vs[i] })
 	return vs[:1]
@@ -103,12 +104,12 @@ func divideRoundUp(x, y int) int {
 	return (x / y) + 1
 }
 
-func dedupFilterOutValidators(vs []ValidatorPublicInfo, vid ValidatorID) (ValidatorPublicInfo, []ValidatorPublicInfo) {
+func dedupExcludeSelf(vs []ValidatorPublicInfo, vid ValidatorID) []ValidatorPublicInfo {
 	m := map[ValidatorID]ValidatorPublicInfo{}
 	for _, v := range vs {
 		m[protoutil.PublicVID(v)] = v
 	}
-	found, ok := m[vid]
+	_, ok := m[vid]
 	if !ok {
 		panic("cannot find root")
 	}
@@ -118,5 +119,5 @@ func dedupFilterOutValidators(vs []ValidatorPublicInfo, vid ValidatorID) (Valida
 		dedup = append(dedup, v)
 	}
 	dedup.Sort()
-	return found, dedup
+	return dedup
 }

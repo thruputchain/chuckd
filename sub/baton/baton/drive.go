@@ -146,7 +146,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
 		liblog.Debugf("requesting catchup: %v", needed)
-		b.requestCatchup(ctx, needed)
+		b.attemptCatchup(ctx, needed)
 	}
 }
 

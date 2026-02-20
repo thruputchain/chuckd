@@ -16,7 +16,7 @@ func (x *RepairAgent) RepairMissingSCP(
 
 	ps := x.router.ChooseSCPProviders(ctx, x.rand.Int63())
 	if len(ps) == 0 {
-		return nil, fmt.Errorf("no scp providers in quorum set")
+		return nil, fmt.Errorf("no scp providers among known validators")
 	}
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, ps[0].Address)

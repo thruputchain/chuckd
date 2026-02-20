@@ -10,8 +10,6 @@ BUGS
 
 HOGTOOLS
 
-- [ ] serde support in x23c
-
 - [ ] use a single build tree in experiments
 - [ ] extract cause of failure from logs?
 
