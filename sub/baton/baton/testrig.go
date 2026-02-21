@@ -17,6 +17,7 @@ import (
 	"github.com/groundhogchain/chuckd/test/testsched"
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -245,4 +246,5 @@ func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
 
 func (h *TestRig) WaitBackfeed(ctx context.Context) {
 	<-h.backfeed
+	liblog.Debugf("CAPTURED: backfeed request")
 }

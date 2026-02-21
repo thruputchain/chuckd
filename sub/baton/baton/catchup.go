@@ -98,11 +98,6 @@ func (b *Baton) purgeCatchup(_ context.Context) {
 }
 
 func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
-	if b.sinceLastCatchupAttempt() < b.patience {
-		liblog.Infof("skipping catchup attempt: not enough time since last attempt")
-		return
-	}
-	b.noteCatchupAttempt()
 
 	id := b.handler.GenerateID64(ctx)
 

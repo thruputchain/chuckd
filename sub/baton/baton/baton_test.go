@@ -179,7 +179,7 @@ func TestValidateCommit(t *testing.T) {
 // regardless of how many were requested.
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
-	ctx, rig, baton, tick := testSetup()
+	ctx, rig, baton, _ := testSetup()
 	baseHeight := rig.GetTip(ctx).Height
 
 	block2 := rig.GenNomination(ctx, 1) // db is initialized at block height 1
@@ -193,17 +193,11 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 
-	rig.PassTime(tick)
-	rig.WaitBackfeed(ctx)
-
 	// consume nomination
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
-
-	rig.PassTime(tick)
-	rig.WaitBackfeed(ctx)
 
 	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+2), testMarshaler.MarshalXdr(&block3.ConsensusValueCue).Bytes())
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -212,8 +206,6 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 	if committed2.Height != baseHeight+1 {
 		t.Errorf("unexpected committed height")
 	}
-	rig.PassTime(tick)
-	rig.WaitBackfeed(ctx)
 
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)

@@ -12,7 +12,6 @@ type liveness struct {
 	lastCommit          time.Time // updated by commit
 	lastExternalization time.Time // updated by scp externalize
 	lastBackfeed        time.Time // updated by drive loop
-	lastCatchupAttempt  time.Time // updated by attemptCatchup
 }
 
 func (b *Baton) sinceLastExternalization(now time.Time) time.Duration {
@@ -37,12 +36,4 @@ func (b *Baton) noteCommitted(_ proto.BlockHeight) {
 
 func (b *Baton) noteBackfeed() {
 	b.liveness.lastBackfeed = b.handler.Now()
-}
-
-func (b *Baton) noteCatchupAttempt() {
-	b.liveness.lastCatchupAttempt = b.handler.Now()
-}
-
-func (b *Baton) sinceLastCatchupAttempt() time.Duration {
-	return b.handler.Now().Sub(b.liveness.lastCatchupAttempt)
 }
