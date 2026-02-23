@@ -47,14 +47,11 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 		Uniquifier: proto.Uniquifier{Nonce: h.rand.Uint64()},
 	}
 	return &proto.SignedTransaction{
-		Signatures: []proto.DecoratedSignatureList{
-			{
-				List: []proto.DecoratedSignature{{
-					Public_key_id: 0,
-					Signature:     protoutil.SignXdr(h.m, h.user, &tx),
-				}},
-			},
-		},
+		Signatures: []proto.DecoratedSignature{{
+			Auth_claim_idx: 0,
+			Public_key_id: 0,
+			Signature:     protoutil.SignXdr(h.m, h.user, &tx),
+		}},
 		Tx: tx,
 	}
 }
