@@ -72,11 +72,6 @@ func StartSCPDaemon(
 	cmd.Stdout = libtext.NewPrefixWriter(os.Stderr, "[scpd:out] ")
 	cmd.Stderr = libtext.NewPrefixWriter(os.Stderr, "[scpd:err] ")
 
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	// cmd.SysProcAttr = &syscall.SysProcAttr{
-	// 	Pdeathsig: syscall.SIGTERM,
-	// }
-
 	err = cmd.Start()
 	must.NoError(ctx, err)
 	kill := func(sig os.Signal) {

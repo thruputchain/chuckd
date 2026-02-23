@@ -1,5 +1,6 @@
 SCP
 
+- [ ] scpd does not die when coordinator panics
 - [ ] scp envs contain qset hash; where do the actual qsets come from?
 
 BUGS
