@@ -15,6 +15,7 @@ import (
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libruntime"
 	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -31,10 +32,7 @@ func StartSCPDaemon(
 ) (*SCPHandler, *SCPController, func()) {
 
 	liblog.Infof("starting scpd, control_address=%s, handle_address=%s ...", controlAddr, handleAddr)
-
-	cfgJSON, err := json.MarshalIndent(cfg, "", "   ")
-	must.NoError(ctx, err)
-	liblog.Infof("scp config: %v", cfgJSON)
+	liblog.Infof("scp config: %v", libxdr.MustXdrToJsonString(&cfg))
 
 	// prepare config
 
