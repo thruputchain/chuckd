@@ -41,6 +41,7 @@ func StartSCPDaemon(
 	cfgBytes, err := json.MarshalIndent(SCPConfigToShim(cfg), "", "   ")
 	must.NoError(ctx, err)
 	cfgText := string(cfgBytes)
+	liblog.Infof("scp config shim: %v", cfgText)
 
 	tmpFile, err := os.CreateTemp("", "chuckd-scpd-config-*.json")
 	tmpPath := tmpFile.Name()
