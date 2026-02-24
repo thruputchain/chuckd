@@ -8,6 +8,7 @@ git init -q .
 git remote add origin git@github.com:{{ .github_repo }}.git
 git fetch --depth 1 origin {{ .git_commit }} --quiet --no-progress
 git checkout {{ .git_commit }}
+git submodule update --init --recursive
 
 source ./scripts/setup_go.sh
 ./scripts/build_chuckd.sh
