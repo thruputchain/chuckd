@@ -124,6 +124,8 @@ func LoadCoordinatorConfig(ctx context.Context) proto.Config {
 	err = libxdr.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 
+	liblog.Infof("loaded config: %v", libxdr.MustXdrToJsonString(&config))
+
 	return config
 }
 
