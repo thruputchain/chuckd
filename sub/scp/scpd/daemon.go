@@ -32,6 +32,10 @@ func StartSCPDaemon(
 
 	liblog.Infof("starting scpd, control_address=%s, handle_address=%s ...", controlAddr, handleAddr)
 
+	cfgJSON, err := json.MarshalIndent(cfg, "", "   ")
+	must.NoError(ctx, err)
+	liblog.Infof("scp config: %v", cfgJSON)
+
 	// prepare config
 
 	// cfgText := libxdr.MustXdrToJsonString(&cfg)
