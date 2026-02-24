@@ -1,0 +1,3 @@
+[submodule "scp"]
+	path = scp
+	url = git@github.com:groundhogchain/scp.git
