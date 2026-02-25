@@ -225,8 +225,8 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 	i := 0
 	for {
 		liblog.Infof("waiting for work tx batch %d to arrive from loadgen", i)
-		txs := s.loadgen.WaitWorkTxs(ctx)
-		if txs == nil {
+		txs, ok := s.loadgen.WaitWorkTxs(ctx)
+		if !ok {
 			close(stop)
 			return <-report
 		}
@@ -237,8 +237,8 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 		}
 		lastBurst = time.Now()
 
-		liblog.Infof("submitting work tx batch %d with %d transactions", i, len(txs))
-		ctl.SubmitTxs(ctx, txs)
+		liblog.Infof("submitting work tx batch %d with %d transactions", i, xdrutil.SizeOfBatch(txs))
+		ctl.SubmitParallelTxs(ctx, txs)
 
 		liblog.Infof("waiting for work batch %d to commit", i)
 

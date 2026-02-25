@@ -22,6 +22,10 @@ func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) 
 	x.system.UnvettedSubmitter.SubmitTxs(ctx, txs...)
 }
 
+func (x Control) SubmitParallelTxs(ctx context.Context, txs proto.ParallelSignedTransactionBatch) {
+	x.system.UnvettedSubmitter.SubmitParallelTxs(ctx, txs)
+}
+
 func (x Control) SignalGenesisIsReady() {
 	close(x.genesisReady)
 }

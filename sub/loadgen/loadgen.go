@@ -25,7 +25,7 @@ type LoadGen struct {
 	//
 	genesisCh chan *proto.GenesisConfiguration
 	initTxsCh chan []*proto.SignedTransaction
-	workTxsCh chan []*proto.SignedTransaction
+	workTxsCh chan proto.ParallelSignedTransactionBatch
 	done      chan struct{}
 }
 
@@ -41,7 +41,7 @@ func NewLoadGen(
 		inside:    inside,
 		genesisCh: make(chan *proto.GenesisConfiguration, 1),
 		initTxsCh: make(chan []*proto.SignedTransaction),
-		workTxsCh: make(chan []*proto.SignedTransaction),
+		workTxsCh: make(chan proto.ParallelSignedTransactionBatch),
 		done:      make(chan struct{}),
 	}
 	return x
@@ -65,8 +65,9 @@ func (x *LoadGen) WaitInitTxs(ctx context.Context) []*proto.SignedTransaction {
 	return <-x.initTxsCh
 }
 
-func (x *LoadGen) WaitWorkTxs(ctx context.Context) []*proto.SignedTransaction {
-	return <-x.workTxsCh
+func (x *LoadGen) WaitWorkTxs(ctx context.Context) (proto.ParallelSignedTransactionBatch, bool) {
+	txs, ok := <-x.workTxsCh
+	return txs, ok
 }
 
 func (x *LoadGen) WaitDone() {
@@ -105,7 +106,7 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 		must.NoError(ctx, err)
 
 		ext := r.Success()
-		x.workTxsCh <- protoutil.Unpack(ext.Work_txs)
+		x.workTxsCh <- ext.Work_txs
 	}
 	close(x.workTxsCh)
 }

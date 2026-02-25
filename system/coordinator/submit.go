@@ -19,6 +19,7 @@ type UnvettedSubmitter struct {
 	maxSize int
 	maxWait time.Duration
 	lot     chan []*proto.SignedTransaction
+	parlot  chan proto.ParallelSignedTransactionBatch
 }
 
 func NewUnvettedSubmitter(
@@ -32,11 +33,16 @@ func NewUnvettedSubmitter(
 		maxSize: maxSize,
 		maxWait: maxWait,
 		lot:     make(chan []*proto.SignedTransaction),
+		parlot:  make(chan proto.ParallelSignedTransactionBatch),
 	}
 }
 
 func (x *UnvettedSubmitter) SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction) {
 	x.lot <- txs
+}
+
+func (x *UnvettedSubmitter) SubmitParallelTxs(ctx context.Context, txs proto.ParallelSignedTransactionBatch) {
+	x.parlot <- txs
 }
 
 func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1) {
@@ -61,6 +67,19 @@ func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoor
 			case txs := <-x.lot:
 				liblog.Debugf("submitting %d unvetted txs from wallet to scheduler", len(txs))
 				buf.Submit(ctx, protoutil.Pack(txs))
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case txs := <-x.parlot:
+				liblog.Debugf("submitting %d parallel unvetted txs from wallet to scheduler",
+					xdrutil.SizeOfBatch(txs))
+				err := sched.Schedulercoord_submit_unvetted(ctx, txs)
+				must.NoError(ctx, err)
 			}
 		}
 	}()
