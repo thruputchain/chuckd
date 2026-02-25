@@ -11,6 +11,7 @@ import (
 type blockChrono struct {
 	height             proto.BlockHeight
 	nominateStart      time.Time
+	mempoolNominateEnd time.Time
 	nominateEnd        time.Time
 	commitStart        time.Time
 	commitEnd          time.Time
@@ -23,6 +24,7 @@ type chrono struct {
 	block [2]blockChrono
 	//
 	lastNominateStart      time.Time
+	lastMempoolNominateEnd time.Time
 	lastNominateEnd        time.Time
 	lastCommitStart        time.Time
 	lastCommitEnd          time.Time
@@ -30,6 +32,7 @@ type chrono struct {
 	lastSCPNominationDelay time.Duration
 	//
 	lastNominateStartHeight      proto.BlockHeight
+	lastMempoolNominateEndHeight proto.BlockHeight
 	lastNominateEndHeight        proto.BlockHeight
 	lastCommitStartHeight        proto.BlockHeight
 	lastCommitEndHeight          proto.BlockHeight
@@ -60,6 +63,15 @@ func (b *Baton) stampNominateStart(height proto.BlockHeight) {
 			b.chrono.lastCommitStartHeight, b.chrono.lastNominateStartHeight,
 		)
 	}
+}
+
+func (b *Baton) stampMempoolNominateEnd(height proto.BlockHeight, now time.Time) {
+	b.chrono.lk.Lock()
+	defer b.chrono.lk.Unlock()
+
+	b.chrono.at(height).mempoolNominateEnd = now
+	b.chrono.lastMempoolNominateEnd = now
+	b.chrono.lastMempoolNominateEndHeight = height
 }
 
 func (b *Baton) reportSCPNominationDelay(height proto.BlockHeight, d time.Duration) {
@@ -116,6 +128,13 @@ func (b *Baton) stampCommitStart(height proto.BlockHeight) {
 		liblog.Debugf("nominate_start_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
 			b.chrono.lastCommitStart.Sub(b.chrono.lastNominateStart),
 			b.chrono.lastNominateStartHeight, b.chrono.lastCommitStartHeight,
+		)
+	}
+
+	if !b.chrono.lastMempoolNominateEnd.IsZero() {
+		liblog.Debugf("mempool_nominate_end_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
+			b.chrono.lastCommitStart.Sub(b.chrono.lastMempoolNominateEnd),
+			b.chrono.lastMempoolNominateEndHeight, b.chrono.lastCommitStartHeight,
 		)
 	}
 }

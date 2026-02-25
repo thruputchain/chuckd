@@ -54,8 +54,10 @@ func (b *Baton) nominate(
 	nomination := nominatedBlock.Nomination
 	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
 
+	tMempoolNominateEnd := b.handler.Now()
+	b.stampMempoolNominateEnd(nominatedBlock.Nomination.Block_height, tMempoolNominateEnd)
 	liblog.Debugf("mempool_nomination_delay=%v | height=%d, num_txs=%d",
-		b.handler.Now().Sub(t0),
+		tMempoolNominateEnd.Sub(t0),
 		nominatedBlock.Nomination.Block_height,
 		numTxs,
 	)
