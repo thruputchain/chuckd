@@ -26,7 +26,7 @@ func (b *Baton) validateProposal(
 		Onto:   onto,
 		NumTx:  numTxs,
 		Height: nomination.Block_height,
-		Hash:   nomination.Block_hash,
+		DbHash: nomination.Block_hash,
 	}
 	liblog.Infof("%v", evValidating)
 	b.handler.Emit(ctx, evValidating)
@@ -36,7 +36,7 @@ func (b *Baton) validateProposal(
 			Onto:   onto,
 			NumTx:  numTxs,
 			Height: nomination.Block_height,
-			Hash:   nomination.Block_hash,
+			DbHash: nomination.Block_hash,
 		}
 		liblog.Infof("%v", evValidated)
 		b.handler.Emit(ctx, evValidated)

@@ -62,7 +62,7 @@ func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *prot
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Hash = testutil.BlendPropopsedTx(snap.tip.Hash, ptx)
+	snap.tip.Db_hash = testutil.BlendPropopsedTx(snap.tip.Db_hash, ptx)
 	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
@@ -71,7 +71,7 @@ func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Hash = testutil.BlendSignedTx(snap.tip.Hash, stx)
+	snap.tip.Db_hash = testutil.BlendSignedTx(snap.tip.Db_hash, stx)
 	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(stx))
 }
 
@@ -94,9 +94,9 @@ func (db *TestDb) CreateSnapshot(ctx context.Context, parentID proto.BlockID, id
 	must.Assertf(ctx, ok, "missing parent block")
 	child := &testDbSnapshot{
 		tip: proto.DbTip{
-			Height: parent.tip.Height + 1,
-			Hash:   parent.tip.Hash,
-			Id:     id,
+			Height:  parent.tip.Height + 1,
+			Db_hash: parent.tip.Db_hash,
+			Id:      id,
 		},
 		open:      1,
 		committed: false,
@@ -105,7 +105,7 @@ func (db *TestDb) CreateSnapshot(ctx context.Context, parentID proto.BlockID, id
 	db.id[id] = child
 }
 
-func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.BlockHash, []proto.SignedTransactionHash) {
+func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.DbHash, []proto.SignedTransactionHash) {
 	// liblog.Debugf("db commit %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -116,10 +116,10 @@ func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.B
 	snap.open -= 1
 	snap.committed = true
 	db.top = snap
-	return snap.tip.Hash, snap.hashes
+	return snap.tip.Db_hash, snap.hashes
 }
 
-func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.BlockHash {
+func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.DbHash {
 	// liblog.Debugf("db close %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -127,7 +127,7 @@ func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.Blo
 	must.Assertf(ctx, ok, "unknown block")
 	must.Assertf(ctx, snap.open > 0, "block not open")
 	snap.open -= 1
-	return snap.tip.Hash
+	return snap.tip.Db_hash
 }
 
 func (db *TestDb) AbandonSnapshot(ctx context.Context, id proto.BlockID) {

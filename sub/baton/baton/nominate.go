@@ -92,7 +92,7 @@ func (b *Baton) nominate(
 		Onto:                 ontoDb,
 		NumTx:                numTxs,
 		Height:               nomination.Block_height,
-		Hash:                 nomination.Block_hash,
+		DbHash:               nomination.Block_hash,
 		DbgConsensusValue:    cv,
 		DbgConsensusValueCue: cvc,
 	}
@@ -129,7 +129,7 @@ func (b *Baton) nominate(
 			Onto:                 ontoDb,
 			NumTx:                numTxs,
 			Height:               nomination.Block_height,
-			Hash:                 nomination.Block_hash,
+			DbHash:               nomination.Block_hash,
 			DbgConsensusValue:    cv,
 			DbgConsensusValueCue: cvc,
 		}

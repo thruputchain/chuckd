@@ -8,8 +8,8 @@ type externalized interface {
 	ConsensusValueHash() proto.ConsensusValueHash
 	PrevConsensusValueHash() proto.ConsensusValueHash
 	Height() proto.BlockHeight
-	BlockHash() proto.BlockHash
-	PrevBlockHash() proto.BlockHash
+	DbHash() proto.DbHash
+	PrevDbHash() proto.DbHash
 }
 
 type externalizedConsensus struct {
@@ -40,11 +40,11 @@ func (x externalizedConsensus) Height() proto.BlockHeight {
 	return x.cv.Nomination.Block_height
 }
 
-func (x externalizedConsensus) BlockHash() proto.BlockHash {
+func (x externalizedConsensus) DbHash() proto.DbHash {
 	return x.cv.Nomination.Block_hash
 }
 
-func (x externalizedConsensus) PrevBlockHash() proto.BlockHash {
+func (x externalizedConsensus) PrevDbHash() proto.DbHash {
 	return x.cv.Nomination.Prev_block_hash
 }
 
@@ -65,10 +65,10 @@ func (x externalizedCue) Height() proto.BlockHeight {
 	return x.height
 }
 
-func (x externalizedCue) BlockHash() proto.BlockHash {
+func (x externalizedCue) DbHash() proto.DbHash {
 	return x.cvc.Block_hash
 }
 
-func (x externalizedCue) PrevBlockHash() proto.BlockHash {
+func (x externalizedCue) PrevDbHash() proto.DbHash {
 	return x.cvc.Prev_block_hash
 }

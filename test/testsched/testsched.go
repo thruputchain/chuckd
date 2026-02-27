@@ -118,13 +118,13 @@ func (x *TestScheduler) Schedulercoord_nominate(
 		txnds[i] = testutil.TestNondeterministicData
 	}
 
-	blockHash := x.db.CloseSnapshot(ctx, blockID)
+	dbHash := x.db.CloseSnapshot(ctx, blockID)
 
 	nomination := proto.Nomination{
 		Proposer:        x.signer,
 		Block_height:    onto.Height + 1,
-		Block_hash:      blockHash,
-		Prev_block_hash: onto.Hash,
+		Block_hash:      dbHash,
+		Prev_block_hash: onto.Db_hash,
 		Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
 			x.m,
 			systemfixed.NominationSignedTransactionHashBatchMaxSegments,
@@ -177,15 +177,15 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 		x.db.AddProposedTx(ctx, blockID, ptx)
 	}
 
-	blockHash := x.db.CloseSnapshot(ctx, blockID)
+	dbHash := x.db.CloseSnapshot(ctx, blockID)
 
 	r := proto.SchedulerValidationResult{
 		Outcome: proto.SchedulerValidationOK,
 	}
 	*r.Db_tip() = proto.DbTip{
-		Height: onto.Height + 1,
-		Hash:   blockHash,
-		Id:     blockID,
+		Height:  onto.Height + 1,
+		Db_hash: dbHash,
+		Id:      blockID,
 	}
 	return r, nil
 }
