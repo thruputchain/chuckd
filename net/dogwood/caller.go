@@ -77,8 +77,13 @@ func (x *caller) Start(ctx context.Context) {
 	go x.expire(ctx) // expire endpoints which have not been used for a long time
 }
 
-func (x *caller) expire(_ context.Context) {
+func (x *caller) expire(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		x.time.Sleep(x.endpointIdleTTL)
 		now := x.time.Now()
 		x.lk.Lock()

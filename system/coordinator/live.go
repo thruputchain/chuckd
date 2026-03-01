@@ -101,7 +101,11 @@ func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResul
 
 func (x *LiveHandler) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.scpReady
-	return x.scpController.Nominate(ctx, slot, x.m.MarshalXdr(value).Bytes(), x.m.MarshalXdr(prev).Bytes())
+	valueBuf := x.m.MarshalXdr(value)
+	defer valueBuf.Recycle()
+	prevBuf := x.m.MarshalXdr(prev)
+	defer prevBuf.Recycle()
+	return x.scpController.Nominate(ctx, slot, valueBuf.Bytes(), prevBuf.Bytes())
 }
 
 func (x *LiveHandler) StopNomination(ctx context.Context, slot scpkit.Slot) {

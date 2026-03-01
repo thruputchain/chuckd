@@ -189,6 +189,11 @@ func (b *Baton) start(ctx context.Context) {
 	// triggering nomination which would capture any new txs that have been submitted to the mempool.
 	// rationale: waking up the baton every time a tx is added to the mempool would be too expensive.
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		b.handler.Sleep(b.heartbeat)
 		b.Kick()
 	}

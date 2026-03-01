@@ -1,6 +1,7 @@
 package protoutil
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -78,7 +79,9 @@ func (vs ValidatorPublicInfos) Len() int {
 }
 
 func (vs ValidatorPublicInfos) Less(i, j int) bool {
-	return VIDString(PublicVID(vs[i])) < VIDString(PublicVID(vs[j]))
+	vi := PublicVID(vs[i])
+	vj := PublicVID(vs[j])
+	return bytes.Compare(vi[:], vj[:]) < 0
 }
 
 func (vs ValidatorPublicInfos) Swap(i, j int) {

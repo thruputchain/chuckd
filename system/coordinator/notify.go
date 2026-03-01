@@ -25,11 +25,19 @@ func NewNotifyReceive() *NotifyReceive {
 }
 
 func (x *NotifyReceive) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {
-	x.committed <- cb
+	select {
+	case <-ctx.Done():
+	case x.committed <- cb:
+	}
 }
 
 func (x *NotifyReceive) ReceiveCommitted(ctx context.Context) *batonkit.CommittableBlock {
-	return <-x.committed
+	select {
+	case <-ctx.Done():
+		return nil
+	case cb := <-x.committed:
+		return cb
+	}
 }
 
 func (x *NotifyReceive) ReceiveCommittedChannel() <-chan *batonkit.CommittableBlock {

@@ -13,6 +13,11 @@ import (
 
 func (x *DiskStorage) reclaimLoop(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		time.Sleep(x.cfg.Freq)
 		x.reclaimCatchupBlocks(ctx)
 		x.reclaimSCPEnvelopes(ctx)
