@@ -50,8 +50,9 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 	must.NoError(ctx, err)
 
 	flk := flock.New(path.Join(dir, "lock"))
-	_, err = flk.TryLock()
+	locked, err := flk.TryLock()
 	must.NoError(ctx, err)
+	must.Assertf(ctx, locked, "storage directory %v is already locked by another process", dir)
 
 	go x.reclaimLoop(ctx)
 }

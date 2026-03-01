@@ -29,7 +29,7 @@ func (svc *WalletService) Wallet_submit(ctx context.Context, submit proto.Wallet
 
 	svc.submitter.SubmitTxs(ctx, protoutil.Unpack(submit.Signed_transactions)...)
 
-	acks := []proto.WalletTransactionAck{}
+	acks := make([]proto.WalletTransactionAck, len(submit.Signed_transactions))
 	for i := range submit.Signed_transactions {
 		// XXX: check signatures
 		var ack proto.WalletTransactionAck

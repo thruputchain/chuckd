@@ -130,6 +130,7 @@ func (x *caller) newEndpoint(ctx context.Context, addr proto.ValidatorID) *endpo
 
 func (x *endpoint) Stop() {
 	x.callWorkers.Stop()
+	x.client.Close()
 }
 
 func (x *endpoint) DogwoodDeliver(

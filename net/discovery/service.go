@@ -139,7 +139,9 @@ func (s *DiscoveryService) LookupValidator(vid proto.ValidatorID) (proto.Validat
 		return pub, true
 	}
 
+	s.lk.Lock()
 	spub, ok := s.knownVs[vid]
+	s.lk.Unlock()
 	if ok {
 		return spub.Validator_snapshot.Validator, true
 	}

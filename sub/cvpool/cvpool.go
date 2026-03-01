@@ -39,6 +39,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
 		return
 	}
 	cvp.cv[cvh] = &cv
+	cvp.cond.Broadcast()
 	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv)
 }
 

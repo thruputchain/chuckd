@@ -17,6 +17,9 @@ func ConnectToScheduler(
 ) (SchedulerCoordConn, error) {
 
 	schedConn, err := ConnectPoolToScheduler(ctx, net, schedAddr)
+	if err != nil {
+		return nil, err
+	}
 
 	err = intro(ctx, schedConn, coordInAddr)
 	if err != nil {

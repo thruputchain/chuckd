@@ -45,6 +45,7 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 
 	file, err := os.Open(full)
 	must.NoError(ctx, err)
+	defer file.Close()
 
 	return r(file)
 }
