@@ -164,6 +164,13 @@ func (x *TransmissionReceiver) getPartial(
 
 	p, ok := x.partial[key]
 	if !ok {
+		if transmission.Num_payload_sheaves <= 0 ||
+			transmission.Num_parity_sheaves <= 0 ||
+			transmission.Max_bytes_per_chunk <= 0 ||
+			transmission.Num_payload_bytes <= 0 ||
+			transmission.Num_payload_bytes > 1e9 {
+			return nil, fmt.Errorf("invalid transmission parameters")
+		}
 		regime := magnolia.MkRegime(
 			int(transmission.Num_payload_sheaves),
 			int(transmission.Num_parity_sheaves),
