@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
 	"os"
 
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/libtext"
 	"github.com/groundhogchain/lib-go/must"
@@ -28,7 +28,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmdkit.Invoke(ctx, func() {
-				vcfg := protoutil.InitConfig(ctx, runtime.NewCryptoRand(ctx), "")
+				vcfg := protoutil.InitConfig(ctx, cryptorand.Reader, "")
 				cfg := proto.Config{
 					Validator_config: vcfg,
 				}
@@ -55,7 +55,7 @@ var (
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmdkit.Invoke(ctx, func() {
-				vcfgs := protoutil.GenerateConfigs(ctx, runtime.NewCryptoRand(ctx), configGroupSize)
+				vcfgs := protoutil.GenerateConfigs(ctx, cryptorand.Reader, configGroupSize)
 				cfgs := make([]*proto.Config, len(vcfgs))
 				for i := range vcfgs {
 					cfgs[i] = &proto.Config{

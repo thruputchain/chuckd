@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"fmt"
-	"math/rand"
+	"io"
 	"os"
 	"path"
 
@@ -13,18 +13,18 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func InitConfig(ctx context.Context, rr *rand.Rand, address string) *proto.ValidatorConfig {
+func InitConfig(ctx context.Context, rr io.Reader, address string) *proto.ValidatorConfig {
 	privInfo := MustGenerateIdentity(ctx, rr, address)
 	return &proto.ValidatorConfig{Private_info: *privInfo}
 }
 
-func MustGenerateIdentity(ctx context.Context, rr *rand.Rand, address string) *proto.ValidatorPrivateInfo {
+func MustGenerateIdentity(ctx context.Context, rr io.Reader, address string) *proto.ValidatorPrivateInfo {
 	p, err := GenerateIdentity(rr, address)
 	must.NoError(ctx, err)
 	return p
 }
 
-func GenerateIdentity(rr *rand.Rand, address string) (*proto.ValidatorPrivateInfo, error) {
+func GenerateIdentity(rr io.Reader, address string) (*proto.ValidatorPrivateInfo, error) {
 	pubKey, secretKey, err := ed25519.GenerateKey(rr)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func GenerateIdentity(rr *rand.Rand, address string) (*proto.ValidatorPrivateInf
 	}, nil
 }
 
-func GenerateConfigs(ctx context.Context, rr *rand.Rand, n int) []*proto.ValidatorConfig {
+func GenerateConfigs(ctx context.Context, rr io.Reader, n int) []*proto.ValidatorConfig {
 	cfg := make([]*proto.ValidatorConfig, n)
 	vs := make([]proto.ValidatorPublicInfo, n)
 	for i := 0; i < n; i++ {
