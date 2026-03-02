@@ -52,6 +52,12 @@ func (x *Decoding) Place(sheafIndex int, chunkIndex int, data Block) error {
 	if len(data) != x.place.BytesPerChunk {
 		return fmt.Errorf("invalid chunk size")
 	}
+	if chunkIndex < 0 || chunkIndex >= len(x.cs) {
+		return fmt.Errorf("chunk index %d out of range [0, %d)", chunkIndex, len(x.cs))
+	}
+	if sheafIndex < 0 || sheafIndex >= len(x.cs[chunkIndex]) {
+		return fmt.Errorf("sheaf index %d out of range [0, %d)", sheafIndex, len(x.cs[chunkIndex]))
+	}
 	x.cs[chunkIndex][sheafIndex] = data
 	return nil
 }
