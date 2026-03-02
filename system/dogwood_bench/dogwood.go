@@ -16,6 +16,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libmem"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libstat"
 	"github.com/groundhogchain/lib-go/libtext"
@@ -167,11 +168,12 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 			default:
 			}
 
-			err := bench.dogwood.Send(ctx, zeroPayload)
+			l := len(zeroPayload)
+			err := bench.dogwood.Send(ctx, libmem.BorrowBytes(zeroPayload))
 			if err != nil {
 				liblog.Errorf("%v bench send: %v", bench.selfString(), err)
 			} else {
-				bytesSent.Add(float64(len(zeroPayload)))
+				bytesSent.Add(float64(l))
 			}
 
 		}

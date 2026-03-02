@@ -56,6 +56,11 @@ func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.
 
 func (x *Multiplex) multiplex(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		payload, fromID, err := x.dogwood.Receive(ctx)
 		if err != nil {
 			liblog.Errorf("multiplex receive: %v", err)
@@ -95,7 +100,7 @@ func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.Sub
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
-	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg).Bytes())
+	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
 		liblog.Errorf("multiplex send submitted txs: %v", err)
 	}
@@ -107,7 +112,7 @@ func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusVa
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageConsensusValue
 	*xmsg.Consensus_value() = cv
-	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg).Bytes())
+	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
 		liblog.Errorf("multiplex send consensus value: %v", err)
 	}
@@ -121,7 +126,7 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSCP
 	*xmsg.Envelope() = env
-	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg).Bytes())
+	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
 		liblog.Errorf("multiplex send envelope: %v", err)
 	}

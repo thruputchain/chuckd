@@ -8,9 +8,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// XXX: let Send take BorrowedBytes
-func (x *DogwoodService) Send(ctx context.Context, pay []byte) error {
-	return x.mplex.Send(ctx, libmem.BorrowBytes(pay))
+func (x *DogwoodService) Send(ctx context.Context, pay libmem.BorrowedBytes) error {
+	return x.mplex.Send(ctx, pay)
 }
 
 func (x *DogwoodService) Receive(ctx context.Context) ([]byte, proto.ValidatorID, error) {
@@ -24,7 +23,7 @@ func (x *DogwoodService) Dogwoodapi_null(context.Context) error {
 func (x *DogwoodService) Dogwoodapi_send(ctx context.Context, timeout proto.Milliseconds, pay proto.Bytes) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*time.Duration(timeout))
 	defer cancel()
-	return x.Send(ctx, pay)
+	return x.Send(ctx, libmem.BorrowBytes(pay))
 }
 
 func (x *DogwoodService) Dogwoodapi_receive(ctx context.Context, timeout proto.Milliseconds) (proto.DogwoodReceived, error) {

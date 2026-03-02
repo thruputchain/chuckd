@@ -13,6 +13,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libmem"
 	"github.com/groundhogchain/lib-go/libruntime"
 	"github.com/groundhogchain/lib-go/libstat"
 	proto "github.com/groundhogchain/protocol-go"
@@ -70,7 +71,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 				liblog.Infof("%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
 				// liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
 			}
-			err := tn.dogwood[0].Send(ctx, payload)
+			err := tn.dogwood[0].Send(ctx, libmem.BorrowBytes(payload))
 			if err != nil {
 				t.Error(err)
 			}
