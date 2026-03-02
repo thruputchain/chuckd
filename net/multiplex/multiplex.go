@@ -137,29 +137,41 @@ func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) err
 	return x.SendSCPEnvelope(ctx, env)
 }
 
-func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID, *proto.SubmittedTransactions) {
-	submittedTxsFrom := <-x.receivedSubmittedTxs
-	liblog.Debugf("%v multiplex received txs %d from %v",
-		protoutil.VIDString(x.self),
-		xdrutil.SizeOfBatch(submittedTxsFrom.Transactions),
-		protoutil.VIDString(submittedTxsFrom.From))
-	return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions
+func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID, *proto.SubmittedTransactions, bool) {
+	select {
+	case <-ctx.Done():
+		return proto.ValidatorID{}, nil, false
+	case submittedTxsFrom := <-x.receivedSubmittedTxs:
+		liblog.Debugf("%v multiplex received txs %d from %v",
+			protoutil.VIDString(x.self),
+			xdrutil.SizeOfBatch(submittedTxsFrom.Transactions),
+			protoutil.VIDString(submittedTxsFrom.From))
+		return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions, true
+	}
 }
 
-func (x *Multiplex) ReceiveConsensusValue(ctx context.Context) (proto.ValidatorID, *proto.ConsensusValue) {
-	cvFrom := <-x.receivedConsensusValue
-	liblog.Debugf("%v multiplex received consensus value from %v, for slot %v",
-		protoutil.VIDString(x.self),
-		protoutil.VIDString(cvFrom.From),
-		cvFrom.ConsensusValue.Nomination.Block_height)
-	return cvFrom.From, cvFrom.ConsensusValue
+func (x *Multiplex) ReceiveConsensusValue(ctx context.Context) (proto.ValidatorID, *proto.ConsensusValue, bool) {
+	select {
+	case <-ctx.Done():
+		return proto.ValidatorID{}, nil, false
+	case cvFrom := <-x.receivedConsensusValue:
+		liblog.Debugf("%v multiplex received consensus value from %v, for slot %v",
+			protoutil.VIDString(x.self),
+			protoutil.VIDString(cvFrom.From),
+			cvFrom.ConsensusValue.Nomination.Block_height)
+		return cvFrom.From, cvFrom.ConsensusValue, true
+	}
 }
 
-func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *proto.SCPEnvelope) {
-	envelopeFrom := <-x.receivedEnvelope
-	liblog.Debugf("%v multiplex received envelope from %v: %v",
-		protoutil.VIDString(x.self),
-		protoutil.VIDString(envelopeFrom.From),
-		protoutil.SCPEnvelopeShortString(*envelopeFrom.SCPEnvelope))
-	return envelopeFrom.From, envelopeFrom.SCPEnvelope
+func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *proto.SCPEnvelope, bool) {
+	select {
+	case <-ctx.Done():
+		return proto.ValidatorID{}, nil, false
+	case envelopeFrom := <-x.receivedEnvelope:
+		liblog.Debugf("%v multiplex received envelope from %v: %v",
+			protoutil.VIDString(x.self),
+			protoutil.VIDString(envelopeFrom.From),
+			protoutil.SCPEnvelopeShortString(*envelopeFrom.SCPEnvelope))
+		return envelopeFrom.From, envelopeFrom.SCPEnvelope, true
+	}
 }

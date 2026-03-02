@@ -308,7 +308,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		s.RepairService.SetSCPBroker(s.SCPBroker)
 		go func() {
 			for {
-				_, env := s.Multiplex.ReceiveEnvelope(ctx)
+				_, env, ok := s.Multiplex.ReceiveEnvelope(ctx)
+				if !ok {
+					return
+				}
 				s.SCPBroker.ReceivedEnvelope(ctx, *env)
 			}
 		}()
@@ -318,7 +321,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 			m := libxdr.NewXdrMarshaler()
 			_ = m
 			for {
-				sender, submittedTxs := s.Multiplex.ReceiveSubmittedTxs(ctx)
+				sender, submittedTxs, ok := s.Multiplex.ReceiveSubmittedTxs(ctx)
+				if !ok {
+					return
+				}
 				_ = sender
 
 				// liblog.Debugf("received %d txs from %v: %v",
@@ -337,7 +343,10 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		// drive received consensus values into cvpool
 		go func() {
 			for {
-				sender, cv := s.Multiplex.ReceiveConsensusValue(ctx)
+				sender, cv, ok := s.Multiplex.ReceiveConsensusValue(ctx)
+				if !ok {
+					return
+				}
 				_ = sender
 				if !protoutil.IsSaneConsensusValue(cv) {
 					liblog.Errorf("received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
