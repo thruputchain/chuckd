@@ -191,12 +191,22 @@ func (nav *Navigator) replenish(ctx context.Context, m int) {
 func (nav *Navigator) refill(ctx context.Context) {
 	for {
 		nav.replenish(ctx, nav.nRoutes)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		nav.time.Sleep(nav.routeTTL / 2)
 	}
 }
 
 func (nav *Navigator) advertise(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		nav.time.Sleep(nav.routeMaxLatency * 7)
 		now := nav.time.Now()
 
@@ -215,8 +225,13 @@ func (nav *Navigator) advertise(ctx context.Context) {
 	}
 }
 
-func (nav *Navigator) expire(_ context.Context) {
+func (nav *Navigator) expire(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		nav.time.Sleep(min(nav.routeTTL, 2*nav.routeMaxLatency))
 		now := nav.time.Now()
 

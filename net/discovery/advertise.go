@@ -16,6 +16,11 @@ import (
 func (s *DiscoveryService) advertise(ctx context.Context) {
 	epoch := 0
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		epoch += 1
 		// log.Infof("advertising epoch %d begins", epoch)
 		s.advertiseToAll(ctx, epoch)
