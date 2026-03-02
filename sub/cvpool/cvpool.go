@@ -72,6 +72,8 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
+	stop := context.AfterFunc(ctx, func() { cvp.cond.Broadcast() })
+	defer stop()
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 

@@ -83,8 +83,13 @@ func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight)
 	return cb.CatchupBlock, true
 }
 
-func (svc *CatchupService) expire(_ context.Context) {
+func (svc *CatchupService) expire(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		svc.time.Sleep(svc.ttl)
 		now := svc.time.Now()
 		svc.lk.Lock()
