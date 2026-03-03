@@ -8,6 +8,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -158,6 +159,7 @@ func (b *Baton) start(ctx context.Context) {
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
 	b.tipDb = *tipResult.Db_tip()
+	liblog.Infof("db restored %v", protoutil.DbTipString(b.tipDb))
 
 	// genesis block has height 0, and no corresponding consensus value
 	if b.tipDb.Height > 0 {
@@ -165,9 +167,11 @@ func (b *Baton) start(ctx context.Context) {
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
 		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
+		liblog.Infof("externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
 	} else {
 		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
 		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV))
+		liblog.Infof("externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
 
 	// load known externalizations above db tip

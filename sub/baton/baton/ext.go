@@ -1,6 +1,8 @@
 package baton
 
 import (
+	"fmt"
+
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -10,6 +12,11 @@ type externalized interface {
 	Height() proto.BlockHeight
 	DbHash() proto.DbHash
 	PrevDbHash() proto.DbHash
+}
+
+func ExternalizedString(ext externalized) string {
+	return fmt.Sprintf("Externalized[height %d; db_hash %s; prev_db_hash %s; cvh %s; prev_cvh %s]",
+		ext.Height(), ext.DbHash(), ext.PrevDbHash(), ext.ConsensusValueHash(), ext.PrevConsensusValueHash())
 }
 
 type externalizedConsensus struct {
