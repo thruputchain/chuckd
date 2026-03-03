@@ -3,6 +3,7 @@ package baton
 import (
 	"fmt"
 
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -16,7 +17,8 @@ type externalized interface {
 
 func ExternalizedString(ext externalized) string {
 	return fmt.Sprintf("Externalized[height %d; db_hash %s; prev_db_hash %s; cvh %s; prev_cvh %s]",
-		ext.Height(), ext.DbHash(), ext.PrevDbHash(), ext.ConsensusValueHash(), ext.PrevConsensusValueHash())
+		ext.Height(), libxdr.HashString(ext.DbHash()), libxdr.HashString(ext.PrevDbHash()),
+		libxdr.HashString(ext.ConsensusValueHash()), libxdr.HashString(ext.PrevConsensusValueHash()))
 }
 
 type externalizedConsensus struct {
