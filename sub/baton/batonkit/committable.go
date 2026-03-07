@@ -7,8 +7,8 @@ import (
 
 type Committable interface {
 	BlockHeight() proto.BlockHeight
-	DbHash() proto.DbHash
-	PrevDbHash() proto.DbHash
+	BlockHash() proto.BlockHash
+	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
 	ConsensusValueHash() proto.ConsensusValueHash
 	AsConsensusValue() *proto.ConsensusValue
@@ -38,11 +38,11 @@ func (cb *CommittableNomination) BlockHeight() proto.BlockHeight {
 	return cb.cv.Nomination.Block_height
 }
 
-func (cb *CommittableNomination) DbHash() proto.DbHash {
+func (cb *CommittableNomination) BlockHash() proto.BlockHash {
 	return cb.cv.Nomination.Block_hash
 }
 
-func (cb *CommittableNomination) PrevDbHash() proto.DbHash {
+func (cb *CommittableNomination) PrevBlockHash() proto.BlockHash {
 	return cb.cv.Nomination.Prev_block_hash
 }
 
@@ -94,11 +94,11 @@ func (cb *CommittableCatchup) BlockHeight() proto.BlockHeight {
 	return cb.catchup.Consensus_value.Nomination.Block_height
 }
 
-func (cb *CommittableCatchup) DbHash() proto.DbHash {
+func (cb *CommittableCatchup) BlockHash() proto.BlockHash {
 	return cb.catchup.Consensus_value.Nomination.Block_hash
 }
 
-func (cb *CommittableCatchup) PrevDbHash() proto.DbHash {
+func (cb *CommittableCatchup) PrevBlockHash() proto.BlockHash {
 	return cb.catchup.Consensus_value.Nomination.Prev_block_hash
 }
 

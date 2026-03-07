@@ -57,7 +57,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	evCommitted := batonkit.EventCommitted{
 		Onto:           cb.Onto,
 		Height:         cb.BlockHeight(),
-		DbHash:         cb.DbHash(),
+		BlockHash:      cb.BlockHash(),
 		DbgValidatable: cb,
 	}
 	liblog.Infof("%v", evCommitted)

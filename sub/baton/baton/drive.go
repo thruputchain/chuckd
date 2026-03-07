@@ -44,7 +44,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
 	liblog.Debugf("COMMITTING: height %v; tx_count %d; hash %s",
-		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.DbHash()))
+		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.BlockHash()))
 
 	go func() {
 		blockID := b.commit(ctx, cb)
@@ -58,7 +58,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 				panic("bug")
 			}
 
-			b.tipDb.Db_hash = cb.DbHash()
+			b.tipDb.Block_hash = cb.BlockHash()
 			b.tipDb.Height = cb.BlockHeight()
 			b.tipDb.Id = blockID
 

@@ -8,5 +8,6 @@ import (
 )
 
 func DbTipString(tip proto.DbTip) string {
-	return fmt.Sprintf("DbTip[height %d; db_hash %s]", tip.Height, libxdr.HashString(tip.Db_hash))
+	return fmt.Sprintf("DbTip[height %d; block_hash %s]",
+		tip.Height, libxdr.HashString(tip.Block_hash))
 }

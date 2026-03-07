@@ -50,10 +50,10 @@ func (b *Baton) validateConsensus(
 
 	// validate chaining with previous consensus
 
-	if cv.Nomination.Prev_block_hash != dbTip.Db_hash {
+	if cv.Nomination.Prev_block_hash != dbTip.Block_hash {
 		liblog.Infof("cannot validate, previous block mismatch, nomination %v vs ours %v",
 			libxdr.HashString(cv.Nomination.Prev_block_hash),
-			libxdr.HashString(dbTip.Db_hash))
+			libxdr.HashString(dbTip.Block_hash))
 		reply <- scpkit.InvalidValue
 		return
 	}

@@ -11,13 +11,13 @@ type externalized interface {
 	ConsensusValueHash() proto.ConsensusValueHash
 	PrevConsensusValueHash() proto.ConsensusValueHash
 	Height() proto.BlockHeight
-	DbHash() proto.DbHash
-	PrevDbHash() proto.DbHash
+	BlockHash() proto.BlockHash
+	PrevBlockHash() proto.BlockHash
 }
 
 func ExternalizedString(ext externalized) string {
-	return fmt.Sprintf("Externalized[height %d; db_hash %s; prev_db_hash %s; cvh %s; prev_cvh %s]",
-		ext.Height(), libxdr.HashString(ext.DbHash()), libxdr.HashString(ext.PrevDbHash()),
+	return fmt.Sprintf("Externalized[height %d; block_hash %s; prev_block_hash %s; cvh %s; prev_cvh %s]",
+		ext.Height(), libxdr.HashString(ext.BlockHash()), libxdr.HashString(ext.PrevBlockHash()),
 		libxdr.HashString(ext.ConsensusValueHash()), libxdr.HashString(ext.PrevConsensusValueHash()))
 }
 
@@ -49,11 +49,11 @@ func (x externalizedConsensus) Height() proto.BlockHeight {
 	return x.cv.Nomination.Block_height
 }
 
-func (x externalizedConsensus) DbHash() proto.DbHash {
+func (x externalizedConsensus) BlockHash() proto.BlockHash {
 	return x.cv.Nomination.Block_hash
 }
 
-func (x externalizedConsensus) PrevDbHash() proto.DbHash {
+func (x externalizedConsensus) PrevBlockHash() proto.BlockHash {
 	return x.cv.Nomination.Prev_block_hash
 }
 
@@ -74,10 +74,10 @@ func (x externalizedCue) Height() proto.BlockHeight {
 	return x.height
 }
 
-func (x externalizedCue) DbHash() proto.DbHash {
+func (x externalizedCue) BlockHash() proto.BlockHash {
 	return x.cvc.Block_hash
 }
 
-func (x externalizedCue) PrevDbHash() proto.DbHash {
+func (x externalizedCue) PrevBlockHash() proto.BlockHash {
 	return x.cvc.Prev_block_hash
 }

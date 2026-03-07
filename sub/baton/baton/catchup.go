@@ -46,11 +46,11 @@ func (a CatchupArrival) BlockHeight() proto.BlockHeight {
 	return a.block.Consensus_value.Nomination.Block_height
 }
 
-func (a CatchupArrival) DbHash() proto.DbHash {
+func (a CatchupArrival) BlockHash() proto.BlockHash {
 	return a.block.Consensus_value.Nomination.Block_hash
 }
 
-func (a CatchupArrival) PrevDbHash() proto.DbHash {
+func (a CatchupArrival) PrevBlockHash() proto.BlockHash {
 	return a.block.Consensus_value.Nomination.Prev_block_hash
 }
 

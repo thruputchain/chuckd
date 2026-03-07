@@ -169,8 +169,8 @@ func newConsensusValue(ts time.Time, height int64) proto.ConsensusValue {
 		Timestamp: protoutil.TimepointFromTime(ts),
 		Nomination: proto.Nomination{
 			Block_height:    proto.BlockHeight(height),
-			Block_hash:      newDbHash(byte(height)),
-			Prev_block_hash: newDbHash(byte(height - 1)),
+			Block_hash:      newBlockHash(byte(height)),
+			Prev_block_hash: newBlockHash(byte(height - 1)),
 		},
 	}
 }
@@ -193,8 +193,8 @@ func newEnvelope(slot int64, marker byte) proto.SCPEnvelope {
 	return env
 }
 
-func newDbHash(fill byte) proto.DbHash {
-	var h proto.DbHash
+func newBlockHash(fill byte) proto.BlockHash {
+	var h proto.BlockHash
 	for i := range h {
 		h[i] = fill
 		fill++

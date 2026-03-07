@@ -69,20 +69,20 @@ type TestBlock struct {
 }
 
 type BlockHandle struct {
-	DbHash proto.DbHash
-	Height proto.BlockHeight
-	CV     proto.ConsensusValue
+	BlockHash proto.BlockHash
+	Height    proto.BlockHeight
+	CV        proto.ConsensusValue
 }
 
 func BlockHandleFromTip(tipDb proto.DbTip, tipCV proto.ConsensusValue) *BlockHandle {
-	return &BlockHandle{DbHash: tipDb.Db_hash, Height: tipDb.Height, CV: tipCV}
+	return &BlockHandle{BlockHash: tipDb.Block_hash, Height: tipDb.Height, CV: tipCV}
 }
 
 func BlockHandleFromCommittableBlock(cb *batonkit.CommittableBlock) *BlockHandle {
 	return &BlockHandle{
-		DbHash: cb.DbHash(),
-		Height: cb.BlockHeight(),
-		CV:     *cb.AsConsensusValue(),
+		BlockHash: cb.BlockHash(),
+		Height:    cb.BlockHeight(),
+		CV:        *cb.AsConsensusValue(),
 	}
 }
 
@@ -100,9 +100,9 @@ func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *Te
 		ctx,
 		ntxs,
 		&BlockHandle{
-			Height: onto.ConsensusValue.Nomination.Block_height,
-			DbHash: onto.ConsensusValue.Nomination.Block_hash,
-			CV:     onto.ConsensusValue,
+			Height:    onto.ConsensusValue.Nomination.Block_height,
+			BlockHash: onto.ConsensusValue.Nomination.Block_hash,
+			CV:        onto.ConsensusValue,
 		},
 	)
 }
@@ -112,7 +112,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	ntxs := make([]proto.NondeterministicProposalData, numTxs)
 	ptxs := make([]proto.ProposedTransaction, numTxs)
 	hashes := make([]proto.SignedTransactionHash, numTxs)
-	hash := onto.DbHash
+	hash := onto.BlockHash
 	for i := range txs {
 		txs[i] = *h.GenSignedTx(ctx)
 		hashes[i] = protoutil.HashSignedTx(&txs[i])
@@ -129,7 +129,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 			Proposer:        h.validator.Public_info,
 			Block_height:    onto.Height + 1,
 			Block_hash:      hash,
-			Prev_block_hash: onto.DbHash,
+			Prev_block_hash: onto.BlockHash,
 			Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
 				h.m, systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
 			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
@@ -150,11 +150,11 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 }
 
-func BlendPropopsedTx(base proto.DbHash, ptx *proto.ProposedTransaction) proto.DbHash {
+func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
 	return xorHash(base, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
-func BlendSignedTx(base proto.DbHash, stx *proto.SignedTransaction) proto.DbHash {
+func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
 	return xorHash(base, protoutil.HashSignedTx(stx))
 }
 

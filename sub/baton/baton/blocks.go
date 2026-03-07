@@ -6,9 +6,9 @@ import (
 )
 
 type ViewBlock interface {
-	DbHash() proto.DbHash
+	BlockHash() proto.BlockHash
 	BlockHeight() proto.BlockHeight
-	PrevDbHash() proto.DbHash
+	PrevBlockHash() proto.BlockHash
 	ConsensusValueHash() proto.ConsensusValueHash
 	PrevConsensusValueHash() proto.ConsensusValueHash
 	//
@@ -29,9 +29,9 @@ type ViewDbBlock struct {
 	TipExt externalizedConsensus
 }
 
-func (x ViewDbBlock) DbHash() proto.DbHash           { return x.TipDb.Db_hash }
+func (x ViewDbBlock) BlockHash() proto.BlockHash     { return x.TipDb.Block_hash }
 func (x ViewDbBlock) BlockHeight() proto.BlockHeight { return x.TipDb.Height }
-func (x ViewDbBlock) PrevDbHash() proto.DbHash       { panic("should not be called") }
+func (x ViewDbBlock) PrevBlockHash() proto.BlockHash { panic("should not be called") }
 func (x ViewDbBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.TipExt.ConsensusValueHash()
 }
@@ -54,9 +54,9 @@ type ViewCatchupBlock struct {
 	Validated *proto.BlockID
 }
 
-func (x ViewCatchupBlock) DbHash() proto.DbHash           { return x.Candidate.DbHash() }
+func (x ViewCatchupBlock) BlockHash() proto.BlockHash     { return x.Candidate.BlockHash() }
 func (x ViewCatchupBlock) BlockHeight() proto.BlockHeight { return x.Candidate.BlockHeight() }
-func (x ViewCatchupBlock) PrevDbHash() proto.DbHash       { return x.Candidate.PrevDbHash() }
+func (x ViewCatchupBlock) PrevBlockHash() proto.BlockHash { return x.Candidate.PrevBlockHash() }
 func (x ViewCatchupBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.Candidate.ConsensusValueHash()
 }
@@ -95,14 +95,14 @@ type ViewExtConsensusBlock struct {
 	Catchup   *CatchupArrival
 }
 
-func (x ViewExtConsensusBlock) DbHash() proto.DbHash {
-	return x.Ext.DbHash()
+func (x ViewExtConsensusBlock) BlockHash() proto.BlockHash {
+	return x.Ext.BlockHash()
 }
 func (x ViewExtConsensusBlock) BlockHeight() proto.BlockHeight {
 	return x.Ext.Height()
 }
-func (x ViewExtConsensusBlock) PrevDbHash() proto.DbHash {
-	return x.Ext.PrevDbHash()
+func (x ViewExtConsensusBlock) PrevBlockHash() proto.BlockHash {
+	return x.Ext.PrevBlockHash()
 }
 func (x ViewExtConsensusBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.Ext.ConsensusValueHash()
@@ -144,14 +144,14 @@ type ViewExtCueBlock struct {
 	Catchup *CatchupArrival
 }
 
-func (x ViewExtCueBlock) DbHash() proto.DbHash {
-	return x.Ext.DbHash()
+func (x ViewExtCueBlock) BlockHash() proto.BlockHash {
+	return x.Ext.BlockHash()
 }
 func (x ViewExtCueBlock) BlockHeight() proto.BlockHeight {
 	return x.Ext.Height()
 }
-func (x ViewExtCueBlock) PrevDbHash() proto.DbHash {
-	return x.Ext.PrevDbHash()
+func (x ViewExtCueBlock) PrevBlockHash() proto.BlockHash {
+	return x.Ext.PrevBlockHash()
 }
 func (x ViewExtCueBlock) ConsensusValueHash() proto.ConsensusValueHash {
 	return x.Ext.ConsensusValueHash()
@@ -185,9 +185,9 @@ type ViewMissing struct {
 	Height proto.BlockHeight
 }
 
-func (x ViewMissing) DbHash() proto.DbHash                             { panic("must not call") }
+func (x ViewMissing) BlockHash() proto.BlockHash                       { panic("must not call") }
 func (x ViewMissing) BlockHeight() proto.BlockHeight                   { return x.Height }
-func (x ViewMissing) PrevDbHash() proto.DbHash                         { panic("must not call") }
+func (x ViewMissing) PrevBlockHash() proto.BlockHash                   { panic("must not call") }
 func (x ViewMissing) ConsensusValueHash() proto.ConsensusValueHash     { panic("must not call") }
 func (x ViewMissing) PrevConsensusValueHash() proto.ConsensusValueHash { panic("must not call") }
 func (x ViewMissing) IsMissing() bool                                  { return true }

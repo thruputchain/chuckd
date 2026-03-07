@@ -113,8 +113,8 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 			for i, priorExt := range b.externalized {
 				if priorExt.Height() == extConsensus.Height() {
 					if _, priorIsCue := priorExt.(externalizedCue); priorIsCue {
-						must.Assert(ctx, extConsensus.DbHash() == priorExt.DbHash())
-						must.Assert(ctx, extConsensus.PrevDbHash() == priorExt.PrevDbHash())
+						must.Assert(ctx, extConsensus.BlockHash() == priorExt.BlockHash())
+						must.Assert(ctx, extConsensus.PrevBlockHash() == priorExt.PrevBlockHash())
 						b.externalized[i] = extConsensus
 						return true
 					} else {
@@ -128,7 +128,7 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 		}
 	} else {
 		must.Assertf(ctx,
-			ext.Height() == lastExt.Height()+1 && ext.PrevDbHash() == lastExt.DbHash(),
+			ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
 			"scp externalization is invalid",
 		)
 		b.externalized = append(b.externalized, ext)
