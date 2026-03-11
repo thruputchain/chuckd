@@ -47,7 +47,6 @@ func NewCatchupService(
 	age proto.BlockHeight,
 ) *CatchupService {
 
-	// pebble.Open(cacheDir, &pebble.Options{})
 	svc := &CatchupService{
 		signer:  signer,
 		time:    time,

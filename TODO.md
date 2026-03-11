@@ -1,3 +1,8 @@
+CATCHUP BLOCK PERSISTENCE
+
+- [ ] optimistically write cb to disk
+- [ ] cv persist method should move to cvpool
+
 SCP
 
 - [ ] scpd does not die when coordinator panics
@@ -44,38 +49,32 @@ UPGRADES
 - [ ] NOTE that baton.validated caches block validations, but on the upgrade validations
 - [ ] interaction between storage and protocol upgrades???
 
-CATCHUP BLOCK PERSISTENCE
-
-- [ ] optimistically write cb to disk
-
 LIVE UPDATE QUORUM SET
 
 RESEARCH
 
-- [ ]  https://commonware.xyz/blogs/zoda
+- [ ] https://commonware.xyz/blogs/zoda
 
 BACKLOG
 
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
 
-
 XDR
+
 - [ ] equality for xdr types
 - [ ] hash for xdr types
 - [ ] implement SprintXDR (use xdr txrep)
 
-
 INFRA & BENCHMARK
+
 - [ ] setup us/asia benchmark on aws kubernetes
 - [ ] setup prometheus on aws
 
-
 GITHUB
+
 - [ ] code coverage
 - [ ] code builds and tests
-
-
 
 IDEAS
 
