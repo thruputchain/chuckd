@@ -2,33 +2,11 @@ CATCHUP BLOCK PERSISTENCE
 
 - [ ] optimistically write cb to disk
 - [ ] cv persist method should move to cvpool
+- [ ] should the bottom of cvpool be based on last externalized or last committed block?
 
 SCP
 
 - [ ] scpd does not die when coordinator panics
-- [ ] scp envs contain qset hash; where do the actual qsets come from?
-
-BUGS
-
-- [x] `repaired consensus value hash mismatch` https://github.com/groundhogchain/chuckd/actions/runs/20147245728/job/57830875188
-  - [ ] what if consensus value for a non-externalized block is missing and externalizations have gone beyond?
-- [ ] validators must be able to respond to missing txs request even for past blocks
-
-HOGTOOLS
-
-- [ ] use a single build tree in experiments
-- [ ] extract cause of failure from logs?
-
-- [ ] Here's the exact list of things I want from a failed program in a CI run:
-  - [ ] Git commit hash
-  - [ ] Path of source tree when everything was compiled
-  - [ ] Exact cmake command line that was used to configure the build directory
-  - [ ] Exact command line that was used to execute the failing program
-  - [ ] Standard error of failing program
-  - [ ] Binary of failing program
-  - [ ] Core dump of failed run
-
-- [ ] dump stack trace when scpd killed
 
 QUESTIONS
 
@@ -59,22 +37,6 @@ BACKLOG
 
 - [ ] connection discipline and timeouts
   - [ ] timeouts on all rpc calls
-
-XDR
-
-- [ ] equality for xdr types
-- [ ] hash for xdr types
-- [ ] implement SprintXDR (use xdr txrep)
-
-INFRA & BENCHMARK
-
-- [ ] setup us/asia benchmark on aws kubernetes
-- [ ] setup prometheus on aws
-
-GITHUB
-
-- [ ] code coverage
-- [ ] code builds and tests
 
 IDEAS
 
