@@ -85,18 +85,48 @@ func (s *CoordinatorLoadgenSystem) Start(
 	// start coordinator
 	ctl := s.coordinator.Start(ctx, opcfg)
 
-	// process genesis
-	genesis := s.loadgen.WaitGenesis(ctx)
-	_, err = ctl.LoadGenesisConfiguration(ctx, *genesis)
-	must.NoError(ctx, err)
-
-	ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
-	ctl.SignalGenesisIsReady()
-
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
-	s.PumpInitTxs(ctx, ctl)
+	// check if genesis exists
+	hasGenesis := false
+	tipResult, err := s.coordinator.SchedConn.Schedcoord_get_tip(ctx)
+	must.NoError(ctx, err)
+	if tipResult.Outcome == proto.SchedulerGetTipOK {
+		hasGenesis = tipResult.Db_tip().Height >= 0
+	}
+
+	// process genesis
+	if hasGenesis {
+		s.loadgen.WaitGenesis(ctx)
+
+		ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
+		ctl.SignalGenesisIsReady()
+
+		s.DrainInitTxs(ctx)
+	} else {
+		genesis := s.loadgen.WaitGenesis(ctx)
+		_, err = ctl.LoadGenesisConfiguration(ctx, *genesis)
+		must.NoError(ctx, err)
+
+		ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
+		ctl.SignalGenesisIsReady()
+
+		s.PumpInitTxs(ctx, ctl)
+	}
+
 	s.PumpWorkTxs(ctx, ctl, s.skip)
+}
+
+func (s *CoordinatorLoadgenSystem) DrainInitTxs(ctx context.Context) {
+	i := 0
+	for {
+		liblog.Infof("draining init tx batch %d from loadgen", i)
+		txs := s.loadgen.WaitInitTxs(ctx)
+		if len(txs) == 0 {
+			return
+		}
+		i += 1
+	}
 }
 
 func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordinator.Control) {

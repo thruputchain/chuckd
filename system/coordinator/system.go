@@ -64,7 +64,7 @@ type System struct {
 	insideSrv  *Server
 	outsideSrv *Server
 	//
-	schedConn sched.SchedulerCoordConn
+	SchedConn sched.SchedulerCoordConn
 	scpdKill  func()
 }
 
@@ -245,7 +245,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
 	schedConn, err := sched.ConnectToScheduler(ctx, s.inside, opcfg.SchedAddr, opcfg.InAddr)
 	must.NoError(ctx, err)
-	s.schedConn = schedConn
+	s.SchedConn = schedConn
 
 	s.RepairService.SetSchedConn(schedConn)
 	s.Live.SetScheduler(schedConn)
@@ -391,9 +391,9 @@ func (s *System) Close() {
 	s.insideSrv.Close()
 	liblog.Infof("coordinator stopping outside network")
 	s.outsideSrv.Close()
-	if s.schedConn != nil {
+	if s.SchedConn != nil {
 		liblog.Infof("coordinator closing scheduler connection")
-		s.schedConn.Close()
+		s.SchedConn.Close()
 	}
 	liblog.Infof("coordinator killing scpd")
 	s.scpdKill()
