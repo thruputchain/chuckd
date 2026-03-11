@@ -60,6 +60,21 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 
 // catchup blocks
 
+func (x *DiskStorage) PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+	<-x.ready
+
+	liblog.Debugf("pre-persisting catchup block %d with block hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
+	defer liblog.Debugf("pre-persisted catchup block %d with block hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
+
+	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
+	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
+		libxdr.MarshalXdrWriter(w, &cb)
+		return nil
+	})
+}
+
 func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
 	<-x.ready
 

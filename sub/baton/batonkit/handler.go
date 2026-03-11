@@ -24,6 +24,7 @@ type Handler interface {
 	proto.SchedulerCoord1
 	repairkit.RepairAgent
 	storage.ConsensusValuePersistence
+	// storage.CatchupBlockPersistence
 	cvpool.CVPool
 	scpbroker.SCPBackfeed
 	catchup.CatchupAgent

@@ -85,6 +85,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash)
 		if x.baton.placeExternalization(ctx, extConsensus) {
+			// XXX: Is CV persistence necessary here, considering it also happens in commit?
 			t0 := time.Now()
 			x.baton.handler.PersistConsensusValue(ctx, *cv)
 			persistCVDelay := time.Since(t0)

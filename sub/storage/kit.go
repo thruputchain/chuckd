@@ -10,6 +10,7 @@ import (
 // XXX: interaction between storage and protocol upgrades?
 
 type CatchupBlockPersistence interface {
+	PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
 	PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock
 }
