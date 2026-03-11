@@ -47,6 +47,11 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 		validatedBlockID = &validatedTip.Id
 	}
 
+	// CV must be guaranteed persisted before the db commits.
+	b.handler.PersistConsensusValue(ctx, *cb.AsConsensusValue())
+
+	// XXX: catchup block must be guaranteed persisted before the db commits.
+
 	// commit
 	// TODO: scheduler should persist catchup blocks after every commit
 	// See https://github.com/groundhogchain/chuckd/issues/15

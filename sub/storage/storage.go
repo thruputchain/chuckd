@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
@@ -62,6 +63,11 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
 	<-x.ready
 
+	liblog.Debugf("persisting catchup block %d with block hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
+	defer liblog.Debugf("persisted catchup block %d with block hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
+
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
 	x.catchupPP.Persist(ctx, full,
 		func(w io.Writer) error {
@@ -93,6 +99,11 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	<-x.ready
 
+	liblog.Debugf("pre-persisting cv %d with block hash %s",
+		cv.Nomination.Block_height, libxdr.HashString(cv.Nomination.Block_hash))
+	defer liblog.Debugf("pre-persisted cv %d with block hash %s",
+		cv.Nomination.Block_height, libxdr.HashString(cv.Nomination.Block_hash))
+
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
 	x.consensusPP.PrePersist(ctx, full,
 		func(w io.Writer) error {
@@ -104,6 +115,11 @@ func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.Con
 
 func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	<-x.ready
+
+	liblog.Debugf("persisting cv %d with block hash %s",
+		cv.Nomination.Block_height, libxdr.HashString(cv.Nomination.Block_hash))
+	defer liblog.Debugf("persisted cv %d with block hash %s",
+		cv.Nomination.Block_height, libxdr.HashString(cv.Nomination.Block_hash))
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
 	x.consensusPP.Persist(ctx, full,

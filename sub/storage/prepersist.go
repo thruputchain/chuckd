@@ -50,6 +50,7 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 	return r(file)
 }
 
+// PrePersist is idempotent. If the file already exists, it does nothing.
 func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writer) error) {
 	x.lock(full)
 	defer x.unlock(full)
@@ -58,9 +59,15 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 	writeFileAtomically(ctx, prepersist, w)
 }
 
+// Persist is idempotent. If the file already exists, it does nothing.
+// If a pre-persisted file exists, it is used.
 func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer) error) {
 	x.lock(full)
 	defer x.unlock(full)
+
+	if isPresent(full) {
+		return
+	}
 
 	prepersist := prepersist(ctx, full)
 	if isPresent(prepersist) { // if pre-persist copy exists, use it
@@ -72,6 +79,7 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 	writeFileAtomically(ctx, full, w)
 }
 
+// writeFileAtomically is idempotent. If the file already exists, it does nothing.
 func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) error) {
 
 	if isPresent(full) { // if file exists, already done
