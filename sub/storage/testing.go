@@ -4,34 +4,47 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestCatchupBlockPersistence struct {
-	mu     sync.RWMutex
-	blocks map[proto.BlockHeight]proto.CatchupBlock
+	mu        sync.RWMutex
+	pre       map[proto.BlockHash]proto.CatchupBlock
+	persisted map[proto.BlockHeight]proto.CatchupBlock
 }
 
 func NewTestCatchupBlockPersistence() *TestCatchupBlockPersistence {
 	return &TestCatchupBlockPersistence{
-		blocks: make(map[proto.BlockHeight]proto.CatchupBlock),
+		pre:       make(map[proto.BlockHash]proto.CatchupBlock),
+		persisted: make(map[proto.BlockHeight]proto.CatchupBlock),
 	}
 }
 
-func (x *TestCatchupBlockPersistence) PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	x.blocks[cb.Consensus_value.Nomination.Block_height] = cb
+
+	x.pre[cb.Consensus_value.Nomination.Block_hash] = cb
 }
 
-func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
-	x.PersistCatchupBlock(ctx, cb)
+func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(ctx context.Context, height proto.BlockHeight, hash proto.BlockHash) {
+	x.mu.Lock()
+	defer x.mu.Unlock()
+
+	p, ok := x.pre[hash]
+	delete(x.pre, hash)
+	must.Assert(ctx, ok)
+	must.Assert(ctx, p.Consensus_value.Nomination.Block_height == height)
+
+	x.persisted[height] = p
 }
 
 func (x *TestCatchupBlockPersistence) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
-	cb, ok := x.blocks[height]
+
+	cb, ok := x.persisted[height]
 	if !ok {
 		return nil
 	}
@@ -65,7 +78,6 @@ func (x *TestConsensusValuePersistence) PersistConsensusValue(ctx context.Contex
 }
 
 func (x *TestConsensusValuePersistence) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	x.PersistConsensusValue(ctx, cv)
 }
 
 func (x *TestConsensusValuePersistence) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
