@@ -41,7 +41,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
 	}
 	cvp.cv[cvh] = &cv
 	cvp.cond.Broadcast()
-	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv)
+	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv, cvh)
 }
 
 func (cvp *ConsensusValuePool) ConsensusValuePoolPersist(
@@ -49,7 +49,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolPersist(
 	cv proto.ConsensusValue,
 	cvh proto.ConsensusValueHash,
 ) {
-	cvp.persist.PersistConsensusValue(ctx, cv)
+	cvp.persist.PersistConsensusValue(ctx, cv, cvh)
 
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()

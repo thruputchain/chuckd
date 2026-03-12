@@ -111,7 +111,7 @@ func TestFindConsensusValue(t *testing.T) {
 	st.Start(ctx, dir)
 
 	cv := newConsensusValue(time.Unix(1700001000, 0).UTC(), 10)
-	st.PersistConsensusValue(ctx, cv)
+	st.PersistConsensusValue(ctx, cv, protoutil.HashCVFast(&cv))
 
 	got := st.FindConsensusValue(ctx, cv.Nomination.Block_height)
 	if got == nil {
@@ -148,7 +148,7 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		newConsensusValue(time.Unix(1700004000, 0).UTC(), 8),
 	}
 	for _, cv := range consensusValues {
-		st.PersistConsensusValue(ctx, cv)
+		st.PersistConsensusValue(ctx, cv, protoutil.HashCVFast(&cv))
 	}
 
 	got := FindConsensusValuesAbove(ctx, st, 4)

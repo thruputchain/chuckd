@@ -56,17 +56,15 @@ type TestConsensusValuePersistence struct {
 	highest    proto.BlockHeight
 	hasHighest bool
 	height     map[proto.BlockHeight]proto.ConsensusValue
-	hash       map[proto.ConsensusValueHash]proto.ConsensusValue
 }
 
 func NewTestConsensusValuePersistence() *TestConsensusValuePersistence {
 	return &TestConsensusValuePersistence{
 		height: make(map[proto.BlockHeight]proto.ConsensusValue),
-		hash:   make(map[proto.ConsensusValueHash]proto.ConsensusValue),
 	}
 }
 
-func (x *TestConsensusValuePersistence) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+func (x *TestConsensusValuePersistence) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, _ proto.ConsensusValueHash) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 	if !x.hasHighest || cv.Nomination.Block_height > x.highest {
@@ -74,10 +72,9 @@ func (x *TestConsensusValuePersistence) PersistConsensusValue(ctx context.Contex
 		x.hasHighest = true
 	}
 	x.height[cv.Nomination.Block_height] = cv
-	x.hash[cv.Nomination.Block_hash] = cv
 }
 
-func (x *TestConsensusValuePersistence) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+func (x *TestConsensusValuePersistence) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, _ proto.ConsensusValueHash) {
 }
 
 func (x *TestConsensusValuePersistence) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {

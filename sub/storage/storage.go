@@ -130,7 +130,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
-func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash) {
 	<-x.ready
 
 	liblog.Debugf("pre-persisting cv %d with block hash %s",
@@ -138,7 +138,7 @@ func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.Con
 	defer liblog.Debugf("pre-persisted cv %d with block hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cv.Nomination.Block_hash))
 
-	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
+	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, hash)
 	x.consensusPP.PrePersist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cv)
@@ -147,7 +147,7 @@ func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.Con
 	)
 }
 
-func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash) {
 	<-x.ready
 
 	liblog.Debugf("persisting cv %d with block hash %s",
@@ -155,7 +155,7 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	defer liblog.Debugf("persisted cv %d with block hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cv.Nomination.Block_hash))
 
-	full := x.ConsensusValueFilepath(cv.Nomination.Block_height)
+	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, hash)
 	x.consensusPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cv)
@@ -167,13 +167,21 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
 	<-x.ready
 
-	full := x.ConsensusValueFilepath(height)
-	if !isPresent(full) {
+	files, err := x.ListConsensusValueFilesAtHeight(height)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		must.NoError(ctx, err)
+	}
+	if len(files) == 0 {
 		return nil
 	}
+	must.Assertf(ctx, len(files) == 1, "expected exactly one consensus value file at height %d, got %d", height, len(files))
+	full := files[len(files)-1]
 
 	cv := &proto.ConsensusValue{}
-	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {
+	err = x.consensusPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cv, r)
 	})
 	must.NoError(ctx, err)

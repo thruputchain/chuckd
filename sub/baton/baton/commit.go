@@ -50,7 +50,9 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// CV must be guaranteed persisted before the db commits.
 	b.handler.ConsensusValuePoolPersist(ctx, *cb.AsConsensusValue(), cb.ConsensusValueHash())
 
-	// XXX: catchup block must be guaranteed persisted before the db commits.
+	// catchup block must be guaranteed persisted before the db commits.
+	// XXX: this won't work until both nominate and validate paths add the catchup block to the pool.
+	// b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.BlockHash())
 
 	// commit
 	// TODO: scheduler should persist catchup blocks after every commit

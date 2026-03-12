@@ -84,7 +84,8 @@ func NewTestRig(
 		proto.DbTip{Height: 0},
 	)
 	// place a consensus value for the db tip
-	h.TestConsensusValuePersistence.PersistConsensusValue(ctx, assumedConsensusValueAtHeight(0))
+	cv0 := assumedConsensusValueAtHeight(0)
+	h.TestConsensusValuePersistence.PersistConsensusValue(ctx, cv0, protoutil.HashCVFast(&cv0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)

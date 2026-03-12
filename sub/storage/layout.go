@@ -32,24 +32,58 @@ func SlotToParts(h int64) [3]string {
 	}
 }
 
-func (x *DiskStorage) ConsensusValueFilepath(slot int64) string {
+func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, hash proto.ConsensusValueHash) string {
 	parts := SlotToParts(slot)
 	return path.Join(
 		x.ConsensusValuesDirpath(),
 		parts[0], parts[1], parts[2],
-		fmt.Sprintf("consensus-%012d.xdr", slot),
+		fmt.Sprintf("consensus-%012d-%x.xdr", slot, hash),
 	)
 }
 
+func (x *DiskStorage) ListConsensusValueFilesAtHeight(height proto.BlockHeight) ([]string, error) {
+	parts := SlotToParts(int64(height))
+	dir := path.Join(x.ConsensusValuesDirpath(), parts[0], parts[1], parts[2])
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := fmt.Sprintf("consensus-%012d-", height)
+	matches := []string{}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if strings.HasPrefix(name, prefix) && strings.HasSuffix(name, ".xdr") {
+			matches = append(matches, filepath.Join(dir, name))
+		}
+	}
+
+	// list in ascending order, breaking ties by hash suffix
+	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
+	return matches, nil
+}
+
 func ParseConsensusValueFilename(name string) (int64, error) {
+	// Accept both filename and full path inputs.
+	base := filepath.Base(name)
+
 	const prefix = "consensus-"
 	const suffix = ".xdr"
-
-	if !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+	if !strings.HasPrefix(base, prefix) || !strings.HasSuffix(base, suffix) {
 		return 0, fmt.Errorf("invalid filename format: %q", name)
 	}
 
-	numStr := strings.TrimSuffix(strings.TrimPrefix(name, prefix), suffix)
+	trimmed := strings.TrimSuffix(strings.TrimPrefix(base, prefix), suffix)
+	parts := strings.SplitN(trimmed, "-", 2)
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid filename format: %q", name)
+	}
+
+	numStr := parts[0]
 	slot, err := strconv.ParseInt(numStr, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid slot number in filename %q: %w", name, err)

@@ -16,8 +16,8 @@ type CatchupBlockPersistence interface {
 }
 
 type ConsensusValuePersistence interface {
-	PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue)
-	PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue)
+	PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
+	PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
 	FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
 	FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue
 }
