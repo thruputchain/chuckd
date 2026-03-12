@@ -159,8 +159,7 @@ func NewSystem(
 		s.signer,
 		libtime.RealTime{},
 		outside,
-		time.Duration(cfg.Catchup_config.Catchup_block_ttl_sec)*time.Second,
-		cfg.Catchup_config.Catchup_block_age,
+		s.CBPool,
 	)
 
 	s.UnvettedSubmitter = NewUnvettedSubmitter(

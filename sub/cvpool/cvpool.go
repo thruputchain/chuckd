@@ -16,7 +16,6 @@ type ConsensusValuePool struct {
 	cv      map[proto.ConsensusValueHash]*proto.ConsensusValue
 }
 
-// XXX: cv persist method should be here, so that baton speaks only with this service regarding cvs
 func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePersistence) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
 		persist: persist,

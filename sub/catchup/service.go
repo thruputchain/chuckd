@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -22,20 +20,10 @@ type CatchupService struct {
 	signer protoutil.Signatory
 	time   libtime.Time
 	net    libnet.Network
-	ttl    time.Duration // ttl of cached catchup blocks
-	age    proto.BlockHeight
-	//
-	lk      sync.Mutex
-	highest proto.BlockHeight
-	block   map[proto.BlockHeight]stampedCatchupBlock
+	pool   CBPool
 	//
 	reqM    libxdr.XdrMarshaler
 	resultM libxdr.XdrMarshaler
-}
-
-type stampedCatchupBlock struct {
-	time.Time
-	*proto.CatchupBlock
 }
 
 func NewCatchupService(
@@ -43,69 +31,42 @@ func NewCatchupService(
 	signer protoutil.Signatory,
 	time libtime.Time,
 	net libnet.Network,
-	ttl time.Duration,
-	age proto.BlockHeight,
+	pool CBPool,
 ) *CatchupService {
 
-	svc := &CatchupService{
+	return &CatchupService{
 		signer:  signer,
 		time:    time,
 		net:     net,
-		ttl:     ttl,
-		age:     age,
-		block:   map[proto.BlockHeight]stampedCatchupBlock{},
+		pool:    pool,
 		reqM:    libxdr.NewXdrMarshaler(),
 		resultM: libxdr.NewXdrMarshaler(),
 	}
-	go svc.expire(ctx)
-	return svc
 }
 
 func (svc *CatchupService) Start(ctx context.Context, address string) {
-	librpc.StartSerial(ctx, svc.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, address, proto.Catchup1_Server{Srv: svc})
+	librpc.StartSerial(
+		ctx,
+		svc.net,
+		netutil.MaxMessageSize,
+		rpcutil.BaseDriverRegime,
+		address,
+		proto.Catchup1_Server{Srv: svc},
+	)
 }
 
-func (svc *CatchupService) Add(ctx context.Context, cb *proto.CatchupBlock) {
-	svc.lk.Lock()
-	defer svc.lk.Unlock()
-	svc.highest = max(svc.highest, cb.Consensus_value.Nomination.Block_height)
-	svc.block[cb.Consensus_value.Nomination.Block_height] = stampedCatchupBlock{Time: svc.time.Now(), CatchupBlock: cb}
-}
-
-func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) (*proto.CatchupBlock, bool) {
-	svc.lk.Lock()
-	defer svc.lk.Unlock()
-	cb, ok := svc.block[height]
-	if !ok {
-		return nil, false
-	}
-	return cb.CatchupBlock, true
-}
-
-func (svc *CatchupService) expire(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		svc.time.Sleep(svc.ttl)
-		now := svc.time.Now()
-		svc.lk.Lock()
-		for height, scb := range svc.block {
-			if now.Sub(scb.Time) > svc.ttl || svc.highest > svc.age+scb.Consensus_value.Nomination.Block_height {
-				delete(svc.block, height)
-			}
-		}
-		svc.lk.Unlock()
-	}
+func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
+	return svc.pool.CatchupBlockPoolFindHeight(ctx, height)
 }
 
 func (svc *CatchupService) Catchup_null(context.Context) error {
 	return nil
 }
 
-func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.SignedCatchupBlocksRequest) (proto.SignedCatchupBlocksResult, error) {
+func (svc *CatchupService) Catchup_solicit(
+	ctx context.Context,
+	sreq proto.SignedCatchupBlocksRequest,
+) (proto.SignedCatchupBlocksResult, error) {
 
 	// check signatures
 	if !protoutil.VerifyXdr(svc.reqM, sreq.Signer.Public_key, &sreq.Request, sreq.Signature) {
@@ -123,7 +84,7 @@ func (svc *CatchupService) Catchup_solicit(ctx context.Context, sreq proto.Signe
 	blocks := []proto.CatchupBlock{}
 	for _, span := range spans {
 		for h := span.From; h < span.To; h++ {
-			if cb, ok := svc.Lookup(ctx, h); ok {
+			if cb := svc.Lookup(ctx, h); cb != nil {
 				blocks = append(blocks, *cb)
 			}
 		}

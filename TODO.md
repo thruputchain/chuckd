@@ -1,7 +1,6 @@
 CATCHUP BLOCK PERSISTENCE
 
 - [ ] optimistically write cb to disk (waiting on scheduler_validate)
-- [ ] catchup service should go through cbpool
 
 SCP
 
