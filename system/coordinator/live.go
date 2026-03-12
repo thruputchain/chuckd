@@ -35,6 +35,7 @@ type LiveHandler struct {
 	router router.Router
 	*repairagent.RepairAgent
 	*cvpool.ConsensusValuePool
+	*catchup.CatchupBlockPool
 	multiplex     *multiplex.Multiplex
 	storage       *storage.DiskStorage
 	scpBroker     *scpbroker.SCPBroker
@@ -57,6 +58,7 @@ func NewLiveHandler(
 	router router.Router,
 	repairAgent *repairagent.RepairAgent,
 	cvpool *cvpool.ConsensusValuePool,
+	catchup *catchup.CatchupBlockPool,
 	multiplex *multiplex.Multiplex,
 	storage *storage.DiskStorage,
 	scpBroker *scpbroker.SCPBroker,
@@ -71,6 +73,7 @@ func NewLiveHandler(
 		router:             router,
 		RepairAgent:        repairAgent,
 		ConsensusValuePool: cvpool,
+		CatchupBlockPool:   catchup,
 		multiplex:          multiplex,
 		storage:            storage,
 		scpBroker:          scpBroker,
@@ -130,19 +133,6 @@ func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
 }
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {}
-
-// XXX: delete when baton going through CVPool
-func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	x.storage.PersistConsensusValue(ctx, cv)
-}
-
-func (x *LiveHandler) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
-	return x.storage.FindConsensusValue(ctx, height)
-}
-
-func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
-	return x.storage.FindHighestConsensusValue(ctx)
-}
 
 func (x *LiveHandler) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {
 	x.ConsensusValuePool.PurgeNotAbove(ctx, cb.BlockHeight())

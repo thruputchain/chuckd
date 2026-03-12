@@ -3,7 +3,6 @@ package baton
 import (
 	"context"
 	"math/rand"
-	"slices"
 	"sync"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/test/testcatchup"
 	"github.com/groundhogchain/chuckd/test/testcoord"
 	"github.com/groundhogchain/chuckd/test/testsched"
@@ -35,7 +35,10 @@ type TestRig struct {
 	*testsched.TestScheduler
 	*testcatchup.TestCatchupStaged
 	*TestSCP
+	*storage.TestConsensusValuePersistence
 	*cvpool.ConsensusValuePool
+	*storage.TestCatchupBlockPersistence
+	*catchup.CatchupBlockPool
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -43,9 +46,6 @@ type TestRig struct {
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
 	backfeed         chan struct{}
-	//
-	cvlk            sync.Mutex
-	consensusValues []proto.ConsensusValue
 }
 
 func NewTestRig(
@@ -75,7 +75,8 @@ func NewTestRig(
 		nominateResponse: make(chan bool, 1),
 		backfeed:         make(chan struct{}),
 	}
-	h.ConsensusValuePool = cvpool.NewConsensusValuePool(ctx, h)
+	h.TestConsensusValuePersistence = storage.NewTestConsensusValuePersistence()
+	h.ConsensusValuePool = cvpool.NewConsensusValuePool(ctx, h.TestConsensusValuePersistence)
 	h.TestCoord = testcoord.NewTestCoord()
 	h.TestScheduler = testsched.NewTestScheduler(
 		ctx,
@@ -83,10 +84,13 @@ func NewTestRig(
 		proto.DbTip{Height: 0},
 	)
 	// place a consensus value for the db tip
-	h.PersistConsensusValue(ctx, assumedConsensusValueAtHeight(0))
+	h.TestConsensusValuePersistence.PersistConsensusValue(ctx, assumedConsensusValueAtHeight(0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
+	//
+	h.TestCatchupBlockPersistence = storage.NewTestCatchupBlockPersistence()
+	h.CatchupBlockPool = catchup.NewCatchupBlockPool(ctx, h.TestCatchupBlockPersistence)
 	h.TestCatchupStaged = testcatchup.NewTestCatchup(time, *catchupSigner)
 	return h
 }
@@ -186,48 +190,6 @@ func (h *TestRig) RepairMissingCV(
 	height proto.BlockHeight,
 ) (*proto.ConsensusValue, error) {
 	panic("not used")
-}
-
-func (h *TestRig) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.PersistConsensusValue(ctx, cv)
-}
-
-func (h *TestRig) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.cvlk.Lock()
-	defer h.cvlk.Unlock()
-	h.consensusValues = append(h.consensusValues, cv)
-}
-
-func (h *TestRig) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
-	h.cvlk.Lock()
-	defer h.cvlk.Unlock()
-	i, found := slices.BinarySearchFunc(
-		h.consensusValues,
-		height,
-		func(e proto.ConsensusValue, t proto.BlockHeight) int {
-			switch {
-			case e.Nomination.Block_height < t:
-				return -1
-			case e.Nomination.Block_height > t:
-				return 1
-			default:
-				return 0
-			}
-		},
-	)
-	if !found {
-		return nil
-	}
-	return &h.consensusValues[i]
-}
-
-func (h *TestRig) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
-	h.cvlk.Lock()
-	defer h.cvlk.Unlock()
-	if len(h.consensusValues) == 0 {
-		return nil
-	}
-	return &h.consensusValues[len(h.consensusValues)-1]
 }
 
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}

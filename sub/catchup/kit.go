@@ -16,10 +16,12 @@ type CBPool interface {
 		ctx context.Context,
 		cv proto.CatchupBlock,
 	)
+
 	CatchupBlockPoolPersist(
 		ctx context.Context,
 		cv proto.CatchupBlock, //XXX?
 	)
+
 	CatchupBlockPoolLookup(
 		ctx context.Context,
 		height proto.BlockHeight,

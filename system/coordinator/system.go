@@ -51,6 +51,7 @@ type System struct {
 	SCPBroker *scpbroker.SCPBroker
 	Live      *LiveHandler
 	Baton     *baton.Baton
+	CBPool    *catchup.CatchupBlockPool
 	Catchup   *catchup.CatchupService
 	//
 	CVPool        *cvpool.ConsensusValuePool
@@ -122,6 +123,7 @@ func NewSystem(
 		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
 	})
 	s.CVPool = cvpool.NewConsensusValuePool(ctx, s.Storage)
+	s.CBPool = catchup.NewCatchupBlockPool(ctx, s.Storage)
 
 	s.RepairService = repairservice.NewRepairService(s.CVPool, s.Storage)
 	s.RepairAgent = repairagent.NewRepairAgent(
@@ -143,6 +145,7 @@ func NewSystem(
 		s.Router,
 		s.RepairAgent,
 		s.CVPool,
+		s.CBPool,
 		s.Multiplex,
 		s.Storage,
 		s.SCPBroker,
