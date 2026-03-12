@@ -6,7 +6,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
-	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -18,18 +17,15 @@ type RepairService struct {
 	conn        sched.SchedulerCoordConn
 	scpBroker   *scpbroker.SCPBroker       //XXX: use to repair missing scp envelopes
 	cvpool      *cvpool.ConsensusValuePool // use to repair missing consensus values
-	storage     *storage.DiskStorage
 	schedReady  chan struct{}
 	brokerReady chan struct{}
 }
 
 func NewRepairService(
 	cvpool *cvpool.ConsensusValuePool,
-	storage *storage.DiskStorage,
 ) *RepairService {
 	return &RepairService{
 		cvpool:      cvpool,
-		storage:     storage,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
 	}
@@ -109,7 +105,7 @@ func (x *RepairService) Repair_missing_cv(
 		return cvx, nil
 	}
 
-	cv := x.storage.FindConsensusValue(ctx, height)
+	cv := x.cvpool.ConsensusValuePoolFindHeight(ctx, height)
 	if cv != nil {
 		if protoutil.HashCVFast(cv) != cvh {
 			cv = nil // the requested cv was not externalized

@@ -1,9 +1,8 @@
 CATCHUP BLOCK PERSISTENCE
 
-- [ ] optimistically write cb to disk
+- [ ] optimistically write cb to disk (waiting on scheduler_validate)
 - [ ] catchup service should go through cbpool
 
-- [ ] repair service should go through cvpool (not directly to storage)
 - [ ] should the bottom of cvpool be based on last externalized or last committed block?
 
 SCP

@@ -125,7 +125,7 @@ func NewSystem(
 	s.CVPool = cvpool.NewConsensusValuePool(ctx, s.Storage)
 	s.CBPool = catchup.NewCatchupBlockPool(ctx, s.Storage)
 
-	s.RepairService = repairservice.NewRepairService(s.CVPool, s.Storage)
+	s.RepairService = repairservice.NewRepairService(s.CVPool)
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,
