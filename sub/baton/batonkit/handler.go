@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/libtime"
 	proto "github.com/groundhogchain/protocol-go"
@@ -23,7 +22,6 @@ type Handler interface {
 	BlockHandler
 	proto.SchedulerCoord1
 	repairkit.RepairAgent
-	storage.ConsensusValuePersistence
 	// storage.CatchupBlockPersistence
 	cvpool.CVPool
 	scpbroker.SCPBackfeed

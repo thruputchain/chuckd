@@ -1,7 +1,6 @@
 CATCHUP BLOCK PERSISTENCE
 
 - [ ] optimistically write cb to disk
-- [ ] cv persist method should move to cvpool
 - [ ] should the bottom of cvpool be based on last externalized or last committed block?
 
 SCP

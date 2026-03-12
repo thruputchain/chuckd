@@ -48,10 +48,6 @@ type TestRig struct {
 	consensusValues []proto.ConsensusValue
 }
 
-type NoCVPrepersist struct{}
-
-func (NoCVPrepersist) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {}
-
 func NewTestRig(
 	ctx context.Context,
 	rand *rand.Rand,
@@ -73,13 +69,13 @@ func NewTestRig(
 			*signer,
 			user.Secret_key,
 		),
-		TestBus:            NewTestBus(),
-		TestTime:           time,
-		ConsensusValuePool: cvpool.NewConsensusValuePool(ctx, NoCVPrepersist{}),
-		nominateRequest:    make(chan nominateIn, 1),
-		nominateResponse:   make(chan bool, 1),
-		backfeed:           make(chan struct{}),
+		TestBus:          NewTestBus(),
+		TestTime:         time,
+		nominateRequest:  make(chan nominateIn, 1),
+		nominateResponse: make(chan bool, 1),
+		backfeed:         make(chan struct{}),
 	}
+	h.ConsensusValuePool = cvpool.NewConsensusValuePool(ctx, h)
 	h.TestCoord = testcoord.NewTestCoord()
 	h.TestScheduler = testsched.NewTestScheduler(
 		ctx,
@@ -190,6 +186,10 @@ func (h *TestRig) RepairMissingCV(
 	height proto.BlockHeight,
 ) (*proto.ConsensusValue, error) {
 	panic("not used")
+}
+
+func (h *TestRig) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
+	h.PersistConsensusValue(ctx, cv)
 }
 
 func (h *TestRig) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {

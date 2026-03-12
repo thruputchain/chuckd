@@ -103,7 +103,7 @@ func (x *RepairService) Repair_missing_cv(
 	// requests for externalized cvs will be answered by the storage layer, which will allow
 	// externalization messages to be processed at the called, and thus externalizations to be acted on.
 
-	cvx := x.cvpool.ConsensusValuePoolLookup(ctx, cvh)
+	cvx := x.cvpool.ConsensusValuePoolLookupHash(ctx, cvh)
 	if cvx != nil {
 		liblog.Infof("serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
 		return cvx, nil

@@ -17,7 +17,7 @@ func (b *Baton) validateExternalizedCue(
 ) {
 	liblog.Debugf("validating cue for already externalized slot %d", slot)
 
-	cv := b.handler.FindConsensusValue(ctx, proto.BlockHeight(slot))
+	cv := b.handler.ConsensusValuePoolFindHeight(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cv != nil)
 
 	if b.ConsensusValueAgreesWithCue(cv, cvc) {
@@ -36,7 +36,7 @@ func (b *Baton) validateExternalizedConsensus(
 ) {
 	liblog.Debugf("validating consensus value for already externalized slot %d", slot)
 
-	cvx := b.handler.FindConsensusValue(ctx, proto.BlockHeight(slot))
+	cvx := b.handler.ConsensusValuePoolFindHeight(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cvx != nil)
 
 	if b.hashCV(cvx) == cvc.Cv_hash {

@@ -34,7 +34,7 @@ type LiveHandler struct {
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
-	cvpool        *cvpool.ConsensusValuePool
+	*cvpool.ConsensusValuePool
 	multiplex     *multiplex.Multiplex
 	storage       *storage.DiskStorage
 	scpBroker     *scpbroker.SCPBroker
@@ -63,21 +63,21 @@ func NewLiveHandler(
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
-		notify:      notify,
-		Signatory:   signer,
-		Time:        time,
-		inside:      inside,
-		outside:     outside,
-		router:      router,
-		RepairAgent: repairAgent,
-		cvpool:      cvpool,
-		multiplex:   multiplex,
-		storage:     storage,
-		scpBroker:   scpBroker,
-		m:           libxdr.NewXdrMarshaler(),
-		rand:        rand,
-		scpReady:    make(chan struct{}),
-		schedReady:  make(chan struct{}),
+		notify:             notify,
+		Signatory:          signer,
+		Time:               time,
+		inside:             inside,
+		outside:            outside,
+		router:             router,
+		RepairAgent:        repairAgent,
+		ConsensusValuePool: cvpool,
+		multiplex:          multiplex,
+		storage:            storage,
+		scpBroker:          scpBroker,
+		m:                  libxdr.NewXdrMarshaler(),
+		rand:               rand,
+		scpReady:           make(chan struct{}),
+		schedReady:         make(chan struct{}),
 	}
 }
 
@@ -131,6 +131,7 @@ func (x *LiveHandler) GenerateID64(context.Context) batonkit.ID64 {
 
 func (x *LiveHandler) Emit(ctx context.Context, event any) {}
 
+// XXX: delete when baton going through CVPool
 func (x *LiveHandler) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
 	x.storage.PersistConsensusValue(ctx, cv)
 }
@@ -144,35 +145,13 @@ func (x *LiveHandler) FindHighestConsensusValue(ctx context.Context) *proto.Cons
 }
 
 func (x *LiveHandler) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {
-	x.cvpool.PurgeNotAbove(ctx, cb.BlockHeight())
+	x.ConsensusValuePool.PurgeNotAbove(ctx, cb.BlockHeight())
 	x.notify.Committed(ctx, cb)
 }
 
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
-	x.cvpool.ConsensusValuePoolAdd(ctx, cv, cvh)
+	x.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv, cvh)
 	x.multiplex.SendConsensusValue(ctx, cv)
-}
-
-func (x *LiveHandler) ConsensusValuePoolAdd(
-	ctx context.Context,
-	cv proto.ConsensusValue,
-	cvh proto.ConsensusValueHash,
-) {
-	x.cvpool.ConsensusValuePoolAdd(ctx, cv, cvh)
-}
-
-func (x *LiveHandler) ConsensusValuePoolLookup(
-	ctx context.Context,
-	hash proto.ConsensusValueHash,
-) *proto.ConsensusValue {
-	return x.cvpool.ConsensusValuePoolLookup(ctx, hash)
-}
-
-func (x *LiveHandler) ConsensusValuePoolWaitFor(
-	ctx context.Context,
-	hash proto.ConsensusValueHash,
-) (*proto.ConsensusValue, error) {
-	return x.cvpool.ConsensusValuePoolWaitFor(ctx, hash)
 }
 
 func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {

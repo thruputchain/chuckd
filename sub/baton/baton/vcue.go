@@ -114,7 +114,7 @@ func (b *Baton) fetchCV(
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	// lookup in cvpool
-	cv := b.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)
+	cv := b.handler.ConsensusValuePoolLookupHash(ctx, cvc.Cv_hash)
 	if cv != nil {
 		return cv, nil
 	}

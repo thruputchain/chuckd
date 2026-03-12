@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -163,7 +162,7 @@ func (b *Baton) start(ctx context.Context) {
 
 	// genesis block has height 0, and no corresponding consensus value
 	if b.tipDb.Height > 0 {
-		tipCV := b.handler.FindConsensusValue(ctx, b.tipDb.Height)
+		tipCV := b.handler.ConsensusValuePoolFindHeight(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
 		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
@@ -175,7 +174,7 @@ func (b *Baton) start(ctx context.Context) {
 	}
 
 	// load known externalizations above db tip
-	higherCV := storage.FindConsensusValuesAbove(ctx, b.handler, b.tipDb.Height)
+	higherCV := b.handler.ConsensusValuePoolFindAbove(ctx, b.tipDb.Height)
 	for _, cv := range higherCV {
 		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
 	}

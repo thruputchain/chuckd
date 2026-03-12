@@ -9,7 +9,7 @@ import (
 )
 
 type ConsensusValuePool struct {
-	persist storage.ConsensusValuePrePersistence
+	persist storage.ConsensusValuePersistence
 	cond    *sync.Cond
 	lk      sync.Mutex
 	bottom  proto.BlockHeight // height of highest externalized slot
@@ -17,7 +17,7 @@ type ConsensusValuePool struct {
 }
 
 // XXX: cv persist method should be here, so that baton speaks only with this service regarding cvs
-func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePrePersistence) *ConsensusValuePool {
+func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePersistence) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
 		persist: persist,
 		cv:      map[proto.ConsensusValueHash]*proto.ConsensusValue{},
@@ -44,6 +44,23 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
 	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv)
 }
 
+func (cvp *ConsensusValuePool) ConsensusValuePoolPersist(
+	ctx context.Context,
+	cv proto.ConsensusValue,
+	cvh proto.ConsensusValueHash,
+) {
+	cvp.persist.PersistConsensusValue(ctx, cv)
+
+	cvp.lk.Lock()
+	defer cvp.lk.Unlock()
+
+	if cv.Nomination.Block_height <= cvp.bottom {
+		return
+	}
+	cvp.cv[cvh] = &cv
+	cvp.cond.Broadcast()
+}
+
 func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.BlockHeight) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
@@ -60,7 +77,7 @@ func (cvp *ConsensusValuePool) purge() {
 	}
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolLookup(
+func (cvp *ConsensusValuePool) ConsensusValuePoolLookupHash(
 	ctx context.Context,
 	h proto.ConsensusValueHash,
 ) *proto.ConsensusValue {
@@ -89,4 +106,26 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 			cvp.cond.Wait()
 		}
 	}
+}
+
+// height-dependent queries
+
+func (cvp *ConsensusValuePool) ConsensusValuePoolFindHeight(
+	ctx context.Context,
+	height proto.BlockHeight,
+) *proto.ConsensusValue {
+	return cvp.persist.FindConsensusValue(ctx, height)
+}
+
+func (cvp *ConsensusValuePool) ConsensusValuePoolFindHighest(
+	ctx context.Context,
+) *proto.ConsensusValue {
+	return cvp.persist.FindHighestConsensusValue(ctx)
+}
+
+func (cvp *ConsensusValuePool) ConsensusValuePoolFindAbove(
+	ctx context.Context,
+	above proto.BlockHeight,
+) []proto.ConsensusValue {
+	return storage.FindConsensusValuesAbove(ctx, cvp.persist, above)
 }

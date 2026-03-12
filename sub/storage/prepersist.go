@@ -55,6 +55,11 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 	x.lock(full)
 	defer x.unlock(full)
 
+	// if the target persist file already exists, do nothing
+	if isPresent(full) {
+		return
+	}
+
 	prepersist := prepersist(ctx, full)
 	writeFileAtomically(ctx, prepersist, w)
 }

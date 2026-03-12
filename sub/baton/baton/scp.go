@@ -67,7 +67,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
-	cv := x.baton.handler.ConsensusValuePoolLookup(ctx, cvc.Cv_hash)
+	cv := x.baton.handler.ConsensusValuePoolLookupHash(ctx, cvc.Cv_hash)
 
 	x.baton.lock()
 	defer x.baton.unlock()
@@ -87,7 +87,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			// XXX: Is CV persistence necessary here, considering it also happens in commit?
 			t0 := time.Now()
-			x.baton.handler.PersistConsensusValue(ctx, *cv)
+			x.baton.handler.ConsensusValuePoolPersist(ctx, *cv, cvc.Cv_hash)
 			persistCVDelay := time.Since(t0)
 			x.baton.reportPersistCV(cv.Nomination.Block_height, persistCVDelay)
 			liblog.Debugf("cv_persist_delay=%v | height=%d", persistCVDelay, cv.Nomination.Block_height)
