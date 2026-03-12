@@ -68,7 +68,7 @@ func (x *DiskStorage) PrePersistCatchupBlock(ctx context.Context, cb proto.Catch
 	defer liblog.Debugf("pre-persisted catchup block %d with block hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
 
-	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
+	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cb.Consensus_value.Nomination.Block_hash)
 	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
@@ -83,7 +83,7 @@ func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupB
 	defer liblog.Debugf("persisted catchup block %d with block hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
 
-	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
+	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cb.Consensus_value.Nomination.Block_hash)
 	x.catchupPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cb)
@@ -92,16 +92,35 @@ func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupB
 	)
 }
 
+func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
+	ctx context.Context,
+	height proto.BlockHeight,
+	hash proto.BlockHash,
+) {
+	<-x.ready
+
+	liblog.Debugf("persisting already pre-persisted catchup block %d with block hash %s",
+		height, libxdr.HashString(hash))
+	defer liblog.Debugf("persisted already pre-persisted catchup block %d with block hash %s",
+		height, libxdr.HashString(hash))
+
+	full := x.CatchupBlockFilepath(height, hash)
+	x.catchupPP.PersistAlreadyPrePersisted(ctx, full)
+}
+
 func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
 	<-x.ready
 
-	full := x.CatchupBlockFilepath(height)
-	if !isPresent(full) {
+	files, err := ListCatchupFilesAtHeight(x.CatchupBlocksDirpath(), height)
+	must.NoError(ctx, err)
+	if len(files) == 0 {
 		return nil
 	}
+	must.Assertf(ctx, len(files) == 1, "expected exactly one catchup file at height %d, got %d", height, len(files))
+	full := files[len(files)-1]
 
 	cb := &proto.CatchupBlock{}
-	err := x.catchupPP.Load(ctx, full, func(r io.Reader) error {
+	err = x.catchupPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cb, r)
 	})
 	must.NoError(ctx, err)

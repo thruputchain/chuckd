@@ -19,10 +19,11 @@ type CBPool interface {
 
 	CatchupBlockPoolPersist(
 		ctx context.Context,
-		cv proto.CatchupBlock, //XXX?
+		height proto.BlockHeight,
+		hash proto.BlockHash,
 	)
 
-	CatchupBlockPoolLookup(
+	CatchupBlockPoolFindHeight(
 		ctx context.Context,
 		height proto.BlockHeight,
 	) *proto.CatchupBlock

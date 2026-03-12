@@ -84,6 +84,21 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 	writeFileAtomically(ctx, full, w)
 }
 
+func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string) {
+	x.lock(full)
+	defer x.unlock(full)
+
+	if isPresent(full) {
+		return
+	}
+
+	prepersist := prepersist(ctx, full)
+	must.Assert(ctx, isPresent(prepersist))
+
+	err := os.Rename(prepersist, full)
+	must.NoError(ctx, err)
+}
+
 // writeFileAtomically is idempotent. If the file already exists, it does nothing.
 func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) error) {
 

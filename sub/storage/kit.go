@@ -11,7 +11,7 @@ import (
 
 type CatchupBlockPersistence interface {
 	PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
-	PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock)
+	PersistAlreadyPrePersistedCatchupBlock(ctx context.Context, height proto.BlockHeight, hash proto.BlockHash)
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock
 }
 

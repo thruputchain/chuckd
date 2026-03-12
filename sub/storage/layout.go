@@ -144,10 +144,10 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height int64) string {
+func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, hash proto.BlockHash) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
-		fmt.Sprintf("catchup-%012d.xdr", height),
+		fmt.Sprintf("catchup-%012d-%x.xdr", height, hash),
 	)
 }
 
@@ -158,8 +158,8 @@ func FilenameNonce(ctx context.Context) string {
 	return hex.EncodeToString(b)
 }
 
-// Matches strings like: "catchup-00000000000000001234.xdr"
-var catchupRE = regexp.MustCompile(`^catchup-([0-9]{12})\.xdr$`)
+// Matches e.g. catchup-000000000123-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.xdr
+var catchupRE = regexp.MustCompile(`^catchup-([0-9]{12})-([0-9a-f]{64})\.xdr$`)
 
 func ListCatchupFiles(dir string) ([]string, error) {
 
@@ -183,6 +183,23 @@ func ListCatchupFiles(dir string) ([]string, error) {
 	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
 
 	return matches, nil
+}
+
+func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, error) {
+	all, err := ListCatchupFiles(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := fmt.Sprintf("catchup-%012d-", height)
+	filtered := make([]string, 0, len(all))
+	for _, full := range all {
+		if strings.HasPrefix(filepath.Base(full), prefix) {
+			filtered = append(filtered, full)
+		}
+	}
+
+	return filtered, nil
 }
 
 // Matches strings like: "00000000000000001234"
