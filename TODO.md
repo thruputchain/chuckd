@@ -3,8 +3,6 @@ CATCHUP BLOCK PERSISTENCE
 - [ ] optimistically write cb to disk (waiting on scheduler_validate)
 - [ ] catchup service should go through cbpool
 
-- [ ] should the bottom of cvpool be based on last externalized or last committed block?
-
 SCP
 
 - [ ] scpd does not die when coordinator panics

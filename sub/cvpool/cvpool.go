@@ -12,7 +12,7 @@ type ConsensusValuePool struct {
 	persist storage.ConsensusValuePersistence
 	cond    *sync.Cond
 	lk      sync.Mutex
-	bottom  proto.BlockHeight // height of highest externalized slot
+	bottom  proto.BlockHeight // heights at or below bottom are purged; set to last committed height
 	cv      map[proto.ConsensusValueHash]*proto.ConsensusValue
 }
 

@@ -83,6 +83,10 @@ func (b *Baton) nominate(
 		Upgrades:     nil, // XXX: placeholder for upgrades
 		Prev_cv_hash: ontoExt.ConsensusValueHash(),
 	}
+	cb := &proto.CatchupBlock{
+		Consensus_value:     *cv,
+		Signed_transactions: nominatedBlock.Txs,
+	}
 
 	q0 := b.handler.Now()
 	cvc := b.cueFromConsensusValue(cv)
@@ -104,6 +108,10 @@ func (b *Baton) nominate(
 	// not be able to externalize the value (and look for catchup when no other nodes exist).
 	// to fix this, we populate the cv in the local pool optimistically.
 	b.handler.ConsensusValuePoolAdd(ctx, *cv, cvc.Cv_hash)
+
+	// kick-off an optimistic pre-persist of the catchup block;
+	// this will be committed/persisted by commit if the block is committed.
+	b.handler.CatchupBlockPoolAdd(ctx, *cb)
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
