@@ -84,7 +84,7 @@ func (x *StreamSender) DialRoute(ctx context.Context, t *dogwoodutil.LinkedTreeN
 
 	stream := proto.DogwoodStream{
 		Source_id: x.discovery.SelfID(),
-		Stream_id: rand.Int63(),
+		Stream_id: rand.Uint64(),
 	}
 
 	nodes := t.TreeNodes(x.m)
@@ -113,7 +113,7 @@ func (x *StreamSender) Dial(ctx context.Context) (*SendStream, error) {
 
 	stream := proto.DogwoodStream{
 		Source_id: x.discovery.SelfID(),
-		Stream_id: rand.Int63(),
+		Stream_id: rand.Uint64(),
 	}
 
 	route := proto.DogwoodRoute{
