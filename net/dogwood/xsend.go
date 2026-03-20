@@ -58,7 +58,7 @@ func (x *TransmissionSender) Send(
 func (x *TransmissionSender) genID() proto.DogwoodTransmissionID {
 	x.rlk.Lock()
 	defer x.rlk.Unlock()
-	return x.rand.Int63()
+	return x.rand.Uint64()
 }
 
 func (x *TransmissionSender) send(

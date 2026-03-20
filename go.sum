@@ -52,6 +52,8 @@ github.com/groundhogchain/lib-go v0.0.0-20260224223654-0b0cddec0876 h1:CkYGrzaH9
 github.com/groundhogchain/lib-go v0.0.0-20260224223654-0b0cddec0876/go.mod h1:uc95QAidV6zgBsv3LMy9a9BSIPRSBzmS9eO5cLsCXIY=
 github.com/groundhogchain/protocol-go v0.0.0-20260310000559-3308c81bcf34 h1:Q+OV3CvRFgkJxm2lJhPh3kJHCarVtveYLMPIIrHLks8=
 github.com/groundhogchain/protocol-go v0.0.0-20260310000559-3308c81bcf34/go.mod h1:PJYmGITxdk1ij3VK3kmOOyBczcIs7lyc/Hecf2oV5yY=
+github.com/groundhogchain/protocol-go v0.0.0-20260319211856-207e205ae63c h1:JiezKRHweIhxKXuWcpgAWP45618GPfXOgVwbYxqJULM=
+github.com/groundhogchain/protocol-go v0.0.0-20260319211856-207e205ae63c/go.mod h1:PJYmGITxdk1ij3VK3kmOOyBczcIs7lyc/Hecf2oV5yY=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
