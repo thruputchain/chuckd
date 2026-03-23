@@ -9,12 +9,17 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 // XXX: commit currently does not handle the upgrades in the consensus value
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
+
+	liblog.Infof("committing: height %d; block_hash %s; cv_hash %s; proposer %s",
+		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()), libxdr.HashString(cb.ConsensusValueHash()),
+		protoutil.VPublicShortString(cb.AsConsensusValue().Nomination.Proposer))
 
 	b.stampCommitStart(cb.BlockHeight())
 	defer b.stampCommitEnd(cb.BlockHeight())
@@ -51,8 +56,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	b.handler.ConsensusValuePoolPersist(ctx, *cb.AsConsensusValue(), cb.ConsensusValueHash())
 
 	// catchup block must be guaranteed persisted before the db commits.
-	// XXX: this won't work until both nominate and validate paths add the catchup block to the pool.
-	// b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.BlockHash())
+	b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.BlockHash())
 
 	// commit
 	// TODO: scheduler should persist catchup blocks after every commit
@@ -73,7 +77,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	return *validatedBlockID
 }
 
-func (b *Baton) purgeNotAboveTipHeight(ctx context.Context) {
+func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 
 	// purge catchup blocks
 	var catchup catchupArrivals

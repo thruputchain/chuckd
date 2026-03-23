@@ -23,8 +23,9 @@ func (b *Baton) validateConsensus(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	liblog.Infof("validating consensus value at height %d with block hash %s",
-		slot, libxdr.HashString(cv.Nomination.Block_hash))
+	liblog.Infof("validating cv: height %d; block_hash %s; cv_hash %s; proposer %s",
+		slot, libxdr.HashString(cv.Nomination.Block_hash), libxdr.HashString(cvc.Cv_hash),
+		protoutil.VPublicShortString(cvc.Proposer))
 
 	if b.tryValidateConsensusFast(ctx, slot, cv, cvc, reply) {
 		return
@@ -51,7 +52,7 @@ func (b *Baton) validateConsensus(
 	// validate chaining with previous consensus
 
 	if cv.Nomination.Prev_block_hash != dbTip.Block_hash {
-		liblog.Infof("cannot validate, previous block mismatch, nomination %v vs ours %v",
+		liblog.Errorf("cannot validate, previous block mismatch, nomination %v vs ours %v",
 			libxdr.HashString(cv.Nomination.Prev_block_hash),
 			libxdr.HashString(dbTip.Block_hash))
 		reply <- scpkit.InvalidValue
@@ -59,7 +60,7 @@ func (b *Baton) validateConsensus(
 	}
 
 	if cv.Prev_cv_hash != extTip.ConsensusValueHash() {
-		liblog.Infof("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
+		liblog.Errorf("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
 			libxdr.HashString(cv.Prev_cv_hash),
 			libxdr.HashString(extTip.ConsensusValueHash()))
 		reply <- scpkit.InvalidValue
@@ -71,13 +72,13 @@ func (b *Baton) validateConsensus(
 	prevStamp := protoutil.TimeFromTimepoint(extTip.ConsensusValue().Timestamp)
 	newStamp := protoutil.TimeFromTimepoint(cv.Timestamp)
 	if !prevStamp.Before(newStamp) {
-		liblog.Infof("cannot validate, timestamp not increasing")
+		liblog.Errorf("cannot validate, timestamp not increasing")
 		reply <- scpkit.InvalidValue
 		return
 	}
 	now := b.handler.Now()
 	if !newStamp.Before(now) {
-		liblog.Infof("cannot validate, timestamp in the future (stamp %s, now %s)",
+		liblog.Errorf("cannot validate, timestamp in the future (stamp %s, now %s)",
 			libtime.FmtTime(newStamp), libtime.FmtTime(now))
 		reply <- scpkit.InvalidValue
 		return
