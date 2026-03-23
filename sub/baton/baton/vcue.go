@@ -65,13 +65,17 @@ func (b *Baton) validateCue(
 	b.unlock()
 
 	if alreadyInvalidated {
+		liblog.Errorf("cv already invalidated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 		reply <- scpkit.InvalidValue
 		return
 	}
 	if alreadyValidated != nil {
 		if b.ConsensusValueAgreesWithCue(alreadyValidated, cvc) {
+			liblog.Infof("cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 			reply <- scpkit.FullyValidValue
 		} else {
+			liblog.Errorf("cv already validated, but disagrees with cue: cv_hash %s",
+				libxdr.HashString(cvc.Cv_hash))
 			reply <- scpkit.InvalidValue
 		}
 		return

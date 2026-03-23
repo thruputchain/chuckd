@@ -1,6 +1,8 @@
 CATCHUP BLOCK PERSISTENCE
 
 - [ ] loadgen test catchup (3-node, 1 node restarts)
+  - [ ] Why same cv validated multiple times?
+    - [ ] Are multiple validation requests initiating validation before previous finished and cached?
 
 SCP
 

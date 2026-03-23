@@ -58,9 +58,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// catchup block must be guaranteed persisted before the db commits.
 	b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.BlockHash())
 
-	// commit
-	// TODO: scheduler should persist catchup blocks after every commit
-	// See https://github.com/groundhogchain/chuckd/issues/15
+	// commit to db
 	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
 	must.Assert(ctx, outcome == proto.SchedulerCommitOK)
