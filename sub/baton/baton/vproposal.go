@@ -24,24 +24,26 @@ func (b *Baton) validateProposal(
 
 	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
 
-	evValidating := batonkit.EventValidating{
-		Onto:      onto,
-		NumTx:     numTxs,
-		Height:    nomination.Block_height,
-		BlockHash: nomination.Block_hash,
+	eventValidating := batonkit.EventValidating{
+		Onto:              onto,
+		NumTx:             numTxs,
+		Height:            nomination.Block_height,
+		BlockHash:         nomination.Block_hash,
+		DbgConsensusValue: cv,
 	}
-	liblog.Infof("%v", evValidating)
-	b.handler.Emit(ctx, evValidating)
+	liblog.Infof("%v", eventValidating)
+	b.handler.Emit(ctx, eventValidating)
 
 	defer func() {
-		evValidated := batonkit.EventValidated{
-			Onto:      onto,
-			NumTx:     numTxs,
-			Height:    nomination.Block_height,
-			BlockHash: nomination.Block_hash,
+		eventValidated := batonkit.EventValidated{
+			Onto:              onto,
+			NumTx:             numTxs,
+			Height:            nomination.Block_height,
+			BlockHash:         nomination.Block_hash,
+			DbgConsensusValue: cv,
 		}
-		liblog.Infof("%v", evValidated)
-		b.handler.Emit(ctx, evValidated)
+		liblog.Infof("%v", eventValidated)
+		b.handler.Emit(ctx, eventValidated)
 	}()
 
 	for {

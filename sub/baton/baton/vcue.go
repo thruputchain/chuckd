@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -53,8 +54,9 @@ func (b *Baton) validateCue(
 		return
 	}
 
-	liblog.Infof("validating cue at height %d with block hash %s and consensus value hash %s",
-		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
+	liblog.Infof("validating cue: height %d; block_hash %s; cv_hash %s; proposer %s",
+		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
+		protoutil.VPublicShortString(cvc.Proposer))
 
 	// check if the value was already validated
 	b.lock()

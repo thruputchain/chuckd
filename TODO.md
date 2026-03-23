@@ -1,10 +1,10 @@
 CATCHUP BLOCK PERSISTENCE
 
-- [ ] optimistically write cb to disk (waiting on scheduler_validate)
+- [ ] loadgen test catchup (3-node, 1 node restarts)
 
 SCP
 
-- [ ] scpd does not die when coordinator panics
+- [ ] are our scp envelopes persisted?
 
 QUESTIONS
 
@@ -12,7 +12,6 @@ QUESTIONS
 
 OPTIMIZATIONS
 
-- [ ] parallelize block proposal, optimistically pipeline by proposing on top of all currently being proposed blocks
 - [ ] ask scp whether we should bother nominating this round
 
 UPGRADES

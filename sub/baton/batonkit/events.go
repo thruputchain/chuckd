@@ -3,6 +3,7 @@ package batonkit
 import (
 	"fmt"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -19,7 +20,8 @@ type EventNominating struct {
 }
 
 func (x EventNominating) String() string {
-	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
+	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; block_hash %s",
+		x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
 }
 
 type EventNominated struct {
@@ -34,7 +36,8 @@ type EventNominated struct {
 }
 
 func (x EventNominated) String() string {
-	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
+	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; block_hash %s",
+		x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
 }
 
 type EventCommitted struct {
@@ -47,7 +50,9 @@ type EventCommitted struct {
 }
 
 func (x EventCommitted) String() string {
-	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; hash %s", x.Height, x.DbgValidatable.NumTransactions(), libxdr.HashString(x.BlockHash))
+	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; block_hash %s; proposer %s",
+		x.Height, x.DbgValidatable.NumTransactions(), libxdr.HashString(x.BlockHash),
+		protoutil.VPublicShortString(x.DbgValidatable.AsConsensusValue().Nomination.Proposer))
 }
 
 type EventValidating struct {
@@ -56,10 +61,14 @@ type EventValidating struct {
 	NumTx      int
 	Height     proto.BlockHeight
 	BlockHash  proto.BlockHash
+	//
+	DbgConsensusValue *proto.ConsensusValue
 }
 
 func (x EventValidating) String() string {
-	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
+	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; block_hash %s; proposer %s",
+		x.Height, x.NumTx, libxdr.HashString(x.BlockHash),
+		protoutil.VPublicShortString(x.DbgConsensusValue.Nomination.Proposer))
 }
 
 type EventValidated struct {
@@ -68,8 +77,12 @@ type EventValidated struct {
 	NumTx     int
 	Height    proto.BlockHeight
 	BlockHash proto.BlockHash
+	//
+	DbgConsensusValue *proto.ConsensusValue
 }
 
 func (x EventValidated) String() string {
-	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; hash %s", x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
+	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; block_hash %s; proposer %s",
+		x.Height, x.NumTx, libxdr.HashString(x.BlockHash),
+		protoutil.VPublicShortString(x.DbgConsensusValue.Nomination.Proposer))
 }
