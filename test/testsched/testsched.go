@@ -182,10 +182,16 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 	r := proto.SchedulerValidationResult{
 		Outcome: proto.SchedulerValidationOK,
 	}
-	*r.Db_tip() = proto.DbTip{
-		Height:     onto.Height + 1,
-		Block_hash: BlockHash,
-		Id:         blockID,
+	*r.Block() = proto.SchedulerValidationBlock{
+		Db_tip: proto.DbTip{
+			Height:     onto.Height + 1,
+			Block_hash: BlockHash,
+			Id:         blockID,
+		},
+		Signed_transactions: xdrutil.ParallelizeSignedTransactionBatch(
+			x.m,
+			systemfixed.CatchupTxBatchMaxSegments,
+			txs),
 	}
 	return r, nil
 }

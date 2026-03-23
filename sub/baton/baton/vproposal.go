@@ -17,8 +17,10 @@ import (
 func (b *Baton) validateProposal(
 	ctx context.Context,
 	onto proto.DbTip,
-	nomination proto.Nomination,
+	cv *proto.ConsensusValue,
 ) (proto.DbTip, error) {
+
+	nomination := cv.Nomination
 
 	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
 
@@ -54,7 +56,18 @@ func (b *Baton) validateProposal(
 		switch schedValidResult.Outcome {
 
 		case proto.SchedulerValidationOK:
-			return *schedValidResult.Db_tip(), nil
+			vblock := schedValidResult.Block()
+
+			cb := &proto.CatchupBlock{
+				Consensus_value:     *cv,
+				Signed_transactions: vblock.Signed_transactions,
+			}
+
+			// kick-off an optimistic pre-persist of the catchup block;
+			// this will be committed/persisted by commit if the block is committed.
+			b.handler.CatchupBlockPoolAdd(ctx, *cb)
+
+			return vblock.Db_tip, nil
 
 		case proto.SchedulerValidationInvalid:
 			return proto.DbTip{}, batonkit.ErrNotValid
