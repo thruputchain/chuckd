@@ -2,6 +2,8 @@ package testdb
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/test/testutil"
@@ -116,6 +118,7 @@ func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.B
 	snap.open -= 1
 	snap.committed = true
 	db.top = snap
+	uniquifyHash(snap.tip.Height, &snap.tip.Block_hash)
 	return snap.tip.Block_hash, snap.hashes
 }
 
@@ -127,6 +130,7 @@ func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.Blo
 	must.Assertf(ctx, ok, "unknown block")
 	must.Assertf(ctx, snap.open > 0, "block not open")
 	snap.open -= 1
+	uniquifyHash(snap.tip.Height, &snap.tip.Block_hash)
 	return snap.tip.Block_hash
 }
 
@@ -146,4 +150,14 @@ func (db *TestDb) AbandonSnapshot(ctx context.Context, id proto.BlockID) {
 
 func (db *TestDb) GetCatchup(context.Context, proto.BlockHeight) *proto.CatchupBlock {
 	panic("not used yet")
+}
+
+// uniquifyHash xors the hash of the height into the hash.
+func uniquifyHash(height proto.BlockHeight, hash *proto.BlockHash) {
+	var heightBytes [8]byte
+	binary.BigEndian.PutUint64(heightBytes[:], uint64(height))
+	heightHash := sha256.Sum256(heightBytes[:])
+	for i := range *hash {
+		(*hash)[i] ^= heightHash[i]
+	}
 }

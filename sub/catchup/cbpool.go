@@ -61,7 +61,7 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(_ context.Context, hash proto.
 	donePersisting, ok := cbp.persisting[hash]
 	cbp.lk.Unlock()
 	if !ok {
-		liblog.Infof("catchup is now waiting for pre-persist: block_hash %s",
+		liblog.Infof("catchup need not wait for pre-persist: block_hash %s",
 			libxdr.HashString(hash))
 		return
 	}
