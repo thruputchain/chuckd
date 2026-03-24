@@ -61,7 +61,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// commit to db
 	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
 	must.NoError(ctx, err)
-	must.Assert(ctx, outcome == proto.SchedulerCommitOK)
+	must.Assertf(ctx, outcome == proto.SchedulerCommitOK, "scheduler commit outcome: %v", outcome)
 
 	evCommitted := batonkit.EventCommitted{
 		Onto:           cb.Onto,
