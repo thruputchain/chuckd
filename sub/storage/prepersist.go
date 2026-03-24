@@ -139,8 +139,8 @@ func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) err
 	must.NoError(ctx, err)
 }
 
-func prepersist(ctx context.Context, full string) string {
-	return path.Join(filepath.Dir(full), filepath.Base(full)+".prepersist-"+FilenameNonce(ctx))
+func prepersist(_ context.Context, full string) string {
+	return path.Join(filepath.Dir(full), filepath.Base(full)+".prepersist")
 }
 
 func staging(ctx context.Context, full string) string {
