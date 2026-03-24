@@ -31,7 +31,7 @@ type DiskStorage struct {
 }
 
 func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
-	return &DiskStorage{
+	s := &DiskStorage{
 		cfg:         cfg,
 		catchupPP:   NewPrePersist(),
 		scpPP:       NewPrePersist(),
@@ -39,6 +39,9 @@ func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
 		scpM:        libxdr.NewXdrMarshaler(),
 		ready:       make(chan struct{}),
 	}
+	var _ CatchupBlockPersistence = s
+	var _ ConsensusValuePersistence = s
+	return s
 }
 
 func (x *DiskStorage) Start(ctx context.Context, dir string) {
@@ -60,30 +63,38 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 
 // catchup blocks
 
-func (x *DiskStorage) PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+func (x *DiskStorage) PrePersistCatchupBlock(
+	ctx context.Context,
+	cb proto.CatchupBlock,
+	cvHash proto.ConsensusValueHash,
+) {
 	<-x.ready
 
-	liblog.Debugf("pre-persisting catchup block %d with block hash %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
-	defer liblog.Debugf("pre-persisted catchup block %d with block hash %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
+	liblog.Debugf("pre-persisting catchup block %d with cv hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
+	defer liblog.Debugf("pre-persisted catchup block %d with cv hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
 
-	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cb.Consensus_value.Nomination.Block_hash)
+	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvHash)
 	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
 	})
 }
 
-func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+func (x *DiskStorage) PersistCatchupBlock(
+	ctx context.Context,
+	cb proto.CatchupBlock,
+	cvHash proto.ConsensusValueHash,
+) {
 	<-x.ready
 
-	liblog.Debugf("persisting catchup block %d with block hash %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
-	defer liblog.Debugf("persisted catchup block %d with block hash %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash))
+	liblog.Debugf("persisting catchup block %d with cv hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
+	defer liblog.Debugf("persisted catchup block %d with cv hash %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
 
-	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cb.Consensus_value.Nomination.Block_hash)
+	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvHash)
 	x.catchupPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cb)
@@ -95,16 +106,16 @@ func (x *DiskStorage) PersistCatchupBlock(ctx context.Context, cb proto.CatchupB
 func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
-	hash proto.BlockHash,
+	cvHash proto.ConsensusValueHash,
 ) {
 	<-x.ready
 
-	liblog.Debugf("persisting already pre-persisted catchup block %d with block hash %s",
-		height, libxdr.HashString(hash))
-	defer liblog.Debugf("persisted already pre-persisted catchup block %d with block hash %s",
-		height, libxdr.HashString(hash))
+	liblog.Debugf("persisting already pre-persisted catchup block %d with cv hash %s",
+		height, libxdr.HashString(cvHash))
+	defer liblog.Debugf("persisted already pre-persisted catchup block %d with cv hash %s",
+		height, libxdr.HashString(cvHash))
 
-	full := x.CatchupBlockFilepath(height, hash)
+	full := x.CatchupBlockFilepath(height, cvHash)
 	x.catchupPP.PersistAlreadyPrePersisted(ctx, full)
 }
 

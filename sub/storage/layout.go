@@ -178,7 +178,7 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, hash proto.BlockHash) string {
+func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, hash proto.ConsensusValueHash) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
 		fmt.Sprintf("catchup-%012d-%x.xdr", height, hash),

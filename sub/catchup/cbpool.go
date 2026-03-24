@@ -14,13 +14,13 @@ import (
 type CatchupBlockPool struct {
 	persist    storage.CatchupBlockPersistence
 	lk         sync.Mutex
-	persisting map[proto.BlockHash]chan struct{}
+	persisting map[proto.ConsensusValueHash]chan struct{}
 }
 
 func NewCatchupBlockPool(ctx context.Context, persist storage.CatchupBlockPersistence) *CatchupBlockPool {
 	cbp := &CatchupBlockPool{
 		persist:    persist,
-		persisting: map[proto.BlockHash]chan struct{}{},
+		persisting: map[proto.ConsensusValueHash]chan struct{}{},
 	}
 	var _ CBPool = cbp
 	return cbp
@@ -29,58 +29,59 @@ func NewCatchupBlockPool(ctx context.Context, persist storage.CatchupBlockPersis
 func (cbp *CatchupBlockPool) CatchupBlockPoolAdd(
 	ctx context.Context,
 	cb proto.CatchupBlock,
+	cvHash proto.ConsensusValueHash,
 ) {
 	cbp.lk.Lock()
 	defer cbp.lk.Unlock()
 
-	liblog.Infof("adding catchup block to pool: height %d; block_hash %s; proposer %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash),
+	liblog.Infof("adding catchup block to pool: height %d; cv_hash %s; proposer %s",
+		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash),
 		// libxdr.HashString(protoutil.HashCVFast(&cb.Consensus_value)),
 		protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
 	donePersisting := make(chan struct{})
-	cbp.persisting[cb.Consensus_value.Nomination.Block_hash] = donePersisting
+	cbp.persisting[cvHash] = donePersisting
 
 	go func() {
-		cbp.persist.PrePersistCatchupBlock(context.WithoutCancel(ctx), cb)
+		cbp.persist.PrePersistCatchupBlock(context.WithoutCancel(ctx), cb, cvHash)
 		close(donePersisting)
 
-		liblog.Infof("finished pre-persisting catchup block: height %d; block_hash %s; proposer %s",
-			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cb.Consensus_value.Nomination.Block_hash),
+		liblog.Infof("finished pre-persisting catchup block: height %d; cv_hash %s; proposer %s",
+			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash),
 			// libxdr.HashString(protoutil.HashCVFast(&cb.Consensus_value)),
 			protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
 		cbp.lk.Lock()
 		defer cbp.lk.Unlock()
-		delete(cbp.persisting, cb.Consensus_value.Nomination.Block_hash)
+		delete(cbp.persisting, cvHash)
 	}()
 }
 
-func (cbp *CatchupBlockPool) waitFinishPrePersist(_ context.Context, hash proto.BlockHash) {
+func (cbp *CatchupBlockPool) waitFinishPrePersist(_ context.Context, cvHash proto.ConsensusValueHash) {
 	cbp.lk.Lock()
-	donePersisting, ok := cbp.persisting[hash]
+	donePersisting, ok := cbp.persisting[cvHash]
 	cbp.lk.Unlock()
 	if !ok {
-		liblog.Infof("catchup need not wait for pre-persist: block_hash %s",
-			libxdr.HashString(hash))
+		liblog.Infof("catchup need not wait for pre-persist: cv_hash %s",
+			libxdr.HashString(cvHash))
 		return
 	}
 	<-donePersisting
 
-	liblog.Infof("finished waiting for catchup to pre-persist: block_hash %s",
-		libxdr.HashString(hash))
+	liblog.Infof("finished waiting for catchup to pre-persist: cv_hash %s",
+		libxdr.HashString(cvHash))
 }
 
 func (cbp *CatchupBlockPool) CatchupBlockPoolPersist(
 	ctx context.Context,
 	height proto.BlockHeight,
-	hash proto.BlockHash,
+	cvHash proto.ConsensusValueHash,
 ) {
-	liblog.Infof("persisting catchup block: height %d; block_hash %s",
-		height, libxdr.HashString(hash))
+	liblog.Infof("persisting catchup block: height %d; cv_hash %s",
+		height, libxdr.HashString(cvHash))
 
-	cbp.waitFinishPrePersist(ctx, hash)
-	cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, height, hash)
+	cbp.waitFinishPrePersist(ctx, cvHash)
+	cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, height, cvHash)
 }
 
 func (cbp *CatchupBlockPool) CatchupBlockPoolFindHeight(

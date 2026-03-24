@@ -39,7 +39,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 			must.NoError(ctx, err)
 		}
 
-		validatedTip, err := b.validateProposal(ctx, cb.Onto, cv)
+		validatedTip, err := b.validateProposal(ctx, cb.Onto, cv, cb.ConsensusValueHash())
 		if err != nil {
 			// err can only ever be context cancelled or deadline exceeded.
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
@@ -56,7 +56,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	b.handler.ConsensusValuePoolPersist(ctx, *cb.AsConsensusValue(), cb.ConsensusValueHash())
 
 	// catchup block must be guaranteed persisted before the db commits.
-	b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.BlockHash())
+	b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.ConsensusValueHash())
 
 	// commit to db
 	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)

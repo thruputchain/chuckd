@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -34,7 +35,7 @@ func TestReclaimCatchupBlocksRemovesOldest(t *testing.T) {
 			Consensus_value:     cv,
 			Signed_transactions: proto.ParallelSignedTransactionBatch{},
 		}
-		st.PersistCatchupBlock(ctx, cb)
+		st.PersistCatchupBlock(ctx, cb, protoutil.HashCVFast(&cv))
 	}
 
 	files, err := ListCatchupFiles(st.CatchupBlocksDirpath())

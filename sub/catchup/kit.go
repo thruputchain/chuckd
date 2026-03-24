@@ -15,12 +15,13 @@ type CBPool interface {
 	CatchupBlockPoolAdd(
 		ctx context.Context,
 		cv proto.CatchupBlock,
+		cvHash proto.ConsensusValueHash,
 	)
 
 	CatchupBlockPoolPersist(
 		ctx context.Context,
 		height proto.BlockHeight,
-		hash proto.BlockHash,
+		hash proto.ConsensusValueHash,
 	)
 
 	CatchupBlockPoolFindHeight(

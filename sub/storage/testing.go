@@ -10,37 +10,48 @@ import (
 
 type TestCatchupBlockPersistence struct {
 	mu        sync.RWMutex
-	pre       map[proto.BlockHash]proto.CatchupBlock
+	pre       map[proto.ConsensusValueHash]proto.CatchupBlock
 	persisted map[proto.BlockHeight]proto.CatchupBlock
 }
 
 func NewTestCatchupBlockPersistence() *TestCatchupBlockPersistence {
 	return &TestCatchupBlockPersistence{
-		pre:       make(map[proto.BlockHash]proto.CatchupBlock),
+		pre:       make(map[proto.ConsensusValueHash]proto.CatchupBlock),
 		persisted: make(map[proto.BlockHeight]proto.CatchupBlock),
 	}
 }
 
-func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(ctx context.Context, cb proto.CatchupBlock) {
+func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(
+	ctx context.Context,
+	cb proto.CatchupBlock,
+	cvHash proto.ConsensusValueHash,
+) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 
-	x.pre[cb.Consensus_value.Nomination.Block_hash] = cb
+	x.pre[cvHash] = cb
 }
 
-func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(ctx context.Context, height proto.BlockHeight, hash proto.BlockHash) {
+func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
+	ctx context.Context,
+	height proto.BlockHeight,
+	cvHash proto.ConsensusValueHash,
+) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 
-	p, ok := x.pre[hash]
-	delete(x.pre, hash)
+	p, ok := x.pre[cvHash]
+	delete(x.pre, cvHash)
 	must.Assert(ctx, ok)
 	must.Assert(ctx, p.Consensus_value.Nomination.Block_height == height)
 
 	x.persisted[height] = p
 }
 
-func (x *TestCatchupBlockPersistence) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
+func (x *TestCatchupBlockPersistence) FindCatchupBlock(
+	ctx context.Context,
+	height proto.BlockHeight,
+) *proto.CatchupBlock {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 

@@ -18,6 +18,7 @@ func (b *Baton) validateProposal(
 	ctx context.Context,
 	onto proto.DbTip,
 	cv *proto.ConsensusValue,
+	cvh proto.ConsensusValueHash,
 ) (proto.DbTip, error) {
 
 	nomination := cv.Nomination
@@ -67,7 +68,7 @@ func (b *Baton) validateProposal(
 
 			// kick-off an optimistic pre-persist of the catchup block;
 			// this will be committed/persisted by commit if the block is committed.
-			b.handler.CatchupBlockPoolAdd(ctx, *cb)
+			b.handler.CatchupBlockPoolAdd(ctx, *cb, cvh)
 
 			return vblock.Db_tip, nil
 

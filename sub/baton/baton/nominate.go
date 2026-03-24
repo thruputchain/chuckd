@@ -111,7 +111,7 @@ func (b *Baton) nominate(
 
 	// kick-off an optimistic pre-persist of the catchup block;
 	// this will be committed/persisted by commit if the block is committed.
-	b.handler.CatchupBlockPoolAdd(ctx, *cb)
+	b.handler.CatchupBlockPoolAdd(ctx, *cb, cvc.Cv_hash)
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.

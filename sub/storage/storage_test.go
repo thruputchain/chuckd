@@ -30,7 +30,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		Signed_transactions: proto.ParallelSignedTransactionBatch{},
 	}
 
-	st.PersistCatchupBlock(ctx, cb)
+	st.PersistCatchupBlock(ctx, cb, protoutil.HashCVFast(&cv))
 
 	got := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
 	if got == nil {
