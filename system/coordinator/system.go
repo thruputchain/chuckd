@@ -115,13 +115,14 @@ func NewSystem(
 		s.Router,
 	)
 
-	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood)
-
 	s.Storage = storage.NewStorage(ctx, storage.Config{
 		Freq:             time.Duration(cfg.Storage_config.Reclaim_interval_msec) * time.Millisecond,
 		MaxCatchupBlocks: int(cfg.Storage_config.Max_catchup_blocks),
 		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
 	})
+
+	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood, s.Storage)
+
 	s.CVPool = cvpool.NewConsensusValuePool(ctx, s.Storage)
 	s.CBPool = catchup.NewCatchupBlockPool(ctx, s.Storage)
 

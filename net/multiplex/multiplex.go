@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/net/dogwood"
+	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libflow"
@@ -18,6 +19,7 @@ type Multiplex struct {
 	m                      libxdr.XdrMarshaler
 	dbgM                   libxdr.XdrMarshaler
 	dogwood                *dogwood.DogwoodService
+	storage                storage.SCPEnvelopePersistence
 	receivedSubmittedTxs   chan submittedTxsFrom
 	receivedConsensusValue chan consensusValueFrom
 	receivedEnvelope       chan envelopeFrom
@@ -39,12 +41,18 @@ type consensusValueFrom struct {
 	*proto.ConsensusValue
 }
 
-func NewMultiplex(ctx context.Context, self proto.ValidatorID, dogwood *dogwood.DogwoodService) *Multiplex {
+func NewMultiplex(
+	ctx context.Context,
+	self proto.ValidatorID,
+	dogwood *dogwood.DogwoodService,
+	storage storage.SCPEnvelopePersistence,
+) *Multiplex {
 	x := &Multiplex{
 		self:                   self,
 		m:                      libxdr.NewXdrMarshaler(),
 		dbgM:                   libxdr.NewXdrMarshaler(),
 		dogwood:                dogwood,
+		storage:                storage,
 		receivedSubmittedTxs:   make(chan submittedTxsFrom),
 		receivedConsensusValue: make(chan consensusValueFrom),
 		receivedEnvelope:       make(chan envelopeFrom),
@@ -134,6 +142,8 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 }
 
 func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
+	// persist the envelopes originating from our scp
+	x.storage.PersistSCPEnvelope(ctx, env)
 	return x.SendSCPEnvelope(ctx, env)
 }
 

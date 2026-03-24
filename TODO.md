@@ -6,7 +6,7 @@ CATCHUP BLOCK PERSISTENCE
 
 SCP
 
-- [ ] are our scp envelopes persisted?
+- [x] are our scp envelopes persisted?
 
 QUESTIONS
 

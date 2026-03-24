@@ -18,7 +18,7 @@ type SCPBackfeed interface {
 
 type SCPBroker struct {
 	router          router.Router
-	storage         *storage.DiskStorage
+	storage         storage.SCPEnvelopePersistence
 	repair          *repairagent.RepairAgent
 	controller      *scpd.SCPController
 	controllerReady chan struct{}
@@ -27,7 +27,7 @@ type SCPBroker struct {
 func NewSCPBroker(
 	ctx context.Context,
 	router router.Router,
-	storage *storage.DiskStorage,
+	storage storage.SCPEnvelopePersistence,
 	repair *repairagent.RepairAgent,
 ) *SCPBroker {
 	return &SCPBroker{

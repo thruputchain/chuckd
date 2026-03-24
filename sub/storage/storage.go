@@ -41,6 +41,7 @@ func NewStorage(ctx context.Context, cfg Config) *DiskStorage {
 	}
 	var _ CatchupBlockPersistence = s
 	var _ ConsensusValuePersistence = s
+	var _ SCPEnvelopePersistence = s
 	return s
 }
 
