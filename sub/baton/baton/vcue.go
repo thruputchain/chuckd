@@ -36,6 +36,9 @@ func (x scpHandler) ValidateCue(
 		return scpkit.InvalidValue
 	}
 
+	x.baton.validating.Lock(cvc.Cv_hash)
+	defer x.baton.validating.Unlock(cvc.Cv_hash)
+
 	reply := make(chan scpkit.ValidationLevel, 1)
 	go x.baton.validateCue(ctx, slot, &cvc, reply)
 	level = <-reply
