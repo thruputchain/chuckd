@@ -117,7 +117,7 @@ cat > config-${HOG_HOST_2}.json << EOF
 }
 EOF
 rm -rf ./validator-storage-${HOG_HOST_2}
-$1 -l debug --stack --config config-${HOG_HOST_2}.json \
+$1 -l info --stack --config config-${HOG_HOST_2}.json \
     --rpc-log-stats \
 	--instance 982951 \
 	--seed 668639415096168636 \
