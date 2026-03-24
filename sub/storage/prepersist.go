@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 )
 
@@ -55,12 +56,16 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 	x.lock(full)
 	defer x.unlock(full)
 
+	prepersist := prepersist(ctx, full)
+
+	liblog.Debugf("pre-persisting %s to %s", full, prepersist)
+
 	// if the target persist file already exists, do nothing
 	if isPresent(full) {
+		liblog.Debugf("pre-persisting %s: persisted already", full)
 		return
 	}
 
-	prepersist := prepersist(ctx, full)
 	writeFileAtomically(ctx, prepersist, w)
 }
 
@@ -70,12 +75,17 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 	x.lock(full)
 	defer x.unlock(full)
 
+	prepersist := prepersist(ctx, full)
+
+	liblog.Debugf("persisting %s to %s", full, prepersist)
+
 	if isPresent(full) {
+		liblog.Debugf("persisting %s: persisted already", full)
 		return
 	}
 
-	prepersist := prepersist(ctx, full)
 	if isPresent(prepersist) { // if pre-persist copy exists, use it
+		liblog.Debugf("persisting %s: using pre-persist copy", full)
 		err := os.Rename(prepersist, full)
 		must.NoError(ctx, err)
 		return
@@ -88,11 +98,15 @@ func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string
 	x.lock(full)
 	defer x.unlock(full)
 
+	prepersist := prepersist(ctx, full)
+
+	liblog.Debugf("persisting already pre-persisted %s to %s", full, prepersist)
+
 	if isPresent(full) {
+		liblog.Debugf("persisting already pre-persisted %s: persisted already", full)
 		return
 	}
 
-	prepersist := prepersist(ctx, full)
 	must.Assert(ctx, isPresent(prepersist))
 
 	err := os.Rename(prepersist, full)

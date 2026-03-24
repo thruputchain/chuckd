@@ -36,7 +36,6 @@ func (cbp *CatchupBlockPool) CatchupBlockPoolAdd(
 
 	liblog.Infof("adding catchup block to pool: height %d; cv_hash %s; proposer %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash),
-		// libxdr.HashString(protoutil.HashCVFast(&cb.Consensus_value)),
 		protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
 	donePersisting := make(chan struct{})
@@ -48,7 +47,6 @@ func (cbp *CatchupBlockPool) CatchupBlockPoolAdd(
 
 		liblog.Infof("finished pre-persisting catchup block: height %d; cv_hash %s; proposer %s",
 			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash),
-			// libxdr.HashString(protoutil.HashCVFast(&cb.Consensus_value)),
 			protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
 		cbp.lk.Lock()

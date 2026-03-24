@@ -30,6 +30,7 @@ func (b *Baton) validateProposal(
 		NumTx:             numTxs,
 		Height:            nomination.Block_height,
 		BlockHash:         nomination.Block_hash,
+		CVHash:            cvh,
 		DbgConsensusValue: cv,
 	}
 	liblog.Infof("%v", eventValidating)
@@ -41,6 +42,7 @@ func (b *Baton) validateProposal(
 			NumTx:             numTxs,
 			Height:            nomination.Block_height,
 			BlockHash:         nomination.Block_hash,
+			CVHash:            cvh,
 			DbgConsensusValue: cv,
 		}
 		liblog.Infof("%v", eventValidated)
