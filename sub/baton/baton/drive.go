@@ -128,6 +128,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		}
 
 		if !currentWasReplaced {
+			b.handler.SetCurrentNomination(&cvc.Cv_hash)
 			b.setValidated(cv, cvc.Cv_hash, blockID)
 			liblog.Infof("nominated block at height %d with block hash %s",
 				cv.Nomination.Block_height,

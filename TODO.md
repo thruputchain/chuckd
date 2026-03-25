@@ -6,8 +6,11 @@ SCP
 
 - [x] are our scp envelopes persisted?
 
+- [ ] must we serve missing txs for our nominations after they are committed?
 - [ ] persist open nominations
   - [ ] on restart submit_vetted their txs to scheduler
+
+===
 
 - [ ] if qset for an incoming validation request is missing, should we wait until it arrives from discovery (instead of saying invalid)? Dos?
 

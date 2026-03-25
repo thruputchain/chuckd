@@ -61,8 +61,8 @@ type Baton struct {
 	levers batonkit.BatonLevers
 
 	// state, under lk
-	committing      bool
-	nominating      *nominating
+	committing bool
+	nominating *nominating
 	tipDb           proto.DbTip
 	tipExt          externalizedConsensus
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests

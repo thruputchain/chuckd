@@ -2,6 +2,7 @@ package repairservice
 
 import (
 	"context"
+	"sync"
 
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
@@ -19,6 +20,9 @@ type RepairService struct {
 	cvpool      *cvpool.ConsensusValuePool // use to repair missing consensus values
 	schedReady  chan struct{}
 	brokerReady chan struct{}
+	//
+	lk        sync.Mutex
+	nominated *proto.ConsensusValueHash
 }
 
 func NewRepairService(
@@ -45,7 +49,18 @@ func (x *RepairService) Repair_null(ctx context.Context) error {
 	return nil
 }
 
-// XXX: verify block_hash is our nomination; verify requester is worth responding to, and their signature
+func (x *RepairService) SetCurrentNomination(cvh *proto.ConsensusValueHash) {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	x.nominated = cvh
+}
+
+func (x *RepairService) getCurrentNomination() *proto.ConsensusValueHash {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return x.nominated
+}
+
 func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
@@ -54,8 +69,13 @@ func (x *RepairService) Repair_missing_txs(
 
 	<-x.schedReady // wait for x.conn != nil
 
-	// XXX: verify env.Missing_transactions.Block_hash is our nomination, and
-	// XXX: requested txs are part of our nomination
+	// verify the request is for our current or latest nomination, otherwise deny
+	ourNomination := x.getCurrentNomination()
+	if ourNomination == nil || *ourNomination != env.Missing_transactions.Cv_hash {
+		liblog.Errorf("repair missing transactions request denied: our_last_nomination_cv_hash=%s; request_cv_hash=%s",
+			libxdr.HashString(*ourNomination), libxdr.HashString(env.Missing_transactions.Cv_hash))
+		return proto.RepairedTransactions{}, nil
+	}
 
 	found, err := x.conn.Schedcoord_lookup_transactions(ctx, env.Missing_transactions.Transaction_hashes)
 	must.NoError(ctx, err)

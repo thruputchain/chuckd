@@ -145,6 +145,7 @@ func NewSystem(
 		outside,
 		s.Router,
 		s.RepairAgent,
+		s.RepairService,
 		s.CVPool,
 		s.CBPool,
 		s.Multiplex,

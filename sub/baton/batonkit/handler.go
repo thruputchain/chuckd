@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
+	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -22,6 +23,7 @@ type Handler interface {
 	BlockHandler
 	proto.SchedulerCoord1
 	repairkit.RepairAgent
+	repairservice.RepairProvider
 	cvpool.CVPool
 	catchup.CBPool
 	scpbroker.SCPBackfeed

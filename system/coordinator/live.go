@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
+	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
@@ -34,6 +35,7 @@ type LiveHandler struct {
 	sched.SchedulerCoordConn
 	router router.Router
 	*repairagent.RepairAgent
+	*repairservice.RepairService
 	*cvpool.ConsensusValuePool
 	*catchup.CatchupBlockPool
 	multiplex     *multiplex.Multiplex
@@ -57,6 +59,7 @@ func NewLiveHandler(
 	outside libnet.Network,
 	router router.Router,
 	repairAgent *repairagent.RepairAgent,
+	repairService *repairservice.RepairService,
 	cvpool *cvpool.ConsensusValuePool,
 	catchup *catchup.CatchupBlockPool,
 	multiplex *multiplex.Multiplex,
@@ -72,6 +75,7 @@ func NewLiveHandler(
 		outside:            outside,
 		router:             router,
 		RepairAgent:        repairAgent,
+		RepairService:      repairService,
 		ConsensusValuePool: cvpool,
 		CatchupBlockPool:   catchup,
 		multiplex:          multiplex,
