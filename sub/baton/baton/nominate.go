@@ -113,6 +113,11 @@ func (b *Baton) nominate(
 	// this will be committed/persisted by commit if the block is committed.
 	b.handler.CatchupBlockPoolAdd(ctx, *cb, cvc.Cv_hash)
 
+	// XXX: catchup block must be pre-persisted before we nominate it to SCP, because
+	// if the SCP message goes out before the pre-persist is complete, and the node dies
+	// it won't be able to server missing transaction requests.
+	// b.handler.CatchupBlockPoolPrePersist(ctx, nomination.Block_height, cvc.Cv_hash)
+
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
 	b.lock()

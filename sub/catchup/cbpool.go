@@ -77,12 +77,24 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(_ context.Context, cvHash prot
 		libxdr.HashString(cvHash))
 }
 
+func (cbp *CatchupBlockPool) CatchupBlockPoolPrePersist(
+	ctx context.Context,
+	height proto.BlockHeight,
+	cvHash proto.ConsensusValueHash,
+) {
+	liblog.Infof("waiting for pre-persisting of catchup block: height %d; cv_hash %s",
+		height, libxdr.HashString(cvHash))
+
+	cbp.waitFinishPrePersist(ctx, cvHash)
+	// NOTE: we have no way of knowing currently if the block had initiated pre-persist at all.
+}
+
 func (cbp *CatchupBlockPool) CatchupBlockPoolPersist(
 	ctx context.Context,
 	height proto.BlockHeight,
 	cvHash proto.ConsensusValueHash,
 ) {
-	liblog.Infof("persisting catchup block: height %d; cv_hash %s",
+	liblog.Infof("waiting for persisting of catchup block: height %d; cv_hash %s",
 		height, libxdr.HashString(cvHash))
 
 	cbp.waitFinishPrePersist(ctx, cvHash)
