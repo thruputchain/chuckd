@@ -1,12 +1,18 @@
 CATCHUP BLOCK PERSISTENCE
 
 - [ ] loadgen test catchup (3-node, 1 node restarts)
-  - [ ] Why same cv validated multiple times?
-    - [ ] Are multiple validation requests initiating validation before previous finished and cached?
 
 SCP
 
 - [x] are our scp envelopes persisted?
+
+- [ ] if qset for an incoming validation request is missing, should we wait until it arrives from discovery (instead of saying invalid)? Dos?
+
+- restarting scp
+    - [ ] Feed all persisted envelopes above last committed
+    - [ ] A validate request for an already nominated block may result in missing txs, so don’t nominated before persisting txs (and serve them on demand) A node may have to request missing txs from self (if it nominated before restart)
+    - [ ] Coordinator also needs to remember it already nominated?
+    - [ ] unit tests?
 
 QUESTIONS
 
