@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -237,6 +238,45 @@ func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, e
 	}
 
 	return filtered, nil
+}
+
+func FindCatchupFilesByHash(dir string, cvHash proto.ConsensusValueHash) (string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	persistSuffix := fmt.Sprintf("-%x.xdr", cvHash)
+	prePersistSuffix := persistSuffix + ".prepersist"
+
+	var matches []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+
+		name := e.Name()
+		if strings.HasSuffix(name, persistSuffix) || strings.HasSuffix(name, prePersistSuffix) {
+			matches = append(matches, filepath.Join(dir, name))
+		}
+	}
+	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
+
+	switch len(matches) {
+	case 0:
+		return "", nil
+	case 1:
+		return matches[0], nil
+	default:
+		// it should not be the case that a persit and pre-persist files exist
+		// for the sam cv hash.
+		// it should not be possible that multiple files have the same hash, but
+		// different heights.
+		return "", fmt.Errorf("multiple catchup files found for hash %x: %v", cvHash, matches)
+	}
 }
 
 // Matches strings like: "00000000000000001234"

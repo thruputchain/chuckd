@@ -51,7 +51,7 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 	return r(file)
 }
 
-// PrePersist is idempotent. If the file already exists, it does nothing.
+// PrePersist is idempotent. If the persisted or pre-persisted file already exists, it does nothing.
 func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writer) error) {
 	x.lock(full)
 	defer x.unlock(full)
@@ -63,6 +63,13 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 	// if the target persist file already exists, do nothing
 	if isPresent(full) {
 		liblog.Debugf("pre-persisting %s: persisted already", full)
+		return
+	}
+
+	if isPresent(prepersist) { // if pre-persist copy exists, use it
+		liblog.Debugf("pre-persisting %s: pre-persisted already", prepersist)
+		err := os.Rename(prepersist, full)
+		must.NoError(ctx, err)
 		return
 	}
 

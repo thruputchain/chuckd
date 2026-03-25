@@ -103,6 +103,29 @@ func (x *DiskStorage) PersistCatchupBlock(
 	)
 }
 
+// LookupCatchupBlock finds persisted or pre-persisted catchup blocks with given cv hash.
+// Blocks we have nominated but are not committed will be found in pre-persist.
+func (x *DiskStorage) LookupCatchupBlock(
+	ctx context.Context,
+	cvHash proto.ConsensusValueHash,
+) *proto.CatchupBlock {
+	<-x.ready
+
+	full, err := FindCatchupFilesByHash(x.CatchupBlocksDirpath(), cvHash)
+	must.NoError(ctx, err)
+	if full == "" {
+		return nil
+	}
+
+	cb := &proto.CatchupBlock{}
+	err = x.catchupPP.Load(ctx, full, func(r io.Reader) error {
+		return libxdr.UnmarshalXdrReader(cb, r)
+	})
+	must.NoError(ctx, err)
+
+	return cb
+}
+
 func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
