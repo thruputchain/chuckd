@@ -13,8 +13,6 @@ jobs:
     runs-on: namespace-profile-chuckd-rs-linux
     steps:
       - uses: namespacelabs/nscloud-checkout-action@v8
-        with:
-          submodules: recursive
 
       - uses: webfactory/ssh-agent@v0.9.1
         with:
@@ -23,6 +21,9 @@ jobs:
             ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
             ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
             ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+
+      - name: Fetch submodules
+        run: git submodule update --init --recursive
 
       - uses: actions/setup-go@v5
         with:
