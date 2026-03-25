@@ -123,8 +123,8 @@ func ParseUnixNano(s string) (time.Time, error) {
 	return time.Unix(sec, nano).UTC(), nil
 }
 
-// Matches e.g. scp-000000017213.123456789-deadbeef.xdr
-var scpRE = regexp.MustCompile(`^scp-(\d{12}\.\d{9})-([0-9a-fA-F]+)\.xdr$`)
+// Matches e.g. scp-deadbeef.xdr
+var scpRE = regexp.MustCompile(`^scp-([0-9a-fA-F]+)\.xdr$`)
 
 func ListScpFiles(dir string) ([]string, error) {
 
@@ -144,7 +144,7 @@ func ListScpFiles(dir string) ([]string, error) {
 		}
 	}
 
-	// list in ascending chrono order, breaking ties with hashes
+	// list in ascending lex order
 	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
 
 	return matches, nil
@@ -164,12 +164,15 @@ func (x *DiskStorage) SCPEnvelopeSlotpath(slot proto.SCPSlotIndex) string {
 	)
 }
 
-func (x *DiskStorage) SCPEnvelopeFilepath(slot proto.SCPSlotIndex, stamp time.Time, hash []byte) string {
+// SCP envelopes may be persisted multiple times; their filenames must be purely content-dependent.
+func (x *DiskStorage) SCPEnvelopeFilepath(slot proto.SCPSlotIndex, hash []byte) string {
 	return path.Join(
 		x.SCPEnvelopeSlotpath(slot),
-		fmt.Sprintf("scp-%s-%x.xdr", FormatUnixNano(stamp), hash),
+		fmt.Sprintf("scp-%x.xdr", hash),
 	)
 }
+
+// catchup blocks
 
 func (x *DiskStorage) CatchupBlocksDirpath() string {
 	return path.Join(

@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"time"
 
 	"github.com/gofrs/flock"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -238,7 +237,7 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 	<-x.ready
 
 	hash := libxdr.HashXdr(x.scpM, &env)
-	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, time.Now(), hash[:5])
+	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, hash[:5])
 
 	x.scpPP.Persist(ctx, full,
 		func(w io.Writer) error {

@@ -5,6 +5,8 @@ CATCHUP BLOCK PERSISTENCE
 SCP
 
 - [x] are our scp envelopes persisted?
+
+- [x] scp envelope persistence should NOT add timestamp (multiplies refeeded messages)
 - [ ] compress scp envelopes using their monotone order
 
 - [ ] must we serve missing txs for our nominations after they are committed?
