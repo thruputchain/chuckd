@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: namespace-profile-chuckd-rs-linux
+    steps:
+      - uses: namespacelabs/nscloud-checkout-action@v8
+        with:
+          submodules: recursive
+
+      - uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: |
+            ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+            ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
+            ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+            ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+
+      - name: Set up Go private modules
+        run: |
+          go env -w GOPRIVATE=github.com/groundhogchain/*
+          go env -w GONOSUMDB=github.com/groundhogchain/*
+          go env -w GONOPROXY=github.com/groundhogchain/*
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+      - name: Build chuckd
+        run: ./scripts/build_chuckd.sh
+
+      - name: Build scpd
+        run: |
+          export CARGO_NET_GIT_FETCH_WITH_CLI=true
+          ./scripts/build_scpd.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            chuckd.dev
+            scpd.dev
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
