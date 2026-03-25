@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+env:
+  CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
+  CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
 permissions:
   contents: write
 
@@ -49,9 +54,7 @@ jobs:
         run: ./scripts/build_chuckd.sh
 
       - name: Build scpd
-        run: |
-          export CARGO_NET_GIT_FETCH_WITH_CLI=true
-          ./scripts/build_scpd.sh
+        run: ./scripts/build_scpd.sh
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
