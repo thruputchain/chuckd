@@ -80,6 +80,7 @@ func (b *Baton) validateProposal(
 		case proto.SchedulerValidationMissingTxs:
 			missing := proto.MissingTransactions{
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
+				Cv_hash:            cvh,
 				Block_hash:         nomination.Block_hash,
 			}
 			err := b.repairMissingTxs(ctx, nomination.Proposer, missing)

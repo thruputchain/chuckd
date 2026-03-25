@@ -6,13 +6,16 @@ SCP
 
 - [x] are our scp envelopes persisted?
 
+- [ ] persist open nominations
+  - [ ] on restart submit_vetted their txs to scheduler
+
 - [ ] if qset for an incoming validation request is missing, should we wait until it arrives from discovery (instead of saying invalid)? Dos?
 
 - restarting scp
-    - [ ] Feed all persisted envelopes above last committed
-    - [ ] A validate request for an already nominated block may result in missing txs, so don’t nominated before persisting txs (and serve them on demand) A node may have to request missing txs from self (if it nominated before restart)
-    - [ ] Coordinator also needs to remember it already nominated?
-    - [ ] unit tests?
+  - [ ] Feed all persisted envelopes above last committed
+  - [ ] A validate request for an already nominated block may result in missing txs, so don’t nominated before persisting txs (and serve them on demand) A node may have to request missing txs from self (if it nominated before restart)
+  - [ ] Coordinator also needs to remember it already nominated?
+  - [ ] unit tests?
 
 QUESTIONS
 
