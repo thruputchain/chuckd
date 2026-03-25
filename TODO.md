@@ -5,8 +5,11 @@ CATCHUP BLOCK PERSISTENCE
 SCP
 
 - [x] are our scp envelopes persisted?
+- [ ] compress scp envelopes using their monotone order
 
 - [ ] must we serve missing txs for our nominations after they are committed?
+  - dm: You need to keep transactions around for a little while, yes. Imagine a symmetric configuration with a quorum size of 2f+1 out of 3f+1 nodes. Now say f nodes are slow and missing the previous block, but then a different f nodes crash permanently. You don't want to have to do f complete blockchain state transfers when it would suffice just to send the f slow nodes a block's worth of transactions.
+
 - [ ] persist open nominations
   - [ ] on restart submit_vetted their txs to scheduler
 

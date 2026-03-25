@@ -9,6 +9,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -50,6 +51,8 @@ func (b *Baton) validateProposal(
 	}()
 
 	for {
+		liblog.Infof("scheduler validating: height=%d; cv_hash=%s",
+			nomination.Block_height, libxdr.HashString(cvh))
 		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, nomination)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -61,6 +64,9 @@ func (b *Baton) validateProposal(
 		switch schedValidResult.Outcome {
 
 		case proto.SchedulerValidationOK:
+			liblog.Infof("scheduler validated: height=%d; cv_hash=%s",
+				nomination.Block_height, libxdr.HashString(cvh))
+
 			vblock := schedValidResult.Block()
 
 			cb := &proto.CatchupBlock{
@@ -75,9 +81,13 @@ func (b *Baton) validateProposal(
 			return vblock.Db_tip, nil
 
 		case proto.SchedulerValidationInvalid:
+			liblog.Infof("scheduler invalidated: height=%d; cv_hash=%s",
+				nomination.Block_height, libxdr.HashString(cvh))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationMissingTxs:
+			liblog.Infof("scheduler is missing transactions: height=%d; cv_hash=%s",
+				nomination.Block_height, libxdr.HashString(cvh))
 			missing := proto.MissingTransactions{
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
 				Cv_hash:            cvh,
