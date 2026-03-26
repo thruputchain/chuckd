@@ -53,6 +53,8 @@ func (b *Baton) validateCue(
 ) {
 
 	if slot != scpkit.Slot(cvc.Block_height) {
+		liblog.Errorf("scp slot disagrees with cv cue: cv_hash %s; slot %d; cue_height %d",
+			libxdr.HashString(cvc.Cv_hash), slot, proto.BlockHeight(cvc.Block_height))
 		reply <- scpkit.InvalidValue
 		return
 	}
