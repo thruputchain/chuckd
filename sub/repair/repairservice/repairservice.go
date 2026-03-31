@@ -22,7 +22,7 @@ type RepairService struct {
 	brokerReady chan struct{}
 	//
 	lk        sync.Mutex
-	nominated *proto.ConsensusValueHash
+	nominated map[proto.ConsensusValueHash]proto.BlockHeight
 }
 
 func NewRepairService(
@@ -32,6 +32,7 @@ func NewRepairService(
 		cvpool:      cvpool,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
+		nominated:   map[proto.ConsensusValueHash]proto.BlockHeight{},
 	}
 }
 
@@ -49,16 +50,25 @@ func (x *RepairService) Repair_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *RepairService) SetCurrentNomination(cvh *proto.ConsensusValueHash) {
+func (x *RepairService) AnnounceNomination(height proto.BlockHeight, cvh proto.ConsensusValueHash) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	x.nominated = cvh
+
+	// clear older nominations
+	for mHash, mHeight := range x.nominated {
+		if mHeight < height {
+			delete(x.nominated, mHash)
+		}
+	}
+
+	x.nominated[cvh] = height
 }
 
-func (x *RepairService) getCurrentNomination() *proto.ConsensusValueHash {
+func (x *RepairService) isOurNomination(cvh proto.ConsensusValueHash) bool {
 	x.lk.Lock()
 	defer x.lk.Unlock()
-	return x.nominated
+	_, ok := x.nominated[cvh]
+	return ok
 }
 
 func (x *RepairService) Repair_missing_txs(
@@ -70,10 +80,9 @@ func (x *RepairService) Repair_missing_txs(
 	<-x.schedReady // wait for x.conn != nil
 
 	// verify the request is for our current or latest nomination, otherwise deny
-	ourNomination := x.getCurrentNomination()
-	if ourNomination == nil || *ourNomination != env.Missing_transactions.Cv_hash {
-		liblog.Errorf("repair missing transactions request denied: our_last_nomination_cv_hash=%s; request_cv_hash=%s",
-			libxdr.HashString(*ourNomination), libxdr.HashString(env.Missing_transactions.Cv_hash))
+	if !x.isOurNomination(env.Missing_transactions.Cv_hash) {
+		liblog.Errorf("repair missing transactions request denied: request_cv_hash=%s",
+			libxdr.HashString(env.Missing_transactions.Cv_hash))
 		return proto.RepairedTransactions{}, nil
 	}
 
