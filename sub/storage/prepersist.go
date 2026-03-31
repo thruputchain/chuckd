@@ -68,8 +68,6 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 
 	if isPresent(prepersist) { // if pre-persist copy exists, use it
 		liblog.Debugf("pre-persisting %s: pre-persisted already", prepersist)
-		err := os.Rename(prepersist, full)
-		must.NoError(ctx, err)
 		return
 	}
 
