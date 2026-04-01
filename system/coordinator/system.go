@@ -268,6 +268,9 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	)
 	s.scpdKill = scpdKill
 
+	// broker must be ready for operation before the baton starts
+	s.SCPBroker.SetSCPController(scpController)
+
 	s.Discovery.Start(ctx, scpController)
 	s.Live.SetSCP(scpController)
 	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
@@ -310,7 +313,6 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		}()
 
 		// drive received envelopes into scp_control
-		s.SCPBroker.SetSCPController(scpController)
 		s.RepairService.SetSCPBroker(s.SCPBroker)
 		go func() {
 			for {
