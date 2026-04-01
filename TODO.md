@@ -19,6 +19,8 @@ SCP
 - [ ] in general, never replay scp envelopes for slots below db tip (or below highest externalized?)
   - [ ] scpd skips envs below externalized, but it does not know the initial lowest non-externalized slot
 
+- [ ] check unions in scp envelopes are correct before passing to scpd (at parsing level?)
+
 ===
 
 - [ ] if qset for an incoming validation request is missing, should we wait until it arrives from discovery (instead of saying invalid)? Dos?
