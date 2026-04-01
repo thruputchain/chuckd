@@ -68,6 +68,8 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 	// notify the scp broker so that it does not give scpd envelopes below the lowest non-externalized slot
 	x.baton.handler.SetLowestNonExternalized(ctx, slot+1)
 
+	liblog.Debugf("notified scp broker of lowest non-externalized slot %d", slot+1)
+
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
 	cv := x.baton.handler.ConsensusValuePoolLookupHash(ctx, cvc.Cv_hash)
