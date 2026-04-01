@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblock"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -61,8 +62,8 @@ type Baton struct {
 	levers batonkit.BatonLevers
 
 	// state, under lk
-	committing bool
-	nominating *nominating
+	committing      bool
+	nominating      *nominating
 	tipDb           proto.DbTip
 	tipExt          externalizedConsensus
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
@@ -175,6 +176,9 @@ func (b *Baton) start(ctx context.Context) {
 		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV))
 		liblog.Infof("externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
+
+	// notify scpd of the lowest non-externalized slot
+	b.handler.SetLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
 
 	// load known externalizations above db tip
 	higherCV := b.handler.ConsensusValuePoolFindAbove(ctx, b.tipDb.Height)

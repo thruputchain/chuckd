@@ -89,6 +89,11 @@ func (cc *SCPController) RemoveKnownQuorumSet(ctx context.Context, qhash proto.S
 	return oqset
 }
 
+func (cc *SCPController) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	err := cc.Scp_control_set_lowest_non_externalized_slot(ctx, slot)
+	must.NoError(ctx, err)
+}
+
 func (cc *SCPController) Close() {
 	cc.driver.Close()
 }
