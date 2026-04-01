@@ -65,9 +65,6 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 		libxdr.HashString(cvc.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
 
-	// notify the scp broker so that it does not give scpd envelopes below the lowest non-externalized slot
-	x.baton.handler.SetLowestNonExternalized(ctx, slot+1)
-
 	liblog.Debugf("notified scp broker of lowest non-externalized slot %d", slot+1)
 
 	// if we participated in this round, the cv shold be in our cv pool,

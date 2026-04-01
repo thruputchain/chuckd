@@ -206,7 +206,7 @@ func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusVal
 	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv, protoutil.HashCVFast(&cv))
 }
 
-func (h *TestRig) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+func (h *TestRig) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
 }
 
 func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {

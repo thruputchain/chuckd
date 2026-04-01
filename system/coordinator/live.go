@@ -152,6 +152,6 @@ func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slo
 	x.scpBroker.BackfeedSCPEnvelopes(ctx, since)
 }
 
-func (x *LiveHandler) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
-	x.scpBroker.SetLowestNonExternalized(ctx, slot)
+func (x *LiveHandler) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	x.scpBroker.InitSCPLowestNonExternalized(ctx, slot)
 }
