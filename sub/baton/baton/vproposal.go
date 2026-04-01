@@ -85,6 +85,11 @@ func (b *Baton) validateProposal(
 				nomination.Block_height, libxdr.HashString(cvh))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
+		case proto.SchedulerValidationTooLateToValidate:
+			liblog.Infof("scheduler is too late to validate: height=%d; cv_hash=%s",
+				nomination.Block_height, libxdr.HashString(cvh))
+			return proto.DbTip{}, batonkit.ErrNotValid
+
 		case proto.SchedulerValidationMissingTxs:
 			liblog.Infof("scheduler is missing transactions: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
@@ -108,6 +113,9 @@ func (b *Baton) validateProposal(
 		case proto.SchedulerValidationExecutorFailed:
 			// see https://github.com/groundhogchain/hogd/issues/541
 			liblog.Fatalf("cannot validate, executor failed")
+
+		default:
+			liblog.Fatalf("unknown scheduler validation outcome: %v", schedValidResult.Outcome)
 
 		}
 	}

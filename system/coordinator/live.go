@@ -151,3 +151,7 @@ func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue
 func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
 	x.scpBroker.BackfeedSCPEnvelopes(ctx, since)
 }
+
+func (x *LiveHandler) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	x.scpBroker.SetLowestNonExternalized(ctx, slot)
+}

@@ -15,7 +15,9 @@ SCP
   - [ ] on restart submit_vetted their txs to scheduler
 
 - [ ] on start, replay persisted scp envelopes above db tip
+
 - [ ] in general, never replay scp envelopes for slots below db tip (or below highest externalized?)
+  - [ ] scpd skips envs below externalized, but it does not know the initial lowest non-externalized slot
 
 ===
 
