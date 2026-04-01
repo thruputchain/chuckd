@@ -178,6 +178,7 @@ func (b *Baton) start(ctx context.Context) {
 	}
 
 	// notify scpd of the lowest non-externalized slot
+	// XXX: prevent scpd from processing envelopes before this call.
 	b.handler.SetLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
 
 	// load known externalizations above db tip

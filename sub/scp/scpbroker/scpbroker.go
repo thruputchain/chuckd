@@ -49,6 +49,7 @@ func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 }
 
 func (x *SCPBroker) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	<-x.controllerReady
 	x.controller.SetLowestNonExternalized(ctx, slot)
 
 	x.lk.Lock()
