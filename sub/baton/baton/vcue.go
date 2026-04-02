@@ -21,20 +21,24 @@ func (x scpHandler) ValidateCue(
 
 	<-x.baton.ready
 
-	kind := "ballot"
-	if nomination {
-		kind = "nomination"
-	}
-	liblog.Infof("validate value (%s) for slot %d requested", kind, slot)
-	defer func() {
-		liblog.Infof("validate value (%s) for slot %d completed with %v", kind, slot, scpkit.ValidationLevelString(level))
-	}()
-
 	var cvc proto.ConsensusValueCue
 	err := libxdr.UnmarshalXdr(&cvc, value)
 	if err != nil {
 		return scpkit.InvalidValue
 	}
+
+	kind := "ballot"
+	if nomination {
+		kind = "nomination"
+	}
+	liblog.Infof("validate value (%s) requested: slot %d; cv_hash %s; block_hash %s; proposer %s",
+		kind, slot, libxdr.HashString(cvc.Cv_hash), libxdr.HashString(cvc.Block_hash),
+		protoutil.VPublicShortString(cvc.Proposer))
+	defer func() {
+		liblog.Infof("validate value (%s) completed: slot %d; cv_hash %s; block_hash %s; proposer %s; result %v",
+			kind, slot, libxdr.HashString(cvc.Cv_hash), libxdr.HashString(cvc.Block_hash),
+			protoutil.VPublicShortString(cvc.Proposer), scpkit.ValidationLevelString(level))
+	}()
 
 	x.baton.validating.Lock(cvc.Cv_hash)
 	defer x.baton.validating.Unlock(cvc.Cv_hash)
