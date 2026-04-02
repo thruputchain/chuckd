@@ -158,7 +158,7 @@ func (b *Baton) nominate(
 
 		return cv, cvc, nominatedBlock.Block_id, nil
 	} else {
-		liblog.Infof("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
+		liblog.Errorf("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 
 		liblog.Debugf("coordinator_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)

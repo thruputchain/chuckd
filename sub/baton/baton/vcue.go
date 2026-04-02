@@ -63,7 +63,7 @@ func (b *Baton) validateCue(
 		return
 	}
 
-	liblog.Infof("validating cue: height %d; block_hash %s; cv_hash %s; proposer %s",
+	liblog.Debugf("validating cue: height %d; block_hash %s; cv_hash %s; proposer %s",
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
 		protoutil.VPublicShortString(cvc.Proposer))
 
@@ -80,7 +80,7 @@ func (b *Baton) validateCue(
 	}
 	if alreadyValidated != nil {
 		if b.ConsensusValueAgreesWithCue(alreadyValidated, cvc) {
-			liblog.Infof("cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+			liblog.Debugf("cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 			reply <- scpkit.FullyValidValue
 		} else {
 			liblog.Errorf("cv already validated, but disagrees with cue: cv_hash %s",
@@ -95,7 +95,7 @@ func (b *Baton) validateCue(
 	go func() {
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
-		liblog.Infof("cancelling validating cue at height %d, block hash %s, consensus hash %s",
+		liblog.Debugf("cancelling validating cue: height %d; block_hash %s; cv_hash %s",
 			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 		vCtxCancel()
 	}()

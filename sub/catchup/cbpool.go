@@ -52,7 +52,7 @@ func (cbp *CatchupBlockPool) CatchupBlockPoolAdd(
 		cbp.persist.PrePersistCatchupBlock(context.WithoutCancel(ctx), cb, cvHash)
 		close(donePersisting)
 
-		liblog.Infof("finished pre-persisting catchup block: height %d; cv_hash %s; proposer %s",
+		liblog.Debugf("finished pre-persisting catchup block: height %d; cv_hash %s; proposer %s",
 			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash),
 			protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 

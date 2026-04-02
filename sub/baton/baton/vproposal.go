@@ -64,7 +64,7 @@ func (b *Baton) validateProposal(
 		switch schedValidResult.Outcome {
 
 		case proto.SchedulerValidationOK:
-			liblog.Infof("scheduler validated: height=%d; cv_hash=%s",
+			liblog.Debugf("scheduler validated: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 
 			vblock := schedValidResult.Block()
