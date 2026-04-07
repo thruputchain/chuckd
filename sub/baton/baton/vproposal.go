@@ -90,6 +90,11 @@ func (b *Baton) validateProposal(
 				nomination.Block_height, libxdr.HashString(cvh))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
+		case proto.SchedulerValidationUnknownParentBlock:
+			liblog.Infof("scheduler cannot validate due to missing parent block: height=%d; cv_hash=%s",
+				nomination.Block_height, libxdr.HashString(cvh))
+			return proto.DbTip{}, batonkit.ErrNotValid
+
 		case proto.SchedulerValidationMissingTxs:
 			liblog.Infof("scheduler is missing transactions: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
