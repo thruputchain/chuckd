@@ -70,3 +70,9 @@ func (x *TestMempool) RemoveTxs(hashes []proto.SignedTransactionHash) {
 		delete(x.pool, h)
 	}
 }
+
+func (x *TestMempool) Len() int {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	return len(x.pool)
+}

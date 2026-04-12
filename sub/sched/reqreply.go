@@ -136,3 +136,15 @@ type Reply_Schedcoord_lookup_transactions struct {
 	OptSTB proto.OptSignedTransactionBatch
 	Err    error
 }
+
+type Request_Schedcoord_pending_transaction_count struct {
+	Reply chan<- Reply_Schedcoord_pending_transaction_count
+	Ctx   context.Context
+}
+
+func (Request_Schedcoord_pending_transaction_count) IsSchedCoordRequest() {}
+
+type Reply_Schedcoord_pending_transaction_count struct {
+	Count int64
+	Err   error
+}

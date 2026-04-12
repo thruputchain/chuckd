@@ -213,3 +213,7 @@ func (x *TestScheduler) Schedcoord_get_tip(ctx context.Context) (proto.Scheduler
 func (x *TestScheduler) Schedcoord_load_genesis_configuration(context.Context, proto.GenesisConfiguration) (proto.DbSchedResult, error) {
 	panic("not used")
 }
+
+func (x *TestScheduler) Schedcoord_pending_transaction_count(ctx context.Context) (int64, error) {
+	return int64(x.mempool.Len()), nil
+}
