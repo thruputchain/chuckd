@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -75,6 +76,9 @@ func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoor
 				lot := xdrutil.ParallelizeSignedTransactionBatch(
 					m, systemfixed.UnvettedTxBatchMaxSegments, batch)
 				err := sched.Schedulercoord_submit_unvetted(ctx, lot)
+				if errors.Is(err, context.Canceled) {
+					return
+				}
 				must.NoError(ctx, err)
 			},
 		)
