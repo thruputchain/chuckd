@@ -33,6 +33,7 @@ func NewCoordinatorBenchSystem(
 	outside libnet.Network,
 	cfg proto.Config,
 	testCfg CoordinatorBenchConfig,
+	dbDir string,
 ) *CoordinatorBenchSystem {
 	inside := testnet.NewTestNetwork()
 	notify := coordinator.NewNotifyReceive()
@@ -51,6 +52,7 @@ func NewCoordinatorBenchSystem(
 			s.UnvettedSubmitter,
 			testCfg,
 			false, // use slower testdb with consistency checks
+			dbDir,
 		),
 	}
 }

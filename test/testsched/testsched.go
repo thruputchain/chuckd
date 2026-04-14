@@ -32,11 +32,16 @@ type TestScheduler struct {
 	rand   *rand.Rand
 }
 
-func NewTestScheduler(ctx context.Context, signer proto.ValidatorPublicInfo, tip proto.DbTip) *TestScheduler {
+func NewTestScheduler(
+	ctx context.Context,
+	signer proto.ValidatorPublicInfo,
+	genesisTip proto.DbTip,
+	dbDir string,
+) *TestScheduler {
 	return &TestScheduler{
 		m:       libxdr.NewXdrMarshaler(),
 		signer:  signer,
-		db:      testdb.NewTestDb(ctx, tip),
+		db:      testdb.NewTestDb(ctx, genesisTip, dbDir),
 		ready:   make(chan struct{}),
 		mempool: testmempool.NewTestMempool(),
 		rand:    librand.NewRand(),

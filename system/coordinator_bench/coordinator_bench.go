@@ -43,12 +43,14 @@ func NewCoordinatorBenchCluster(
 	submitter kit.SignedTxSubmitter,
 	cfg CoordinatorBenchConfig,
 	speed bool,
+	dbDir string,
 ) *CoordinatorBenchCluster {
 
 	sched := testsched.NewTestScheduler(
 		ctx,
 		validator.Public_info,
 		proto.DbTip{Height: 0},
+		dbDir,
 	)
 
 	userPriv, err := protoutil.GenerateIdentity(rand, "")

@@ -4,18 +4,22 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/groundhogchain/chuckd/test/testutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type TestDb struct {
-	lk  sync.Mutex
-	id  map[proto.BlockID]*testDbSnapshot
-	top *testDbSnapshot
+	lk             sync.Mutex
+	id             map[proto.BlockID]*testDbSnapshot
+	top            *testDbSnapshot
+	dbDir string
 }
 
 type testDbSnapshot struct {
@@ -25,10 +29,13 @@ type testDbSnapshot struct {
 	committed bool
 }
 
-func NewTestDb(ctx context.Context, tip proto.DbTip) *TestDb {
-	must.Assert(ctx, tip.Height >= 0)
+func NewTestDb(ctx context.Context, genesisTip proto.DbTip, dbDir string) *TestDb {
+	must.Assert(ctx, genesisTip.Height >= 0)
+	must.NoError(ctx, os.MkdirAll(dbDir, 0o755))
+	tip := loadTipFromDisk(dbDir, genesisTip)
 	db := &TestDb{
-		id: map[proto.BlockID]*testDbSnapshot{},
+		id:             map[proto.BlockID]*testDbSnapshot{},
+		dbDir: dbDir,
 	}
 	db.top = &testDbSnapshot{
 		tip:       tip,
@@ -119,6 +126,7 @@ func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.B
 	snap.committed = true
 	db.top = snap
 	uniquifyHash(snap.tip.Height, &snap.tip.Block_hash)
+	persistTipToDisk(ctx, db.dbDir, db.top.tip)
 	return snap.tip.Block_hash, snap.hashes
 }
 
@@ -160,4 +168,35 @@ func uniquifyHash(height proto.BlockHeight, hash *proto.BlockHash) {
 	for i := range *hash {
 		(*hash)[i] ^= heightHash[i]
 	}
+}
+
+func dbTipPath(dir string) string {
+	return filepath.Join(dir, "dbtip.json")
+}
+
+func loadTipFromDisk(dir string, genesisTip proto.DbTip) proto.DbTip {
+	data, err := os.ReadFile(dbTipPath(dir))
+	if err != nil {
+		return genesisTip
+	}
+	var tip proto.DbTip
+	if err := libxdr.JsonToXdr(&tip, data); err != nil {
+		return genesisTip
+	}
+	return tip
+}
+
+func persistTipToDisk(ctx context.Context, dir string, tip proto.DbTip) {
+	full := dbTipPath(dir)
+	staging, err := os.CreateTemp(dir, "dbtip-*.json")
+	must.NoError(ctx, err)
+	defer func() {
+		_ = os.Remove(staging.Name())
+	}()
+	js, err := libxdr.XdrToJson(&tip)
+	must.NoError(ctx, err)
+	_, err = staging.Write(js)
+	must.NoError(ctx, err)
+	must.NoError(ctx, staging.Close())
+	must.NoError(ctx, os.Rename(staging.Name(), full))
 }

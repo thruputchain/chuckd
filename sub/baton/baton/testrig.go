@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 
@@ -78,10 +79,13 @@ func NewTestRig(
 	h.TestConsensusValuePersistence = storage.NewTestConsensusValuePersistence()
 	h.ConsensusValuePool = cvpool.NewConsensusValuePool(ctx, h.TestConsensusValuePersistence)
 	h.TestCoord = testcoord.NewTestCoord()
+	dbDir, err := os.MkdirTemp("", "chuckd-baton-db-*")
+	must.NoError(ctx, err)
 	h.TestScheduler = testsched.NewTestScheduler(
 		ctx,
 		signer.Public_info,
 		proto.DbTip{Height: 0},
+		dbDir,
 	)
 	// place a consensus value for the db tip
 	cv0 := assumedConsensusValueAtHeight(0)

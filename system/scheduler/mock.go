@@ -24,10 +24,11 @@ func NewMockScheduler(
 	ctx context.Context,
 	inside libnet.Network,
 	validator proto.ValidatorPrivateInfo,
+	dbDir string,
 ) *MockScheduler {
 	return &MockScheduler{
 		inside: inside,
-		sched:  testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{Height: 0}),
+		sched:  testsched.NewTestScheduler(ctx, validator.Public_info, proto.DbTip{Height: 0}, dbDir),
 	}
 }
 

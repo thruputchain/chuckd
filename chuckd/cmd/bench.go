@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os/exec"
+	"path"
 
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	"github.com/groundhogchain/chuckd/runtime"
@@ -55,6 +56,7 @@ var (
 					outside,
 					cfg,
 					testCfg,
+					path.Join(benchStorageDir, "db"),
 				)
 				opcfg := coordinator.OperationalConfig{
 					StorageDir:     benchStorageDir,
@@ -98,7 +100,7 @@ var (
 				var schedSystem systemkit.SchedulerSystem
 				if benchMockScheduler {
 					inside = testnet.NewTestNetwork()
-					schedSystem = scheduler.NewMockScheduler(ctx, inside, cfg.Validator_config.Private_info)
+					schedSystem = scheduler.NewMockScheduler(ctx, inside, cfg.Validator_config.Private_info, path.Join(benchStorageDir, "db"))
 				} else {
 					inside = libnet.TCPNet{}
 					schedSystem = scheduler.NewLiveScheduler()
