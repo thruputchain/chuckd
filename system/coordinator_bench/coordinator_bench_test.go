@@ -1,0 +1,136 @@
+package coordinator_bench
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/groundhogchain/chuckd/deploy/common"
+	"github.com/groundhogchain/chuckd/system/coordinator"
+	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libtime"
+	proto "github.com/groundhogchain/protocol-go"
+)
+
+// hostScopedNetwork allows each validator to bind debug services on :port while
+// still sharing a common underlying TestNetwork.
+type hostScopedNetwork struct {
+	host string
+	base libnet.Network
+}
+
+func (n hostScopedNetwork) String() string {
+	return n.base.String()
+}
+
+func (n hostScopedNetwork) DialAddress(ctx context.Context, address string) (net.Conn, error) {
+	return n.base.DialAddress(ctx, address)
+}
+
+func (n hostScopedNetwork) ListenAddress(ctx context.Context, address string) (net.Listener, error) {
+	if strings.HasPrefix(address, ":") {
+		return n.base.ListenAddress(ctx, n.host+address)
+	}
+	return n.base.ListenAddress(ctx, address)
+}
+
+func Test3(t *testing.T) {
+	prevLevel := liblog.GetLogLevel()
+	_ = liblog.SetLogLevelDebug()
+	t.Cleanup(func() {
+		_ = liblog.SetLogLevel(prevLevel)
+	})
+
+	if os.Getenv("RUN_COORDINATOR_BENCH_TEST3") != "1" {
+		t.Skip("set RUN_COORDINATOR_BENCH_TEST3=1 to run this integration test")
+	}
+
+	scpdPath, err := exec.LookPath("scpd")
+	if err != nil {
+		t.Skip("skipping coordinator bench integration test: scpd not found")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	validatorAddrs := []string{"v0:23000", "v1:23000", "v2:23000"}
+
+	baseCfg := common.MakeBaseConfig(400*time.Millisecond, int64(len(validatorAddrs)), 5)
+	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
+
+	cfgs, _ := common.GenQuorumConfigs(ctx, rand.New(rand.NewSource(1)), baseCfg, validatorAddrs)
+
+	outsideBase := testnet.NewTestNetwork()
+	systems := make([]*CoordinatorBenchSystem, 0, len(cfgs))
+	opcfgs := make([]coordinator.OperationalConfig, 0, len(cfgs))
+	readies := make([]chan struct{}, 0, len(cfgs))
+
+	for i := range cfgs {
+		outside := hostScopedNetwork{
+			host: strings.Split(validatorAddrs[i], ":")[0],
+			base: outsideBase,
+		}
+
+		dbDir := filepath.Join(t.TempDir(), "db")
+		storageDir := filepath.Join(t.TempDir(), "storage")
+
+		sys := NewCoordinatorBenchSystem(
+			ctx,
+			libtime.RealTime{},
+			rand.New(rand.NewSource(int64(i+10))),
+			outside,
+			cfgs[i],
+			CoordinatorBenchConfig{
+				TxsPerSec: 100,
+				SchedPort: 31000,
+			},
+			dbDir,
+		)
+		systems = append(systems, sys)
+		t.Cleanup(sys.Close)
+
+		opcfgs = append(opcfgs, coordinator.OperationalConfig{
+			StorageDir:     storageDir,
+			SchedAddr:      sys.SchedAddress(),
+			DebugPort:      40555,
+			InAddr:         fmt.Sprintf("in-%d", i),
+			OutAddr:        validatorAddrs[i],
+			WalletAddr:     "127.0.0.1:0",
+			SCPDaemonPath:  scpdPath,
+			SCPHandleAddr:  fmt.Sprintf("127.0.0.1:%d", 3330+i),
+			SCPControlAddr: fmt.Sprintf("127.0.0.1:%d", 4440+i),
+			IsValidator:    true,
+		})
+
+		readies = append(readies, make(chan struct{}))
+	}
+
+	var wg sync.WaitGroup
+	for i := range systems {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			systems[i].Start(ctx, opcfgs[i], 3, readies[i])
+		}(i)
+	}
+
+	for _, ready := range readies {
+		select {
+		case <-ready:
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for coordinator bench systems to complete: %v", ctx.Err())
+		}
+	}
+
+	wg.Wait()
+}
