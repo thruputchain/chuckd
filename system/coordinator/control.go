@@ -27,7 +27,7 @@ func (x Control) SubmitParallelTxs(ctx context.Context, txs proto.ParallelSigned
 }
 
 func (x Control) SignalGenesisIsReady() {
-	close(x.genesisReady)
+	x.system.signalGenesisIsReady()
 }
 
 func (x Control) SetLevers(levers batonkit.BatonLevers) {

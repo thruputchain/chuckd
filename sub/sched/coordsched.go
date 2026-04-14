@@ -2,7 +2,9 @@ package sched
 
 import (
 	"context"
+	"errors"
 	"net"
+	"sync"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
@@ -14,16 +16,32 @@ import (
 
 type CoordSchedulerService struct {
 	vetted chan proto.ParallelSignedTransactionBatch
+	done   chan struct{}
+	once   sync.Once
 }
 
 func NewCoordSchedulerService() *CoordSchedulerService {
 	return &CoordSchedulerService{
 		vetted: make(chan proto.ParallelSignedTransactionBatch, 1),
+		done:   make(chan struct{}),
 	}
 }
 
-func (x *CoordSchedulerService) ReceiveVetted() proto.ParallelSignedTransactionBatch {
-	return <-x.vetted
+func (x *CoordSchedulerService) ReceiveVetted(ctx context.Context) (proto.ParallelSignedTransactionBatch, bool) {
+	select {
+	case <-ctx.Done():
+		return proto.ParallelSignedTransactionBatch{}, false
+	case <-x.done:
+		return proto.ParallelSignedTransactionBatch{}, false
+	case batch := <-x.vetted:
+		return batch, true
+	}
+}
+
+func (x *CoordSchedulerService) Stop() {
+	x.once.Do(func() {
+		close(x.done)
+	})
 }
 
 func (x *CoordSchedulerService) Coordscheduler_null(ctx context.Context) error {
@@ -31,8 +49,14 @@ func (x *CoordSchedulerService) Coordscheduler_null(ctx context.Context) error {
 }
 
 func (x *CoordSchedulerService) Coordscheduler_notify_vetted(ctx context.Context, txs proto.ParallelSignedTransactionBatch) error {
-	x.vetted <- txs
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-x.done:
+		return errors.New("coord scheduler service is stopped")
+	case x.vetted <- txs:
+		return nil
+	}
 }
 
 // client

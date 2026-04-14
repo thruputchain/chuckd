@@ -2,6 +2,7 @@ package scpd
 
 import (
 	"context"
+	"net"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/netutil"
@@ -16,6 +17,7 @@ type SCPHandler struct {
 	env   scpkit.SCPEmitEnvelope // implemented by multiplex
 	qset  scpkit.SCPGetQuorumSet // implemented by discovery
 	scp   scpkit.SCPHandler      // implemented by baton
+	l     net.Listener
 }
 
 func NewSCPHandler(ctx context.Context) *SCPHandler {
@@ -35,7 +37,15 @@ func (x *SCPHandler) SetHandlers(
 
 func (x *SCPHandler) Start(ctx context.Context, addr string) {
 	// must use parallel because validations are long-running
-	librpc.StartParallel(ctx, libnet.TCPNet{}, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, addr, proto.SCP_Handle1_Server{Srv: x})
+	x.l = librpc.StartParallel(ctx, libnet.TCPNet{}, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, addr, proto.SCP_Handle1_Server{Srv: x})
+}
+
+func (x *SCPHandler) Stop() {
+	if x.l == nil {
+		return
+	}
+	_ = x.l.Close()
+	x.l = nil
 }
 
 func (x *SCPHandler) Scp_handle_null(context.Context) error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/runtime"
@@ -22,6 +23,8 @@ type CoordinatorBenchSystem struct {
 	notify  *coordinator.NotifyReceive
 	*coordinator.System
 	*CoordinatorBenchCluster
+	stopOnce sync.Once
+	stop     chan struct{}
 }
 
 func NewCoordinatorBenchSystem(
@@ -41,6 +44,7 @@ func NewCoordinatorBenchSystem(
 		outside: outside,
 		notify:  notify,
 		System:  s,
+		stop:    make(chan struct{}),
 		CoordinatorBenchCluster: NewCoordinatorBenchCluster(
 			ctx,
 			time,
@@ -92,8 +96,17 @@ func (s *CoordinatorBenchSystem) Start(
 
 	// wait for numCommits and signal ready
 	go func() {
-		for range numCommits {
-			s.notify.ReceiveCommitted(ctx)
+		for i := 0; i < numCommits; i++ {
+			select {
+			case <-ctx.Done():
+				return
+			case <-s.stop:
+				return
+			default:
+			}
+			if s.notify.ReceiveCommitted(ctx) == nil {
+				return
+			}
 		}
 		benchDuration := time.Since(t0)
 		fmt.Println(
@@ -104,7 +117,16 @@ func (s *CoordinatorBenchSystem) Start(
 		// giving time to stragglers to complete
 		go func() {
 			for {
-				s.notify.ReceiveCommitted(ctx)
+				select {
+				case <-ctx.Done():
+					return
+				case <-s.stop:
+					return
+				default:
+				}
+				if s.notify.ReceiveCommitted(ctx) == nil {
+					return
+				}
 			}
 		}()
 		time.Sleep(time.Second * 2)
@@ -114,5 +136,13 @@ func (s *CoordinatorBenchSystem) Start(
 }
 
 func (s *CoordinatorBenchSystem) Close() {
-	s.System.Close()
+	s.Stop()
+}
+
+func (s *CoordinatorBenchSystem) Stop() {
+	s.stopOnce.Do(func() {
+		close(s.stop)
+	})
+	s.CoordinatorBenchCluster.Stop()
+	s.System.Stop()
 }

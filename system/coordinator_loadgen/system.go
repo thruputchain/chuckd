@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/net/debug"
@@ -29,6 +30,7 @@ type CoordinatorLoadgenSystem struct {
 	scheduler   systemkit.SchedulerSystem
 	loadgen     *loadgen.LoadGen
 	skip        int
+	stopOnce    sync.Once
 }
 
 func NewCoordinatorLoadgenSystem(
@@ -277,6 +279,13 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 }
 
 func (s *CoordinatorLoadgenSystem) Close() {
-	s.coordinator.Close()
-	s.loadgen.Close()
+	s.Stop()
+}
+
+func (s *CoordinatorLoadgenSystem) Stop() {
+	s.stopOnce.Do(func() {
+		s.loadgen.Close()
+		s.scheduler.Stop()
+		s.coordinator.Stop()
+	})
 }

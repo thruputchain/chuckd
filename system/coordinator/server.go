@@ -27,5 +27,13 @@ func (s *Server) Start(ctx context.Context, net libnet.Network, address string) 
 }
 
 func (s *Server) Close() {
-	s.l.Close()
+	s.Stop()
+}
+
+func (s *Server) Stop() {
+	if s.l == nil {
+		return
+	}
+	_ = s.l.Close()
+	s.l = nil
 }

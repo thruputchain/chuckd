@@ -4,6 +4,8 @@ package wallet
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -23,6 +25,8 @@ type WalletGateway struct {
 	r      *gin.Engine
 	lk     sync.Mutex
 	user   map[string]proto.WalletUser
+	server *http.Server
+	ln     net.Listener
 }
 
 func init() {
@@ -63,11 +67,35 @@ func (g *WalletGateway) Service() proto.Wallet1 {
 }
 
 func (g *WalletGateway) StartHTTP(_ context.Context, address string) {
+	g.lk.Lock()
+	defer g.lk.Unlock()
+	if g.server != nil {
+		return
+	}
+	ln, err := net.Listen("tcp", address)
+	if err != nil {
+		liblog.Fatalf("start wallet gateway http server listener: %v", err)
+	}
+	server := &http.Server{Handler: g.r}
+	g.server = server
+	g.ln = ln
 	go func() {
-		if err := g.r.Run(address); err != nil {
+		if err := server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			liblog.Fatalf("start wallet gateway http server: %v", err)
 		}
 	}()
+}
+
+func (g *WalletGateway) Stop(ctx context.Context) {
+	g.lk.Lock()
+	server := g.server
+	g.server = nil
+	g.ln = nil
+	g.lk.Unlock()
+	if server == nil {
+		return
+	}
+	_ = server.Shutdown(ctx)
 }
 
 // User structure passed over HTTP on login
@@ -127,10 +155,7 @@ func (g *WalletGateway) authMiddleware(c *gin.Context) {
 	}
 
 	// Extract token (remove "Bearer " prefix if present)
-	tokenString := authHeader
-	if strings.HasPrefix(tokenString, "Bearer ") {
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
-	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 	// Parse and validate token
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaim{},

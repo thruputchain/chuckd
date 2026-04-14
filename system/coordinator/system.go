@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/net/discovery"
@@ -33,6 +34,10 @@ import (
 
 type System struct {
 	cfg proto.Config
+	//
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 	//
 	time    libtime.Time
 	inside  libnet.Network
@@ -65,8 +70,14 @@ type System struct {
 	insideSrv  *Server
 	outsideSrv *Server
 	//
-	SchedConn sched.SchedulerCoordConn
-	scpdKill  func()
+	SchedConn     sched.SchedulerCoordConn
+	scpHandler    *scpd.SCPHandler
+	scpController *scpd.SCPController
+	scpdKill      func()
+	//
+	genesisReady chan struct{}
+	genesisOnce  sync.Once
+	stopOnce     sync.Once
 }
 
 func NewSystem(
@@ -77,6 +88,7 @@ func NewSystem(
 	inside libnet.Network,
 	outside libnet.Network,
 ) *System {
+	sysCtx, sysCancel := context.WithCancel(ctx)
 
 	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
 	liblog.Infof("initializing validator %v", protoutil.VIDString(vid))
@@ -85,27 +97,30 @@ func NewSystem(
 		notify = IgnoreNotify{}
 	}
 	s := &System{
-		cfg:     cfg,
-		time:    libtime.RealTime{},
-		inside:  inside,
-		outside: outside,
-		signer:  protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
+		cfg:          cfg,
+		ctx:          sysCtx,
+		cancel:       sysCancel,
+		time:         libtime.RealTime{},
+		inside:       inside,
+		outside:      outside,
+		signer:       protoutil.SignerFromPrivate(cfg.Validator_config.Private_info),
+		genesisReady: make(chan struct{}),
 	}
 
 	s.CoordScheduler = sched.NewCoordSchedulerService()
 
 	s.Discovery = discovery.NewDiscoveryService(
-		ctx,
+		s.ctx,
 		outside,
 		*cfg.Discovery_config,
 		*cfg.Validator_config,
 		*cfg.Scp_config,
 	)
 
-	s.Router = router.NewDynamicUniformRouter(ctx, s.Discovery, int(cfg.Router_config.Tree_fan_out))
+	s.Router = router.NewDynamicUniformRouter(s.ctx, s.Discovery, int(cfg.Router_config.Tree_fan_out))
 
 	s.Dogwood = dogwood.NewDogwoodService(
-		ctx,
+		s.ctx,
 		*cfg.Dogwood_config,
 		s.time,
 		runtime.NewRandFromRand(rand),
@@ -115,16 +130,16 @@ func NewSystem(
 		s.Router,
 	)
 
-	s.Storage = storage.NewStorage(ctx, storage.Config{
+	s.Storage = storage.NewStorage(s.ctx, storage.Config{
 		Freq:             time.Duration(cfg.Storage_config.Reclaim_interval_msec) * time.Millisecond,
 		MaxCatchupBlocks: int(cfg.Storage_config.Max_catchup_blocks),
 		MaxSCPSlots:      int(cfg.Storage_config.Max_scp_slots),
 	})
 
-	s.Multiplex = multiplex.NewMultiplex(ctx, vid, s.Dogwood, s.Storage)
+	s.Multiplex = multiplex.NewMultiplex(s.ctx, vid, s.Dogwood, s.Storage)
 
-	s.CVPool = cvpool.NewConsensusValuePool(ctx, s.Storage)
-	s.CBPool = catchup.NewCatchupBlockPool(ctx, s.Storage)
+	s.CVPool = cvpool.NewConsensusValuePool(s.ctx, s.Storage)
+	s.CBPool = catchup.NewCatchupBlockPool(s.ctx, s.Storage)
 
 	s.RepairService = repairservice.NewRepairService(s.CVPool)
 	s.RepairAgent = repairagent.NewRepairAgent(
@@ -135,7 +150,7 @@ func NewSystem(
 		s.Router,
 		s.CVPool,
 	)
-	s.SCPBroker = scpbroker.NewSCPBroker(ctx, s.Router, s.Storage, s.RepairAgent)
+	s.SCPBroker = scpbroker.NewSCPBroker(s.ctx, s.Router, s.Storage, s.RepairAgent)
 
 	s.Live = NewLiveHandler(
 		notify,
@@ -154,10 +169,10 @@ func NewSystem(
 		runtime.NewRandFromRand(rand),
 	)
 
-	s.Baton = baton.NewBaton(ctx, *cfg.Baton_config, s.Live)
+	s.Baton = baton.NewBaton(s.ctx, *cfg.Baton_config, s.Live)
 
 	s.Catchup = catchup.NewCatchupService(
-		ctx,
+		s.ctx,
 		s.signer,
 		libtime.RealTime{},
 		outside,
@@ -165,25 +180,25 @@ func NewSystem(
 	)
 
 	s.UnvettedSubmitter = NewUnvettedSubmitter(
-		ctx,
+		s.ctx,
 		libtime.RealTime{},
 		int(cfg.Mempool_config.Submission_lot_size),
 		time.Duration(cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 	)
 
 	s.Wallet = wallet.NewWalletGateway(
-		ctx,
+		s.ctx,
 		s.UnvettedSubmitter,
 		cfg.Wallet_config.Secret_key,
 		cfg.Wallet_config.Users,
 	)
 
-	s.insideSrv = NewServer(ctx,
+	s.insideSrv = NewServer(s.ctx,
 		proto.CoordScheduler1_Server{Srv: s.CoordScheduler},
 		proto.Wallet1_Server{Srv: s.Wallet.Service()},
 	)
 
-	s.outsideSrv = NewServer(ctx,
+	s.outsideSrv = NewServer(s.ctx,
 		proto.Discovery1_Server{Srv: s.Discovery},
 		proto.Dogwood1_Server{Srv: s.Dogwood},
 		proto.Catchup1_Server{Srv: s.Catchup},
@@ -242,23 +257,23 @@ type OperationalConfig struct {
 
 func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 
-	s.Storage.Start(ctx, opcfg.StorageDir)
+	s.Storage.Start(s.ctx, opcfg.StorageDir)
 
 	// start internal rpcs before connecting to scheduler, so scheduler can connect back
-	s.insideSrv.Start(ctx, s.inside, opcfg.InAddr) // serves: coord_sched.x, wallet.x
+	s.insideSrv.Start(s.ctx, s.inside, opcfg.InAddr) // serves: coord_sched.x, wallet.x
 
-	schedConn, err := sched.ConnectToScheduler(ctx, s.inside, opcfg.SchedAddr, opcfg.InAddr)
+	schedConn, err := sched.ConnectToScheduler(s.ctx, s.inside, opcfg.SchedAddr, opcfg.InAddr)
 	must.NoError(ctx, err)
 	s.SchedConn = schedConn
 
 	s.RepairService.SetSchedConn(schedConn)
 	s.Live.SetScheduler(schedConn)
 
-	s.UnvettedSubmitter.Start(ctx, schedConn)
+	s.UnvettedSubmitter.Start(s.ctx, schedConn)
 
 	// handshake with scpd
 	scpHandler, scpController, scpdKill := scpd.StartSCPDaemon(
-		ctx,
+		s.ctx,
 		opcfg.SCPDaemonPath,
 		opcfg.SCPControlAddr,
 		opcfg.SCPHandleAddr,
@@ -266,34 +281,43 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		*s.cfg.Scp_config,
 		protoutil.ToSecretKey(s.cfg.Validator_config.Private_info.Secret_key),
 	)
+	s.scpHandler = scpHandler
+	s.scpController = scpController
 	s.scpdKill = scpdKill
 
 	// broker must be ready for operation before the baton starts
 	s.SCPBroker.SetSCPController(scpController)
 
-	s.Discovery.Start(ctx, scpController)
+	s.Discovery.Start(s.ctx, scpController)
 	s.Live.SetSCP(scpController)
 	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
 
-	s.Dogwood.Start(ctx) // dogwood
+	s.Dogwood.Start(s.ctx) // dogwood
 
-	s.outsideSrv.Start(ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
+	s.outsideSrv.Start(s.ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
 
-	s.Wallet.StartHTTP(ctx, opcfg.WalletAddr)
+	s.Wallet.StartHTTP(s.ctx, opcfg.WalletAddr)
 
-	s.Dogwood.WaitReady(ctx) // wait until routes have been disseminated
+	s.Dogwood.WaitReady(s.ctx) // wait until routes have been disseminated
 
-	genesisReady := make(chan struct{})
+	s.wg.Add(1)
 	go func() {
-		<-genesisReady // wait for genesis to be in the db
+		defer s.wg.Done()
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-s.genesisReady: // wait for genesis to be in the db
+		}
 		liblog.Infof("genesis ready")
 
-		s.Baton.Start(ctx)
+		s.Baton.Start(s.ctx)
 
 		// drive vetted transactions to dissemination
+		s.wg.Add(1)
 		go func() {
+			defer s.wg.Done()
 			buf := NewBatchingBufferForParallelSignedTxs(
-				ctx,
+				s.ctx,
 				s.time,
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
@@ -306,30 +330,37 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				},
 			)
 			for {
-				batch := s.CoordScheduler.ReceiveVetted()
+				batch, ok := s.CoordScheduler.ReceiveVetted(s.ctx)
+				if !ok {
+					return
+				}
 				liblog.Debugf("received %d vetted txs from scheduler", xdrutil.SizeOfBatch(batch))
-				buf.Submit(ctx, batch)
+				buf.Submit(s.ctx, batch)
 			}
 		}()
 
 		// drive received envelopes into scp_control
 		s.RepairService.SetSCPBroker(s.SCPBroker)
+		s.wg.Add(1)
 		go func() {
+			defer s.wg.Done()
 			for {
-				_, env, ok := s.Multiplex.ReceiveEnvelope(ctx)
+				_, env, ok := s.Multiplex.ReceiveEnvelope(s.ctx)
 				if !ok {
 					return
 				}
-				s.SCPBroker.ReceivedEnvelope(ctx, *env)
+				s.SCPBroker.ReceivedEnvelope(s.ctx, *env)
 			}
 		}()
 
 		// drive received txs into mempool
+		s.wg.Add(1)
 		go func() {
+			defer s.wg.Done()
 			m := libxdr.NewXdrMarshaler()
 			_ = m
 			for {
-				sender, submittedTxs, ok := s.Multiplex.ReceiveSubmittedTxs(ctx)
+				sender, submittedTxs, ok := s.Multiplex.ReceiveSubmittedTxs(s.ctx)
 				if !ok {
 					return
 				}
@@ -341,7 +372,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				// 	form.Display(protoutil.HashSignedTxs(m, submittedTxs.Transactions)))
 
 				err := schedConn.Schedulercoord_submit_vetted(
-					ctx,
+					s.ctx,
 					proto.ValidatorID{}, // XXX: who vetted them is not known
 					submittedTxs.Transactions)
 				must.NoError(ctx, err)
@@ -349,9 +380,11 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		}()
 
 		// drive received consensus values into cvpool
+		s.wg.Add(1)
 		go func() {
+			defer s.wg.Done()
 			for {
-				sender, cv, ok := s.Multiplex.ReceiveConsensusValue(ctx)
+				sender, cv, ok := s.Multiplex.ReceiveConsensusValue(s.ctx)
 				if !ok {
 					return
 				}
@@ -360,7 +393,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 					liblog.Errorf("received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
 					continue
 				}
-				s.CVPool.ConsensusValuePoolAdd(ctx, *cv, protoutil.HashCVFast(cv))
+				s.CVPool.ConsensusValuePoolAdd(s.ctx, *cv, protoutil.HashCVFast(cv))
 			}
 		}()
 	}()
@@ -368,7 +401,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	return Control{
 		system:       s,
 		conn:         schedConn,
-		genesisReady: genesisReady,
+		genesisReady: s.genesisReady,
 	}
 }
 
@@ -392,16 +425,57 @@ func (s *System) ResumeNominating() {
 	s.Baton.ResumeNominating()
 }
 
+func (s *System) signalGenesisIsReady() {
+	s.genesisOnce.Do(func() {
+		close(s.genesisReady)
+	})
+}
+
+func (s *System) Stop() {
+	s.stopOnce.Do(func() {
+		s.signalGenesisIsReady()
+		if s.cancel != nil {
+			s.cancel()
+		}
+		if s.UnvettedSubmitter != nil {
+			s.UnvettedSubmitter.Stop()
+		}
+		if s.CoordScheduler != nil {
+			s.CoordScheduler.Stop()
+		}
+		if s.insideSrv != nil {
+			liblog.Infof("coordinator stopping inside network")
+			s.insideSrv.Stop()
+		}
+		if s.outsideSrv != nil {
+			liblog.Infof("coordinator stopping outside network")
+			s.outsideSrv.Stop()
+		}
+		if s.Wallet != nil {
+			liblog.Infof("coordinator stopping wallet gateway")
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			s.Wallet.Stop(ctx)
+			cancel()
+		}
+		if s.SchedConn != nil {
+			liblog.Infof("coordinator closing scheduler connection")
+			s.SchedConn.Close()
+		}
+		if s.scpController != nil {
+			s.scpController.Close()
+		}
+		if s.scpHandler != nil {
+			s.scpHandler.Stop()
+		}
+		if s.scpdKill != nil {
+			liblog.Infof("coordinator killing scpd")
+			s.scpdKill()
+		}
+		s.wg.Wait()
+		liblog.Infof("coordinator stopped")
+	})
+}
+
 func (s *System) Close() {
-	liblog.Infof("coordinator stopping inside network")
-	s.insideSrv.Close()
-	liblog.Infof("coordinator stopping outside network")
-	s.outsideSrv.Close()
-	if s.SchedConn != nil {
-		liblog.Infof("coordinator closing scheduler connection")
-		s.SchedConn.Close()
-	}
-	liblog.Infof("coordinator killing scpd")
-	s.scpdKill()
-	liblog.Infof("coordinator stopped")
+	s.Stop()
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/kit"
@@ -27,6 +29,9 @@ type CoordinatorBenchCluster struct {
 	sched     *testsched.TestScheduler
 	gen       *testutil.TestGen
 	submitter kit.SignedTxSubmitter
+	l         net.Listener
+	stopPump  chan struct{}
+	stopOnce  sync.Once
 }
 
 type CoordinatorBenchConfig struct {
@@ -68,6 +73,7 @@ func NewCoordinatorBenchCluster(
 			userPriv.Secret_key,
 		),
 		submitter: submitter,
+		stopPump:  make(chan struct{}),
 	}
 }
 
@@ -77,7 +83,7 @@ func (x *CoordinatorBenchCluster) SchedAddress() string {
 
 func (x *CoordinatorBenchCluster) StartScheduler(ctx context.Context) {
 	liblog.Infof("starting mock scheduler")
-	librpc.StartSerial(ctx, x.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
+	x.l = librpc.StartSerial(ctx, x.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
 }
 
 func (x *CoordinatorBenchCluster) StartPump(ctx context.Context) {
@@ -87,10 +93,28 @@ func (x *CoordinatorBenchCluster) StartPump(ctx context.Context) {
 
 func (x *CoordinatorBenchCluster) pumpTxs(ctx context.Context) {
 	liblog.Infof("testcluster pumping txs")
+	t := time.NewTicker(500 * time.Millisecond)
+	defer t.Stop()
 	for {
-		time.Sleep(time.Millisecond * 500) // 1/2 of second resolution
-		for i := 0; i < int(x.cfg.TxsPerSec)/2; i++ {
-			x.submitter.SubmitTxs(ctx, x.gen.GenSignedTx(ctx))
+		select {
+		case <-ctx.Done():
+			return
+		case <-x.stopPump:
+			return
+		case <-t.C:
+			for i := 0; i < int(x.cfg.TxsPerSec)/2; i++ {
+				x.submitter.SubmitTxs(ctx, x.gen.GenSignedTx(ctx))
+			}
 		}
+	}
+}
+
+func (x *CoordinatorBenchCluster) Stop() {
+	x.stopOnce.Do(func() {
+		close(x.stopPump)
+	})
+	if x.l != nil {
+		_ = x.l.Close()
+		x.l = nil
 	}
 }

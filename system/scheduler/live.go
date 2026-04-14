@@ -19,3 +19,5 @@ func (x *LiveScheduler) StartScheduler(ctx context.Context, opcfg coordinator.Op
 func (x *LiveScheduler) ConnectSchedulerToCoordinator(ctx context.Context, opcfg coordinator.OperationalConfig) {
 	// live scheduler connects to coordinator on its own
 }
+
+func (x *LiveScheduler) Stop() {}

@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd/system/systemfixed"
@@ -20,6 +21,8 @@ type UnvettedSubmitter struct {
 	maxWait time.Duration
 	lot     chan []*proto.SignedTransaction
 	parlot  chan proto.ParallelSignedTransactionBatch
+	done    chan struct{}
+	once    sync.Once
 }
 
 func NewUnvettedSubmitter(
@@ -34,15 +37,30 @@ func NewUnvettedSubmitter(
 		maxWait: maxWait,
 		lot:     make(chan []*proto.SignedTransaction),
 		parlot:  make(chan proto.ParallelSignedTransactionBatch),
+		done:    make(chan struct{}),
 	}
 }
 
 func (x *UnvettedSubmitter) SubmitTxs(ctx context.Context, txs ...*proto.SignedTransaction) {
-	x.lot <- txs
+	select {
+	case <-ctx.Done():
+	case <-x.done:
+	case x.lot <- txs:
+	}
 }
 
 func (x *UnvettedSubmitter) SubmitParallelTxs(ctx context.Context, txs proto.ParallelSignedTransactionBatch) {
-	x.parlot <- txs
+	select {
+	case <-ctx.Done():
+	case <-x.done:
+	case x.parlot <- txs:
+	}
+}
+
+func (x *UnvettedSubmitter) Stop() {
+	x.once.Do(func() {
+		close(x.done)
+	})
 }
 
 func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoord1) {
@@ -64,6 +82,8 @@ func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoor
 			select {
 			case <-ctx.Done():
 				return
+			case <-x.done:
+				return
 			case txs := <-x.lot:
 				liblog.Debugf("submitting %d unvetted txs from wallet to scheduler", len(txs))
 				buf.Submit(ctx, protoutil.Pack(txs))
@@ -74,6 +94,8 @@ func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoor
 		for {
 			select {
 			case <-ctx.Done():
+				return
+			case <-x.done:
 				return
 			case txs := <-x.parlot:
 				liblog.Debugf("submitting %d parallel unvetted txs from wallet to scheduler",
