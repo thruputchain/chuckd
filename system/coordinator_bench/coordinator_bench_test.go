@@ -44,15 +44,23 @@ func (n hostScopedNetwork) ListenAddress(ctx context.Context, address string) (n
 	return n.base.ListenAddress(ctx, address)
 }
 
-func Test3(t *testing.T) {
+func Test3Healthy(t *testing.T) {
+	testHealthyValidators(t, "RUN_COORDINATOR_BENCH_TEST3", 3)
+}
+
+func Test2Healthy1Down(t *testing.T) {
+	testHealthyValidators(t, "RUN_COORDINATOR_BENCH_TEST3", 2)
+}
+
+func testHealthyValidators(t *testing.T, envVar string, numToStart int) {
 	prevLevel := liblog.GetLogLevel()
 	_ = liblog.SetLogLevelDebug()
 	t.Cleanup(func() {
 		_ = liblog.SetLogLevel(prevLevel)
 	})
 
-	if os.Getenv("RUN_COORDINATOR_BENCH_TEST3") != "1" {
-		t.Skip("set RUN_COORDINATOR_BENCH_TEST3=1 to run this integration test")
+	if os.Getenv(envVar) != "1" {
+		t.Skipf("set %s=1 to run this integration test", envVar)
 	}
 
 	scpdPath, err := exec.LookPath("scpd")
@@ -116,7 +124,7 @@ func Test3(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	for i := range systems {
+	for i := range systems[:numToStart] {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -124,7 +132,7 @@ func Test3(t *testing.T) {
 		}(i)
 	}
 
-	for _, ready := range readies {
+	for _, ready := range readies[:numToStart] {
 		select {
 		case <-ready:
 		case <-ctx.Done():

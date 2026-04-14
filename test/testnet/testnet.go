@@ -35,7 +35,7 @@ func (x *TestNetwork) Dial(ctx context.Context, network string, address string) 
 		return nil, fmt.Errorf("no listener on address %v", address)
 	}
 
-	return l.dial(), nil
+	return l.dial()
 }
 
 func (x *TestNetwork) Listen(ctx context.Context, network string, address string) (net.Listener, error) {

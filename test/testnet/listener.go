@@ -12,6 +12,7 @@ type testListener struct {
 	addr    string
 	ch      chan *testHalfConn
 	lk      sync.Mutex
+	closed  bool
 	naccept int
 }
 
@@ -24,9 +25,12 @@ func newTestListener(n *TestNetwork, address string) *testListener {
 }
 
 // dial is called inside a network lock!
-func (x *testListener) dial() net.Conn {
+func (x *testListener) dial() (net.Conn, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
+	if x.closed {
+		return nil, net.ErrClosed
+	}
 
 	c := newTestConn(
 		fmt.Sprintf("%s/dialer/%d", x.addr, x.naccept),
@@ -36,7 +40,7 @@ func (x *testListener) dial() net.Conn {
 
 	x.ch <- c.acceptor
 
-	return c.dialer
+	return c.dialer, nil
 }
 
 func (x *testListener) Accept() (net.Conn, error) {
@@ -48,6 +52,12 @@ func (x *testListener) Accept() (net.Conn, error) {
 }
 
 func (x *testListener) Close() error {
+	x.lk.Lock()
+	defer x.lk.Unlock()
+	if x.closed {
+		return nil
+	}
+	x.closed = true
 	close(x.ch)
 	return nil
 }
