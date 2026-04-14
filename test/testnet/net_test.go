@@ -3,6 +3,7 @@ package testnet
 import (
 	"bytes"
 	"context"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -47,4 +48,29 @@ func TestDialAccept(t *testing.T) {
 	c.Close()
 
 	wg.Wait()
+}
+
+func TestCloseRemovesListenerAddress(t *testing.T) {
+	ctx := context.Background()
+	testAddress := "alpha"
+
+	v := NewTestNetwork()
+	l, err := v.Listen(ctx, "", testAddress)
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+
+	if err := l.Close(); err != nil {
+		t.Fatalf("close failed: %v", err)
+	}
+
+	if _, err := v.Dial(ctx, "", testAddress); err == nil {
+		t.Fatalf("expected dial to fail after listener close")
+	} else if !strings.Contains(err.Error(), "no listener on address") {
+		t.Fatalf("unexpected dial error: %v", err)
+	}
+
+	if _, err := v.Listen(ctx, "", testAddress); err != nil {
+		t.Fatalf("expected address to be reusable after close: %v", err)
+	}
 }

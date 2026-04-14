@@ -52,13 +52,22 @@ func (x *testListener) Accept() (net.Conn, error) {
 }
 
 func (x *testListener) Close() error {
+	x.net.lk.Lock()
+	defer x.net.lk.Unlock()
+
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	if x.closed {
 		return nil
 	}
+
 	x.closed = true
 	close(x.ch)
+
+	if l, ok := x.net.listeners[x.addr]; ok && l == x {
+		delete(x.net.listeners, x.addr)
+	}
+
 	return nil
 }
 
