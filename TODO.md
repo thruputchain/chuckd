@@ -1,5 +1,6 @@
 CATCHUP BLOCK PERSISTENCE
 
+- [ ] staggered start (without sync) doesn't seem to work
 - [ ] loadgen test catchup (3-node, 1 node restarts)
 
 SCP

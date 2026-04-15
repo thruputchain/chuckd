@@ -7,10 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/net/debug"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libtime"
 	"github.com/groundhogchain/lib-go/must"
@@ -66,16 +68,16 @@ func (s *CoordinatorBenchSystem) Start(
 	ready chan<- struct{},
 ) {
 	// start debug service and wait until all counterparties are ready
-	// counterAddr := make([]string, len(s.System.Config().Validator_config.Known_validators))
-	// colonPort := fmt.Sprintf(":%d", opcfg.DebugPort)
-	// for i, v := range s.System.Config().Validator_config.Known_validators {
-	// 	host, _, err := libnet.StripPort(v.Address)
-	// 	must.NoError(ctx, err)
-	// 	counterAddr[i] = host + colonPort
-	// }
-	// err := debug.StartAndWaitCounterpartiesReady(ctx, s.outside, colonPort, counterAddr)
-	// must.NoError(ctx, err)
-	// liblog.Infof("all counterparties are up; starting coordinator benchmark")
+	counterAddr := make([]string, len(s.System.Config().Validator_config.Known_validators))
+	colonPort := fmt.Sprintf(":%d", opcfg.DebugPort)
+	for i, v := range s.System.Config().Validator_config.Known_validators {
+		host, _, err := libnet.StripPort(v.Address)
+		must.NoError(ctx, err)
+		counterAddr[i] = host + colonPort
+	}
+	err := debug.StartAndWaitCounterpartiesReady(ctx, s.outside, colonPort, counterAddr)
+	must.NoError(ctx, err)
+	liblog.Infof("all counterparties are up; starting coordinator benchmark")
 
 	// record the beginning of the benchmark
 	t0 := time.Now()
