@@ -158,7 +158,8 @@ func (b *Baton) driveLiveness(ctx context.Context, v *View) {
 		return
 	}
 
-	liblog.Debugf("requesting backfeed")
+	slot := scpkit.Slot(v.HighestExternalizedOrCommitted() + 1)
+	liblog.Infof("requesting backfeed for slot %d", slot)
 	b.noteBackfeed()
-	b.handler.BackfeedSCPEnvelopes(ctx, scpkit.Slot(v.HighestExternalizedOrCommitted()+1))
+	b.handler.BackfeedSCPEnvelopes(ctx, slot)
 }
