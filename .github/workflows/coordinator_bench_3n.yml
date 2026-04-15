@@ -45,3 +45,11 @@ jobs:
             --key=cargo_registry_token --value=${{ secrets.GROUNDHOG_REGISTRY_TOKEN }} \
             --key=cargo_registry_global_credential_providers --value=${{ env.CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS }} \
             ./scripts/schedules/coordinator_bench_3n.toml
+
+      - name: Upload bench log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-3n-log-${{ github.run_id }}
+          path: bench-3n-*.log
+          if-no-files-found: error

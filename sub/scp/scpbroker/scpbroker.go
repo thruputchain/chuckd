@@ -70,7 +70,7 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, slot scpkit.Slot) {
 	// XXX: this needs a timeout
 	envs, err := x.repair.RepairMissingSCP(ctx, slot)
 	if err != nil {
-		liblog.Errorf("tried to repair missing scp envelopes: %v", err)
+		liblog.Errorf("tried to repair missing scp envelopes for slot %d: %v", slot, err)
 		return
 	}
 

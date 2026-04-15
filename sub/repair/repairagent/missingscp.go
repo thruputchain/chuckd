@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -21,13 +22,13 @@ func (x *RepairAgent) RepairMissingSCP(
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, ps[0].Address)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to dial repair client %v: %w", protoutil.VPublicShortString(ps[0]), err)
 	}
 	defer c.Close()
 
 	envs, err := c.Repair_missing_scp_envelopes(ctx, since)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to repair missing scp envelopes for slot %d: %w", since, err)
 	}
 
 	return envs, nil
