@@ -41,7 +41,8 @@ func NewSCPController(ctx context.Context, sock net.Conn) *SCPController {
 }
 
 func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
-	err := cc.Scp_control_received_envelope(ctx, env)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	err := cc.Scp_control_received_envelope(context.WithoutCancel(ctx), env)
 	must.NoError(ctx, err)
 }
 
@@ -51,7 +52,8 @@ func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value s
 		liblog.Debugf("scpd_nominate_delay=%v | slot=%d", time.Since(t0), slot)
 	}()
 
-	r, err := cc.Scp_control_nominate(ctx, slot, value, prev)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	r, err := cc.Scp_control_nominate(context.WithoutCancel(ctx), slot, value, prev)
 	if err != nil {
 		// the context can be cancelled if an externalization occurs during the call to Scp_control_nominate.
 		// in this case, we return false (meaning nomination rejected).
@@ -62,35 +64,41 @@ func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value s
 }
 
 func (cc *SCPController) StopNomination(ctx context.Context, slot scpkit.Slot) {
-	err := cc.Scp_control_stop_nomination(ctx, slot)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	err := cc.Scp_control_stop_nomination(context.WithoutCancel(ctx), slot)
 	must.NoError(ctx, err)
 }
 
 func (cc *SCPController) UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
-	err := cc.Scp_control_update_local_quorum_set(ctx, qset)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	err := cc.Scp_control_update_local_quorum_set(context.WithoutCancel(ctx), qset)
 	must.NoError(ctx, err)
 }
 
 func (cc *SCPController) SetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet {
-	oqset, err := cc.Scp_control_set_qset(ctx, qset)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	oqset, err := cc.Scp_control_set_qset(context.WithoutCancel(ctx), qset)
 	must.NoError(ctx, err)
 	return oqset
 }
 
 func (cc *SCPController) GetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
-	oqset, err := cc.Scp_control_get_qset(ctx, qhash)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	oqset, err := cc.Scp_control_get_qset(context.WithoutCancel(ctx), qhash)
 	must.NoError(ctx, err)
 	return oqset
 }
 
 func (cc *SCPController) RemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
-	oqset, err := cc.Scp_control_remove_qset(ctx, qhash)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	oqset, err := cc.Scp_control_remove_qset(context.WithoutCancel(ctx), qhash)
 	must.NoError(ctx, err)
 	return oqset
 }
 
 func (cc *SCPController) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
-	err := cc.Scp_control_set_lowest_non_externalized_slot(ctx, slot)
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	err := cc.Scp_control_set_lowest_non_externalized_slot(context.WithoutCancel(ctx), slot)
 	must.NoError(ctx, err)
 }
 

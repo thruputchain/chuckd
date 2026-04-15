@@ -145,10 +145,3 @@ func (p *ConnPool) Schedcoord_lookup_transactions(ctx context.Context, sthb prot
 	r := <-reply
 	return r.OptSTB, r.Err
 }
-
-func (p *ConnPool) Schedcoord_pending_transaction_count(ctx context.Context) (int64, error) {
-	reply := make(chan Reply_Schedcoord_pending_transaction_count, 1)
-	p.req <- Request_Schedcoord_pending_transaction_count{Reply: reply, Ctx: ctx}
-	r := <-reply
-	return r.Count, r.Err
-}

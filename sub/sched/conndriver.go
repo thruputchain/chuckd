@@ -57,10 +57,6 @@ func driveConn(
 				optSTB, err := conn.Schedcoord_lookup_transactions(req.Ctx, req.STHB)
 				req.Reply <- Reply_Schedcoord_lookup_transactions{OptSTB: optSTB, Err: err}
 
-			case Request_Schedcoord_pending_transaction_count:
-				count, err := conn.Schedcoord_pending_transaction_count(req.Ctx)
-				req.Reply <- Reply_Schedcoord_pending_transaction_count{Count: count, Err: err}
-
 			default:
 				panic("unknown sched_coord request type")
 			}
