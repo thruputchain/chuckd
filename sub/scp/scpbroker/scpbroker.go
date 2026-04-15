@@ -79,7 +79,7 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, slot scpkit.Slot) {
 	}
 
 	for i, env := range envs {
-		liblog.Debugf("backfilling envelope %d of %d", i+1, len(envs))
+		liblog.Debugf("backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
 		// dont replay envelopes other than the requested slot
 		if env.Statement.Slot_index == slot {
 			x.ReceivedEnvelope(ctx, env)

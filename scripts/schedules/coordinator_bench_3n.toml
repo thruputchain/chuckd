@@ -24,7 +24,7 @@ HOST="{{ .hog_host_key }}" \
 NODE="{{ .hog_host_key }}-of-{{ .hog_host_count }}" \
 HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 LOG_LEVEL="debug" \
-./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev ./scpd.dev > bench_3n.log 2>&1
+./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev ./scpd.dev > bench-3n-{{ .hog_host_key }}.log 2>&1
 
 """
 file_out = ["bench-3n-{{ .hog_host_key }}.log"]

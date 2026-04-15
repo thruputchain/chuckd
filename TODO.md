@@ -1,6 +1,6 @@
 CATCHUP BLOCK PERSISTENCE
 
-- [ ] dogwood dropped partial transmission may be indication of problem
+- [ ] dogwood dropped partial transmission may be indication of problem 
 
 - [ ] staggered start (without sync) doesn't seem to work
 - [ ] loadgen test catchup (3-node, 1 node restarts)
