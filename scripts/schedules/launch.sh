@@ -8,9 +8,6 @@ fi
 
 SCHED_DIR=$(dirname $(readlink -f "$2"))
 
-export CARGO_REGISTRIES_GROUNDHOG_TOKEN=${GROUNDHOG_DEV_TOKEN}
-export CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS="cargo:token"
-
 github_repo() {
     dir="$1"
 
