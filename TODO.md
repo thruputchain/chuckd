@@ -9,6 +9,12 @@ TESTS
 - [ ] staggered start (without sync) doesn't seem to work
 - [ ] loadgen test catchup (3-node, 1 node restarts)
 
+- [ ] design:
+  - when a node rejoins and is at slot S which is N slots behind live SCP, it will
+    receive validation requests for slots S+N, S+N+1, etc; currently these requests will wait
+    until the node's db reaches the height (via catchup); can we drop these requests knowing
+    the node's vote will not be necessary?
+
 SCP
 
 - [x] are our scp envelopes persisted?

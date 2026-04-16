@@ -49,8 +49,8 @@ func Test3Healthy(t *testing.T) {
 	testHealthyValidators(t, "RUN_COORDINATOR_BENCH_TEST3", 3)
 }
 
-func Test3StaggeredStart(t *testing.T) {
-	test3StaggeredStart(t, "RUN_COORDINATOR_BENCH_TEST3", 5*time.Second)
+func Test3Staggered(t *testing.T) {
+	test3Staggered(t, "RUN_COORDINATOR_BENCH_TEST3", 5*time.Second)
 }
 
 func Test2Healthy1Down(t *testing.T) {
@@ -273,7 +273,7 @@ func testHealthyValidators(t *testing.T, envVar string, numToStart int) {
 	wg.Wait()
 }
 
-func test3StaggeredStart(t *testing.T, envVar string, staggerDelay time.Duration) {
+func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 	prevLevel := liblog.GetLogLevel()
 	_ = liblog.SetLogLevelDebug()
 	t.Cleanup(func() {
