@@ -223,7 +223,7 @@ func testHealthyValidators(t *testing.T, envVar string, numToStart int) {
 		storageDir := filepath.Join(t.TempDir(), "storage")
 
 		sys := NewCoordinatorBenchSystem(
-			ctx,
+			liblog.WithLabeledLogger(ctx, fmt.Sprintf("v%d", i)),
 			libtime.RealTime{},
 			rand.New(rand.NewSource(int64(i+10))),
 			outside,
