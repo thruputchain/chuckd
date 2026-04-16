@@ -48,10 +48,10 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/groundhogchain/lib-go v0.0.0-20260415171039-16ef24cc3ea8 h1:clyvEE8bytGgn4Vx+bWr1yb9i1zaMQD7oknHzyL1n9Y=
-github.com/groundhogchain/lib-go v0.0.0-20260415171039-16ef24cc3ea8/go.mod h1:YmmS4z/q0hbdU5qFE8HOYX88pJ2J5xhDyIyOo9ahglU=
-github.com/groundhogchain/protocol-go v0.0.0-20260415170939-c49ab79caf56 h1:xFKMecbr870QduN7SRVGrjTK17hYNiLe2Ae6/FEc6rc=
-github.com/groundhogchain/protocol-go v0.0.0-20260415170939-c49ab79caf56/go.mod h1:mDWuIkSHajVAg762TDg0PasBo/e+958udCO5WdfKbjo=
+github.com/groundhogchain/lib-go v0.0.0-20260416213318-ec4be5f7e5c5 h1:x2LH/BxF4naVVnurCbX8GhDciYEKWxyCnYKiLepphCc=
+github.com/groundhogchain/lib-go v0.0.0-20260416213318-ec4be5f7e5c5/go.mod h1:/KO5H+OpY9tCMgvyvypHJJjbgZvczq8JAmGPiA8VoB0=
+github.com/groundhogchain/protocol-go v0.0.0-20260416213152-4cc4caaf935a h1:zoEIXC8OhYo4oA6/ghe7mDAAYKZuQMMmS1cxk9j+KXE=
+github.com/groundhogchain/protocol-go v0.0.0-20260416213152-4cc4caaf935a/go.mod h1:OTydl6lsE2qf5jipdKeYnABES41awOMjha6hzjkq8Oo=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
@@ -127,8 +127,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/xdrpp/goxdr v0.0.0-20260415170339-d653397022af h1:RFtLCG7wcynY+EHSAgYgttsxi+Qml+sS9LugJa9K0Rc=
-github.com/xdrpp/goxdr v0.0.0-20260415170339-d653397022af/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
+github.com/xdrpp/goxdr v0.0.0-20260416212807-46a6f2366f8d h1:1sV6TEnhng9pKnGxAu/zZtQssb7VuKHaLT1B9PNyVmU=
+github.com/xdrpp/goxdr v0.0.0-20260416212807-46a6f2366f8d/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.35.0 h1:xKWKPxrxB6OtMCbmMY021CqC45J+3Onta9MqjhnusiQ=
