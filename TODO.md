@@ -1,6 +1,9 @@
-CATCHUP BLOCK PERSISTENCE
+TESTS
 
-- [ ] dogwood dropped partial transmission may be indication of problem 
+- [ ] test: mocked scheduler, virtual network, 3-node/2-threshold, staggered start
+- [ ] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts
+- [ ] put mocked scheduler, virtual network tests in ci
+- [ ] test: die after nominating
 
 - [ ] staggered start (without sync) doesn't seem to work
 - [ ] loadgen test catchup (3-node, 1 node restarts)
