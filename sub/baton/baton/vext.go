@@ -15,7 +15,7 @@ func (b *Baton) validateExternalizedCue(
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
-	liblog.Debugf("validating cue for already externalized slot %d", slot)
+	liblog.Debugf(ctx, "validating cue for already externalized slot %d", slot)
 
 	cv := b.handler.ConsensusValuePoolFindHeight(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cv != nil)
@@ -34,7 +34,7 @@ func (b *Baton) validateExternalizedConsensus(
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
-	liblog.Debugf("validating consensus value for already externalized slot %d", slot)
+	liblog.Debugf(ctx, "validating consensus value for already externalized slot %d", slot)
 
 	cvx := b.handler.ConsensusValuePoolFindHeight(ctx, proto.BlockHeight(slot))
 	must.Assert(ctx, cvx != nil)

@@ -22,9 +22,9 @@ func NewTestBus() *TestBus {
 	}
 }
 
-func (b *TestBus) SendEvent(s time.Time, event any) {
+func (b *TestBus) SendEvent(ctx context.Context, s time.Time, event any) {
 	env := TestEnvelope{Stamp: s, Event: event}
-	liblog.Debugf("%s", event)
+	liblog.Debugf(ctx, "%s", event)
 	b.emitted <- env
 }
 

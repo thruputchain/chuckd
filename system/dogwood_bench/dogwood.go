@@ -131,9 +131,9 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 	bench.dogwood.WaitReady(ctx)
 
 	// hold the experiment until all nodes are online
-	liblog.Infof("waiting for counterparties to come online ...")
+	liblog.Infof(ctx, "waiting for counterparties to come online ...")
 	dogwood.WaitCounterpartiesReady(ctx, bench.net, bench.cfg.Validator_config.Known_validators)
-	liblog.Infof("all counterparties are online, starting benchmark")
+	liblog.Infof(ctx, "all counterparties are online, starting benchmark")
 
 	zeroPayload := make([]byte, bench.numPayBytes)
 
@@ -149,17 +149,17 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 	go func() {
 		defer wg.Done()
 		defer func() {
-			liblog.Infof("%v sent %s, at %s/sec",
+			liblog.Infof(ctx, "%v sent %s, at %s/sec",
 				bench.selfString(),
 				humanize.Bytes(uint64(bytesSent.Sum())),
 				humanize.Bytes(uint64(bytesSent.SpeedPerSec())))
 		}()
 
-		liblog.Infof("%v starting to send", bench.selfString())
+		liblog.Infof(ctx, "%v starting to send", bench.selfString())
 
 		for j := 0; j < bench.numIterations; j++ {
 			if j%10000 == 0 && j > 0 {
-				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+				liblog.Infof(ctx, "%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
 			}
 
 			select {
@@ -171,7 +171,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 			l := len(zeroPayload)
 			err := bench.dogwood.Send(ctx, libmem.BorrowBytes(zeroPayload))
 			if err != nil {
-				liblog.Errorf("%v bench send: %v", bench.selfString(), err)
+				liblog.Errorf(ctx, "%v bench send: %v", bench.selfString(), err)
 			} else {
 				bytesSent.Add(float64(l))
 			}
@@ -190,7 +190,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 	go func() {
 		defer wg.Done()
 		defer func() {
-			liblog.Infof("%v received %.2f%% transmissions: %s at %s/sec",
+			liblog.Infof(ctx, "%v received %.2f%% transmissions: %s at %s/sec",
 				bench.selfString(),
 				100*float64(transmissionsReceived)/float64(bench.numIterations*(numNodes-1)),
 				humanize.Bytes(uint64(bytesReceived.Sum())),
@@ -203,7 +203,7 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 				statsMidway = bench.dogwood.Stats()
 			}
 			if j%10000 == 0 && j > 0 {
-				liblog.Infof("%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
+				liblog.Infof(ctx, "%v resource usage: %s", bench.selfString(), runtime.ResourceUsage())
 			}
 
 			select {
@@ -217,11 +217,11 @@ func (bench *DogwoodBenchmark) Run(ctx context.Context, address string) {
 			cancel()
 			// payload, _, err := bench.dogwood.Receive(ctx)
 			if errors.Is(err, context.DeadlineExceeded) {
-				liblog.Errorf("%v receive: %v", bench.selfString(), err)
+				liblog.Errorf(ctx, "%v receive: %v", bench.selfString(), err)
 				return
 			}
 			if err != nil {
-				liblog.Errorf("%v receive: %v", bench.selfString(), err)
+				liblog.Errorf(ctx, "%v receive: %v", bench.selfString(), err)
 			} else {
 				bytesReceived.Add(float64(len(payload)))
 				transmissionsReceived += 1

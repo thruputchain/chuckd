@@ -40,9 +40,9 @@ func SetupTelemetry(ctx context.Context, instanceID string, addr string) (shutdo
 	// Set up HTTP server to expose Prometheus metrics endpoint
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		liblog.Infof("prometheus metrics endpoint started at %s/metrics", addr)
+		liblog.Infof(ctx, "prometheus metrics endpoint started at %s/metrics", addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
-			liblog.Fatalf("starting metrics server: %v", err)
+			liblog.Fatalf(ctx, "starting metrics server: %v", err)
 		}
 	}()
 

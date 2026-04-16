@@ -22,7 +22,7 @@ func NewBatchingBufferForParallelSignedTxs(
 		ctx,
 		time,
 		func(ctx context.Context, batches []proto.ParallelSignedTransactionBatch) {
-			liblog.Debugf("disseminating %d vetted txs", xdrutil.SizeOfBatches(batches))
+			liblog.Debugf(ctx, "disseminating %d vetted txs", xdrutil.SizeOfBatches(batches))
 			flush(ctx, xdrutil.JoinBatches(batches))
 		},
 		maxBatchSize,
@@ -53,7 +53,7 @@ func NewBatchingBufferForSignedTxs(
 			for _, b := range batches {
 				join = append(join, b...)
 			}
-			liblog.Debugf("submitting %d unvetted txs from wallet to scheduler", len(join))
+			liblog.Debugf(ctx, "submitting %d unvetted txs from wallet to scheduler", len(join))
 			flush(ctx, join)
 		},
 		maxBatchSize,

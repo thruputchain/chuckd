@@ -16,9 +16,9 @@ import (
 )
 
 type TestDb struct {
-	lk             sync.Mutex
-	id             map[proto.BlockID]*testDbSnapshot
-	top            *testDbSnapshot
+	lk    sync.Mutex
+	id    map[proto.BlockID]*testDbSnapshot
+	top   *testDbSnapshot
 	dbDir string
 }
 
@@ -34,7 +34,7 @@ func NewTestDb(ctx context.Context, genesisTip proto.DbTip, dbDir string) *TestD
 	must.NoError(ctx, os.MkdirAll(dbDir, 0o755))
 	tip := loadTipFromDisk(dbDir, genesisTip)
 	db := &TestDb{
-		id:             map[proto.BlockID]*testDbSnapshot{},
+		id:    map[proto.BlockID]*testDbSnapshot{},
 		dbDir: dbDir,
 	}
 	db.top = &testDbSnapshot{

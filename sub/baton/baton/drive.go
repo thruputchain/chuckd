@@ -16,8 +16,8 @@ func (b *Baton) drive(ctx context.Context) {
 
 	v := b.buildCleanView(ctx)
 
-	liblog.Debugf("view: %s", v.ShortString())
-	liblog.Debugf("resource usage: %s", runtime.ResourceUsage())
+	liblog.Debugf(ctx, "view: %s", v.ShortString())
+	liblog.Debugf(ctx, "resource usage: %s", runtime.ResourceUsage())
 
 	// commit next block, if one is available and no commit is in progress
 	b.driveCommit(ctx, v)
@@ -43,7 +43,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	// cancel ongoing nominations trumped by this commit to save compute
 	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
-	liblog.Debugf("COMMITTING: height %v; tx_count %d; hash %s",
+	liblog.Debugf(ctx, "COMMITTING: height %v; tx_count %d; hash %s",
 		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.BlockHash()))
 
 	go func() {
@@ -106,7 +106,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	}
 	b.nominating = current
 
-	liblog.Infof("PREPARING: height %d", ontoDb.Height+1)
+	liblog.Infof(ctx, "PREPARING: height %d", ontoDb.Height+1)
 
 	go func() {
 		cv, cvc, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
@@ -129,12 +129,12 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 
 		if !currentWasReplaced {
 			b.setValidated(cv, cvc.Cv_hash, blockID)
-			liblog.Infof("nominated block at height %d with block hash %s",
+			liblog.Infof(ctx, "nominated block at height %d with block hash %s",
 				cv.Nomination.Block_height,
 				libxdr.HashString(cv.Nomination.Block_hash),
 			)
 		} else {
-			liblog.Infof("superceded nomination for block at height %d with block hash %s",
+			liblog.Infof(ctx, "superceded nomination for block at height %d with block hash %s",
 				cv.Nomination.Block_height,
 				libxdr.HashString(cv.Nomination.Block_hash),
 			)
@@ -145,7 +145,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 // driveCatchup sends catchup requests, if needed
 func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
-		liblog.Debugf("requesting catchup: %v", needed)
+		liblog.Debugf(ctx, "requesting catchup: %v", needed)
 		b.attemptCatchup(ctx, needed)
 	}
 }
@@ -159,7 +159,7 @@ func (b *Baton) driveLiveness(ctx context.Context, v *View) {
 	}
 
 	slot := scpkit.Slot(v.HighestExternalizedOrCommitted() + 1)
-	liblog.Infof("requesting backfeed for slot %d", slot)
+	liblog.Infof(ctx, "requesting backfeed for slot %d", slot)
 	b.noteBackfeed()
 	b.handler.BackfeedSCPEnvelopes(ctx, slot)
 }

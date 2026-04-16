@@ -127,7 +127,7 @@ func (h *TestRig) Bind(b *Baton) {
 }
 
 func (h *TestRig) Emit(ctx context.Context, event any) {
-	h.TestBus.SendEvent(h.TestTime.Now(), event)
+	h.TestBus.SendEvent(ctx, h.TestTime.Now(), event)
 }
 
 type nominateIn struct {
@@ -219,5 +219,5 @@ func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
 
 func (h *TestRig) WaitBackfeed(ctx context.Context) {
 	<-h.backfeed
-	liblog.Debugf("CAPTURED: backfeed request")
+	liblog.Debugf(ctx, "CAPTURED: backfeed request")
 }

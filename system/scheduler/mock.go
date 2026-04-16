@@ -36,12 +36,12 @@ func NewMockScheduler(
 }
 
 func (x *MockScheduler) StartScheduler(ctx context.Context, opcfg coordinator.OperationalConfig) {
-	liblog.Infof("mock scheduler starting on %v at %v", x.inside, opcfg.SchedAddr)
+	liblog.Infof(ctx, "mock scheduler starting on %v at %v", x.inside, opcfg.SchedAddr)
 	x.l = librpc.StartSerial(ctx, x.inside, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, opcfg.SchedAddr, proto.SchedulerCoord1_Server{Srv: x.sched})
 }
 
 func (x *MockScheduler) ConnectSchedulerToCoordinator(ctx context.Context, opcfg coordinator.OperationalConfig) {
-	liblog.Infof("connecting mock scheduler to coordinator on %v at %v", x.inside, opcfg.InAddr)
+	liblog.Infof(ctx, "connecting mock scheduler to coordinator on %v at %v", x.inside, opcfg.InAddr)
 	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, x.inside, opcfg.InAddr)
 	must.NoError(ctx, err)
 	x.coord = coordSchedConn

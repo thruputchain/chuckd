@@ -65,12 +65,12 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 
 	// verify returned txs match hashes
 	if len(reply.Transactions) != len(missing.Transaction_hashes) {
-		liblog.Errorf("unexpected repaired transaction count")
+		liblog.Errorf(ctx, "unexpected repaired transaction count")
 		return nil, fmt.Errorf("unexpected repaired transaction count")
 	}
 	for i, tx := range reply.Transactions {
 		if protoutil.HashSignedTx(&tx) != missing.Transaction_hashes[i] {
-			liblog.Errorf("repaired transaction hash mismatch")
+			liblog.Errorf(ctx, "repaired transaction hash mismatch")
 			return nil, fmt.Errorf("repaired transaction hash mismatch")
 		}
 	}

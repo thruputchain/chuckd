@@ -75,13 +75,13 @@ func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
 ) (proto.RepairedTransactions, error) {
-	liblog.Debugf("repair missing transactions request, count %d", len(env.Missing_transactions.Transaction_hashes))
+	liblog.Debugf(ctx, "repair missing transactions request, count %d", len(env.Missing_transactions.Transaction_hashes))
 
 	<-x.schedReady // wait for x.conn != nil
 
 	// verify the request is for our current or latest nomination, otherwise deny
 	if !x.isOurNomination(env.Missing_transactions.Cv_hash) {
-		liblog.Errorf("repair missing transactions request denied: request_cv_hash=%s",
+		liblog.Errorf(ctx, "repair missing transactions request denied: request_cv_hash=%s",
 			libxdr.HashString(env.Missing_transactions.Cv_hash))
 		return proto.RepairedTransactions{}, nil
 	}
@@ -112,7 +112,7 @@ func (x *RepairService) Repair_missing_cv(
 	height proto.BlockHeight,
 ) (proto.OptConsensusValue, error) {
 
-	liblog.Debugf("repair missing consensus value request, cv hash %s", libxdr.HashString(cvh))
+	liblog.Debugf(ctx, "repair missing consensus value request, cv hash %s", libxdr.HashString(cvh))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.
@@ -130,7 +130,7 @@ func (x *RepairService) Repair_missing_cv(
 
 	cvx := x.cvpool.ConsensusValuePoolLookupHash(ctx, cvh)
 	if cvx != nil {
-		liblog.Infof("serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
+		liblog.Infof(ctx, "serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
 		return cvx, nil
 	}
 
@@ -138,9 +138,9 @@ func (x *RepairService) Repair_missing_cv(
 	if cv != nil {
 		if protoutil.HashCVFast(cv) != cvh {
 			cv = nil // the requested cv was not externalized
-			liblog.Infof("requested missing cv was not externalized, hash=%s height=%d", libxdr.HashString(cvh), height)
+			liblog.Infof(ctx, "requested missing cv was not externalized, hash=%s height=%d", libxdr.HashString(cvh), height)
 		} else {
-			liblog.Infof("serving missing cv from storage, hash=%s height=%d", libxdr.HashString(cvh), height)
+			liblog.Infof(ctx, "serving missing cv from storage, hash=%s height=%d", libxdr.HashString(cvh), height)
 		}
 	}
 	return cv, nil
@@ -153,6 +153,6 @@ func (x *RepairService) Repair_missing_scp_envelopes(
 ) (proto.SCPEnvelopes, error) {
 	<-x.brokerReady
 
-	liblog.Debugf("repair missing scp envelopes request, for slot %d", slot)
+	liblog.Debugf(ctx, "repair missing scp envelopes request, for slot %d", slot)
 	return x.scpBroker.RepairEnvelopes(ctx, slot), nil
 }

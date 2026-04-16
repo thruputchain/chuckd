@@ -103,7 +103,7 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 
 	src := b.handler.GetCatchupSources(ctx, int64(id))
 	if len(src) == 0 {
-		liblog.Errorf("no catchup sources found among known validators")
+		liblog.Errorf(ctx, "no catchup sources found among known validators")
 		return
 	}
 
@@ -130,7 +130,7 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 
 		c, err := b.handler.DialCatchup(ctx, src)
 		if err != nil {
-			liblog.Errorf("catchup dial: %v", err)
+			liblog.Errorf(ctx, "catchup dial: %v", err)
 			return
 		}
 		defer c.Close()
@@ -151,13 +151,13 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 
 		reply, err := c.Catchup_solicit(ctx, signed)
 		if err != nil {
-			liblog.Errorf("catchup retrieval: %v", err)
+			liblog.Errorf(ctx, "catchup retrieval: %v", err)
 			return
 		}
 
 		// verify the signature of the source
 		if !protoutil.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
-			liblog.Errorf("catchup with invalid signature")
+			liblog.Errorf(ctx, "catchup with invalid signature")
 			return
 		}
 
@@ -174,7 +174,7 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 						txs:    txs,
 					})
 			} else {
-				liblog.Infof("invalid catchup block")
+				liblog.Infof(ctx, "invalid catchup block")
 			}
 		}
 

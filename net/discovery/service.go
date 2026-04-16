@@ -79,7 +79,7 @@ func NewDiscoveryService(
 }
 
 func (s *DiscoveryService) Start(ctx context.Context, controller scpkit.SCPKnownQSets) {
-	liblog.Infof("starting discovery service")
+	liblog.Infof(ctx, "starting discovery service")
 
 	s.scpController = controller
 

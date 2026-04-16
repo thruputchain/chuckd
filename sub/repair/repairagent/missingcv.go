@@ -29,7 +29,7 @@ attempting:
 	for {
 		cv, err := x.attemptRepairMissingCV(ctx, from, missing, height)
 		if err != nil {
-			liblog.Errorf("failed attempt to repair missing cv at height %d from %s: %v", height, protoutil.VPublicShortString(from), err)
+			liblog.Errorf(ctx, "failed attempt to repair missing cv at height %d from %s: %v", height, protoutil.VPublicShortString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)

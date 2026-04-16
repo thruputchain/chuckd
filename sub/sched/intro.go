@@ -23,12 +23,12 @@ func ConnectToScheduler(
 
 	err = intro(ctx, schedConn, coordInAddr)
 	if err != nil {
-		liblog.Errorf("intro to scheduler failed (%v)", err)
+		liblog.Errorf(ctx, "intro to scheduler failed (%v)", err)
 		schedConn.Close()
 		return nil, err
 	}
 
-	liblog.Infof("connected to scheduler at %v", schedAddr)
+	liblog.Infof(ctx, "connected to scheduler at %v", schedAddr)
 
 	return schedConn, nil
 }

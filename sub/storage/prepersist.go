@@ -58,16 +58,16 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 
 	prepersist := prepersist(ctx, full)
 
-	liblog.Debugf("pre-persisting %s to %s", full, prepersist)
+	liblog.Debugf(ctx, "pre-persisting %s to %s", full, prepersist)
 
 	// if the target persist file already exists, do nothing
 	if isPresent(full) {
-		liblog.Debugf("pre-persisting %s: persisted already", full)
+		liblog.Debugf(ctx, "pre-persisting %s: persisted already", full)
 		return
 	}
 
 	if isPresent(prepersist) { // if pre-persist copy exists, use it
-		liblog.Debugf("pre-persisting %s: pre-persisted already", prepersist)
+		liblog.Debugf(ctx, "pre-persisting %s: pre-persisted already", prepersist)
 		return
 	}
 
@@ -82,15 +82,15 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 
 	prepersist := prepersist(ctx, full)
 
-	liblog.Debugf("persisting %s to %s", full, prepersist)
+	liblog.Debugf(ctx, "persisting %s to %s", full, prepersist)
 
 	if isPresent(full) {
-		liblog.Debugf("persisting %s: persisted already", full)
+		liblog.Debugf(ctx, "persisting %s: persisted already", full)
 		return
 	}
 
 	if isPresent(prepersist) { // if pre-persist copy exists, use it
-		liblog.Debugf("persisting %s: using pre-persist copy", full)
+		liblog.Debugf(ctx, "persisting %s: using pre-persist copy", full)
 		err := os.Rename(prepersist, full)
 		must.NoError(ctx, err)
 		return
@@ -105,10 +105,10 @@ func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string
 
 	prepersist := prepersist(ctx, full)
 
-	liblog.Debugf("persisting already pre-persisted %s to %s", full, prepersist)
+	liblog.Debugf(ctx, "persisting already pre-persisted %s to %s", full, prepersist)
 
 	if isPresent(full) {
-		liblog.Debugf("persisting already pre-persisted %s: persisted already", full)
+		liblog.Debugf(ctx, "persisting already pre-persisted %s: persisted already", full)
 		return
 	}
 

@@ -25,7 +25,7 @@ func SetRootSeed(s int64) {
 	}
 	rootSeed = s
 	rootRand = rand.New(rand.NewSource(rootSeed))
-	liblog.Infof("root randomness seed %x", rootSeed)
+	liblog.Infof(context.Background(), "root randomness seed %x", rootSeed)
 }
 
 func GetRootSeed() int64 {

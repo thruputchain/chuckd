@@ -1,6 +1,7 @@
 package benchxdr
 
 import (
+	"context"
 	"os"
 	"path"
 	"testing"
@@ -11,17 +12,17 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func xxx(filename string) error {
+func xxx(ctx context.Context, filename string) error {
 	t0 := time.Now()
 	defer func() {
-		liblog.Debugf("experiment took %v", time.Since(t0))
+		liblog.Debugf(ctx, "experiment took %v", time.Since(t0))
 	}()
 
 	pageSize := os.Getpagesize()
 
 	// Step 1: Create a new file
 	fileSize := util.CeilDivSigned(30e6, pageSize) * pageSize
-	liblog.Debugf("file size %d", fileSize)
+	liblog.Debugf(ctx, "file size %d", fileSize)
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -47,7 +48,7 @@ func xxx(filename string) error {
 		return err
 	}
 	defer unix.Munmap(mmap)
-	liblog.Debugf("mmap took %v", time.Since(mmapStart))
+	liblog.Debugf(ctx, "mmap took %v", time.Since(mmapStart))
 
 	data := make([]byte, len(mmap))
 
@@ -61,13 +62,13 @@ func xxx(filename string) error {
 	for range 10 {
 		write1Start := time.Now()
 		copy(mmap, data)
-		liblog.Debugf("write took %v", time.Since(write1Start))
+		liblog.Debugf(ctx, "write took %v", time.Since(write1Start))
 
 		msync1Start := time.Now()
 		if err := unix.Msync(mmap, unix.MS_SYNC); err != nil {
 			return err
 		}
-		liblog.Debugf("msync took %v", time.Since(msync1Start))
+		liblog.Debugf(ctx, "msync took %v", time.Since(msync1Start))
 	}
 
 	return nil
@@ -77,10 +78,10 @@ func TestMmap(t *testing.T) {
 	liblog.SetLogLevelDebug()
 
 	filename := path.Join(t.TempDir(), "mmap_test")
-	liblog.Debugf("FILE: %s", filename)
-	xxx(filename)
+	liblog.Debugf(t.Context(), "FILE: %s", filename)
+	xxx(t.Context(), filename)
 
 	filename = path.Join("/home/local/petar/", "mmap_test")
-	liblog.Debugf("FILE: %s", filename)
-	xxx(filename)
+	liblog.Debugf(t.Context(), "FILE: %s", filename)
+	xxx(t.Context(), filename)
 }

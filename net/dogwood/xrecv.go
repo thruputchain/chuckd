@@ -19,6 +19,8 @@ import (
 // reducing the likelihood of duplicate receptions.
 
 type TransmissionReceiver struct {
+	ctx context.Context
+	//
 	partialMaxTTL  time.Duration
 	partialIdleTTL time.Duration
 	time           libtime.Time
@@ -68,6 +70,7 @@ func NewTransmissionReceiver(
 ) *TransmissionReceiver {
 
 	x := &TransmissionReceiver{
+		ctx:            ctx,
 		partialMaxTTL:  time.Duration(cfg.Transmission_partial_max_ttl_msec) * time.Millisecond,
 		partialIdleTTL: time.Duration(cfg.Transmission_partial_idle_ttl_msec) * time.Millisecond,
 		time:           time_,
@@ -126,7 +129,7 @@ func (x *TransmissionReceiver) expirePartial(ctx context.Context) {
 
 		for _, par := range scrub {
 			if !par.IsComplete() {
-				liblog.Errorf("dogwood dropping partial incomplete transmission")
+				liblog.Errorf(ctx, "dogwood dropping partial incomplete transmission")
 			}
 			par.Close()
 		}
@@ -142,7 +145,7 @@ func (x *TransmissionReceiver) OnReceive(from proto.ValidatorID, pkg *proto.Dogw
 
 	par, err := x.getPartial(key, pkg.Transmission)
 	if err != nil {
-		liblog.Errorf("partial transmission: %v", err)
+		liblog.Errorf(x.ctx, "partial transmission: %v", err)
 		return
 	}
 
@@ -249,7 +252,7 @@ func (x *partialTransmission) place(sheafIndex int, chunkIndex int, chunk []byte
 
 	err := x.decoding.Place(sheafIndex, chunkIndex, chunk)
 	if err != nil {
-		liblog.Debugf("dogwood placing chunk: %v", err)
+		liblog.Debugf(x.parent.ctx, "dogwood placing chunk: %v", err)
 		return nil, false
 	}
 

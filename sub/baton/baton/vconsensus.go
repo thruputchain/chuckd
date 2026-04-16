@@ -23,7 +23,7 @@ func (b *Baton) validateConsensus(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	liblog.Infof("validating cv: height %d; block_hash %s; cv_hash %s; proposer %s",
+	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; cv_hash %s; proposer %s",
 		slot, libxdr.HashString(cv.Nomination.Block_hash), libxdr.HashString(cvc.Cv_hash),
 		protoutil.VPublicShortString(cvc.Proposer))
 
@@ -52,7 +52,7 @@ func (b *Baton) validateConsensus(
 	// validate chaining with previous consensus
 
 	if cv.Nomination.Prev_block_hash != dbTip.Block_hash {
-		liblog.Errorf("cannot validate, previous block mismatch, nomination %v vs ours %v",
+		liblog.Errorf(ctx, "cannot validate, previous block mismatch, nomination %v vs ours %v",
 			libxdr.HashString(cv.Nomination.Prev_block_hash),
 			libxdr.HashString(dbTip.Block_hash))
 		reply <- scpkit.InvalidValue
@@ -60,7 +60,7 @@ func (b *Baton) validateConsensus(
 	}
 
 	if cv.Prev_cv_hash != extTip.ConsensusValueHash() {
-		liblog.Errorf("cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
+		liblog.Errorf(ctx, "cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
 			libxdr.HashString(cv.Prev_cv_hash),
 			libxdr.HashString(extTip.ConsensusValueHash()))
 		reply <- scpkit.InvalidValue
@@ -72,13 +72,13 @@ func (b *Baton) validateConsensus(
 	prevStamp := protoutil.TimeFromTimepoint(extTip.ConsensusValue().Timestamp)
 	newStamp := protoutil.TimeFromTimepoint(cv.Timestamp)
 	if !prevStamp.Before(newStamp) {
-		liblog.Errorf("cannot validate, timestamp not increasing")
+		liblog.Errorf(ctx, "cannot validate, timestamp not increasing")
 		reply <- scpkit.InvalidValue
 		return
 	}
 	now := b.handler.Now()
 	if !newStamp.Before(now) {
-		liblog.Errorf("cannot validate, timestamp in the future (stamp %s, now %s)",
+		liblog.Errorf(ctx, "cannot validate, timestamp in the future (stamp %s, now %s)",
 			libtime.FmtTime(newStamp), libtime.FmtTime(now))
 		reply <- scpkit.InvalidValue
 		return
@@ -114,7 +114,7 @@ func (b *Baton) validateConsensus(
 	}
 
 	// cache validated blocks
-	liblog.Debugf("caching validation for block %s and consensus %s",
+	liblog.Debugf(ctx, "caching validation for block %s and consensus %s",
 		libxdr.HashString(cv.Nomination.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
 	b.lock()
@@ -149,7 +149,7 @@ func (b *Baton) tryValidateConsensusFast(
 	b.unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {
-		liblog.Infof("cannot validate, nomination not sane")
+		liblog.Infof(ctx, "cannot validate, nomination not sane")
 		reply <- scpkit.InvalidValue
 		return true
 	}

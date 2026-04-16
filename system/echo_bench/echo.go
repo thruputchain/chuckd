@@ -221,7 +221,7 @@ func (x *EchoBenchmark) callEcho(arg callEchoArg) {
 	c.addNumPending(-1)
 
 	if err != nil {
-		liblog.Errorf("call: %v", err)
+		liblog.Errorf(context.TODO(), "call: %v", err)
 		x.abortSend.Do(func() { close(x.sendAborted) })
 		return
 	}

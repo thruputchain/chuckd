@@ -91,7 +91,7 @@ func NewSystem(
 	sysCtx, sysCancel := context.WithCancel(ctx)
 
 	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
-	liblog.Infof("initializing validator %v", protoutil.VIDString(vid))
+	liblog.Infof(ctx, "initializing validator %v", protoutil.VIDString(vid))
 
 	if notify == nil {
 		notify = IgnoreNotify{}
@@ -308,7 +308,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 			return
 		case <-s.genesisReady: // wait for genesis to be in the db
 		}
-		liblog.Infof("genesis ready")
+		liblog.Infof(ctx, "genesis ready")
 
 		s.Baton.Start(s.ctx)
 
@@ -322,7 +322,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 				func(ctx context.Context, batch proto.ParallelSignedTransactionBatch) {
-					liblog.Debugf("disseminating %d vetted txs", xdrutil.SizeOfBatch(batch))
+					liblog.Debugf(ctx, "disseminating %d vetted txs", xdrutil.SizeOfBatch(batch))
 					s.Multiplex.SendSubmittedTxs(
 						ctx,
 						&proto.SubmittedTransactions{Transactions: batch},
@@ -334,7 +334,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				if !ok {
 					return
 				}
-				liblog.Debugf("received %d vetted txs from scheduler", xdrutil.SizeOfBatch(batch))
+				liblog.Debugf(ctx, "received %d vetted txs from scheduler", xdrutil.SizeOfBatch(batch))
 				buf.Submit(s.ctx, batch)
 			}
 		}()
@@ -390,7 +390,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				}
 				_ = sender
 				if !protoutil.IsSaneConsensusValue(cv) {
-					liblog.Errorf("received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
+					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
 					continue
 				}
 				s.CVPool.ConsensusValuePoolAdd(s.ctx, *cv, protoutil.HashCVFast(cv))
@@ -444,21 +444,21 @@ func (s *System) Stop() {
 			s.CoordScheduler.Stop()
 		}
 		if s.insideSrv != nil {
-			liblog.Infof("coordinator stopping inside network")
+			liblog.Infof(s.ctx, "coordinator stopping inside network")
 			s.insideSrv.Stop()
 		}
 		if s.outsideSrv != nil {
-			liblog.Infof("coordinator stopping outside network")
+			liblog.Infof(s.ctx, "coordinator stopping outside network")
 			s.outsideSrv.Stop()
 		}
 		if s.Wallet != nil {
-			liblog.Infof("coordinator stopping wallet gateway")
+			liblog.Infof(s.ctx, "coordinator stopping wallet gateway")
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			s.Wallet.Stop(ctx)
 			cancel()
 		}
 		if s.SchedConn != nil {
-			liblog.Infof("coordinator closing scheduler connection")
+			liblog.Infof(s.ctx, "coordinator closing scheduler connection")
 			s.SchedConn.Close()
 		}
 		if s.scpController != nil {
@@ -468,11 +468,11 @@ func (s *System) Stop() {
 			s.scpHandler.Stop()
 		}
 		if s.scpdKill != nil {
-			liblog.Infof("coordinator killing scpd")
+			liblog.Infof(s.ctx, "coordinator killing scpd")
 			s.scpdKill()
 		}
 		s.wg.Wait()
-		liblog.Infof("coordinator stopped")
+		liblog.Infof(s.ctx, "coordinator stopped")
 	})
 }
 

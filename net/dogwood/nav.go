@@ -242,7 +242,7 @@ func (nav *Navigator) expire(ctx context.Context) {
 			}
 		}
 		if len(nav.ours) == 0 {
-			liblog.Errorf("no navigator routes left")
+			liblog.Errorf(ctx, "no navigator routes left")
 		}
 		for key, sr := range nav.theirs {
 			if now.Sub(sr.Stamp) > nav.routeTTL+nav.routeMaxLatency {

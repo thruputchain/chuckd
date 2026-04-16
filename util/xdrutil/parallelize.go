@@ -2,6 +2,7 @@ package xdrutil
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -59,7 +60,7 @@ func parallelizeBatch[T any](
 
 	t0 := time.Now()
 	defer func() {
-		liblog.Debugf("elapsed %v to parallelize batch with %d tokens into %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
+		liblog.Debugf(context.TODO(), "elapsed %v to parallelize batch with %d tokens into %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
 	}()
 
 	// determine number of sections

@@ -50,7 +50,7 @@ loop:
 
 		switch typ {
 		case proto.DogwoodTransmissionPayload:
-			liblog.Tracef("dogwood multiplex at %v: receiving payload, message size %d", x.selfString(), len(pay))
+			liblog.Tracef(ctx, "dogwood multiplex at %v: receiving payload, message size %d", x.selfString(), len(pay))
 			return pay, from, nil
 		case proto.DogwoodTransmissionRoute:
 			x.receiveRouting(ctx, pay)
@@ -65,7 +65,7 @@ func (x *Multiplex) selfString() string {
 }
 
 func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedTreeNode) {
-	liblog.Debugf("dogwood multiplex at %v: disseminating %d routes", x.selfString(), len(ts))
+	liblog.Debugf(ctx, "dogwood multiplex at %v: disseminating %d routes", x.selfString(), len(ts))
 	rs := make([]proto.DogwoodTreeNodes, len(ts))
 	for i := range rs {
 		rs[i] = ts[i].TreeNodes(x.mTree)
@@ -79,24 +79,24 @@ func (x *Multiplex) sendRouting(ctx context.Context, routing proto.DogwoodRoutin
 }
 
 func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
-	liblog.Tracef("dogwood multiplex at %v: receiving routes, message size %d", x.selfString(), len(p))
+	liblog.Tracef(ctx, "dogwood multiplex at %v: receiving routes, message size %d", x.selfString(), len(p))
 
 	routing := proto.DogwoodRouting{}
 
 	err := libxdr.UnmarshalXdr(&routing, p)
 	if err != nil {
-		liblog.Errorf("dogwood multiplex at %v: unmarshalling routing message: %v", x.selfString(), err)
+		liblog.Errorf(ctx, "dogwood multiplex at %v: unmarshalling routing message: %v", x.selfString(), err)
 		return
 	}
 
 	for _, treeNodes := range routing.Routes {
 		linked, err := dogwoodutil.BuildLinkedTree(x.mTree, treeNodes)
 		if err != nil {
-			liblog.Errorf("dogwood multiplex at %v: encountered invalid routing tree: %v", x.selfString(), err)
+			liblog.Errorf(ctx, "dogwood multiplex at %v: encountered invalid routing tree: %v", x.selfString(), err)
 			continue
 		}
 		h := dogwoodutil.TreeNodeHash(x.mTree, treeNodes[0])
-		liblog.Tracef("dogwood multiplex at %v: caching route %v", x.selfString(), libxdr.HashString(h))
+		liblog.Tracef(ctx, "dogwood multiplex at %v: caching route %v", x.selfString(), libxdr.HashString(h))
 		x.nav.CacheRoute(ctx, linked)
 	}
 }

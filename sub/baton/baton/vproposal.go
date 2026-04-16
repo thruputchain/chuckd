@@ -34,7 +34,7 @@ func (b *Baton) validateProposal(
 		CVHash:            cvh,
 		DbgConsensusValue: cv,
 	}
-	liblog.Infof("%v", eventValidating)
+	liblog.Infof(ctx, "%v", eventValidating)
 	b.handler.Emit(ctx, eventValidating)
 
 	defer func() {
@@ -46,25 +46,25 @@ func (b *Baton) validateProposal(
 			CVHash:            cvh,
 			DbgConsensusValue: cv,
 		}
-		liblog.Infof("%v", eventValidated)
+		liblog.Infof(ctx, "%v", eventValidated)
 		b.handler.Emit(ctx, eventValidated)
 	}()
 
 	for {
-		liblog.Infof("scheduler validating: height=%d; cv_hash=%s",
+		liblog.Infof(ctx, "scheduler validating: height=%d; cv_hash=%s",
 			nomination.Block_height, libxdr.HashString(cvh))
 		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, nomination)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return proto.DbTip{}, err
 			}
-			liblog.Infof("cannot validate, scheduler error (%v)", err)
+			liblog.Infof(ctx, "cannot validate, scheduler error (%v)", err)
 			panic("scheduler failed on validation")
 		}
 		switch schedValidResult.Outcome {
 
 		case proto.SchedulerValidationOK:
-			liblog.Debugf("scheduler validated: height=%d; cv_hash=%s",
+			liblog.Debugf(ctx, "scheduler validated: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 
 			vblock := schedValidResult.Block()
@@ -81,22 +81,22 @@ func (b *Baton) validateProposal(
 			return vblock.Db_tip, nil
 
 		case proto.SchedulerValidationInvalid:
-			liblog.Infof("scheduler invalidated: height=%d; cv_hash=%s",
+			liblog.Infof(ctx, "scheduler invalidated: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationTooLateToValidate:
-			liblog.Infof("scheduler is too late to validate: height=%d; cv_hash=%s",
+			liblog.Infof(ctx, "scheduler is too late to validate: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationUnknownParentBlock:
-			liblog.Infof("scheduler cannot validate due to missing parent block: height=%d; cv_hash=%s",
+			liblog.Infof(ctx, "scheduler cannot validate due to missing parent block: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationMissingTxs:
-			liblog.Infof("scheduler is missing transactions: height=%d; cv_hash=%s",
+			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 			missing := proto.MissingTransactions{
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
@@ -113,14 +113,14 @@ func (b *Baton) validateProposal(
 
 		case proto.SchedulerValidationDbFailed:
 			// see https://github.com/groundhogchain/hogd/issues/541
-			liblog.Fatalf("cannot validate, db failed")
+			liblog.Fatalf(ctx, "cannot validate, db failed")
 
 		case proto.SchedulerValidationExecutorFailed:
 			// see https://github.com/groundhogchain/hogd/issues/541
-			liblog.Fatalf("cannot validate, executor failed")
+			liblog.Fatalf(ctx, "cannot validate, executor failed")
 
 		default:
-			liblog.Fatalf("unknown scheduler validation outcome: %v", schedValidResult.Outcome)
+			liblog.Fatalf(ctx, "unknown scheduler validation outcome: %v", schedValidResult.Outcome)
 
 		}
 	}
@@ -132,7 +132,7 @@ func (b *Baton) repairMissingTxs(
 	missing proto.MissingTransactions,
 ) error {
 
-	liblog.Debugf("repairing %d missing transactions", len(missing.Transaction_hashes))
+	liblog.Debugf(ctx, "repairing %d missing transactions", len(missing.Transaction_hashes))
 
 	stxs, err := b.handler.RepairMissingTxs(ctx, proposer, missing)
 	if err != nil {

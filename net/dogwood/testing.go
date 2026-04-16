@@ -56,7 +56,7 @@ func NewDogwood3Harness(
 		protoutil.MustGenerateIdentity(t.ctx, t.rand[2], a2),
 	}
 	for i := range t.vs {
-		liblog.Infof("dogwood test validator #%d: %s", i, protoutil.VPublicShortString(t.vs[i].Public_info))
+		liblog.Infof(t.ctx, "dogwood test validator #%d: %s", i, protoutil.VPublicShortString(t.vs[i].Public_info))
 	}
 	t.discovery = []*discovery.TestDiscovery{
 		discovery.NewTestDiscovery(t.ctx, t.vs, 0),

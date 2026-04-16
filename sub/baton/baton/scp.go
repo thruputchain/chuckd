@@ -56,16 +56,16 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 
 	var cvc proto.ConsensusValueCue
 	if err := libxdr.UnmarshalXdr(&cvc, value); err != nil {
-		liblog.Fatalf("scp externalized value for slot %d which cannot be decoded", slot)
+		liblog.Fatalf(ctx, "scp externalized value for slot %d which cannot be decoded", slot)
 		return
 	}
 
-	liblog.Infof("received externalization for slot %d with block hash %s and consensus value hash %s",
+	liblog.Infof(ctx, "received externalization for slot %d with block hash %s and consensus value hash %s",
 		slot,
 		libxdr.HashString(cvc.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
 
-	liblog.Debugf("notified scp broker of lowest non-externalized slot %d", slot+1)
+	liblog.Debugf(ctx, "notified scp broker of lowest non-externalized slot %d", slot+1)
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
@@ -92,7 +92,7 @@ func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, val
 			x.baton.handler.ConsensusValuePoolPersist(ctx, *cv, cvc.Cv_hash)
 			persistCVDelay := time.Since(t0)
 			x.baton.reportPersistCV(cv.Nomination.Block_height, persistCVDelay)
-			liblog.Debugf("cv_persist_delay=%v | height=%d", persistCVDelay, cv.Nomination.Block_height)
+			liblog.Debugf(ctx, "cv_persist_delay=%v | height=%d", persistCVDelay, cv.Nomination.Block_height)
 		}
 
 	}

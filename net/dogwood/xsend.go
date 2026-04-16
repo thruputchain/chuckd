@@ -114,7 +114,7 @@ func (x *TransmissionSender) send(
 
 	// check that enough streams opened for recovery
 	if len(stream) < enc.NumPaySheaves() {
-		liblog.Errorf("dropping transmission %d, not enough streams, have %d, need %d",
+		liblog.Errorf(ctx, "dropping transmission %d, not enough streams, have %d, need %d",
 			transmission.Transmission_id, len(stream), enc.NumPaySheaves())
 		return
 	}

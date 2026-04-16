@@ -168,7 +168,7 @@ func (x *ClientPool) dial(ctx context.Context) (DogwoodClientCloser, error) {
 	lastDialFail := x.getLastDialFail()
 
 	if lastDialFail != nil && x.time.Now().Sub(*lastDialFail) < x.redialDelay {
-		liblog.Infof("dogwood dial: %v recently unreachable, not dialing", protoutil.VIDString(x.address))
+		liblog.Infof(ctx, "dogwood dial: %v recently unreachable, not dialing", protoutil.VIDString(x.address))
 		return nil, fmt.Errorf("recently unreachable")
 	}
 
@@ -178,7 +178,7 @@ func (x *ClientPool) dial(ctx context.Context) (DogwoodClientCloser, error) {
 	if err != nil {
 		now := x.time.Now()
 		x.setLastDialFail(&now)
-		liblog.Errorf("dogwood dial: %v dialing (%v)", protoutil.VIDString(x.address), err)
+		liblog.Errorf(ctx, "dogwood dial: %v dialing (%v)", protoutil.VIDString(x.address), err)
 		return nil, err
 	}
 

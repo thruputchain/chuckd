@@ -43,7 +43,7 @@ func WaitCounterpartiesReady(
 
 				c, err := DialDebugClient(ctx, net, addr)
 				if err != nil {
-					liblog.Debugf("failed to dial debug counterparty %s: %v", addr, err)
+					liblog.Debugf(ctx, "failed to dial debug counterparty %s: %v", addr, err)
 					time.Sleep(time.Second)
 					continue
 				}

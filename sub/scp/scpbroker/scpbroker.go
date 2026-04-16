@@ -70,16 +70,16 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, slot scpkit.Slot) {
 	// XXX: this needs a timeout
 	envs, err := x.repair.RepairMissingSCP(ctx, slot)
 	if err != nil {
-		liblog.Errorf("tried to repair missing scp envelopes for slot %d: %v", slot, err)
+		liblog.Errorf(ctx, "tried to repair missing scp envelopes for slot %d: %v", slot, err)
 		return
 	}
 
 	if len(envs) == 0 {
-		liblog.Infof("no scp envelopes to backfeed")
+		liblog.Infof(ctx, "no scp envelopes to backfeed")
 	}
 
 	for i, env := range envs {
-		liblog.Debugf("backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
+		liblog.Debugf(ctx, "backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
 		// dont replay envelopes other than the requested slot
 		if env.Statement.Slot_index == slot {
 			x.ReceivedEnvelope(ctx, env)

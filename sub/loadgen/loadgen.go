@@ -52,7 +52,7 @@ func (x *LoadGen) Start(ctx context.Context, loadgenAddr string) {
 	lgConn, err := DialLoadgenClientRetry(ctx, x.inside, loadgenAddr)
 	must.NoError(ctx, err)
 
-	liblog.Infof("num_accounts=%d, num_txs_per_block=%d", x.Cfg.NumAccts, x.Cfg.NumTxsPerBlock)
+	liblog.Infof(ctx, "num_accounts=%d, num_txs_per_block=%d", x.Cfg.NumAccts, x.Cfg.NumTxsPerBlock)
 
 	go x.obtainTxs(ctx, lgConn)
 }
@@ -90,17 +90,17 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	result := r.Success()
 	ctxID := result.Context_id
 
-	liblog.Infof("delivering genesis block")
+	liblog.Infof(ctx, "delivering genesis block")
 	x.genesisCh <- &result.Genesis_configuration
 	close(x.genesisCh)
 
-	liblog.Infof("delivering init blocks")
+	liblog.Infof(ctx, "delivering init blocks")
 	for _, blockInitTxs := range result.Initialization_txs {
 		x.initTxsCh <- protoutil.Unpack(blockInitTxs)
 	}
 	close(x.initTxsCh)
 
-	liblog.Infof("delivering work blocks")
+	liblog.Infof(ctx, "delivering work blocks")
 	for range x.Cfg.NumBlocks {
 		r, err := lgConn.Extend_experiment(ctx, ctxID, uint64(x.Cfg.NumTxsPerBlock), 1e9)
 		must.NoError(ctx, err)

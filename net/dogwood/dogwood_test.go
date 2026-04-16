@@ -68,7 +68,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 	go func() {
 		for i := 0; i < N; i++ {
 			if i%1000 == 0 && i > 0 {
-				liblog.Infof("%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
+				liblog.Infof(ctx, "%v resource usage: %s", tn.String(0), runtime.ResourceUsage())
 				// liblog.Infof("%v dogwood stats: %v", tn.String(0), tn.dogwood[0].Stats())
 			}
 			err := tn.dogwood[0].Send(ctx, libmem.BorrowBytes(payload))
@@ -89,7 +89,7 @@ func TestSendReceiveTransmission(t *testing.T) {
 		j := 0
 		for {
 			if j%1000 == 0 && j > 0 {
-				liblog.Infof("%v resource usage: %s", tn.String(vIndex), runtime.ResourceUsage())
+				liblog.Infof(ctx, "%v resource usage: %s", tn.String(vIndex), runtime.ResourceUsage())
 				// liblog.Infof("%v dogwood stats: %v", tn.String(vIndex), tn.dogwood[vIndex].Stats())
 			}
 			rCtx, rCancel := context.WithTimeout(ctx, 3*time.Second)

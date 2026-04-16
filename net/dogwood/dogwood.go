@@ -144,7 +144,7 @@ func (x *DogwoodService) WaitReady(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-x.ready:
-		liblog.Infof("dogwood system is ready")
+		liblog.Infof(ctx, "dogwood system is ready")
 		return nil
 	}
 }

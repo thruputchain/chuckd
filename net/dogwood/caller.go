@@ -149,7 +149,7 @@ func (x *endpoint) DogwoodDeliver(
 			defer cancel()
 			err := x.client.Dogwood_deliver(ctx, arg.Value())
 			if err != nil {
-				liblog.Errorf("calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
+				liblog.Errorf(ctx, "calling deliver on endpoint %v: %v", protoutil.VIDString(x.addr), err)
 			}
 		},
 	)

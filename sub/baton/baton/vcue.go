@@ -31,11 +31,11 @@ func (x scpHandler) ValidateCue(
 	if nomination {
 		kind = "nomination"
 	}
-	liblog.Infof("validate value (%s) requested: slot %d; cv_hash %s; block_hash %s; proposer %s",
+	liblog.Infof(ctx, "validate value (%s) requested: slot %d; cv_hash %s; block_hash %s; proposer %s",
 		kind, slot, libxdr.HashString(cvc.Cv_hash), libxdr.HashString(cvc.Block_hash),
 		protoutil.VPublicShortString(cvc.Proposer))
 	defer func() {
-		liblog.Infof("validate value (%s) completed: slot %d; cv_hash %s; block_hash %s; proposer %s; result %v",
+		liblog.Infof(ctx, "validate value (%s) completed: slot %d; cv_hash %s; block_hash %s; proposer %s; result %v",
 			kind, slot, libxdr.HashString(cvc.Cv_hash), libxdr.HashString(cvc.Block_hash),
 			protoutil.VPublicShortString(cvc.Proposer), scpkit.ValidationLevelString(level))
 	}()
@@ -57,13 +57,13 @@ func (b *Baton) validateCue(
 ) {
 
 	if slot != scpkit.Slot(cvc.Block_height) {
-		liblog.Errorf("scp slot disagrees with cv cue: cv_hash %s; slot %d; cue_height %d",
+		liblog.Errorf(ctx, "scp slot disagrees with cv cue: cv_hash %s; slot %d; cue_height %d",
 			libxdr.HashString(cvc.Cv_hash), slot, proto.BlockHeight(cvc.Block_height))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	liblog.Debugf("validating cue: height %d; block_hash %s; cv_hash %s; proposer %s",
+	liblog.Debugf(ctx, "validating cue: height %d; block_hash %s; cv_hash %s; proposer %s",
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
 		protoutil.VPublicShortString(cvc.Proposer))
 
@@ -74,16 +74,16 @@ func (b *Baton) validateCue(
 	b.unlock()
 
 	if alreadyInvalidated {
-		liblog.Errorf("cv already invalidated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+		liblog.Errorf(ctx, "cv already invalidated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 		reply <- scpkit.InvalidValue
 		return
 	}
 	if alreadyValidated != nil {
 		if b.ConsensusValueAgreesWithCue(alreadyValidated, cvc) {
-			liblog.Debugf("cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+			liblog.Debugf(ctx, "cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 			reply <- scpkit.FullyValidValue
 		} else {
-			liblog.Errorf("cv already validated, but disagrees with cue: cv_hash %s",
+			liblog.Errorf(ctx, "cv already validated, but disagrees with cue: cv_hash %s",
 				libxdr.HashString(cvc.Cv_hash))
 			reply <- scpkit.InvalidValue
 		}
@@ -95,7 +95,7 @@ func (b *Baton) validateCue(
 	go func() {
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
-		liblog.Debugf("cancelling validating cue: height %d; block_hash %s; cv_hash %s",
+		liblog.Debugf(ctx, "cancelling validating cue: height %d; block_hash %s; cv_hash %s",
 			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 		vCtxCancel()
 	}()
@@ -111,7 +111,7 @@ func (b *Baton) validateCue(
 	}
 
 	if !b.ConsensusValueAgreesWithCue(cv, cvc) {
-		liblog.Infof("cannot validate, consensus value disagrees with cue")
+		liblog.Infof(ctx, "cannot validate, consensus value disagrees with cue")
 		reply <- scpkit.InvalidValue
 		return
 	}
@@ -125,7 +125,7 @@ func (b *Baton) fetchCV(
 	cvc *proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
-	liblog.Infof("fetching consensus value at height %d, block hash %s, consensus hash %s",
+	liblog.Infof(ctx, "fetching consensus value at height %d, block hash %s, consensus hash %s",
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	// lookup in cvpool
@@ -134,7 +134,7 @@ func (b *Baton) fetchCV(
 		return cv, nil
 	}
 
-	liblog.Debugf("repairing missing consensus value for slot %d", slot)
+	liblog.Debugf(ctx, "repairing missing consensus value for slot %d", slot)
 
 	cvReturn := make(chan *proto.ConsensusValue, 2)
 

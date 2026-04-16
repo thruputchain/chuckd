@@ -40,7 +40,7 @@ func (b *Baton) nominate(
 	ontoExt externalizedConsensus,
 ) (*proto.ConsensusValue, *proto.ConsensusValueCue, proto.BlockID, error) {
 
-	b.stampNominateStart(ontoDb.Height + 1)
+	b.stampNominateStart(ctx, ontoDb.Height+1)
 	defer b.stampNominateEnd(ontoDb.Height + 1)
 
 	// --- prepare nomination ---
@@ -56,7 +56,7 @@ func (b *Baton) nominate(
 
 	tMempoolNominateEnd := b.handler.Now()
 	b.stampMempoolNominateEnd(nominatedBlock.Nomination.Block_height, tMempoolNominateEnd)
-	liblog.Debugf("mempool_nomination_delay=%v | height=%d, num_txs=%d",
+	liblog.Debugf(ctx, "mempool_nomination_delay=%v | height=%d, num_txs=%d",
 		tMempoolNominateEnd.Sub(t0),
 		nominatedBlock.Nomination.Block_height,
 		numTxs,
@@ -72,7 +72,7 @@ func (b *Baton) nominate(
 	prevStamp := protoutil.TimeFromTimepoint(ontoExt.cv.Timestamp)
 	stamp := b.handler.Now()
 	for stamp.Sub(prevStamp) < 2*b.skew {
-		liblog.Debugf("delaying block %d by %v to overcome clock skew", nomination.Block_height, b.skew)
+		liblog.Debugf(ctx, "delaying block %d by %v to overcome clock skew", nomination.Block_height, b.skew)
 		b.handler.Sleep(b.skew)
 		stamp = b.handler.Now()
 	}
@@ -90,7 +90,7 @@ func (b *Baton) nominate(
 
 	q0 := b.handler.Now()
 	cvc := b.cueFromConsensusValue(cv)
-	liblog.Debugf("hashing cv for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
+	liblog.Debugf(ctx, "hashing cv for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
 
 	evNominating := batonkit.EventNominating{
 		Onto:                 ontoDb,
@@ -100,7 +100,7 @@ func (b *Baton) nominate(
 		DbgConsensusValue:    cv,
 		DbgConsensusValueCue: cvc,
 	}
-	liblog.Infof("%v", evNominating)
+	liblog.Infof(ctx, "%v", evNominating)
 	b.handler.Emit(ctx, evNominating)
 
 	// in a single-node setup, the externalization resulting from calling scp.nominate (handler.Nominate below)
@@ -132,12 +132,12 @@ func (b *Baton) nominate(
 	prevSummary := proto.PrevNominationSummary{Block_hash: nomination.Prev_block_hash}
 	n0 := time.Now()
 	accepted := b.handler.Nominate(ctx, scpkit.Slot(nomination.Block_height), cvc, &prevSummary)
-	b.reportSCPNominationDelay(nomination.Block_height, time.Since(n0))
+	b.reportSCPNominationDelay(ctx, nomination.Block_height, time.Since(n0))
 
 	if accepted {
 
 		// if nomination accepted, broadcast consensus value
-		liblog.Debugf("disseminating consensus value for slot %d with hash %s",
+		liblog.Debugf(ctx, "disseminating consensus value for slot %d with hash %s",
 			nomination.Block_height,
 			libxdr.HashString(cvc.Cv_hash))
 		b.handler.DisseminateCV(ctx, *cv, cvc.Cv_hash)
@@ -150,17 +150,17 @@ func (b *Baton) nominate(
 			DbgConsensusValue:    cv,
 			DbgConsensusValueCue: cvc,
 		}
-		liblog.Infof("%v", evNominated)
+		liblog.Infof(ctx, "%v", evNominated)
 		b.handler.Emit(ctx, evNominated)
 
-		liblog.Debugf("coordinator_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
+		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
 		return cv, cvc, nominatedBlock.Block_id, nil
 	} else {
-		liblog.Errorf("nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
+		liblog.Errorf(ctx, "nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 
-		liblog.Debugf("coordinator_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
+		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
 		return nil, nil, 0, ErrNominationRejected

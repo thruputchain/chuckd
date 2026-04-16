@@ -149,7 +149,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
-	liblog.Debugf("STAGE 1: nomination succeeded")
+	liblog.Debugf(ctx, "STAGE 1: nomination succeeded")
 
 	vlevel := rig.ValidateNominationValue(
 		ctx,
@@ -162,7 +162,7 @@ func TestValidateCommit(t *testing.T) {
 	if <-vlevel != scpkit.FullyValidValue {
 		t.Fatalf("expecting fully valid level")
 	}
-	liblog.Debugf("STAGE 1: validation succeeded")
+	liblog.Debugf(ctx, "STAGE 1: validation succeeded")
 	rig.PassTime(tick)
 	rig.WaitBackfeed(ctx)
 

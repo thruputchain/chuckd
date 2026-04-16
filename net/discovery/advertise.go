@@ -55,14 +55,14 @@ func (s *DiscoveryService) advertiseToValidator(
 	// log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
 	c, err := DialDiscoveryClient(ctx, s.net, v.Address)
 	if err != nil {
-		liblog.Errorf("discovery dialing %s: %v", protoutil.VPublicShortString(v), err)
+		liblog.Errorf(ctx, "discovery dialing %s: %v", protoutil.VPublicShortString(v), err)
 		return
 	}
 	defer c.Close()
 
 	r, err := c.Discovery_update_quorums(ctx, snapshot)
 	if err != nil {
-		liblog.Errorf("advertise to %s at epoch %d: %s", protoutil.VPublicShortString(v), epoch, err)
+		liblog.Errorf(ctx, "advertise to %s at epoch %d: %s", protoutil.VPublicShortString(v), epoch, err)
 		return
 	}
 	s.updateKnown(ctx, r)

@@ -175,7 +175,7 @@ func (x *SendStream) Send(ctx context.Context, pkg libmem.BorrowedValue[*proto.D
 			for _, d := range x.nav.Downstream {
 				err := x.parent.caller.DogwoodDeliver(ctx, d, libmem.BorrowOnWaitGroup(&wg, env))
 				if err != nil {
-					liblog.Infof("sending delivery: %v", err)
+					liblog.Infof(ctx, "sending delivery: %v", err)
 				}
 			}
 

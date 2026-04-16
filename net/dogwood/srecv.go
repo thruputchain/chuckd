@@ -100,7 +100,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	for _, d := range route.Downstream {
 		err := r.caller.DogwoodDeliver(ctx, d, libmem.BorrowOnWaitGroup(&wg, env))
 		if err != nil {
-			liblog.Infof("forwarding delivery: %v", err)
+			liblog.Infof(ctx, "forwarding delivery: %v", err)
 		}
 	}
 

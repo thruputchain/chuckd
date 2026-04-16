@@ -49,7 +49,7 @@ func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnve
 func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
 	t0 := time.Now()
 	defer func() {
-		liblog.Debugf("scpd_nominate_delay=%v | slot=%d", time.Since(t0), slot)
+		liblog.Debugf(ctx, "scpd_nominate_delay=%v | slot=%d", time.Since(t0), slot)
 	}()
 
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy

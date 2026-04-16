@@ -4,6 +4,7 @@ TESTS
 - [ ] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts
 - [ ] put mocked scheduler, virtual network tests in ci
 - [ ] test: die after nominating
+- [ ] test memory and goroutine leaks
 
 - [ ] staggered start (without sync) doesn't seem to work
 - [ ] loadgen test catchup (3-node, 1 node restarts)

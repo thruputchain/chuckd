@@ -33,7 +33,7 @@ func WaitCounterpartyReady(ctx context.Context, dialer libnet.AddressDialer, v p
 			}
 			err := pingDowgwood(ctx, dialer, v.Address)
 			if err != nil {
-				liblog.Errorf("pinging dogwood service at %s failed (%v)", v.Address, err)
+				liblog.Errorf(ctx, "pinging dogwood service at %s failed (%v)", v.Address, err)
 				continue
 			}
 			return nil

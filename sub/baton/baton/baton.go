@@ -154,7 +154,7 @@ func (b *Baton) Start(ctx context.Context) {
 
 func (b *Baton) start(ctx context.Context) {
 
-	liblog.Infof("baton starting")
+	liblog.Infof(ctx, "baton starting")
 
 	// restore db
 	var err error
@@ -162,7 +162,7 @@ func (b *Baton) start(ctx context.Context) {
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
 	b.tipDb = *tipResult.Db_tip()
-	liblog.Infof("db restored %v", protoutil.DbTipString(b.tipDb))
+	liblog.Infof(ctx, "db restored %v", protoutil.DbTipString(b.tipDb))
 
 	// genesis block has height 0, and no corresponding consensus value
 	if b.tipDb.Height > 0 {
@@ -170,11 +170,11 @@ func (b *Baton) start(ctx context.Context) {
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
 		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
-		liblog.Infof("externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
+		liblog.Infof(ctx, "externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
 	} else {
 		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
 		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV))
-		liblog.Infof("externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
+		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
 
 	// notify scpd of the lowest non-externalized slot
@@ -187,7 +187,7 @@ func (b *Baton) start(ctx context.Context) {
 		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
 	}
 
-	liblog.Infof("baton db restored at height %d", b.tipDb.Height)
+	liblog.Infof(ctx, "baton db restored at height %d", b.tipDb.Height)
 
 	// release lock on scp events
 	close(b.ready)
@@ -245,7 +245,7 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
 func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalizedConsensus, error) {
-	liblog.Infof("waiting for commit at height %d", height)
+	liblog.Infof(ctx, "waiting for commit at height %d", height)
 
 	stop := context.AfterFunc(ctx, func() { b.cond.Broadcast() })
 	defer stop()

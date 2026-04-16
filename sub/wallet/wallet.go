@@ -66,7 +66,7 @@ func (g *WalletGateway) Service() proto.Wallet1 {
 	return g.svc
 }
 
-func (g *WalletGateway) StartHTTP(_ context.Context, address string) {
+func (g *WalletGateway) StartHTTP(ctx context.Context, address string) {
 	g.lk.Lock()
 	defer g.lk.Unlock()
 	if g.server != nil {
@@ -74,14 +74,14 @@ func (g *WalletGateway) StartHTTP(_ context.Context, address string) {
 	}
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
-		liblog.Fatalf("start wallet gateway http server listener: %v", err)
+		liblog.Fatalf(ctx, "start wallet gateway http server listener: %v", err)
 	}
 	server := &http.Server{Handler: g.r}
 	g.server = server
 	g.ln = ln
 	go func() {
 		if err := server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			liblog.Fatalf("start wallet gateway http server: %v", err)
+			liblog.Fatalf(ctx, "start wallet gateway http server: %v", err)
 		}
 	}()
 }

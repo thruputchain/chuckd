@@ -40,7 +40,7 @@ func serializeBatch[T any](batch proto.ParallelBatch, toXDR func(*T) xdr.XdrType
 
 	t0 := time.Now()
 	defer func() {
-		liblog.Debugf("elapsed %v to serialize batch with %d tokens from %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
+		liblog.Debugf(context.TODO(), "elapsed %v to serialize batch with %d tokens from %d segments", time.Since(t0), len(tokens), len(batch.Segment_tokens))
 	}()
 
 	if err := ValidateBatch(batch); err != nil {

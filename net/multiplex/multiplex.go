@@ -71,12 +71,12 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 		}
 		payload, fromID, err := x.dogwood.Receive(ctx)
 		if err != nil {
-			liblog.Errorf("multiplex receive: %v", err)
+			liblog.Errorf(ctx, "multiplex receive: %v", err)
 			continue
 		}
 		var xmsg proto.MultiplexMessage
 		if err := libxdr.UnmarshalXdr(&xmsg, payload); err != nil {
-			liblog.Errorf("cannot unmarshal multiplex message: %v", err)
+			liblog.Errorf(ctx, "cannot unmarshal multiplex message: %v", err)
 			continue
 		}
 
@@ -88,7 +88,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 		case proto.MultiplexMessageSCP:
 			x.receivedEnvelope <- envelopeFrom{From: fromID, SCPEnvelope: xmsg.Envelope()}
 		default:
-			liblog.Errorf("unsupported multiplex message type %v", xmsg.Type)
+			liblog.Errorf(ctx, "unsupported multiplex message type %v", xmsg.Type)
 		}
 	}
 }
@@ -103,32 +103,32 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 }
 
 func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
-	liblog.Debugf("%v multiplex sending %d txs",
+	liblog.Debugf(ctx, "%v multiplex sending %d txs",
 		protoutil.VIDString(x.self), xdrutil.SizeOfBatch(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
 	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
-		liblog.Errorf("multiplex send submitted txs: %v", err)
+		liblog.Errorf(ctx, "multiplex send submitted txs: %v", err)
 	}
 }
 
 func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusValue) error {
-	liblog.Debugf("%v multiplex sending consensus value, for slot %v",
+	liblog.Debugf(ctx, "%v multiplex sending consensus value, for slot %v",
 		protoutil.VIDString(x.self), cv.Nomination.Block_height)
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageConsensusValue
 	*xmsg.Consensus_value() = cv
 	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
-		liblog.Errorf("multiplex send consensus value: %v", err)
+		liblog.Errorf(ctx, "multiplex send consensus value: %v", err)
 	}
 	return nil
 }
 
 func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
-	liblog.Debugf("%v multiplex sending envelope: %v",
+	liblog.Debugf(ctx, "%v multiplex sending envelope: %v",
 		protoutil.VIDString(x.self),
 		protoutil.SCPEnvelopeShortString(env))
 	var xmsg proto.MultiplexMessage
@@ -136,7 +136,7 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	*xmsg.Envelope() = env
 	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
-		liblog.Errorf("multiplex send envelope: %v", err)
+		liblog.Errorf(ctx, "multiplex send envelope: %v", err)
 	}
 	return nil
 }
@@ -152,7 +152,7 @@ func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID,
 	case <-ctx.Done():
 		return proto.ValidatorID{}, nil, false
 	case submittedTxsFrom := <-x.receivedSubmittedTxs:
-		liblog.Debugf("%v multiplex received txs %d from %v",
+		liblog.Debugf(ctx, "%v multiplex received txs %d from %v",
 			protoutil.VIDString(x.self),
 			xdrutil.SizeOfBatch(submittedTxsFrom.Transactions),
 			protoutil.VIDString(submittedTxsFrom.From))
@@ -165,7 +165,7 @@ func (x *Multiplex) ReceiveConsensusValue(ctx context.Context) (proto.ValidatorI
 	case <-ctx.Done():
 		return proto.ValidatorID{}, nil, false
 	case cvFrom := <-x.receivedConsensusValue:
-		liblog.Debugf("%v multiplex received consensus value from %v, for slot %v",
+		liblog.Debugf(ctx, "%v multiplex received consensus value from %v, for slot %v",
 			protoutil.VIDString(x.self),
 			protoutil.VIDString(cvFrom.From),
 			cvFrom.ConsensusValue.Nomination.Block_height)
@@ -178,7 +178,7 @@ func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *pr
 	case <-ctx.Done():
 		return proto.ValidatorID{}, nil, false
 	case envelopeFrom := <-x.receivedEnvelope:
-		liblog.Debugf("%v multiplex received envelope from %v: %v",
+		liblog.Debugf(ctx, "%v multiplex received envelope from %v: %v",
 			protoutil.VIDString(x.self),
 			protoutil.VIDString(envelopeFrom.From),
 			protoutil.SCPEnvelopeShortString(*envelopeFrom.SCPEnvelope))

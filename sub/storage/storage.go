@@ -70,9 +70,9 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 ) {
 	<-x.ready
 
-	liblog.Debugf("pre-persisting catchup block: height %d; cv_hash %s",
+	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; cv_hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
-	defer liblog.Debugf("pre-persisted catchup block: height %d; cv_hash %s",
+	defer liblog.Debugf(ctx, "pre-persisted catchup block: height %d; cv_hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvHash)
@@ -89,9 +89,9 @@ func (x *DiskStorage) PersistCatchupBlock(
 ) {
 	<-x.ready
 
-	liblog.Debugf("persisting catchup block: height %d; cv_hash %s",
+	liblog.Debugf(ctx, "persisting catchup block: height %d; cv_hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
-	defer liblog.Debugf("persisted catchup block: height %d; cv_hash %s",
+	defer liblog.Debugf(ctx, "persisted catchup block: height %d; cv_hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvHash)
@@ -133,9 +133,9 @@ func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 ) {
 	<-x.ready
 
-	liblog.Debugf("persisting already pre-persisted catchup block: height %d; cv_hash %s",
+	liblog.Debugf(ctx, "persisting already pre-persisted catchup block: height %d; cv_hash %s",
 		height, libxdr.HashString(cvHash))
-	defer liblog.Debugf("persisted already pre-persisted catchup block: height %d; cv_hash %s",
+	defer liblog.Debugf(ctx, "persisted already pre-persisted catchup block: height %d; cv_hash %s",
 		height, libxdr.HashString(cvHash))
 
 	full := x.CatchupBlockFilepath(height, cvHash)
@@ -167,9 +167,9 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
 	<-x.ready
 
-	liblog.Debugf("pre-persisting cv: height %d; cv_hash %s",
+	liblog.Debugf(ctx, "pre-persisting cv: height %d; cv_hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
-	defer liblog.Debugf("pre-persisted cv: height %d; cv_hash %s",
+	defer liblog.Debugf(ctx, "pre-persisted cv: height %d; cv_hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvHash)
@@ -184,9 +184,9 @@ func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.Con
 func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
 	<-x.ready
 
-	liblog.Debugf("persisting cv: height %d; cv_hash %s",
+	liblog.Debugf(ctx, "persisting cv: height %d; cv_hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
-	defer liblog.Debugf("persisted cv: height %d; cv_hash %s",
+	defer liblog.Debugf(ctx, "persisted cv: height %d; cv_hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvHash)

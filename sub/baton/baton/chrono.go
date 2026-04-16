@@ -1,6 +1,7 @@
 package baton
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -48,7 +49,7 @@ func (x *chrono) at(height proto.BlockHeight) *blockChrono {
 	return k
 }
 
-func (b *Baton) stampNominateStart(height proto.BlockHeight) {
+func (b *Baton) stampNominateStart(ctx context.Context, height proto.BlockHeight) {
 	b.chrono.lk.Lock()
 	defer b.chrono.lk.Unlock()
 
@@ -58,7 +59,7 @@ func (b *Baton) stampNominateStart(height proto.BlockHeight) {
 	b.chrono.lastNominateStartHeight = height
 
 	if !b.chrono.lastCommitStart.IsZero() {
-		liblog.Debugf("commit_start_to_nominate_start_delay=%v | commit_height=%d, nominate_height=%d",
+		liblog.Debugf(ctx, "commit_start_to_nominate_start_delay=%v | commit_height=%d, nominate_height=%d",
 			b.chrono.lastNominateStart.Sub(b.chrono.lastCommitStart),
 			b.chrono.lastCommitStartHeight, b.chrono.lastNominateStartHeight,
 		)
@@ -74,7 +75,7 @@ func (b *Baton) stampMempoolNominateEnd(height proto.BlockHeight, now time.Time)
 	b.chrono.lastMempoolNominateEndHeight = height
 }
 
-func (b *Baton) reportSCPNominationDelay(height proto.BlockHeight, d time.Duration) {
+func (b *Baton) reportSCPNominationDelay(ctx context.Context, height proto.BlockHeight, d time.Duration) {
 	b.chrono.lk.Lock()
 	defer b.chrono.lk.Unlock()
 
@@ -90,7 +91,7 @@ func (b *Baton) reportSCPNominationDelay(height proto.BlockHeight, d time.Durati
 	// |-- scp nomination --|
 	// |------------ persist ------------|
 	if b.chrono.lastPersistCVHeight == b.chrono.lastSCPNominationDelayHeight {
-		liblog.Debugf("coordinator_non_persist_overhead=%v | height=%d",
+		liblog.Debugf(ctx, "coordinator_non_persist_overhead=%v | height=%d",
 			b.chrono.lastSCPNominationDelay-b.chrono.lastPersistCV,
 			b.chrono.lastPersistCVHeight)
 	}
@@ -115,7 +116,7 @@ func (b *Baton) stampNominateEnd(height proto.BlockHeight) {
 	b.chrono.lastNominateEndHeight = height
 }
 
-func (b *Baton) stampCommitStart(height proto.BlockHeight) {
+func (b *Baton) stampCommitStart(ctx context.Context, height proto.BlockHeight) {
 	b.chrono.lk.Lock()
 	defer b.chrono.lk.Unlock()
 
@@ -125,14 +126,14 @@ func (b *Baton) stampCommitStart(height proto.BlockHeight) {
 	b.chrono.lastCommitStartHeight = height
 
 	if !b.chrono.lastNominateStart.IsZero() {
-		liblog.Debugf("nominate_start_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
+		liblog.Debugf(ctx, "nominate_start_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
 			b.chrono.lastCommitStart.Sub(b.chrono.lastNominateStart),
 			b.chrono.lastNominateStartHeight, b.chrono.lastCommitStartHeight,
 		)
 	}
 
 	if !b.chrono.lastMempoolNominateEnd.IsZero() {
-		liblog.Debugf("mempool_nominate_end_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
+		liblog.Debugf(ctx, "mempool_nominate_end_to_commit_start_delay=%v | nominate_height=%d, commit_height=%d",
 			b.chrono.lastCommitStart.Sub(b.chrono.lastMempoolNominateEnd),
 			b.chrono.lastMempoolNominateEndHeight, b.chrono.lastCommitStartHeight,
 		)

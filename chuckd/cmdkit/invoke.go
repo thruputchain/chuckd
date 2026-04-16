@@ -14,46 +14,46 @@ import (
 	"github.com/groundhogchain/lib-go/must"
 )
 
-func flushMemProfile(memProfilePath string) {
+func flushMemProfile(ctx context.Context, memProfilePath string) {
 	if memProfilePath == "" {
 		return
 	}
 	f, err := os.Create(memProfilePath)
 	if err != nil {
-		liblog.Fatalf("could not create memory profile (%v)", err)
+		liblog.Fatalf(ctx, "could not create memory profile (%v)", err)
 	}
 	defer f.Close()
 	runtime.GC() // get up-to-date statistics
 	if err := pprof.WriteHeapProfile(f); err != nil {
-		liblog.Fatalf("could not write memory profile (%v)", err)
+		liblog.Fatalf(ctx, "could not write memory profile (%v)", err)
 	}
 }
 
-func flushMutexProfile(mutexProfilePath string) {
+func flushMutexProfile(ctx context.Context, mutexProfilePath string) {
 	if mutexProfilePath == "" {
 		return
 	}
 	f, err := os.Create(mutexProfilePath)
 	if err != nil {
-		liblog.Fatalf("could not create mutex profile (%v)", err)
+		liblog.Fatalf(ctx, "could not create mutex profile (%v)", err)
 	}
 	defer f.Close()
 	if err := pprof.Lookup("mutex").WriteTo(f, 0); err != nil {
-		liblog.Fatalf("could not write mutex profile (%v)", err)
+		liblog.Fatalf(ctx, "could not write mutex profile (%v)", err)
 	}
 }
 
-func flushBlockProfile(blockProfilePath string) {
+func flushBlockProfile(ctx context.Context, blockProfilePath string) {
 	if blockProfilePath == "" {
 		return
 	}
 	f, err := os.Create(blockProfilePath)
 	if err != nil {
-		liblog.Fatalf("could not create block profile (%v)", err)
+		liblog.Fatalf(ctx, "could not create block profile (%v)", err)
 	}
 	defer f.Close()
 	if err := pprof.Lookup("block").WriteTo(f, 0); err != nil {
-		liblog.Fatalf("could not write block profile (%v)", err)
+		liblog.Fatalf(ctx, "could not write block profile (%v)", err)
 	}
 }
 
@@ -63,19 +63,19 @@ func Invoke(ctx context.Context, f func()) error {
 
 	// mem profile
 	if memProfilePath != "" {
-		defer flushMemProfile(memProfilePath)
-		hooks = append(hooks, func(os.Signal) { flushMemProfile(memProfilePath) })
+		defer flushMemProfile(ctx, memProfilePath)
+		hooks = append(hooks, func(os.Signal) { flushMemProfile(ctx, memProfilePath) })
 	}
 
 	// cpu profile
 	if cpuProfilePath != "" {
 		f, err := os.Create(cpuProfilePath)
 		if err != nil {
-			liblog.Fatalf("could not create CPU profile (%v)", err)
+			liblog.Fatalf(ctx, "could not create CPU profile (%v)", err)
 		}
 		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
-			liblog.Fatalf("could not start CPU profile (%v)", err)
+			liblog.Fatalf(ctx, "could not start CPU profile (%v)", err)
 		}
 		defer pprof.StopCPUProfile()
 		hooks = append(hooks,
@@ -90,11 +90,11 @@ func Invoke(ctx context.Context, f func()) error {
 	if traceProfilePath != "" {
 		f, err := os.Create(traceProfilePath)
 		if err != nil {
-			liblog.Fatalf("could not create trace profile (%v)", err)
+			liblog.Fatalf(ctx, "could not create trace profile (%v)", err)
 		}
 		defer f.Close()
 		if err := trace.Start(f); err != nil {
-			liblog.Fatalf("could not start trace profile (%v)", err)
+			liblog.Fatalf(ctx, "could not start trace profile (%v)", err)
 		}
 		defer trace.Stop()
 		hooks = append(hooks,
@@ -108,15 +108,15 @@ func Invoke(ctx context.Context, f func()) error {
 	// mutex profile
 	if mutexProfilePath != "" {
 		runtime.SetMutexProfileFraction(1)
-		defer flushMutexProfile(mutexProfilePath)
-		hooks = append(hooks, func(os.Signal) { flushMutexProfile(mutexProfilePath) })
+		defer flushMutexProfile(ctx, mutexProfilePath)
+		hooks = append(hooks, func(os.Signal) { flushMutexProfile(ctx, mutexProfilePath) })
 	}
 
 	// block profile
 	if blockProfilePath != "" {
 		runtime.SetBlockProfileRate(1)
-		defer flushBlockProfile(blockProfilePath)
-		hooks = append(hooks, func(os.Signal) { flushBlockProfile(blockProfilePath) })
+		defer flushBlockProfile(ctx, blockProfilePath)
+		hooks = append(hooks, func(os.Signal) { flushBlockProfile(ctx, blockProfilePath) })
 	}
 
 	if stackTrace {
@@ -129,12 +129,12 @@ func Invoke(ctx context.Context, f func()) error {
 	// start telemetry
 	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
 	if err != nil {
-		liblog.Fatalf("starting telemetry: %v", err)
+		liblog.Fatalf(ctx, "starting telemetry: %v", err)
 		return err
 	}
 	defer func() {
 		if err := shutdown(ctx); err != nil {
-			liblog.Fatalf("shutdown telemetry: %v", err)
+			liblog.Fatalf(ctx, "shutdown telemetry: %v", err)
 		}
 	}()
 	hooks = append(hooks,

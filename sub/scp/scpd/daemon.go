@@ -31,8 +31,8 @@ func StartSCPDaemon(
 	secretKey proto.SecretKey,
 ) (*SCPHandler, *SCPController, func()) {
 
-	liblog.Infof("starting scpd, control_address=%s, handle_address=%s ...", controlAddr, handleAddr)
-	liblog.Infof("scp config: %v", libxdr.MustXdrToJsonString(&cfg))
+	liblog.Infof(ctx, "starting scpd, control_address=%s, handle_address=%s ...", controlAddr, handleAddr)
+	liblog.Infof(ctx, "scp config: %v", libxdr.MustXdrToJsonString(&cfg))
 
 	// prepare config
 

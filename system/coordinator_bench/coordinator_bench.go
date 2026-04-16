@@ -82,17 +82,17 @@ func (x *CoordinatorBenchCluster) SchedAddress() string {
 }
 
 func (x *CoordinatorBenchCluster) StartScheduler(ctx context.Context) {
-	liblog.Infof("starting mock scheduler")
+	liblog.Infof(ctx, "starting mock scheduler")
 	x.l = librpc.StartSerial(ctx, x.net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, x.SchedAddress(), proto.SchedulerCoord1_Server{Srv: x.sched})
 }
 
 func (x *CoordinatorBenchCluster) StartPump(ctx context.Context) {
-	liblog.Infof("starting txs pump")
+	liblog.Infof(ctx, "starting txs pump")
 	go x.pumpTxs(ctx)
 }
 
 func (x *CoordinatorBenchCluster) pumpTxs(ctx context.Context) {
-	liblog.Infof("testcluster pumping txs")
+	liblog.Infof(ctx, "testcluster pumping txs")
 	t := time.NewTicker(500 * time.Millisecond)
 	defer t.Stop()
 	for {

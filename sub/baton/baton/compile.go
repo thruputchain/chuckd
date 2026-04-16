@@ -30,15 +30,15 @@ func (b *Baton) buildCleanView(ctx context.Context) (v *View) {
 		case nil:
 			must.Assertf(ctx, v != nil, "bug")
 		case ErrConsensusBelowDb: // unrecoverable
-			liblog.Fatalf("consensus height is below db; unrecoverable")
+			liblog.Fatalf(ctx, "consensus height is below db; unrecoverable")
 		case ErrDbFarBehind: // must resort to cold start
-			liblog.Fatalf("db is far behind consensus; needs a cold start")
+			liblog.Fatalf(ctx, "db is far behind consensus; needs a cold start")
 		case ErrDbConsensusDisagree: // unrecoverable
-			liblog.Fatalf("consensus and db disagree; unrecoverable")
+			liblog.Fatalf(ctx, "consensus and db disagree; unrecoverable")
 		case ErrConsensusInconsistent: // unrecoverable
-			liblog.Fatalf("consensus is inconsistent; unrecoverable")
+			liblog.Fatalf(ctx, "consensus is inconsistent; unrecoverable")
 		case ErrFaultyCatchup: // must drop all catchup blocks and blacklist sources
-			liblog.Errorf("purging faulty catchup")
+			liblog.Errorf(ctx, "purging faulty catchup")
 			b.purgeCatchup(ctx) // go back and retry building the view
 			v = nil
 		default:

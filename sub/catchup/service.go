@@ -78,7 +78,7 @@ func (svc *CatchupService) Catchup_solicit(
 	for i, span := range sreq.Request.Spans {
 		spans[i] = protoutil.Span[proto.BlockHeight]{From: span.From_block_height, To: span.To_block_height}
 	}
-	liblog.Infof("catchup requested for spans: %v", spans)
+	liblog.Infof(ctx, "catchup requested for spans: %v", spans)
 	spans = protoutil.SumSpans(spans...)
 
 	blocks := []proto.CatchupBlock{}
@@ -94,7 +94,7 @@ func (svc *CatchupService) Catchup_solicit(
 	for _, b := range blocks {
 		fmt.Fprintf(&heights, "%d ", b.Consensus_value.Nomination.Block_height)
 	}
-	liblog.Infof("serving catchup heights: [%s]", heights.String())
+	liblog.Infof(ctx, "serving catchup heights: [%s]", heights.String())
 
 	result := proto.CatchupBlocksResult{
 		Timestamp: protoutil.TimepointFromTime(svc.time.Now()),

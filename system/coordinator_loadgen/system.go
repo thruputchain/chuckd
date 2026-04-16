@@ -76,7 +76,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	}
 	err := debug.StartAndWaitCounterpartiesReady(ctx, s.outside, colonPort, counterAddr)
 	must.NoError(ctx, err)
-	liblog.Infof("all counterparties are up; starting coordinator benchmark")
+	liblog.Infof(ctx, "all counterparties are up; starting coordinator benchmark")
 
 	// start scheduler system
 	s.scheduler.StartScheduler(ctx, opcfg)
@@ -122,7 +122,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 func (s *CoordinatorLoadgenSystem) DrainInitTxs(ctx context.Context) {
 	i := 0
 	for {
-		liblog.Infof("draining init tx batch %d from loadgen", i)
+		liblog.Infof(ctx, "draining init tx batch %d from loadgen", i)
 		txs := s.loadgen.WaitInitTxs(ctx)
 		if len(txs) == 0 {
 			return
@@ -146,9 +146,9 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 					delete(uncommitted, h)
 				}
 				if len(uncommitted) == 0 {
-					liblog.Debugf("commit hook: pause nominating")
+					liblog.Debugf(ctx, "commit hook: pause nominating")
 				} else {
-					liblog.Debugf("commit hook: continue nominating (%d uncommitted)", len(uncommitted))
+					liblog.Debugf(ctx, "commit hook: continue nominating (%d uncommitted)", len(uncommitted))
 				}
 				return batonkit.BatonLevers{PauseNominating: len(uncommitted) == 0}
 			},
@@ -160,13 +160,13 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 	for {
 		must.Assert(ctx, ctl.GetLevers().PauseNominating)
 
-		liblog.Infof("waiting for init tx batch %d to arrive from loadgen", i)
+		liblog.Infof(ctx, "waiting for init tx batch %d to arrive from loadgen", i)
 		txs := s.loadgen.WaitInitTxs(ctx)
 		if len(txs) == 0 {
 			return
 		}
 
-		liblog.Infof("submitting init tx batch %d with %d transactions", i, len(txs))
+		liblog.Infof(ctx, "submitting init tx batch %d with %d transactions", i, len(txs))
 		for _, tx := range txs {
 			uncommitted[protoutil.HashSignedTx(tx)] = true
 		}
@@ -176,13 +176,13 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 
 		// after resuming, an empty nomination can slip in before submitted txs reach mempool,
 		// so we wait for a bit to avoid this
-		liblog.Debugf("sleeping for 500ms before nominating")
+		liblog.Debugf(ctx, "sleeping for 500ms before nominating")
 		time.Sleep(500 * time.Millisecond)
 
-		liblog.Debugf("resume nominating")
+		liblog.Debugf(ctx, "resume nominating")
 		ctl.ResumeNominating()
 
-		liblog.Infof("waiting for init batch %d to commit", i)
+		liblog.Infof(ctx, "waiting for init batch %d to commit", i)
 		for {
 			s.notify.ReceiveCommitted(ctx) // returns after the hook is called
 			if len(uncommitted) == 0 {
@@ -256,7 +256,7 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 	var lastBurst time.Time
 	i := 0
 	for {
-		liblog.Infof("waiting for work tx batch %d to arrive from loadgen", i)
+		liblog.Infof(ctx, "waiting for work tx batch %d to arrive from loadgen", i)
 		txs, ok := s.loadgen.WaitWorkTxs(ctx)
 		if !ok {
 			close(stop)
@@ -269,10 +269,10 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 		}
 		lastBurst = time.Now()
 
-		liblog.Infof("submitting work tx batch %d with %d transactions", i, xdrutil.SizeOfBatch(txs))
+		liblog.Infof(ctx, "submitting work tx batch %d with %d transactions", i, xdrutil.SizeOfBatch(txs))
 		ctl.SubmitParallelTxs(ctx, txs)
 
-		liblog.Infof("waiting for work batch %d to commit", i)
+		liblog.Infof(ctx, "waiting for work batch %d to commit", i)
 
 		i += 1
 	}

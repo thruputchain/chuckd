@@ -86,7 +86,7 @@ func initAfterFlags() {
 	if rootStackTrace {
 		cmdkit.SetStackTrace(true)
 	}
-	liblog.Infof("chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
+	liblog.Infof(context.Background(), "chuckd version: %v, os: %v, arch: %v", ghc.Short(), runtime.GOOS, runtime.GOARCH)
 	cmdkit.SetCPUProfilePath(rootCPUProfilePath)
 	cmdkit.SetTraceProfilePath(rootTraceProfilePath)
 	cmdkit.SetMemProfilePath(rootMemProfilePath)
@@ -104,7 +104,7 @@ func effectiveConfigPath(ctx context.Context) string {
 	if cfgPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			liblog.Fatalf("looking for home dir (%v)", err)
+			liblog.Fatalf(ctx, "looking for home dir (%v)", err)
 		}
 		must.NoError(ctx, err)
 		cfgPath = filepath.Join(home, cmdkit.LocalAgentPath, cmdkit.LocalAgentConfigFilebase)
@@ -115,7 +115,7 @@ func effectiveConfigPath(ctx context.Context) string {
 func LoadCoordinatorConfig(ctx context.Context) proto.Config {
 
 	cfgPath := effectiveConfigPath(ctx)
-	liblog.Infof("loading config %v", cfgPath)
+	liblog.Infof(ctx, "loading config %v", cfgPath)
 
 	data, err := os.ReadFile(cfgPath)
 	must.Assertf(ctx, err == nil, "reading config file (%w)", err)
@@ -124,7 +124,7 @@ func LoadCoordinatorConfig(ctx context.Context) proto.Config {
 	err = libxdr.JsonToXdr(&config, data)
 	must.NoError(ctx, err)
 
-	liblog.Infof("loaded config: %v", libxdr.MustXdrToJsonString(&config))
+	liblog.Infof(ctx, "loaded config: %v", libxdr.MustXdrToJsonString(&config))
 
 	return config
 }
@@ -132,7 +132,7 @@ func LoadCoordinatorConfig(ctx context.Context) proto.Config {
 func LoadDogwoodConfig(ctx context.Context) proto.DogwoodStandaloneConfig {
 
 	cfgPath := effectiveConfigPath(ctx)
-	liblog.Infof("loading config %v", cfgPath)
+	liblog.Infof(ctx, "loading config %v", cfgPath)
 
 	data, err := os.ReadFile(cfgPath)
 	must.Assertf(ctx, err == nil, "reading config file (%w)", err)

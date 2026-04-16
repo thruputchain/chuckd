@@ -48,7 +48,7 @@ func dialSchedulerUntilSuccess(
 
 		schedConn, err = DialSchedulerCoordClient(ctx, net, schedAddr)
 		if err != nil {
-			liblog.Infof("connecting to scheduler at %s failed (%v), retrying in 1 sec", schedAddr, err)
+			liblog.Infof(ctx, "connecting to scheduler at %s failed (%v), retrying in 1 sec", schedAddr, err)
 			time.Sleep(time.Second)
 			continue
 		}
