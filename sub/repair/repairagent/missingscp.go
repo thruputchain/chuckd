@@ -12,7 +12,7 @@ import (
 
 func (x *RepairAgent) RepairMissingSCP(
 	ctx context.Context,
-	since scpkit.Slot,
+	slot scpkit.Slot,
 ) (proto.SCPEnvelopes, error) {
 
 	ps := x.router.ChooseSCPProviders(ctx, x.rand.Int63())
@@ -26,9 +26,9 @@ func (x *RepairAgent) RepairMissingSCP(
 	}
 	defer c.Close()
 
-	envs, err := c.Repair_missing_scp_envelopes(ctx, since)
+	envs, err := c.Repair_missing_scp_envelopes(ctx, slot)
 	if err != nil {
-		return nil, fmt.Errorf("failed to repair missing scp envelopes for slot %d: %w", since, err)
+		return nil, fmt.Errorf("failed to repair missing scp envelopes for slot %d: %w", slot, err)
 	}
 
 	return envs, nil

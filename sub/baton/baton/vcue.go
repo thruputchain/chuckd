@@ -125,7 +125,7 @@ func (b *Baton) fetchCV(
 	cvc *proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
-	liblog.Infof(ctx, "fetching consensus value at height %d, block hash %s, consensus hash %s",
+	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cv_hash=%s",
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	// lookup in cvpool
@@ -134,7 +134,8 @@ func (b *Baton) fetchCV(
 		return cv, nil
 	}
 
-	liblog.Debugf(ctx, "repairing missing consensus value for slot %d", slot)
+	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cv_hash=%s",
+		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	cvReturn := make(chan *proto.ConsensusValue, 2)
 
@@ -162,12 +163,17 @@ func (b *Baton) fetchCV(
 
 	select {
 	case <-ctx.Done():
+		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cv_hash=%s",
+			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 		return nil, ctx.Err()
 	case cv, ok := <-cvReturn:
 		if ok {
+			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cv_hash=%s",
+				slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 			b.handler.ConsensusValuePoolAdd(ctx, *cv, cvc.Cv_hash)
 			return cv, nil
+		} else {
+			panic("unreachable")
 		}
-		return nil, context.Canceled
 	}
 }

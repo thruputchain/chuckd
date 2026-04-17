@@ -57,8 +57,8 @@ func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 }
 
 // RepairEnvelopes retrieves past scp envelopes from persistence.
-func (x *SCPBroker) RepairEnvelopes(ctx context.Context, since proto.SCPSlotIndex) []proto.SCPEnvelope {
-	return x.storage.FindSCPEnvelopesForSlot(ctx, since)
+func (x *SCPBroker) RepairEnvelopes(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
+	return x.storage.FindSCPEnvelopesForSlot(ctx, slot)
 }
 
 func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, slot scpkit.Slot) {

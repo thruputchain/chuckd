@@ -19,6 +19,7 @@ import (
 	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libtime"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -274,6 +275,7 @@ func testHealthyValidators(t *testing.T, envVar string, numToStart int) {
 }
 
 func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
+	librpc.SetLogStats(true)
 	prevLevel := liblog.GetLogLevel()
 	_ = liblog.SetLogLevelDebug()
 	t.Cleanup(func() {
@@ -314,7 +316,7 @@ func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 		storageDir := filepath.Join(t.TempDir(), "storage")
 
 		sys := NewCoordinatorBenchSystem(
-			ctx,
+			liblog.WithLabeledLogger(ctx, fmt.Sprintf("v%d", i)),
 			libtime.RealTime{},
 			rand.New(rand.NewSource(int64(i+10))),
 			outside,
@@ -344,6 +346,7 @@ func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 		readies = append(readies, make(chan struct{}))
 	}
 
+	allReached := make(chan struct{})
 	var wg sync.WaitGroup
 	for i := range systems {
 		wg.Add(1)
@@ -359,7 +362,13 @@ func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 				}
 			}
 
-			systems[i].Start(ctx, opcfgs[i], 30, readies[i])
+			systems[i].startAndWaitHeightAndKeepRunning(
+				ctx,
+				opcfgs[i],
+				proto.BlockHeight(30),
+				readies[i],
+				allReached,
+			)
 		}(i)
 	}
 
@@ -370,6 +379,7 @@ func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 			t.Fatalf("timed out waiting for staggered coordinator bench systems to complete: %v", ctx.Err())
 		}
 	}
+	close(allReached)
 
 	wg.Wait()
 }
