@@ -125,17 +125,19 @@ func (b *Baton) fetchCV(
 	cvc *proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
-	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cv_hash=%s",
-		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
+	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
+		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
 
 	// lookup in cvpool
 	cv := b.handler.CVPoolLookup(ctx, cvc.Cv_hash)
 	if cv != nil {
+		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cv_hash=%s, proposer=%s",
+			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
 		return cv, nil
 	}
 
-	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cv_hash=%s",
-		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
+	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cv_hash=%s, proposer=%s",
+		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
 
 	cvReturn := make(chan *proto.ConsensusValue, 2)
 
@@ -163,13 +165,15 @@ func (b *Baton) fetchCV(
 
 	select {
 	case <-ctx.Done():
-		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cv_hash=%s",
-			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
+		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
+			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
+			protoutil.VPublicShortString(cvc.Proposer))
 		return nil, ctx.Err()
 	case cv, ok := <-cvReturn:
 		if ok {
-			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cv_hash=%s",
-				slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
+			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
+				slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
+				protoutil.VPublicShortString(cvc.Proposer))
 			b.handler.CVPoolAdd(ctx, *cv, cvc.Cv_hash)
 			return cv, nil
 		} else {

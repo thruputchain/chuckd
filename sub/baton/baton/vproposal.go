@@ -132,7 +132,8 @@ func (b *Baton) repairMissingTxs(
 	missing proto.MissingTransactions,
 ) error {
 
-	liblog.Debugf(ctx, "repairing %d missing transactions", len(missing.Transaction_hashes))
+	liblog.Debugf(ctx, "repairing %d missing transactions: cv_hash=%s; block_hash=%s",
+		len(missing.Transaction_hashes), libxdr.HashString(missing.Cv_hash), libxdr.HashString(missing.Block_hash))
 
 	stxs, err := b.handler.RepairMissingTxs(ctx, proposer, missing)
 	if err != nil {

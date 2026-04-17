@@ -112,7 +112,7 @@ func (x *RepairService) Repair_missing_cv(
 	height proto.BlockHeight,
 ) (proto.OptConsensusValue, error) {
 
-	liblog.Debugf(ctx, "repair missing consensus value request, cv hash %s", libxdr.HashString(cvh))
+	liblog.Debugf(ctx, "repair_missing_cv request: height=%d; cv_hash=%s", height, libxdr.HashString(cvh))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.
@@ -134,16 +134,16 @@ func (x *RepairService) Repair_missing_cv(
 
 	cvx := x.cvpool.CVPoolLookup(ctx, cvh)
 	if cvx != nil {
-		liblog.Infof(ctx, "serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
+		liblog.Infof(ctx, "repair_missing_cv serving from pool: height=%d; cv_hash=%s", height, libxdr.HashString(cvh))
 		return cvx, nil
 	}
 
 	cv := x.cvpool.CVPoolFind(ctx, height, cvh)
 	if cv != nil {
 		must.Assert(ctx, protoutil.HashCVFast(cv) == cvh)
-		liblog.Infof(ctx, "serving missing cv from storage, hash=%s height=%d", libxdr.HashString(cvh), height)
+		liblog.Infof(ctx, "repair_missing_cv serving from storage: height=%d; cv_hash=%s", height, libxdr.HashString(cvh))
 	} else {
-		liblog.Errorf(ctx, "requested missing cv was not found, hash=%s height=%d", libxdr.HashString(cvh), height)
+		liblog.Errorf(ctx, "repair_missing_cv not found: height=%d; cv_hash=%s", height, libxdr.HashString(cvh))
 	}
 	return cv, nil
 }
