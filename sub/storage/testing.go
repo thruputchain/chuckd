@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -76,43 +77,59 @@ func (x *TestCatchupBlockPersistence) FindCatchupBlock(
 	return &cb
 }
 
-type TestConsensusValuePersistence struct {
-	mu         sync.RWMutex
-	highest    proto.BlockHeight
-	hasHighest bool
-	height     map[proto.BlockHeight]proto.ConsensusValue
+type TestCVPersistence struct {
+	mu          sync.RWMutex
+	highest     proto.BlockHeight
+	hasHighest  bool
+	committed   map[proto.BlockHeight]proto.ConsensusValue
+	uncommitted map[proto.ConsensusValueHash]proto.ConsensusValue
 }
 
-func NewTestConsensusValuePersistence() *TestConsensusValuePersistence {
-	return &TestConsensusValuePersistence{
-		height: make(map[proto.BlockHeight]proto.ConsensusValue),
+func NewTestCVPersistence() *TestCVPersistence {
+	return &TestCVPersistence{
+		committed:   make(map[proto.BlockHeight]proto.ConsensusValue),
+		uncommitted: make(map[proto.ConsensusValueHash]proto.ConsensusValue),
 	}
 }
 
-func (x *TestConsensusValuePersistence) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, _ proto.ConsensusValueHash) {
+func (x *TestCVPersistence) PersistCV(ctx context.Context, cv proto.ConsensusValue, _ proto.ConsensusValueHash) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 	if !x.hasHighest || cv.Nomination.Block_height > x.highest {
 		x.highest = cv.Nomination.Block_height
 		x.hasHighest = true
 	}
-	x.height[cv.Nomination.Block_height] = cv
+	x.committed[cv.Nomination.Block_height] = cv
+	x.uncommitted[protoutil.HashCVFast(&cv)] = cv
 }
 
-func (x *TestConsensusValuePersistence) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, _ proto.ConsensusValueHash) {
+func (x *TestCVPersistence) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, _ proto.ConsensusValueHash) {
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	x.uncommitted[protoutil.HashCVFast(&cv)] = cv
 }
 
-func (x *TestConsensusValuePersistence) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
+func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight, hash proto.ConsensusValueHash) *proto.ConsensusValue {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
-	cv, ok := x.height[height]
+	cv, ok := x.uncommitted[hash]
 	if !ok {
 		return nil
 	}
 	return &cv
 }
 
-func (x *TestConsensusValuePersistence) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
+func (x *TestCVPersistence) FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	cv, ok := x.committed[height]
+	if !ok {
+		return nil
+	}
+	return &cv
+}
+
+func (x *TestCVPersistence) FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue {
 	x.mu.RLock()
 	highest := x.highest
 	hasHighest := x.hasHighest
@@ -120,5 +137,5 @@ func (x *TestConsensusValuePersistence) FindHighestConsensusValue(ctx context.Co
 	if !hasHighest {
 		return nil
 	}
-	return x.FindConsensusValue(ctx, highest)
+	return x.FindCommittedCV(ctx, highest)
 }

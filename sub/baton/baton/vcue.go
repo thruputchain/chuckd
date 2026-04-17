@@ -129,7 +129,7 @@ func (b *Baton) fetchCV(
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
 
 	// lookup in cvpool
-	cv := b.handler.ConsensusValuePoolLookupHash(ctx, cvc.Cv_hash)
+	cv := b.handler.CVPoolLookup(ctx, cvc.Cv_hash)
 	if cv != nil {
 		return cv, nil
 	}
@@ -153,7 +153,7 @@ func (b *Baton) fetchCV(
 	// try getting the cv from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.ConsensusValuePoolWaitFor(ctx, cvc.Cv_hash)
+		cv, err := b.handler.CVPoolWaitFor(ctx, cvc.Cv_hash)
 		if err != nil {
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
@@ -170,7 +170,7 @@ func (b *Baton) fetchCV(
 		if ok {
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cv_hash=%s",
 				slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
-			b.handler.ConsensusValuePoolAdd(ctx, *cv, cvc.Cv_hash)
+			b.handler.CVPoolAdd(ctx, *cv, cvc.Cv_hash)
 			return cv, nil
 		} else {
 			panic("unreachable")

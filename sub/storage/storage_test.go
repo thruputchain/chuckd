@@ -111,9 +111,9 @@ func TestFindConsensusValue(t *testing.T) {
 	st.Start(ctx, dir)
 
 	cv := newConsensusValue(time.Unix(1700001000, 0).UTC(), 10)
-	st.PersistConsensusValue(ctx, cv, protoutil.HashCVFast(&cv))
+	st.PersistCV(ctx, cv, protoutil.HashCVFast(&cv))
 
-	got := st.FindConsensusValue(ctx, cv.Nomination.Block_height)
+	got := st.FindCommittedCV(ctx, cv.Nomination.Block_height)
 	if got == nil {
 		t.Fatalf("FindConsensusValue returned nil for persisted height %d", cv.Nomination.Block_height)
 	}
@@ -122,7 +122,7 @@ func TestFindConsensusValue(t *testing.T) {
 		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, cv)
 	}
 
-	if missing := st.FindConsensusValue(ctx, cv.Nomination.Block_height+1); missing != nil {
+	if missing := st.FindCommittedCV(ctx, cv.Nomination.Block_height+1); missing != nil {
 		t.Fatalf("expected nil for non-existent height, got %+v", missing)
 	}
 }
@@ -148,10 +148,10 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		newConsensusValue(time.Unix(1700004000, 0).UTC(), 8),
 	}
 	for _, cv := range consensusValues {
-		st.PersistConsensusValue(ctx, cv, protoutil.HashCVFast(&cv))
+		st.PersistCV(ctx, cv, protoutil.HashCVFast(&cv))
 	}
 
-	got := FindConsensusValuesAbove(ctx, st, 4)
+	got := FindCommittedConsensusValuesAbove(ctx, st, 4)
 
 	if len(got) != len(consensusValues) {
 		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusValues), len(got))

@@ -1,9 +1,5 @@
 TESTS
 
-- [ ] straggler replays scp; tries to validate an early non-winning nomination;
-      tries to recover cv for the early nomination;
-      cv is not persisted, since it didn't win
-
 - [ ] test: mocked scheduler, virtual network, 3-node/2-threshold, staggered start
 - [ ] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts
 - [ ] put mocked scheduler, virtual network tests in ci

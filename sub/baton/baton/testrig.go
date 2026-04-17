@@ -36,7 +36,7 @@ type TestRig struct {
 	*testsched.TestScheduler
 	*testcatchup.TestCatchupStaged
 	*TestSCP
-	*storage.TestConsensusValuePersistence
+	*storage.TestCVPersistence
 	*cvpool.ConsensusValuePool
 	*storage.TestCatchupBlockPersistence
 	*catchup.CatchupBlockPool
@@ -76,8 +76,8 @@ func NewTestRig(
 		nominateResponse: make(chan bool, 1),
 		backfeed:         make(chan struct{}),
 	}
-	h.TestConsensusValuePersistence = storage.NewTestConsensusValuePersistence()
-	h.ConsensusValuePool = cvpool.NewConsensusValuePool(ctx, h.TestConsensusValuePersistence)
+	h.TestCVPersistence = storage.NewTestCVPersistence()
+	h.ConsensusValuePool = cvpool.NewCVPool(ctx, h.TestCVPersistence)
 	h.TestCoord = testcoord.NewTestCoord()
 	dbDir, err := os.MkdirTemp("", "chuckd-baton-db-*")
 	must.NoError(ctx, err)
@@ -89,7 +89,7 @@ func NewTestRig(
 	)
 	// place a consensus value for the db tip
 	cv0 := assumedConsensusValueAtHeight(0)
-	h.TestConsensusValuePersistence.PersistConsensusValue(ctx, cv0, protoutil.HashCVFast(&cv0))
+	h.TestCVPersistence.PersistCV(ctx, cv0, protoutil.HashCVFast(&cv0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
@@ -109,7 +109,7 @@ func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 
 func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusValue) {
 	dbTip := h.GetTip(ctx)
-	cvTip := h.FindConsensusValue(ctx, dbTip.Height) // cvTip must be non-nil
+	cvTip := h.FindCommittedCV(ctx, dbTip.Height) // cvTip must be non-nil
 	return dbTip, *cvTip
 }
 
@@ -207,7 +207,7 @@ func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cv
 }
 
 func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.ConsensusValuePool.ConsensusValuePoolAdd(ctx, cv, protoutil.HashCVFast(&cv))
+	h.ConsensusValuePool.CVPoolAdd(ctx, cv, protoutil.HashCVFast(&cv))
 }
 
 func (h *TestRig) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {

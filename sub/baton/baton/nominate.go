@@ -107,7 +107,7 @@ func (b *Baton) nominate(
 	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
 	// not be able to externalize the value (and look for catchup when no other nodes exist).
 	// to fix this, we populate the cv in the local pool optimistically.
-	b.handler.ConsensusValuePoolAdd(ctx, *cv, cvc.Cv_hash)
+	b.handler.CVPoolAdd(ctx, *cv, cvc.Cv_hash)
 
 	// kick-off an optimistic pre-persist of the catchup block;
 	// this will be committed/persisted by commit if the block is committed.

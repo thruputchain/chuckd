@@ -120,28 +120,30 @@ func (x *RepairService) Repair_missing_cv(
 	// cvpool.
 	//
 	// thus, when a value is not found in the cvpool, repair
-	// tries to find it in the storage layer, which only persist
-	// externalized consensus values.
+	// tries to find it in the storage layer, which persist
+	// all consensus values seen by the node during the slot round.
 	//
-	// requests for non-externalized past cvs will block the repair attempts forever,
+	// this helps stragglers who:
+	// - replay old scp envelopes, henceforth need to validate old nominations,
+	// henceforth need to repair old consensus values, or
+	// - process externalizations whose rounds they didn't participate in,
+	// henceforth they need to repair the missing consensus values.
+	//
+	// requests for missing cvs will block the repair attempts forever,
 	// and they need to be aborted at the caller when they discover newer externalization have happened.
-	// requests for externalized cvs will be answered by the storage layer, which will allow
-	// externalization messages to be processed at the called, and thus externalizations to be acted on.
 
-	cvx := x.cvpool.ConsensusValuePoolLookupHash(ctx, cvh)
+	cvx := x.cvpool.CVPoolLookup(ctx, cvh)
 	if cvx != nil {
 		liblog.Infof(ctx, "serving missing cv from pool, hash=%s height=%d", libxdr.HashString(cvh), height)
 		return cvx, nil
 	}
 
-	cv := x.cvpool.ConsensusValuePoolFindHeight(ctx, height)
+	cv := x.cvpool.CVPoolFind(ctx, height, cvh)
 	if cv != nil {
-		if protoutil.HashCVFast(cv) != cvh {
-			cv = nil // the requested cv was not externalized
-			liblog.Infof(ctx, "requested missing cv was not externalized, hash=%s height=%d", libxdr.HashString(cvh), height)
-		} else {
-			liblog.Infof(ctx, "serving missing cv from storage, hash=%s height=%d", libxdr.HashString(cvh), height)
-		}
+		must.Assert(ctx, protoutil.HashCVFast(cv) == cvh)
+		liblog.Infof(ctx, "serving missing cv from storage, hash=%s height=%d", libxdr.HashString(cvh), height)
+	} else {
+		liblog.Errorf(ctx, "requested missing cv was not found, hash=%s height=%d", libxdr.HashString(cvh), height)
 	}
 	return cv, nil
 }

@@ -16,7 +16,7 @@ type ConsensusValuePool struct {
 	cv      map[proto.ConsensusValueHash]*proto.ConsensusValue
 }
 
-func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePersistence) *ConsensusValuePool {
+func NewCVPool(ctx context.Context, persist storage.ConsensusValuePersistence) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
 		persist: persist,
 		cv:      map[proto.ConsensusValueHash]*proto.ConsensusValue{},
@@ -27,7 +27,7 @@ func NewConsensusValuePool(ctx context.Context, persist storage.ConsensusValuePe
 	return cvp
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
+func (cvp *ConsensusValuePool) CVPoolAdd(
 	ctx context.Context,
 	cv proto.ConsensusValue,
 	cvh proto.ConsensusValueHash,
@@ -40,15 +40,15 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolAdd(
 	}
 	cvp.cv[cvh] = &cv
 	cvp.cond.Broadcast()
-	go cvp.persist.PrePersistConsensusValue(context.WithoutCancel(ctx), cv, cvh)
+	go cvp.persist.PrePersistCV(context.WithoutCancel(ctx), cv, cvh)
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolPersist(
+func (cvp *ConsensusValuePool) CVPoolCommit(
 	ctx context.Context,
 	cv proto.ConsensusValue,
 	cvh proto.ConsensusValueHash,
 ) {
-	cvp.persist.PersistConsensusValue(ctx, cv, cvh)
+	cvp.persist.PersistCV(ctx, cv, cvh)
 
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
@@ -76,7 +76,7 @@ func (cvp *ConsensusValuePool) purge() {
 	}
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolLookupHash(
+func (cvp *ConsensusValuePool) CVPoolLookup(
 	ctx context.Context,
 	h proto.ConsensusValueHash,
 ) *proto.ConsensusValue {
@@ -85,7 +85,7 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolLookupHash(
 	return cvp.cv[h]
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
+func (cvp *ConsensusValuePool) CVPoolWaitFor(
 	ctx context.Context,
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
@@ -109,22 +109,30 @@ func (cvp *ConsensusValuePool) ConsensusValuePoolWaitFor(
 
 // height-dependent queries
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolFindHeight(
+func (cvp *ConsensusValuePool) CVPoolFind(
+	ctx context.Context,
+	height proto.BlockHeight,
+	hash proto.ConsensusValueHash,
+) *proto.ConsensusValue {
+	return cvp.persist.FindCV(ctx, height, hash)
+}
+
+func (cvp *ConsensusValuePool) CVPoolFindCommitted(
 	ctx context.Context,
 	height proto.BlockHeight,
 ) *proto.ConsensusValue {
-	return cvp.persist.FindConsensusValue(ctx, height)
+	return cvp.persist.FindCommittedCV(ctx, height)
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolFindHighest(
+func (cvp *ConsensusValuePool) CVPoolFindHighestCommitted(
 	ctx context.Context,
 ) *proto.ConsensusValue {
-	return cvp.persist.FindHighestConsensusValue(ctx)
+	return cvp.persist.FindHighestCommittedCV(ctx)
 }
 
-func (cvp *ConsensusValuePool) ConsensusValuePoolFindAbove(
+func (cvp *ConsensusValuePool) CVPoolFindCommittedAbove(
 	ctx context.Context,
 	above proto.BlockHeight,
 ) []proto.ConsensusValue {
-	return storage.FindConsensusValuesAbove(ctx, cvp.persist, above)
+	return storage.FindCommittedConsensusValuesAbove(ctx, cvp.persist, above)
 }

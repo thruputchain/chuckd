@@ -53,7 +53,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	}
 
 	// CV must be guaranteed persisted before the db commits.
-	b.handler.ConsensusValuePoolPersist(ctx, *cb.AsConsensusValue(), cb.ConsensusValueHash())
+	b.handler.CVPoolCommit(ctx, *cb.AsConsensusValue(), cb.ConsensusValueHash())
 
 	// catchup block must be guaranteed persisted before the db commits.
 	b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.ConsensusValueHash())

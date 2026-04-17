@@ -7,40 +7,46 @@ import (
 )
 
 type CVPool interface {
-	ConsensusValuePoolAdd(
+	CVPoolAdd(
 		ctx context.Context,
 		cv proto.ConsensusValue,
 		cvh proto.ConsensusValueHash,
 	)
 
-	ConsensusValuePoolPersist(
+	CVPoolCommit(
 		ctx context.Context,
 		cv proto.ConsensusValue,
 		cvh proto.ConsensusValueHash,
 	)
 
-	ConsensusValuePoolLookupHash(
+	CVPoolLookup(
 		ctx context.Context,
 		hash proto.ConsensusValueHash,
 	) *proto.ConsensusValue
 
-	ConsensusValuePoolWaitFor(
+	CVPoolWaitFor(
 		ctx context.Context,
 		hash proto.ConsensusValueHash,
 	) (*proto.ConsensusValue, error)
 
 	// height-dependent queries
 
-	ConsensusValuePoolFindHeight(
+	CVPoolFind(
+		ctx context.Context,
+		height proto.BlockHeight,
+		hash proto.ConsensusValueHash,
+	) *proto.ConsensusValue
+
+	CVPoolFindCommitted(
 		ctx context.Context,
 		height proto.BlockHeight,
 	) *proto.ConsensusValue
 
-	ConsensusValuePoolFindHighest(
+	CVPoolFindHighestCommitted(
 		ctx context.Context,
 	) *proto.ConsensusValue
 
-	ConsensusValuePoolFindAbove(
+	CVPoolFindCommittedAbove(
 		ctx context.Context,
 		above proto.BlockHeight,
 	) []proto.ConsensusValue

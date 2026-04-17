@@ -138,7 +138,7 @@ func NewSystem(
 
 	s.Multiplex = multiplex.NewMultiplex(s.ctx, vid, s.Dogwood, s.Storage)
 
-	s.CVPool = cvpool.NewConsensusValuePool(s.ctx, s.Storage)
+	s.CVPool = cvpool.NewCVPool(s.ctx, s.Storage)
 	s.CBPool = catchup.NewCatchupBlockPool(s.ctx, s.Storage)
 
 	s.RepairService = repairservice.NewRepairService(s.CVPool)
@@ -393,7 +393,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
 					continue
 				}
-				s.CVPool.ConsensusValuePoolAdd(s.ctx, *cv, protoutil.HashCVFast(cv))
+				s.CVPool.CVPoolAdd(s.ctx, *cv, protoutil.HashCVFast(cv))
 			}
 		}()
 	}()

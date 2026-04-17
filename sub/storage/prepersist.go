@@ -44,6 +44,16 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 	x.lock(full)
 	defer x.unlock(full)
 
+	prepersist := prepersist(ctx, full)
+
+	if isPresent(prepersist) {
+		liblog.Debugf(ctx, "loading pre-persisted %s", prepersist)
+		file, err := os.Open(prepersist)
+		must.NoError(ctx, err)
+		defer file.Close()
+		return r(file)
+	}
+
 	file, err := os.Open(full)
 	must.NoError(ctx, err)
 	defer file.Close()

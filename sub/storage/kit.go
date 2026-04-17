@@ -25,20 +25,21 @@ type CatchupBlockPersistence interface {
 }
 
 type ConsensusValuePersistence interface {
-	PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
-	PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
-	FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
-	FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue
+	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
+	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
+	FindCV(ctx context.Context, height proto.BlockHeight, hash proto.ConsensusValueHash) *proto.ConsensusValue
+	FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
+	FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue
 }
 
-func FindConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) []proto.ConsensusValue {
+func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) []proto.ConsensusValue {
 	found := []proto.ConsensusValue{}
-	highest := x.FindHighestConsensusValue(ctx)
+	highest := x.FindHighestCommittedCV(ctx)
 	if highest == nil {
 		return nil
 	}
 	for height := above + 1; height <= highest.Nomination.Block_height; height++ {
-		cv := x.FindConsensusValue(ctx, height)
+		cv := x.FindCommittedCV(ctx, height)
 		if cv == nil {
 			continue
 		}

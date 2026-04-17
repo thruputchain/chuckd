@@ -166,7 +166,7 @@ func (b *Baton) start(ctx context.Context) {
 
 	// genesis block has height 0, and no corresponding consensus value
 	if b.tipDb.Height > 0 {
-		tipCV := b.handler.ConsensusValuePoolFindHeight(ctx, b.tipDb.Height)
+		tipCV := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
 		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
@@ -182,7 +182,7 @@ func (b *Baton) start(ctx context.Context) {
 	b.handler.InitSCPLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
 
 	// load known externalizations above db tip
-	higherCV := b.handler.ConsensusValuePoolFindAbove(ctx, b.tipDb.Height)
+	higherCV := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
 	for _, cv := range higherCV {
 		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
 	}

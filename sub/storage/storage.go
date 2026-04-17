@@ -164,7 +164,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
-func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
+func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
 	<-x.ready
 
 	liblog.Debugf(ctx, "pre-persisting cv: height %d; cv_hash %s",
@@ -181,7 +181,7 @@ func (x *DiskStorage) PrePersistConsensusValue(ctx context.Context, cv proto.Con
 	)
 }
 
-func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
+func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
 	<-x.ready
 
 	liblog.Debugf(ctx, "persisting cv: height %d; cv_hash %s",
@@ -198,7 +198,21 @@ func (x *DiskStorage) PersistConsensusValue(ctx context.Context, cv proto.Consen
 	)
 }
 
-func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
+func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, hash proto.ConsensusValueHash) *proto.ConsensusValue {
+	<-x.ready
+
+	full := x.ConsensusValueFilepath(height, hash)
+
+	cv := &proto.ConsensusValue{}
+	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {
+		return libxdr.UnmarshalXdrReader(cv, r)
+	})
+	must.NoError(ctx, err)
+
+	return cv
+}
+
+func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
 	<-x.ready
 
 	files, err := x.ListConsensusValueFilesAtHeight(height)
@@ -211,7 +225,7 @@ func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.Block
 	if len(files) == 0 {
 		return nil
 	}
-	must.Assertf(ctx, len(files) == 1, "expected exactly one consensus value file at height %d, got %d", height, len(files))
+	must.Assertf(ctx, len(files) == 1, "expected exactly one committed consensus value file at height %d, got %d", height, len(files))
 	full := files[len(files)-1]
 
 	cv := &proto.ConsensusValue{}
@@ -223,8 +237,8 @@ func (x *DiskStorage) FindConsensusValue(ctx context.Context, height proto.Block
 	return cv
 }
 
-func (x *DiskStorage) FindHighestConsensusValue(ctx context.Context) *proto.ConsensusValue {
-	return x.FindConsensusValue(ctx, x.findConsensusValueMaxHeight(ctx))
+func (x *DiskStorage) FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue {
+	return x.FindCommittedCV(ctx, x.findConsensusValueMaxHeight(ctx))
 }
 
 func (x *DiskStorage) findConsensusValueMaxHeight(ctx context.Context) proto.BlockHeight {
