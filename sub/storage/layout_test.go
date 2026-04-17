@@ -35,7 +35,7 @@ func TestFindCatchupFilesByHash_Persisted(t *testing.T) {
 	full := filepath.Join(dir, "catchup-000000000123-"+toHex(h)+".xdr")
 	touch(t, full)
 
-	got, err := FindCatchupFilesByHash(dir, h)
+	got, err := FindCatchupFileByHash(dir, h)
 	if err != nil {
 		t.Fatalf("FindCatchupFilesByHash returned error: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestFindCatchupFilesByHash_PrePersisted(t *testing.T) {
 	full := filepath.Join(dir, "catchup-000000000777-"+toHex(h)+".xdr.prepersist")
 	touch(t, full)
 
-	got, err := FindCatchupFilesByHash(dir, h)
+	got, err := FindCatchupFileByHash(dir, h)
 	if err != nil {
 		t.Fatalf("FindCatchupFilesByHash returned error: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestFindCatchupFilesByHash_NotFoundReturnsEmpty(t *testing.T) {
 	dir := t.TempDir()
 	h := mustHash(0x21)
 
-	got, err := FindCatchupFilesByHash(dir, h)
+	got, err := FindCatchupFileByHash(dir, h)
 	if err != nil {
 		t.Fatalf("FindCatchupFilesByHash returned error: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestFindCatchupFilesByHash_MultipleMatchesError(t *testing.T) {
 	touch(t, filepath.Join(dir, "catchup-000000000001-"+toHex(h)+".xdr"))
 	touch(t, filepath.Join(dir, "catchup-000000000002-"+toHex(h)+".xdr"))
 
-	got, err := FindCatchupFilesByHash(dir, h)
+	got, err := FindCatchupFileByHash(dir, h)
 	if err == nil {
 		t.Fatalf("expected error, got nil and path %q", got)
 	}
@@ -94,7 +94,7 @@ func TestFindCatchupFilesByHash_MissingDirReturnsEmpty(t *testing.T) {
 	t.Parallel()
 
 	h := mustHash(0x41)
-	got, err := FindCatchupFilesByHash(filepath.Join(t.TempDir(), "missing"), h)
+	got, err := FindCatchupFileByHash(filepath.Join(t.TempDir(), "missing"), h)
 	if err != nil {
 		t.Fatalf("FindCatchupFilesByHash returned error: %v", err)
 	}

@@ -18,7 +18,7 @@ type CatchupBlockPersistence interface {
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
-		hash proto.ConsensusValueHash,
+		cvHash proto.ConsensusValueHash,
 	)
 	LookupCatchupBlock(ctx context.Context, cvHash proto.ConsensusValueHash) *proto.CatchupBlock
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock

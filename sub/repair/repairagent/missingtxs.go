@@ -17,7 +17,7 @@ import (
 // RepairMissingTxs ensures that the returned transactions match the desired hashes.
 func (x *RepairAgent) RepairMissingTxs(
 	ctx context.Context,
-	from proto.ValidatorPublicInfo,
+	proposer proto.ValidatorPublicInfo,
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 
@@ -25,7 +25,7 @@ func (x *RepairAgent) RepairMissingTxs(
 
 attempting:
 	for {
-		txs, err := x.attemptRepairMissingTxs(ctx, from, missing)
+		txs, err := x.attemptRepairMissingTxs(ctx, proposer, missing)
 		if err != nil {
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
@@ -43,11 +43,11 @@ attempting:
 
 func (x *RepairAgent) attemptRepairMissingTxs(
 	ctx context.Context,
-	from proto.ValidatorPublicInfo,
+	proposer proto.ValidatorPublicInfo,
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 
-	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
+	c, err := repairkit.DialRepairClient(ctx, x.net, proposer.Address)
 	if err != nil {
 		return nil, err
 	}

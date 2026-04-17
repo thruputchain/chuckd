@@ -56,7 +56,7 @@ func (svc *CatchupService) Start(ctx context.Context, address string) {
 }
 
 func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
-	return svc.pool.CatchupBlockPoolFindHeight(ctx, height)
+	return svc.pool.CBPoolFindCommitted(ctx, height)
 }
 
 func (svc *CatchupService) Catchup_null(context.Context) error {

@@ -76,7 +76,7 @@ func (b *Baton) validateProposal(
 
 			// kick-off an optimistic pre-persist of the catchup block;
 			// this will be committed/persisted by commit if the block is committed.
-			b.handler.CatchupBlockPoolAdd(ctx, *cb, cvh)
+			b.handler.CBPoolAdd(ctx, *cb, cvh)
 
 			return vblock.Db_tip, nil
 
@@ -99,6 +99,7 @@ func (b *Baton) validateProposal(
 			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 			missing := proto.MissingTransactions{
+				Height:             nomination.Block_height,
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
 				Cv_hash:            cvh,
 				Block_hash:         nomination.Block_hash,

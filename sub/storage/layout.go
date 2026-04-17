@@ -240,7 +240,7 @@ func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, e
 	return filtered, nil
 }
 
-func FindCatchupFilesByHash(dir string, cvHash proto.ConsensusValueHash) (string, error) {
+func FindCatchupFileByHash(dir string, cvHash proto.ConsensusValueHash) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -272,7 +272,7 @@ func FindCatchupFilesByHash(dir string, cvHash proto.ConsensusValueHash) (string
 		return matches[0], nil
 	default:
 		// it should not be the case that a persit and pre-persist files exist
-		// for the sam cv hash.
+		// for the same catchup block.
 		// it should not be possible that multiple files have the same hash, but
 		// different heights.
 		return "", fmt.Errorf("multiple catchup files found for hash %x: %v", cvHash, matches)

@@ -2,12 +2,15 @@ package repairservice
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
+	"github.com/groundhogchain/chuckd/sub/catchup"
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -16,8 +19,9 @@ import (
 
 type RepairService struct {
 	conn        sched.SchedulerCoordConn
-	scpBroker   *scpbroker.SCPBroker       //XXX: use to repair missing scp envelopes
-	cvpool      *cvpool.ConsensusValuePool // use to repair missing consensus values
+	scpBroker   *scpbroker.SCPBroker //XXX: use to repair missing scp envelopes
+	cvpool      cvpool.CVPool        // use to repair missing consensus values
+	cbpool      catchup.CBPool       // use to repair missing transactions
 	schedReady  chan struct{}
 	brokerReady chan struct{}
 	//
@@ -26,10 +30,12 @@ type RepairService struct {
 }
 
 func NewRepairService(
-	cvpool *cvpool.ConsensusValuePool,
+	cvpool cvpool.CVPool,
+	cbpool catchup.CBPool,
 ) *RepairService {
 	return &RepairService{
 		cvpool:      cvpool,
+		cbpool:      cbpool,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
 		nominated:   map[proto.ConsensusValueHash]proto.BlockHeight{},
@@ -79,23 +85,89 @@ func (x *RepairService) Repair_missing_txs(
 
 	<-x.schedReady // wait for x.conn != nil
 
-	// verify the request is for our current or latest nomination, otherwise deny
-	if !x.isOurNomination(env.Missing_transactions.Cv_hash) {
-		liblog.Errorf(ctx, "repair missing transactions request denied: request_cv_hash=%s",
+	txs, err := x.repairMissingTxsFromMempool(ctx, env.Missing_transactions.Transaction_hashes)
+	if err != nil {
+		liblog.Errorf(ctx, "repair_missing_txs not found in mempool (%v): height=%d; cv_hash=%s",
+			err, env.Missing_transactions.Height,
 			libxdr.HashString(env.Missing_transactions.Cv_hash))
-		return proto.RepairedTransactions{}, nil
+	} else {
+		return txs, nil
 	}
 
-	found, err := x.conn.Schedcoord_lookup_transactions(ctx, env.Missing_transactions.Transaction_hashes)
-	must.NoError(ctx, err)
-	must.Assert(ctx, len(found) == len(env.Missing_transactions.Transaction_hashes))
+	txs, err = x.repairMissingTxsFromStorage(ctx, env)
+	if err != nil {
+		liblog.Errorf(ctx, "repair_missing_txs not found in storage (%v): height=%d; cv_hash=%s",
+			err, env.Missing_transactions.Height,
+			libxdr.HashString(env.Missing_transactions.Cv_hash))
+		return proto.RepairedTransactions{}, err
+	}
 
-	txs := make([]proto.SignedTransaction, len(env.Missing_transactions.Transaction_hashes))
+	return txs, nil
+}
+
+func (x *RepairService) repairMissingTxsFromStorage(
+	ctx context.Context,
+	env proto.MissingTransactionsEnvelope,
+) (proto.RepairedTransactions, error) {
+	cb := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Cv_hash)
+	if cb == nil {
+		return proto.RepairedTransactions{}, fmt.Errorf("catchup block not found")
+	}
+
+	txs, err := xdrutil.SerializeSignedTransactionBatch(cb.Signed_transactions)
+	if err != nil {
+		return proto.RepairedTransactions{},
+			fmt.Errorf("repairMissingTxsFromStorage failed to serialize transaction batch (%w)", err)
+	}
+
+	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_value.Nomination.Transactions_hash)
+	if err != nil {
+		return proto.RepairedTransactions{},
+			fmt.Errorf("repairMissingTxsFromStorage failed to serialize transaction hash batch (%w)", err)
+	}
+
+	if len(txs) != len(txhs) {
+		return proto.RepairedTransactions{},
+			fmt.Errorf("repairMissingTxsFromStorage transaction and hash count mismatch: %d != %d",
+				len(txs), len(txhs))
+	}
+
+	m := map[proto.SignedTransactionHash]int{}
+	for i, txh := range txhs {
+		m[txh] = i
+	}
+
+	result := make([]proto.SignedTransaction, len(env.Missing_transactions.Transaction_hashes))
+	for _, q := range env.Missing_transactions.Transaction_hashes {
+		i, ok := m[q]
+		if !ok {
+			return proto.RepairedTransactions{},
+				fmt.Errorf("repairMissingTxsFromStorage transaction hash not found: %s",
+					libxdr.HashString(q))
+		}
+		result[i] = txs[i]
+	}
+
+	return proto.RepairedTransactions{Transactions: result}, nil
+}
+
+func (x *RepairService) repairMissingTxsFromMempool(
+	ctx context.Context,
+	txhs []proto.SignedTransactionHash,
+) (proto.RepairedTransactions, error) {
+
+	found, err := x.conn.Schedcoord_lookup_transactions(ctx, txhs)
+	if err != nil {
+		return proto.RepairedTransactions{}, err
+	}
+	must.Assert(ctx, len(found) == len(txhs))
+
+	txs := make([]proto.SignedTransaction, len(txhs))
 	for i, otx := range found {
 		// we must have all transactions that we have nominated, or else
 		// the request is invalid
 		if otx == nil {
-			return proto.RepairedTransactions{}, nil
+			return proto.RepairedTransactions{}, fmt.Errorf("not all transactions found in mempool")
 		}
 		txs[i] = *otx
 	}

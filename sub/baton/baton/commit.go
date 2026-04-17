@@ -56,7 +56,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	b.handler.CVPoolCommit(ctx, *cb.AsConsensusValue(), cb.ConsensusValueHash())
 
 	// catchup block must be guaranteed persisted before the db commits.
-	b.handler.CatchupBlockPoolPersist(ctx, cb.BlockHeight(), cb.ConsensusValueHash())
+	b.handler.CBPoolWaitPersist(ctx, cb.BlockHeight(), cb.ConsensusValueHash())
 
 	// commit to db
 	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)

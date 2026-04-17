@@ -12,34 +12,36 @@ type CatchupAgent interface {
 }
 
 type CBPool interface {
-	// CatchupBlockPoolAdd initiates the pre-persisting of a block.
-	CatchupBlockPoolAdd(
+	// CBPoolAdd initiates the pre-persisting of a block.
+	CBPoolAdd(
 		ctx context.Context,
 		cv proto.CatchupBlock,
 		cvHash proto.ConsensusValueHash,
 	)
 
-	// CatchupBlockPoolPrePersist ensures that a block completed pre-persisting.
-	CatchupBlockPoolPrePersist(
+	// CBPoolWaitPrePersist ensures that a block completed pre-persisting.
+	// CatchupBlockPoolAdd must have been called before this function can be called.
+	CBPoolWaitPrePersist(
 		ctx context.Context,
 		height proto.BlockHeight,
 		cvHash proto.ConsensusValueHash,
 	)
 
-	// CatchupBlockPoolPersist ensures that a block is persisted.
-	CatchupBlockPoolPersist(
+	// CBPoolWaitPersist ensures that a block is persisted.
+	// CatchupBlockPoolAdd must have been called before this function can be called.
+	CBPoolWaitPersist(
 		ctx context.Context,
 		height proto.BlockHeight,
 		cvHash proto.ConsensusValueHash,
 	)
 
-	// CatchupBlockPoolLookup will discover any block that was previously persisted or pre-persisted.
-	CatchupBlockPoolLookup(
+	// CBPoolLookup will discover any block that was previously persisted or pre-persisted.
+	CBPoolLookup(
 		ctx context.Context,
 		cvHash proto.ConsensusValueHash,
 	) *proto.CatchupBlock
 
-	CatchupBlockPoolFindHeight(
+	CBPoolFindCommitted(
 		ctx context.Context,
 		height proto.BlockHeight,
 	) *proto.CatchupBlock

@@ -26,7 +26,7 @@ func NewCatchupBlockPool(ctx context.Context, persist storage.CatchupBlockPersis
 	return cbp
 }
 
-func (cbp *CatchupBlockPool) CatchupBlockPoolAdd(
+func (cbp *CatchupBlockPool) CBPoolAdd(
 	ctx context.Context,
 	cb proto.CatchupBlock,
 	cvHash proto.ConsensusValueHash,
@@ -77,7 +77,7 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cvHash pr
 		libxdr.HashString(cvHash))
 }
 
-func (cbp *CatchupBlockPool) CatchupBlockPoolPrePersist(
+func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(
 	ctx context.Context,
 	height proto.BlockHeight,
 	cvHash proto.ConsensusValueHash,
@@ -89,7 +89,7 @@ func (cbp *CatchupBlockPool) CatchupBlockPoolPrePersist(
 	// NOTE: we have no way of knowing currently if the block had initiated pre-persist at all.
 }
 
-func (cbp *CatchupBlockPool) CatchupBlockPoolPersist(
+func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 	ctx context.Context,
 	height proto.BlockHeight,
 	cvHash proto.ConsensusValueHash,
@@ -101,9 +101,9 @@ func (cbp *CatchupBlockPool) CatchupBlockPoolPersist(
 	cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, height, cvHash)
 }
 
-// CatchupBlockPoolLookup finds persisted or pre-persisted catchup blocks with given cv hash.
+// CBPoolLookup finds persisted or pre-persisted catchup blocks with given cv hash.
 // Blocks we have nominated but are not committed will be found in pre-persist.
-func (cbp *CatchupBlockPool) CatchupBlockPoolLookup(
+func (cbp *CatchupBlockPool) CBPoolLookup(
 	ctx context.Context,
 	cvHash proto.ConsensusValueHash,
 ) *proto.CatchupBlock {
@@ -111,7 +111,7 @@ func (cbp *CatchupBlockPool) CatchupBlockPoolLookup(
 	return cbp.persist.LookupCatchupBlock(ctx, cvHash)
 }
 
-func (cbp *CatchupBlockPool) CatchupBlockPoolFindHeight(
+func (cbp *CatchupBlockPool) CBPoolFindCommitted(
 	ctx context.Context,
 	height proto.BlockHeight,
 ) *proto.CatchupBlock {

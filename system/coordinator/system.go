@@ -141,7 +141,7 @@ func NewSystem(
 	s.CVPool = cvpool.NewCVPool(s.ctx, s.Storage)
 	s.CBPool = catchup.NewCatchupBlockPool(s.ctx, s.Storage)
 
-	s.RepairService = repairservice.NewRepairService(s.CVPool)
+	s.RepairService = repairservice.NewRepairService(s.CVPool, s.CBPool)
 	s.RepairAgent = repairagent.NewRepairAgent(
 		*cfg.Repair_config,
 		outside,

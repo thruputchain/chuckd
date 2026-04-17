@@ -111,7 +111,7 @@ func (x *DiskStorage) LookupCatchupBlock(
 ) *proto.CatchupBlock {
 	<-x.ready
 
-	full, err := FindCatchupFilesByHash(x.CatchupBlocksDirpath(), cvHash)
+	full, err := FindCatchupFileByHash(x.CatchupBlocksDirpath(), cvHash)
 	must.NoError(ctx, err)
 	if full == "" {
 		return nil
