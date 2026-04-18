@@ -1,6 +1,8 @@
 package baton
 
 import (
+	"fmt"
+
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -44,7 +46,7 @@ func (x ViewDbBlock) IsExtCue() bool                    { return false }
 func (x ViewDbBlock) IsCatchup() bool                   { return false }
 func (x ViewDbBlock) IsDb() bool                        { return true }
 func (x ViewDbBlock) Committable() batonkit.Committable { panic("should not be called") }
-func (x ViewDbBlock) Icon() string                      { return "D" }
+func (x ViewDbBlock) Icon() string                      { return fmt.Sprintf("D:%d", x.TipDb.Height) }
 
 // catchup block
 
@@ -81,9 +83,9 @@ func (x ViewCatchupBlock) Committable() batonkit.Committable {
 }
 func (x ViewCatchupBlock) Icon() string {
 	if x.Linked {
-		return "L"
+		return fmt.Sprintf("L:%d", x.Candidate.BlockHeight())
 	} else {
-		return "C"
+		return fmt.Sprintf("C:%d", x.Candidate.BlockHeight())
 	}
 }
 
@@ -134,7 +136,7 @@ func (x ViewExtConsensusBlock) Committable() batonkit.Committable {
 	return nil
 }
 func (x ViewExtConsensusBlock) Icon() string {
-	return "X"
+	return fmt.Sprintf("X:%d", x.Ext.Height())
 }
 
 // externalized cue block
@@ -176,7 +178,7 @@ func (x ViewExtCueBlock) Committable() batonkit.Committable {
 	return nil
 }
 func (x ViewExtCueBlock) Icon() string {
-	return "Y"
+	return fmt.Sprintf("Y:%d", x.Ext.Height())
 }
 
 // missing block
@@ -196,4 +198,4 @@ func (x ViewMissing) IsExtCue() bool                                   { return 
 func (x ViewMissing) IsCatchup() bool                                  { return false }
 func (x ViewMissing) IsDb() bool                                       { return false }
 func (x ViewMissing) Committable() batonkit.Committable                { return nil }
-func (x ViewMissing) Icon() string                                     { return "?" }
+func (x ViewMissing) Icon() string                                     { return fmt.Sprintf("?:%d", x.Height) }

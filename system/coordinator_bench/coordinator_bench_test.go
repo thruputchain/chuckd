@@ -275,6 +275,7 @@ func testHealthyValidators(t *testing.T, envVar string, numToStart int) {
 }
 
 func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
+	// libruntime.InstallStackTraceOnInterrupt()
 	librpc.SetLogStats(true)
 	prevLevel := liblog.GetLogLevel()
 	_ = liblog.SetLogLevelDebug()

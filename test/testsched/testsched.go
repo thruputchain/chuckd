@@ -145,6 +145,8 @@ func (x *TestScheduler) Schedulercoord_nominate(
 	*r.Nominated_block() = proto.SchedulerNominatedBlock{
 		Block_id:   blockID,
 		Nomination: nomination,
+		Txs: xdrutil.ParallelizeSignedTransactionBatch(x.m,
+			systemfixed.CatchupTxBatchMaxSegments, protoutil.Pack(txs)),
 	}
 
 	return r, nil
