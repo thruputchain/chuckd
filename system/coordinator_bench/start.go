@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
 	"github.com/groundhogchain/chuckd/system/coordinator"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -50,29 +51,24 @@ func (s *CoordinatorBenchSystem) Start(
 			}
 		}
 		benchDuration := time.Since(t0)
-		fmt.Println(
-			float64(benchDuration.Milliseconds()) / float64(numCommits), // milliseconds/commit
-		)
 
-		// keep consuming commits for 2 more seconds,
-		// giving time to stragglers to complete
-		go func() {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-s.stop:
-					return
-				default:
-				}
-				if s.notify.ReceiveCommitted(ctx) == nil {
-					return
-				}
-			}
-		}()
-		time.Sleep(time.Second * 2)
-
+		liblog.Infof(ctx, "coordinator benchmark completed in %s, %f ms/block",
+			benchDuration, float64(benchDuration.Milliseconds())/float64(numCommits))
 		close(ready)
+
+		// keep running
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-s.stop:
+				return
+			default:
+			}
+			if s.notify.ReceiveCommitted(ctx) == nil {
+				return
+			}
+		}
 	}()
 }
 

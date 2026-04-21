@@ -16,6 +16,8 @@ TESTS
     until the node's db reaches the height (via catchup); can we drop these requests knowing
     the node's vote will not be necessary?
 
+- withhold scp envelopes with missing qsets until qsets learned or slot subsumed by externalizations
+
 SCP
 
 - [x] are our scp envelopes persisted?
@@ -28,10 +30,10 @@ SCP
 - [ ] persist open nominations
   - [ ] on restart submit_vetted their txs to scheduler
 
-- [ ] on start, replay persisted scp envelopes above db tip
-
-- [ ] in general, never replay scp envelopes for slots below db tip (or below highest externalized?)
-  - [ ] scpd skips envs below externalized, but it does not know the initial lowest non-externalized slot
+- [x] on start, replay persisted scp envelopes above db tip
+  - happens as by product of logic that requests backfeed after some time of no externalizations
+- [x] in general, never replay scp envelopes for slots below db tip (or below highest externalized?)
+  - [x] scpd skips envs below externalized, but it does not know the initial lowest non-externalized slot
 
 - [ ] check unions in scp envelopes are correct before passing to scpd (at parsing level?)
 
@@ -40,7 +42,7 @@ SCP
 - [ ] if qset for an incoming validation request is missing, should we wait until it arrives from discovery (instead of saying invalid)? Dos?
 
 - restarting scp
-  - [ ] Feed all persisted envelopes above last committed
+  - [x] Feed all persisted envelopes above last committed
   - [ ] A validate request for an already nominated block may result in missing txs, so don’t nominated before persisting txs (and serve them on demand) A node may have to request missing txs from self (if it nominated before restart)
   - [ ] Coordinator also needs to remember it already nominated?
   - [ ] unit tests?

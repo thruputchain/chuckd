@@ -70,6 +70,7 @@ func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 		return
 	}
 
+	liblog.Debugf(ctx, "feeding envelope for slot %d", env.Statement.Slot_index)
 	x.storage.PersistSCPEnvelope(ctx, env)
 	x.controller.ReceivedEnvelope(ctx, env)
 }

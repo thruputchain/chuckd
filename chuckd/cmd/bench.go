@@ -16,6 +16,7 @@ import (
 	"github.com/groundhogchain/chuckd/system/scheduler"
 	"github.com/groundhogchain/chuckd/system/systemkit"
 	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libmetrics"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libtime"
@@ -73,6 +74,7 @@ var (
 				ready := make(chan struct{})
 				sys.Start(ctx, opcfg, benchNumCommits, ready)
 				<-ready
+				liblog.Infof(ctx, "coordinator benchmark exiting")
 			})
 		},
 	}
