@@ -3,6 +3,7 @@ TESTS
 - [x] test: mocked scheduler, virtual network, 3-node/2-threshold, staggered start
 - [x] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts
 - [ ] put mocked scheduler, virtual network tests in ci
+- [ ] fix ci exit code
 - [ ] test: die after nominating
 - [ ] test memory and goroutine leaks
 

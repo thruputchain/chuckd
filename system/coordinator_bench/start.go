@@ -12,6 +12,70 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func (s *CoordinatorBenchSystem) Start(
+	ctx context.Context,
+	opcfg coordinator.OperationalConfig,
+	numCommits int, // stop after this many commits
+	ready chan<- struct{},
+) {
+	// record the beginning of the benchmark
+	t0 := time.Now()
+
+	// start scheduler rpc, needed by coordinator system
+	s.CoordinatorBenchCluster.StartScheduler(ctx)
+
+	// start coordinator
+	ctl := s.System.Start(ctx, opcfg)
+	ctl.SignalGenesisIsReady()
+
+	// connect the test scheduler to the coordinator
+	coordSchedConn, err := sched.DialCoordSchedulerClient(ctx, s.inside, opcfg.InAddr)
+	must.NoError(ctx, err)
+	s.sched.SetCoordScheduler(coordSchedConn)
+
+	s.CoordinatorBenchCluster.StartPump(ctx)
+
+	// wait for numCommits and signal ready
+	go func() {
+		for i := 0; i < numCommits; i++ {
+			select {
+			case <-ctx.Done():
+				return
+			case <-s.stop:
+				return
+			default:
+			}
+			if s.notify.ReceiveCommitted(ctx) == nil {
+				return
+			}
+		}
+		benchDuration := time.Since(t0)
+		fmt.Println(
+			float64(benchDuration.Milliseconds()) / float64(numCommits), // milliseconds/commit
+		)
+
+		// keep consuming commits for 2 more seconds,
+		// giving time to stragglers to complete
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-s.stop:
+					return
+				default:
+				}
+				if s.notify.ReceiveCommitted(ctx) == nil {
+					return
+				}
+			}
+		}()
+		time.Sleep(time.Second * 2)
+
+		close(ready)
+	}()
+}
+
 func (system *CoordinatorBenchSystem) startAndWaitHeight(
 	ctx context.Context,
 	opcfg coordinator.OperationalConfig,
