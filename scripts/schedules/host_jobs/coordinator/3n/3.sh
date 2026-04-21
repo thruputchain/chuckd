@@ -125,6 +125,7 @@ $1 -l ${LOG_LEVEL} --stack --config config-${HOG_HOST_3}.json \
 		bench coordinator \
             --debug-port 5500 \
 			--txs-per-sec 1000 \
+            --num-commits 50 \
 			--storage-dir ./validator-storage-${HOG_HOST_3} \
 			--out-addr :50000 \
 			--wallet-addr :40000 \
