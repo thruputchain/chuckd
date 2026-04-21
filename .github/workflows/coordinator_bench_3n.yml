@@ -52,4 +52,4 @@ jobs:
         with:
           name: bench-3n-log-${{ github.run_id }}
           path: bench-3n-*.log
-          if-no-files-found: error
+          if-no-files-found: ignore

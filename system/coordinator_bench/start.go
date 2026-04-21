@@ -83,42 +83,40 @@ func (system *CoordinatorBenchSystem) startAndWaitHeightAndKeepRunning(
 
 	system.CoordinatorBenchCluster.StartPump(ctx)
 
-	go func() {
-		reachedTarget := false
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-system.stop:
-				return
-			default:
-			}
-
-			cb := system.notify.ReceiveCommitted(ctx)
-			if cb == nil {
-				return
-			}
-
-			if !reachedTarget && cb.BlockHeight() >= targetHeight {
-				reachedTarget = true
-				benchDuration := time.Since(t0)
-				fmt.Println(float64(benchDuration.Milliseconds()) / float64(targetHeight))
-				close(ready)
-			}
-
-			if !reachedTarget {
-				continue
-			}
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-system.stop:
-				return
-			case <-keepRunningUntil:
-				return
-			default:
-			}
+	reachedTarget := false
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-system.stop:
+			return
+		default:
 		}
-	}()
+
+		cb := system.notify.ReceiveCommitted(ctx)
+		if cb == nil {
+			return
+		}
+
+		if !reachedTarget && cb.BlockHeight() >= targetHeight {
+			reachedTarget = true
+			benchDuration := time.Since(t0)
+			fmt.Println(float64(benchDuration.Milliseconds()) / float64(targetHeight))
+			close(ready)
+		}
+
+		if !reachedTarget {
+			continue
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-system.stop:
+			return
+		case <-keepRunningUntil:
+			return
+		default:
+		}
+	}
 }

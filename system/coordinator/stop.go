@@ -9,6 +9,8 @@ import (
 
 func (s *System) Stop() {
 	s.stopOnce.Do(func() {
+		liblog.Infof(s.ctx, "coordinator stopping")
+
 		s.signalGenesisIsReady()
 		if s.cancel != nil {
 			s.cancel()
