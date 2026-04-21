@@ -254,12 +254,15 @@ func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (
 	for {
 		select {
 		case <-ctx.Done():
+			liblog.Errorf(ctx, "waiting for commit at height %d: context cancelled", height)
 			return nil, nil, ctx.Err()
 		default:
 			switch {
 			case b.tipDb.Height > height:
+				liblog.Errorf(ctx, "waiting for commit at height %d: tip already ahead", height)
 				return nil, nil, ErrTipAlreadyAhead
 			case b.tipDb.Height == height:
+				liblog.Infof(ctx, "waiting for commit at height %d: tip reached", height)
 				copyTipDb, copyTipExt := b.tipDb, b.tipExt
 				return &copyTipDb, &copyTipExt, nil
 			default:

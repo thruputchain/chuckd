@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/librand"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -45,7 +46,15 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 	ctx context.Context,
 	proposer proto.ValidatorPublicInfo,
 	missing proto.MissingTransactions,
-) ([]proto.SignedTransaction, error) {
+) (txs []proto.SignedTransaction, err error) {
+
+	ctx = liblog.Enterf(ctx, "RepairMissingTxs", "proposer=%s; height=%d; cv_hash=%s",
+		protoutil.VPublicShortString(proposer), missing.Height, libxdr.HashString(missing.Cv_hash))
+	defer func() {
+		liblog.Leavef(ctx, "proposer=%s; height=%d; cv_hash=%s; error=%v; found=%d",
+			protoutil.VPublicShortString(proposer), missing.Height, libxdr.HashString(missing.Cv_hash),
+			err, len(txs))
+	}()
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, proposer.Address)
 	if err != nil {

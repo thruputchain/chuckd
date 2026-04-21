@@ -136,8 +136,9 @@ func (b *Baton) repairMissingTxs(
 	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; cv_hash=%s; block_hash=%s",
 		len(missing.Transaction_hashes), missing.Height, libxdr.HashString(missing.Cv_hash), libxdr.HashString(missing.Block_hash))
 	defer func() {
-		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; cv_hash=%s; block_hash=%s",
-			len(missing.Transaction_hashes), missing.Height, libxdr.HashString(missing.Cv_hash), libxdr.HashString(missing.Block_hash))
+		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; cv_hash=%s; block_hash=%s; error=%v",
+			len(missing.Transaction_hashes), missing.Height,
+			libxdr.HashString(missing.Cv_hash), libxdr.HashString(missing.Block_hash), err)
 
 	}()
 

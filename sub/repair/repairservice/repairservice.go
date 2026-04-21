@@ -80,8 +80,19 @@ func (x *RepairService) isOurNomination(cvh proto.ConsensusValueHash) bool {
 func (x *RepairService) Repair_missing_txs(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
-) (proto.RepairedTransactions, error) {
-	liblog.Debugf(ctx, "repair missing transactions request, count %d", len(env.Missing_transactions.Transaction_hashes))
+) (rtx proto.RepairedTransactions, err error) {
+
+	ctx = liblog.Enterf(ctx, "Repair_missing_txs", "by=%s; height=%d; cv_hash=%s; count=%d",
+		libxdr.HashString(env.Signer), env.Missing_transactions.Height,
+		libxdr.HashString(env.Missing_transactions.Cv_hash),
+		len(env.Missing_transactions.Transaction_hashes))
+	defer func() {
+		liblog.Leavef(ctx, "by=%s; height=%d; cv_hash=%s; count=%d; error=%v; found=%d",
+			libxdr.HashString(env.Signer), env.Missing_transactions.Height,
+			libxdr.HashString(env.Missing_transactions.Cv_hash),
+			len(env.Missing_transactions.Transaction_hashes),
+			err, len(rtx.Transactions))
+	}()
 
 	<-x.schedReady // wait for x.conn != nil
 
@@ -108,27 +119,48 @@ func (x *RepairService) Repair_missing_txs(
 func (x *RepairService) repairMissingTxsFromStorage(
 	ctx context.Context,
 	env proto.MissingTransactionsEnvelope,
-) (proto.RepairedTransactions, error) {
+) (rtx proto.RepairedTransactions, err error) {
+
+	ctx = liblog.Enterf(ctx, "repairMissingTxsFromStorage", "height=%d; cv_hash=%s; count=%d",
+		env.Missing_transactions.Height,
+		libxdr.HashString(env.Missing_transactions.Cv_hash),
+		len(env.Missing_transactions.Transaction_hashes))
+	defer func() {
+		liblog.Leavef(ctx, "height=%d; cv_hash=%s; count=%d; error=%v; found=%d",
+			env.Missing_transactions.Height,
+			libxdr.HashString(env.Missing_transactions.Cv_hash),
+			len(env.Missing_transactions.Transaction_hashes),
+			err, len(rtx.Transactions))
+	}()
+
 	cb := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Cv_hash)
 	if cb == nil {
+		liblog.Errorf(ctx, "catchup block not found in storage: cv_hash=%s",
+			libxdr.HashString(env.Missing_transactions.Cv_hash))
 		return proto.RepairedTransactions{}, fmt.Errorf("catchup block not found")
 	}
 
 	txs, err := xdrutil.SerializeSignedTransactionBatch(cb.Signed_transactions)
 	if err != nil {
+		liblog.Errorf(ctx, "failed to serialize transaction batch: cv_hash=%s",
+			libxdr.HashString(env.Missing_transactions.Cv_hash))
 		return proto.RepairedTransactions{},
-			fmt.Errorf("repairMissingTxsFromStorage failed to serialize transaction batch (%w)", err)
+			fmt.Errorf("failed to serialize transaction batch (%w)", err)
 	}
 
 	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_value.Nomination.Transactions_hash)
 	if err != nil {
+		liblog.Errorf(ctx, "failed to serialize transaction hash batch: cv_hash=%s",
+			libxdr.HashString(env.Missing_transactions.Cv_hash))
 		return proto.RepairedTransactions{},
-			fmt.Errorf("repairMissingTxsFromStorage failed to serialize transaction hash batch (%w)", err)
+			fmt.Errorf("failed to serialize transaction hash batch (%w)", err)
 	}
 
 	if len(txs) != len(txhs) {
+		liblog.Errorf(ctx, "transaction and hash count mismatch: cv_hash=%s",
+			libxdr.HashString(env.Missing_transactions.Cv_hash))
 		return proto.RepairedTransactions{},
-			fmt.Errorf("repairMissingTxsFromStorage transaction and hash count mismatch: %d != %d",
+			fmt.Errorf("transaction and hash count mismatch: %d != %d",
 				len(txs), len(txhs))
 	}
 
@@ -138,14 +170,14 @@ func (x *RepairService) repairMissingTxsFromStorage(
 	}
 
 	result := make([]proto.SignedTransaction, len(env.Missing_transactions.Transaction_hashes))
-	for _, q := range env.Missing_transactions.Transaction_hashes {
-		i, ok := m[q]
+	for i, q := range env.Missing_transactions.Transaction_hashes {
+		j, ok := m[q]
 		if !ok {
+			liblog.Errorf(ctx, "transaction hash not found: %s", libxdr.HashString(q))
 			return proto.RepairedTransactions{},
-				fmt.Errorf("repairMissingTxsFromStorage transaction hash not found: %s",
-					libxdr.HashString(q))
+				fmt.Errorf("transaction hash not found: %s", libxdr.HashString(q))
 		}
-		result[i] = txs[i]
+		result[i] = txs[j]
 	}
 
 	return proto.RepairedTransactions{Transactions: result}, nil

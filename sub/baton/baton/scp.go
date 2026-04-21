@@ -31,10 +31,16 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpkit.Slot, val
 }
 
 func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
+	ctx = liblog.Enterf(ctx, "ValidateBallotValue", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
+
 	return x.ValidateCue(ctx, slot, value, false)
 }
 
 func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
+	ctx = liblog.Enterf(ctx, "ValidateNominationValue", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
+
 	return x.ValidateCue(ctx, slot, value, true)
 }
 
