@@ -45,6 +45,9 @@ type DiscoveryService struct {
 	cachedValidators []proto.SignedValidatorInfoSnapshot
 	//
 	m libxdr.XdrMarshaler
+	//
+	stopOnce sync.Once
+	done     chan struct{}
 }
 
 func NewDiscoveryService(
@@ -67,6 +70,7 @@ func NewDiscoveryService(
 		hashQSet:      map[proto.SCPHash]proto.SCPQuorumSet{},
 		knownVs:       map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{},
 		m:             libxdr.NewXdrMarshaler(),
+		done:          make(chan struct{}),
 	}
 
 	s.ourVIDs = map[proto.ValidatorID]proto.ValidatorPublicInfo{}
@@ -88,6 +92,21 @@ func (s *DiscoveryService) Start(ctx context.Context, controller scpkit.SCPKnown
 	s.lk.Unlock()
 
 	go s.advertise(ctx)
+}
+
+func (s *DiscoveryService) Stop() {
+	s.stopOnce.Do(func() {
+		close(s.done)
+	})
+}
+
+func (s *DiscoveryService) IsStopped() bool {
+	select {
+	case <-s.done:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {

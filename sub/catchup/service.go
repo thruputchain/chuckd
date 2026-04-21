@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/groundhogchain/chuckd/util/netutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -24,6 +25,8 @@ type CatchupService struct {
 	//
 	reqM    libxdr.XdrMarshaler
 	resultM libxdr.XdrMarshaler
+	//
+	l net.Listener
 }
 
 func NewCatchupService(
@@ -45,7 +48,7 @@ func NewCatchupService(
 }
 
 func (svc *CatchupService) Start(ctx context.Context, address string) {
-	librpc.StartSerial(
+	svc.l = librpc.StartSerial(
 		ctx,
 		svc.net,
 		netutil.MaxMessageSize,
@@ -53,6 +56,14 @@ func (svc *CatchupService) Start(ctx context.Context, address string) {
 		address,
 		proto.Catchup1_Server{Srv: svc},
 	)
+}
+
+func (svc *CatchupService) Stop() {
+	if svc.l == nil {
+		return
+	}
+	_ = svc.l.Close()
+	svc.l = nil
 }
 
 func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {

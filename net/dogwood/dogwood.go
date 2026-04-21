@@ -139,6 +139,10 @@ func (x *DogwoodService) Start(ctx context.Context) {
 	}()
 }
 
+func (x *DogwoodService) Stop() {
+	// TODO
+}
+
 func (x *DogwoodService) WaitReady(ctx context.Context) error {
 	select {
 	case <-ctx.Done():

@@ -2,6 +2,7 @@ package scpbroker
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/groundhogchain/chuckd/net/router"
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
@@ -23,6 +24,7 @@ type SCPBroker struct {
 	repair          *repairagent.RepairAgent
 	controller      *scpd.SCPController
 	controllerReady chan struct{}
+	stopped         atomic.Bool
 }
 
 func NewSCPBroker(
@@ -39,18 +41,34 @@ func NewSCPBroker(
 	}
 }
 
+// Stop stops the broker from calling the scp controller.
+// However, in flight calls may result in scp controller calls after Stop returns.
+func (x *SCPBroker) Stop() {
+	x.stopped.CompareAndSwap(false, true)
+}
+
+func (x *SCPBroker) IsStopped() bool {
+	return x.stopped.Load()
+}
+
 func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 	x.controller = controller
 	close(x.controllerReady)
 }
 
 func (x *SCPBroker) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	if x.IsStopped() {
+		return
+	}
 	x.controller.SetLowestNonExternalized(ctx, slot)
 }
 
 // ReceivedEnvelope persists received scp envelopes, and then releases them to scp.
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
+	if x.IsStopped() {
+		return
+	}
 
 	x.storage.PersistSCPEnvelope(ctx, env)
 	x.controller.ReceivedEnvelope(ctx, env)

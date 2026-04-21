@@ -17,6 +17,8 @@ func (s *DiscoveryService) advertise(ctx context.Context) {
 	epoch := 0
 	for {
 		select {
+		case <-s.done:
+			return
 		case <-ctx.Done():
 			return
 		default:

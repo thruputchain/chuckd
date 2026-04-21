@@ -42,6 +42,8 @@ func NewRepairService(
 	}
 }
 
+func (x *RepairService) Stop() {}
+
 func (x *RepairService) SetSchedConn(conn sched.SchedulerCoordConn) {
 	x.conn = conn
 	close(x.schedReady)
