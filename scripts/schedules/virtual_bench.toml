@@ -19,7 +19,7 @@ source ./scripts/setup_cargo.sh
 export PATH=$(pwd):$PATH
 cp scpd.dev scpd
 
-cd chuckd/system/coordinator_bench
+cd ./system/coordinator_bench
 
 export RUN_CHUCKD_VIRTUAL_TEST=1
 
