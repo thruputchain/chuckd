@@ -190,24 +190,26 @@ func (nav *Navigator) replenish(ctx context.Context, m int) {
 
 func (nav *Navigator) refill(ctx context.Context) {
 	for {
-		nav.replenish(ctx, nav.nRoutes)
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
+		nav.replenish(ctx, nav.nRoutes)
 		nav.time.Sleep(nav.routeTTL / 2)
 	}
 }
 
 func (nav *Navigator) advertise(ctx context.Context) {
 	for {
+		nav.time.Sleep(nav.routeMaxLatency * 7)
+
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-		nav.time.Sleep(nav.routeMaxLatency * 7)
+
 		now := nav.time.Now()
 
 		// pick routes eligible to readvertise
@@ -222,17 +224,25 @@ func (nav *Navigator) advertise(ctx context.Context) {
 
 		nav.disseminator.DisseminateRoutes(ctx, rs)
 		nav.time.Sleep(nav.routeMaxLatency) // wait for routes to propagate
-	}
-}
 
-func (nav *Navigator) expire(ctx context.Context) {
-	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
+	}
+}
+
+func (nav *Navigator) expire(ctx context.Context) {
+	for {
 		nav.time.Sleep(min(nav.routeTTL, 2*nav.routeMaxLatency))
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		now := nav.time.Now()
 
 		nav.lk.Lock()

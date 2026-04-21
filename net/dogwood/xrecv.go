@@ -110,12 +110,14 @@ func (x *TransmissionReceiver) Start(ctx context.Context) {
 func (x *TransmissionReceiver) expirePartial(ctx context.Context) {
 	tick := min(x.partialMaxTTL, x.partialIdleTTL)
 	for {
+		x.time.Sleep(tick)
+
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-		x.time.Sleep(tick)
+
 		now := x.time.Now()
 
 		x.plk.Lock()

@@ -125,7 +125,6 @@ func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.B
 	snap.open -= 1
 	snap.committed = true
 	db.top = snap
-	uniquifyHash(snap.tip.Height, &snap.tip.Block_hash)
 	persistTipToDisk(ctx, db.dbDir, db.top.tip)
 	return snap.tip.Block_hash, snap.hashes
 }

@@ -31,7 +31,9 @@ type DogwoodService struct {
 	xSender        *TransmissionSender
 	mplex          *Multiplex
 	//
-	ready chan struct{}
+	startCtx    context.Context
+	startCancel context.CancelFunc
+	ready       chan struct{}
 }
 
 func NewDogwoodService(
@@ -95,6 +97,9 @@ func NewDogwoodService(
 }
 
 func (x *DogwoodService) StartStandalone(ctx context.Context, extAddr string, inAddr string, grace time.Duration) {
+	x.startCtx, x.startCancel = context.WithCancel(ctx)
+	ctx = x.startCtx
+
 	go func() {
 		defer close(x.ready)
 
@@ -123,6 +128,9 @@ func (x *DogwoodService) StartStandalone(ctx context.Context, extAddr string, in
 }
 
 func (x *DogwoodService) Start(ctx context.Context) {
+	x.startCtx, x.startCancel = context.WithCancel(ctx)
+	ctx = x.startCtx
+
 	go func() {
 		defer close(x.ready)
 
@@ -140,7 +148,7 @@ func (x *DogwoodService) Start(ctx context.Context) {
 }
 
 func (x *DogwoodService) Stop() {
-	// TODO
+	x.startCancel()
 }
 
 func (x *DogwoodService) WaitReady(ctx context.Context) error {

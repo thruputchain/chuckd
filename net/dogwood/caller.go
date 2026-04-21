@@ -79,12 +79,14 @@ func (x *caller) Start(ctx context.Context) {
 
 func (x *caller) expire(ctx context.Context) {
 	for {
+		x.time.Sleep(x.endpointIdleTTL)
+
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-		x.time.Sleep(x.endpointIdleTTL)
+
 		now := x.time.Now()
 		x.lk.Lock()
 		for key, e := range x.endpoints {

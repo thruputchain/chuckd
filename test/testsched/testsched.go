@@ -184,7 +184,7 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 		x.db.AddProposedTx(ctx, blockID, ptx)
 	}
 
-	BlockHash := x.db.CloseSnapshot(ctx, blockID)
+	blockHash := x.db.CloseSnapshot(ctx, blockID)
 
 	r := proto.SchedulerValidationResult{
 		Outcome: proto.SchedulerValidationOK,
@@ -192,7 +192,7 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 	*r.Block() = proto.SchedulerValidationBlock{
 		Db_tip: proto.DbTip{
 			Height:     onto.Height + 1,
-			Block_hash: BlockHash,
+			Block_hash: blockHash,
 			Id:         blockID,
 		},
 		Signed_transactions: xdrutil.ParallelizeSignedTransactionBatch(
