@@ -47,20 +47,22 @@ func (n hostScopedNetwork) ListenAddress(ctx context.Context, address string) (n
 	return n.base.ListenAddress(ctx, address)
 }
 
+const virtualBenchEnvVar = "RUN_CHUCKD_VIRTUAL_TEST"
+
 func Test3Healthy(t *testing.T) {
-	testHealthyValidators(t, "RUN_COORDINATOR_BENCH_TEST3", 3)
+	testHealthyValidators(t, virtualBenchEnvVar, 3)
 }
 
 func Test3Staggered(t *testing.T) {
-	test3Staggered(t, "RUN_COORDINATOR_BENCH_TEST3", 5*time.Second)
+	test3Staggered(t, virtualBenchEnvVar, 5*time.Second)
 }
 
 func Test2Healthy1Down(t *testing.T) {
-	testHealthyValidators(t, "RUN_COORDINATOR_BENCH_TEST3", 2)
+	testHealthyValidators(t, virtualBenchEnvVar, 2)
 }
 
 func Test2Healthy1Restart(t *testing.T) {
-	setup := setupValidatorBenchTest(t, "RUN_COORDINATOR_BENCH_TEST3", 180*time.Second)
+	setup := setupValidatorBenchTest(t, virtualBenchEnvVar, 180*time.Second)
 	ctx := setup.ctx
 	defer setup.cancel()
 	systems := setup.systems
