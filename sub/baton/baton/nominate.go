@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -47,6 +48,9 @@ func (b *Baton) nominate(
 
 	t0 := b.handler.Now()
 	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil, nil, 0, err
+	}
 	must.NoError(ctx, err)
 	must.Assert(ctx, result.Outcome == proto.SchedulerNominationOK)
 

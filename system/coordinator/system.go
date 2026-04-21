@@ -437,6 +437,10 @@ func (s *System) Stop() {
 		if s.cancel != nil {
 			s.cancel()
 		}
+		if s.outsideSrv != nil {
+			liblog.Infof(s.ctx, "coordinator stopping outside network")
+			s.outsideSrv.Stop()
+		}
 		if s.UnvettedSubmitter != nil {
 			s.UnvettedSubmitter.Stop()
 		}
@@ -447,19 +451,11 @@ func (s *System) Stop() {
 			liblog.Infof(s.ctx, "coordinator stopping inside network")
 			s.insideSrv.Stop()
 		}
-		if s.outsideSrv != nil {
-			liblog.Infof(s.ctx, "coordinator stopping outside network")
-			s.outsideSrv.Stop()
-		}
 		if s.Wallet != nil {
 			liblog.Infof(s.ctx, "coordinator stopping wallet gateway")
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			s.Wallet.Stop(ctx)
 			cancel()
-		}
-		if s.SchedConn != nil {
-			liblog.Infof(s.ctx, "coordinator closing scheduler connection")
-			s.SchedConn.Close()
 		}
 		if s.scpController != nil {
 			s.scpController.Close()
@@ -470,6 +466,10 @@ func (s *System) Stop() {
 		if s.scpdKill != nil {
 			liblog.Infof(s.ctx, "coordinator killing scpd")
 			s.scpdKill()
+		}
+		if s.SchedConn != nil {
+			liblog.Infof(s.ctx, "coordinator closing scheduler connection")
+			s.SchedConn.Close()
 		}
 		s.wg.Wait()
 		liblog.Infof(s.ctx, "coordinator stopped")
