@@ -69,6 +69,13 @@ func (b *Baton) validateProposal(
 
 			vblock := schedValidResult.Block()
 
+			if vblock.Db_tip.Block_hash != nomination.Block_hash {
+				liblog.Errorf(ctx, "block hash mismatch: scheduler computed %s, nomination claims %s",
+					libxdr.HashString(vblock.Db_tip.Block_hash),
+					libxdr.HashString(nomination.Block_hash))
+				return proto.DbTip{}, batonkit.ErrNotValid
+			}
+
 			cb := &proto.CatchupBlock{
 				Consensus_value:     *cv,
 				Signed_transactions: vblock.Signed_transactions,
