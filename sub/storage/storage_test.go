@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -161,6 +162,60 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		if !reflect.DeepEqual(got[i], want) {
 			t.Fatalf("consensus value mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
 		}
+	}
+}
+
+func TestPrePersistTwoCatchupBlocksSameHeight(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	dir := t.TempDir()
+	cfg := Config{
+		Freq:             time.Hour,
+		MaxCatchupBlocks: 10,
+		MaxSCPSlots:      10,
+	}
+
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
+
+	height := proto.BlockHeight(42)
+
+	cv1 := newConsensusValue(time.Unix(1700000000, 0).UTC(), int64(height))
+	cv2 := newConsensusValue(time.Unix(1700000001, 0).UTC(), int64(height))
+	hash1 := protoutil.HashCVFast(&cv1)
+	hash2 := protoutil.HashCVFast(&cv2)
+
+	if hash1 == hash2 {
+		t.Fatal("test setup: hashes must differ")
+	}
+
+	cb1 := proto.CatchupBlock{Consensus_value: cv1}
+	cb2 := proto.CatchupBlock{Consensus_value: cv2}
+
+	st.PrePersistCatchupBlock(ctx, cb1, hash1)
+	st.PrePersistCatchupBlock(ctx, cb2, hash2)
+
+	// Both prepersist files should exist on disk.
+	full := st.CatchupBlockFilepath(height)
+	pp1 := full + ".prepersist-" + fmt.Sprintf("%x", hash1)
+	pp2 := full + ".prepersist-" + fmt.Sprintf("%x", hash2)
+	if !isPresent(pp1) {
+		t.Fatalf("prepersist file missing for hash1: %s", pp1)
+	}
+	if !isPresent(pp2) {
+		t.Fatalf("prepersist file missing for hash2: %s", pp2)
+	}
+
+	// Persist the second one; the final file should contain cb2.
+	st.PersistAlreadyPrePersistedCatchupBlock(ctx, height, hash2)
+
+	got := st.FindCatchupBlock(ctx, height)
+	if got == nil {
+		t.Fatal("FindCatchupBlock returned nil after persist")
+	}
+	if !reflect.DeepEqual(*got, cb2) {
+		t.Fatalf("persisted block mismatch:\n got: %#v\nwant: %#v", *got, cb2)
 	}
 }
 

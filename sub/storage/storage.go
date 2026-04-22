@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/gofrs/flock"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -76,7 +77,7 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
-	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
+	x.catchupPP.PrePersist(ctx, full, cvHash, func(w io.Writer) error {
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
 	})
@@ -95,7 +96,7 @@ func (x *DiskStorage) PersistCatchupBlock(
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height)
-	x.catchupPP.Persist(ctx, full,
+	x.catchupPP.Persist(ctx, full, cvHash,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cb)
 			return nil
@@ -116,23 +117,34 @@ func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 		height, libxdr.HashString(cvHash))
 
 	full := x.CatchupBlockFilepath(height)
-	x.catchupPP.PersistAlreadyPrePersisted(ctx, full)
+	x.catchupPP.PersistAlreadyPrePersisted(ctx, full, cvHash)
 }
 
 func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
 	<-x.ready
 
 	full := x.CatchupBlockFilepath(height)
-	if !isPresent(full) && !isPresent(full+".prepersist") {
+	if isPresent(full) {
+		cb := &proto.CatchupBlock{}
+		file, err := os.Open(full)
+		must.NoError(ctx, err)
+		defer file.Close()
+		err = libxdr.UnmarshalXdrReader(cb, file)
+		must.NoError(ctx, err)
+		return cb
+	}
+
+	matches, _ := filepath.Glob(full + ".prepersist-*")
+	if len(matches) == 0 {
 		return nil
 	}
 
 	cb := &proto.CatchupBlock{}
-	err := x.catchupPP.Load(ctx, full, func(r io.Reader) error {
-		return libxdr.UnmarshalXdrReader(cb, r)
-	})
+	file, err := os.Open(matches[0])
 	must.NoError(ctx, err)
-
+	defer file.Close()
+	err = libxdr.UnmarshalXdrReader(cb, file)
+	must.NoError(ctx, err)
 	return cb
 }
 
@@ -147,7 +159,7 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue,
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvHash)
-	x.consensusPP.PrePersist(ctx, full,
+	x.consensusPP.PrePersist(ctx, full, cvHash,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cv)
 			return nil
@@ -164,7 +176,7 @@ func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cv
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvHash)
-	x.consensusPP.Persist(ctx, full,
+	x.consensusPP.Persist(ctx, full, cvHash,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cv)
 			return nil
@@ -178,7 +190,7 @@ func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, hash
 	full := x.ConsensusValueFilepath(height, hash)
 
 	cv := &proto.ConsensusValue{}
-	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {
+	err := x.consensusPP.Load(ctx, full, hash, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cv, r)
 	})
 	must.NoError(ctx, err)
@@ -203,9 +215,10 @@ func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHei
 	full := files[len(files)-1]
 
 	cv := &proto.ConsensusValue{}
-	err = x.consensusPP.Load(ctx, full, func(r io.Reader) error {
-		return libxdr.UnmarshalXdrReader(cv, r)
-	})
+	file, err := os.Open(full)
+	must.NoError(ctx, err)
+	defer file.Close()
+	err = libxdr.UnmarshalXdrReader(cv, file)
 	must.NoError(ctx, err)
 
 	return cv
@@ -250,7 +263,7 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 	hash := libxdr.HashXdr(x.scpM, &env)
 	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, hash[:5])
 
-	x.scpPP.Persist(ctx, full,
+	x.scpPP.Persist(ctx, full, hash,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &env)
 			return nil
@@ -272,9 +285,10 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 
 	for _, envpath := range envpaths {
 		env := proto.SCPEnvelope{}
-		err := x.scpPP.Load(ctx, envpath, func(r io.Reader) error {
-			return libxdr.UnmarshalXdrReader(&env, r)
-		})
+		file, err := os.Open(envpath)
+		must.NoError(ctx, err)
+		err = libxdr.UnmarshalXdrReader(&env, file)
+		file.Close()
 		must.NoError(ctx, err)
 		found = append(found, env)
 	}

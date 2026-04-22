@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -40,15 +41,15 @@ func (x *PrePersist) unlock(filepath string) {
 	delete(x.lks, filepath)
 }
 
-func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) error) error {
+func (x *PrePersist) Load(ctx context.Context, full string, hash [32]byte, r func(io.Reader) error) error {
 	x.lock(full)
 	defer x.unlock(full)
 
-	prepersist := prepersist(ctx, full)
+	pp := prepersistPath(full, hash)
 
-	if isPresent(prepersist) {
-		liblog.Debugf(ctx, "loading pre-persisted %s", prepersist)
-		file, err := os.Open(prepersist)
+	if isPresent(pp) {
+		liblog.Debugf(ctx, "loading pre-persisted %s", pp)
+		file, err := os.Open(pp)
 		must.NoError(ctx, err)
 		defer file.Close()
 		return r(file)
@@ -62,46 +63,46 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 }
 
 // PrePersist is idempotent. If the persisted or pre-persisted file already exists, it does nothing.
-func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writer) error) {
+// hash differentiates prepersist files when multiple values may target the same final path.
+func (x *PrePersist) PrePersist(ctx context.Context, full string, hash [32]byte, w func(io.Writer) error) {
 	x.lock(full)
 	defer x.unlock(full)
 
-	prepersist := prepersist(ctx, full)
+	pp := prepersistPath(full, hash)
 
-	liblog.Debugf(ctx, "pre-persisting %s to %s", full, prepersist)
+	liblog.Debugf(ctx, "pre-persisting %s to %s", full, pp)
 
-	// if the target persist file already exists, do nothing
 	if isPresent(full) {
 		liblog.Debugf(ctx, "pre-persisting %s: persisted already", full)
 		return
 	}
 
-	if isPresent(prepersist) { // if pre-persist copy exists, use it
-		liblog.Debugf(ctx, "pre-persisting %s: pre-persisted already", prepersist)
+	if isPresent(pp) {
+		liblog.Debugf(ctx, "pre-persisting %s: pre-persisted already", pp)
 		return
 	}
 
-	writeFileAtomically(ctx, prepersist, w)
+	writeFileAtomically(ctx, pp, w)
 }
 
 // Persist is idempotent. If the file already exists, it does nothing.
 // If a pre-persisted file exists, it is used.
-func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer) error) {
+func (x *PrePersist) Persist(ctx context.Context, full string, hash [32]byte, w func(io.Writer) error) {
 	x.lock(full)
 	defer x.unlock(full)
 
-	prepersist := prepersist(ctx, full)
+	pp := prepersistPath(full, hash)
 
-	liblog.Debugf(ctx, "persisting %s to %s", full, prepersist)
+	liblog.Debugf(ctx, "persisting %s to %s", full, pp)
 
 	if isPresent(full) {
 		liblog.Debugf(ctx, "persisting %s: persisted already", full)
 		return
 	}
 
-	if isPresent(prepersist) { // if pre-persist copy exists, use it
+	if isPresent(pp) {
 		liblog.Debugf(ctx, "persisting %s: using pre-persist copy", full)
-		err := os.Rename(prepersist, full)
+		err := os.Rename(pp, full)
 		must.NoError(ctx, err)
 		return
 	}
@@ -109,22 +110,22 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 	writeFileAtomically(ctx, full, w)
 }
 
-func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string) {
+func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string, hash [32]byte) {
 	x.lock(full)
 	defer x.unlock(full)
 
-	prepersist := prepersist(ctx, full)
+	pp := prepersistPath(full, hash)
 
-	liblog.Debugf(ctx, "persisting already pre-persisted %s to %s", full, prepersist)
+	liblog.Debugf(ctx, "persisting already pre-persisted %s to %s", full, pp)
 
 	if isPresent(full) {
 		liblog.Debugf(ctx, "persisting already pre-persisted %s: persisted already", full)
 		return
 	}
 
-	must.Assert(ctx, isPresent(prepersist))
+	must.Assert(ctx, isPresent(pp))
 
-	err := os.Rename(prepersist, full)
+	err := os.Rename(pp, full)
 	must.NoError(ctx, err)
 }
 
@@ -154,8 +155,8 @@ func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) err
 	must.NoError(ctx, err)
 }
 
-func prepersist(_ context.Context, full string) string {
-	return path.Join(filepath.Dir(full), filepath.Base(full)+".prepersist")
+func prepersistPath(full string, hash [32]byte) string {
+	return path.Join(filepath.Dir(full), filepath.Base(full)+fmt.Sprintf(".prepersist-%x", hash))
 }
 
 func staging(ctx context.Context, full string) string {
