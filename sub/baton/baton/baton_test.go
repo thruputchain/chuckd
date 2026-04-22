@@ -303,3 +303,41 @@ func TestAlternatingNominateCommit(t *testing.T) {
 	}
 
 }
+
+// TestValidateBadBlockHash tests that a proposer sending an incorrect Block_hash
+// is rejected during SCP validation.
+func TestValidateBadBlockHash(t *testing.T) {
+
+	ctx, rig, baton, tick := testSetup()
+
+	block := rig.GenNomination(ctx, 1)
+	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
+	rig.PassTime(tick)
+
+	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
+
+	// consume our own nomination
+	nomination := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
+	rig.PlaceConsensusValue(ctx, *nomination.DbgConsensusValue)
+	rig.WaitNomination(ctx)
+	rig.SignalNomination(true)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
+
+	// create a tampered copy with wrong Block_hash
+	tampered := block.ConsensusValue
+	tampered.Nomination.Block_hash[0] ^= 0xff
+	tamperedCue := protoutil.CueFromConsensusValue(&tampered)
+	rig.PlaceConsensusValue(ctx, tampered)
+
+	vlevel := rig.ValidateNominationValue(
+		ctx,
+		proto.SCPSlotIndex(tampered.Nomination.Block_height),
+		testMarshaler.MarshalXdr(&tamperedCue).Bytes(),
+	)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
+	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
+	if <-vlevel != scpkit.InvalidValue {
+		t.Fatalf("expected InvalidValue for tampered block hash")
+	}
+}
