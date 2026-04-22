@@ -26,6 +26,8 @@ HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 LOG_LEVEL="debug" \
 ./scripts/schedules/blue/launch_with_metrics.sh ./chuckd.dev ./scpd.dev # > bench-3n-{{ .hog_host_key }}.log 2>&1
 
+echo "BENCHMARK EXIT CODE: $?"
+
 """
 #file_out = ["bench-3n-{{ .hog_host_key }}.log"]
 after = """
