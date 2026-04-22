@@ -92,12 +92,16 @@ func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, slot scpkit.Slot, 
 	if timeout == 0 {
 		timeout = defaultBackfeedTimeout
 	}
-	go x.fulfillBackfeed(slot, timeout)
+	go x.fulfillBackfeed(ctx, slot, timeout)
 }
 
-func (x *SCPBroker) fulfillBackfeed(slot scpkit.Slot, timeout time.Duration) {
-	ctx, cancel := context.WithTimeout(x.ctx, timeout)
+func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot, timeout time.Duration) {
+	// Preserve caller's context values (trace IDs, log fields) but detach its cancellation.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(callerCtx), timeout)
 	defer cancel()
+	// Cancel when broker stops.
+	stop := context.AfterFunc(x.ctx, cancel)
+	defer stop()
 
 	envs, err := x.repair.RepairMissingSCP(ctx, slot)
 	if err != nil {
