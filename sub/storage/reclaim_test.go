@@ -60,11 +60,11 @@ func TestReclaimCatchupBlocksRemovesOldest(t *testing.T) {
 	want := []int64{heights[2], heights[3]}
 	for i, f := range files {
 		base := filepath.Base(f)
-		parts := strings.SplitN(base, "-", 3)
-		if len(parts) != 3 {
+		parts := strings.SplitN(base, "-", 2)
+		if len(parts) != 2 {
 			t.Fatalf("unexpected catchup filename format %q", base)
 		}
-		heightStr := parts[1]
+		heightStr := strings.TrimSuffix(parts[1], ".xdr")
 		height, err := strconv.ParseInt(heightStr, 10, 64)
 		if err != nil {
 			t.Fatalf("failed to parse catchup filename %q: %v", base, err)

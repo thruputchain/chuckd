@@ -42,25 +42,10 @@ func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 	defer x.mu.Unlock()
 
 	p, ok := x.pre[cvHash]
-	// dont delete p from pre, so it can be found by LookupCatchupBlock
 	must.Assert(ctx, ok)
 	must.Assert(ctx, p.Consensus_value.Nomination.Block_height == height)
 
 	x.persisted[height] = p
-}
-
-func (x *TestCatchupBlockPersistence) LookupCatchupBlock(
-	ctx context.Context,
-	cvHash proto.ConsensusValueHash,
-) *proto.CatchupBlock {
-	x.mu.RLock()
-	defer x.mu.RUnlock()
-
-	cb, ok := x.pre[cvHash]
-	if !ok {
-		return nil
-	}
-	return &cb
 }
 
 func (x *TestCatchupBlockPersistence) FindCatchupBlock(

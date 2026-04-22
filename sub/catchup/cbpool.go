@@ -101,16 +101,6 @@ func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 	cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, height, cvHash)
 }
 
-// CBPoolLookup finds persisted or pre-persisted catchup blocks with given cv hash.
-// Blocks we have nominated but are not committed will be found in pre-persist.
-func (cbp *CatchupBlockPool) CBPoolLookup(
-	ctx context.Context,
-	cvHash proto.ConsensusValueHash,
-) *proto.CatchupBlock {
-	cbp.waitFinishPrePersist(ctx, cvHash)
-	return cbp.persist.LookupCatchupBlock(ctx, cvHash)
-}
-
 func (cbp *CatchupBlockPool) CBPoolFindCommitted(
 	ctx context.Context,
 	height proto.BlockHeight,

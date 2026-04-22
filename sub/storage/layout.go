@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -182,10 +181,10 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, hash proto.ConsensusValueHash) string {
+func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
-		fmt.Sprintf("catchup-%012d-%x.xdr", height, hash),
+		fmt.Sprintf("catchup-%012d.xdr", height),
 	)
 }
 
@@ -196,8 +195,8 @@ func FilenameNonce(ctx context.Context) string {
 	return hex.EncodeToString(b)
 }
 
-// Matches e.g. catchup-000000000123-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef.xdr
-var catchupRE = regexp.MustCompile(`^catchup-([0-9]{12})-([0-9a-f]{64})\.xdr$`)
+// Matches e.g. catchup-000000000123.xdr
+var catchupRE = regexp.MustCompile(`^catchup-([0-9]{12})\.xdr$`)
 
 func ListCatchupFiles(dir string) ([]string, error) {
 
@@ -221,62 +220,6 @@ func ListCatchupFiles(dir string) ([]string, error) {
 	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
 
 	return matches, nil
-}
-
-func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, error) {
-	all, err := ListCatchupFiles(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	prefix := fmt.Sprintf("catchup-%012d-", height)
-	filtered := make([]string, 0, len(all))
-	for _, full := range all {
-		if strings.HasPrefix(filepath.Base(full), prefix) {
-			filtered = append(filtered, full)
-		}
-	}
-
-	return filtered, nil
-}
-
-func FindCatchupFileByHash(dir string, cvHash proto.ConsensusValueHash) (string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
-		}
-		return "", err
-	}
-
-	persistSuffix := fmt.Sprintf("-%x.xdr", cvHash)
-	prePersistSuffix := persistSuffix + ".prepersist"
-
-	var matches []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-
-		name := e.Name()
-		if strings.HasSuffix(name, persistSuffix) || strings.HasSuffix(name, prePersistSuffix) {
-			matches = append(matches, filepath.Join(dir, name))
-		}
-	}
-	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
-
-	switch len(matches) {
-	case 0:
-		return "", nil
-	case 1:
-		return matches[0], nil
-	default:
-		// it should not be the case that a persit and pre-persist files exist
-		// for the same catchup block.
-		// it should not be possible that multiple files have the same hash, but
-		// different heights.
-		return "", fmt.Errorf("multiple catchup files found for hash %x: %v", cvHash, matches)
-	}
 }
 
 // Matches strings like: "00000000000000001234"
