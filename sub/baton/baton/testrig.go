@@ -213,7 +213,7 @@ func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusVal
 func (h *TestRig) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
 }
 
-func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
+func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
 	h.backfeed <- struct{}{}
 }
 
