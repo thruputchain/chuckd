@@ -18,8 +18,8 @@ require (
 require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/groundhogchain/lib-go v0.0.0-20260421042933-07db2c868619
-	github.com/groundhogchain/protocol-go v0.0.0-20260417180023-0eab8935d1b0
+	github.com/groundhogchain/lib-go v0.0.0-20260422055934-3870c919073b
+	github.com/groundhogchain/protocol-go v0.0.0-20260421065857-6e24bfbf3f83
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.0.0-20260416212807-46a6f2366f8d
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0

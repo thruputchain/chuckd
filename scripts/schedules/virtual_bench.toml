@@ -23,15 +23,19 @@ cd ./system/coordinator_bench
 
 export RUN_CHUCKD_VIRTUAL_TEST=1
 
+echo "running Test3Healthy"
 go test -run Test3Healthy
 killall scpd || true
 
+echo "running Test3Staggered"
 go test -run Test3Staggered
 killall scpd || true
 
+echo "running Test2Healthy1Down"
 go test -run Test2Healthy1Down
 killall scpd || true
 
+echo "running Test2Healthy1Restart"
 go test -run Test2Healthy1Restart
 killall scpd || true
 

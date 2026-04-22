@@ -48,10 +48,10 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/groundhogchain/lib-go v0.0.0-20260421042933-07db2c868619 h1:X8DCqwV4Q5S3SSmBNf0J+ms8td7fk9G9QvwLUV9dCas=
-github.com/groundhogchain/lib-go v0.0.0-20260421042933-07db2c868619/go.mod h1:/KO5H+OpY9tCMgvyvypHJJjbgZvczq8JAmGPiA8VoB0=
-github.com/groundhogchain/protocol-go v0.0.0-20260417180023-0eab8935d1b0 h1:8+YGulNR7Fm+InYtS/Nr3hZLs7wspEnmagG6pQbV9l0=
-github.com/groundhogchain/protocol-go v0.0.0-20260417180023-0eab8935d1b0/go.mod h1:OTydl6lsE2qf5jipdKeYnABES41awOMjha6hzjkq8Oo=
+github.com/groundhogchain/lib-go v0.0.0-20260422055934-3870c919073b h1:bYYGvaw23dCPg+XNsMwnvKhALLo6jolpn/VmPOgxImA=
+github.com/groundhogchain/lib-go v0.0.0-20260422055934-3870c919073b/go.mod h1:Di4/85VRFyfWHIm5R/5iOZy3ir8DuTCZRJch9o9ddFs=
+github.com/groundhogchain/protocol-go v0.0.0-20260421065857-6e24bfbf3f83 h1:wutxT16pcf+qpAk1AxLDtvn+uPxWFcy/4bFLAjXT7gs=
+github.com/groundhogchain/protocol-go v0.0.0-20260421065857-6e24bfbf3f83/go.mod h1:OTydl6lsE2qf5jipdKeYnABES41awOMjha6hzjkq8Oo=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
