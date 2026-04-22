@@ -71,7 +71,16 @@ func (b *Baton) validateCue(
 	b.lock()
 	alreadyValidated := b.getValidatedConsensusFromCVH(cvc.Cv_hash)
 	alreadyInvalidated := b.isInvalidatedCVH(cvc.Cv_hash)
+	committedHeight := b.tipDb.Height
 	b.unlock()
+
+	// if the cv is in the future, we declare it maybe valid, which
+	// allows scp to externalize it.
+	if cvc.Block_height > committedHeight+1 {
+		liblog.Errorf(ctx, "cv in the future: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+		reply <- scpkit.MaybeValidValue
+		return
+	}
 
 	if alreadyInvalidated {
 		liblog.Errorf(ctx, "cv already invalidated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
@@ -90,6 +99,8 @@ func (b *Baton) validateCue(
 		return
 	}
 
+	// the goroutine below will abort following expensive fetch/repair operations if the cv gets
+	// externalized in the meantime.
 	// (abort condition) this context will be cancelled upon newer externalizations or commits
 	vCtx, vCtxCancel := context.WithCancel(ctx)
 	go func() {
