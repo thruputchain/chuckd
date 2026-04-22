@@ -32,7 +32,11 @@ func (m *mockSCPControl) Scp_control_update_local_quorum_set(context.Context, pr
 	return nil
 }
 func (m *mockSCPControl) Scp_control_received_envelope(_ context.Context, _ proto.SCPEnvelope) error {
-	close(m.arrived)
+	select {
+	case <-m.arrived:
+	default:
+		close(m.arrived)
+	}
 	<-m.gate
 	return nil
 }
