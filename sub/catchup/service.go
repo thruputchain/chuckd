@@ -18,10 +18,11 @@ import (
 )
 
 type CatchupService struct {
-	signer protoutil.Signatory
-	time   libtime.Time
-	net    libnet.Network
-	pool   CBPool
+	signer           protoutil.Signatory
+	time             libtime.Time
+	net              libnet.Network
+	pool             CBPool
+	maxCatchupBlocks int
 	//
 	reqM    libxdr.XdrMarshaler
 	resultM libxdr.XdrMarshaler
@@ -35,15 +36,17 @@ func NewCatchupService(
 	time libtime.Time,
 	net libnet.Network,
 	pool CBPool,
+	maxCatchupBlocks int,
 ) *CatchupService {
 
 	return &CatchupService{
-		signer:  signer,
-		time:    time,
-		net:     net,
-		pool:    pool,
-		reqM:    libxdr.NewXdrMarshaler(),
-		resultM: libxdr.NewXdrMarshaler(),
+		signer:           signer,
+		time:             time,
+		net:              net,
+		pool:             pool,
+		maxCatchupBlocks: maxCatchupBlocks,
+		reqM:             libxdr.NewXdrMarshaler(),
+		resultM:          libxdr.NewXdrMarshaler(),
 	}
 }
 
@@ -92,9 +95,22 @@ func (svc *CatchupService) Catchup_solicit(
 	liblog.Infof(ctx, "catchup requested for spans: %v", spans)
 	spans = protoutil.SumSpans(spans...)
 
+	var totalWidth proto.BlockHeight
+	for _, span := range spans {
+		totalWidth += span.To - span.From
+	}
+	if totalWidth > proto.BlockHeight(svc.maxCatchupBlocks) {
+		return proto.SignedCatchupBlocksResult{}, fmt.Errorf("requested span width %d exceeds maximum %d", totalWidth, svc.maxCatchupBlocks)
+	}
+
 	blocks := []proto.CatchupBlock{}
 	for _, span := range spans {
 		for h := span.From; h < span.To; h++ {
+			select {
+			case <-ctx.Done():
+				return proto.SignedCatchupBlocksResult{}, ctx.Err()
+			default:
+			}
 			if cb := svc.Lookup(ctx, h); cb != nil {
 				blocks = append(blocks, *cb)
 			}

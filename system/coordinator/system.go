@@ -174,6 +174,7 @@ func NewSystem(
 		libtime.RealTime{},
 		outside,
 		s.CBPool,
+		int(cfg.Storage_config.Max_catchup_blocks),
 	)
 
 	s.UnvettedSubmitter = NewUnvettedSubmitter(
