@@ -72,7 +72,7 @@ var (
 					IsValidator:    benchSCPIsValidator,
 				}
 				ready := make(chan struct{})
-				sys.Start(ctx, opcfg, benchNumCommits, ready)
+				sys.Start(ctx, opcfg, &benchNumCommits, nil, ready, nil)
 				<-ready
 				liblog.Infof(ctx, "coordinator benchmark exiting")
 			})

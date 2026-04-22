@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/deploy/common"
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/test/testnet"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -75,41 +74,37 @@ func Test2Healthy1Restart(t *testing.T) {
 	v2Ready := make(chan struct{})
 	v0RestartedReady := make(chan struct{})
 
-	var restartOnce sync.Once
-	systems[0].startAndWaitHeight(ctx, opcfgs[0], 30, make(chan struct{}),
-		func(cb *batonkit.CommittableBlock) {
-			if cb.BlockHeight() < proto.BlockHeight(10) {
-				return
-			}
-			restartOnce.Do(func() {
-				go func() {
-					time.Sleep(time.Second)
-					systems[0].Stop()
-					time.Sleep(10 * time.Second)
+	maxHeight := proto.BlockHeight(30)
+	restartAfterNumCommits := 10
 
-					liblog.Infof(ctx, "restarting v0")
-					restarted := NewCoordinatorBenchSystem(
-						liblog.WithLabeledLogger(ctx, "restarted-v0"),
-						libtime.RealTime{},
-						rand.New(rand.NewSource(10)),
-						outsideNets[0],
-						cfgs[0],
-						CoordinatorBenchConfig{
-							TxsPerSec: 100,
-							SchedPort: 31000,
-						},
-						dbDirs[0],
-					)
-					restartOpCfg := opcfgs[0]
-					restartOpCfg.SCPHandleAddr = fmt.Sprintf("127.0.0.1:%d", 8880)
-					restartOpCfg.SCPControlAddr = fmt.Sprintf("127.0.0.1:%d", 9990)
-					restarted.startAndWaitHeight(ctx, restartOpCfg, 30, v0RestartedReady, nil)
-				}()
-			})
-		})
+	readyToRestart := make(chan struct{})
+	systems[0].Start(ctx, opcfgs[0], &restartAfterNumCommits, &maxHeight, readyToRestart, nil)
+	go func() {
+		time.Sleep(time.Second)
+		systems[0].Stop()
+		time.Sleep(10 * time.Second)
 
-	systems[1].startAndWaitHeight(ctx, opcfgs[1], 30, v1Ready, nil)
-	systems[2].startAndWaitHeight(ctx, opcfgs[2], 30, v2Ready, nil)
+		liblog.Infof(ctx, "restarting v0")
+		restarted := NewCoordinatorBenchSystem(
+			liblog.WithLabeledLogger(ctx, "restarted-v0"),
+			libtime.RealTime{},
+			rand.New(rand.NewSource(10)),
+			outsideNets[0],
+			cfgs[0],
+			CoordinatorBenchConfig{
+				TxsPerSec: 100,
+				SchedPort: 31000,
+			},
+			dbDirs[0],
+		)
+		restartOpCfg := opcfgs[0]
+		restartOpCfg.SCPHandleAddr = fmt.Sprintf("127.0.0.1:%d", 8880)
+		restartOpCfg.SCPControlAddr = fmt.Sprintf("127.0.0.1:%d", 9990)
+		restarted.Start(ctx, restartOpCfg, nil, &maxHeight, v0RestartedReady, nil)
+	}()
+
+	systems[1].Start(ctx, opcfgs[1], nil, &maxHeight, v1Ready, nil)
+	systems[2].Start(ctx, opcfgs[2], nil, &maxHeight, v2Ready, nil)
 
 	for _, ready := range []chan struct{}{v1Ready, v2Ready, v0RestartedReady} {
 		select {
@@ -228,12 +223,14 @@ func testHealthyValidators(t *testing.T, envVar string, numToStart int) {
 	opcfgs := setup.opcfgs
 	readies := setup.readies
 
+	maxNumCommits := 30
+
 	var wg sync.WaitGroup
 	for i := range systems[:numToStart] {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			systems[i].Start(ctx, opcfgs[i], 30, readies[i])
+			systems[i].Start(ctx, opcfgs[i], &maxNumCommits, nil, readies[i], nil)
 		}(i)
 	}
 
@@ -261,7 +258,8 @@ func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 	opcfgs := setup.opcfgs
 	readies := setup.readies
 
-	allReached := make(chan struct{})
+	maxHeight := proto.BlockHeight(30)
+
 	var wg sync.WaitGroup
 	for i := range systems {
 		wg.Add(1)
@@ -277,12 +275,13 @@ func test3Staggered(t *testing.T, envVar string, staggerDelay time.Duration) {
 				}
 			}
 
-			systems[i].startAndWaitHeightAndKeepRunning(
+			systems[i].Start(
 				ctx,
 				opcfgs[i],
-				proto.BlockHeight(30),
+				nil,
+				&maxHeight,
 				readies[i],
-				allReached,
+				nil,
 			)
 		}(i)
 	}
