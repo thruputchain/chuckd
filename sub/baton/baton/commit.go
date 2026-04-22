@@ -42,7 +42,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 		validatedTip, err := b.validateProposal(ctx, cb.Onto, cv, cb.ConsensusValueHash())
 		if err != nil {
 			if errors.Is(err, batonkit.ErrNotValid) {
-				liblog.Fatalf(ctx, "catchup block failed validation at height %d: block hash mismatch", cb.BlockHeight())
+				liblog.Fatalf(ctx, "catchup block failed validation at height %d", cb.BlockHeight())
 			}
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			must.NoError(ctx, err)
