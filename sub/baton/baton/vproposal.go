@@ -70,10 +70,10 @@ func (b *Baton) validateProposal(
 			vblock := schedValidResult.Block()
 
 			if vblock.Db_tip.Block_hash != nomination.Block_hash {
-				liblog.Errorf(ctx, "block hash mismatch: scheduler computed %s, nomination claims %s",
+				liblog.Fatalf(ctx, "block hash mismatch: scheduler computed %s, nomination claims %s",
 					libxdr.HashString(vblock.Db_tip.Block_hash),
 					libxdr.HashString(nomination.Block_hash))
-				return proto.DbTip{}, batonkit.ErrNotValid
+				panic("scheduler bug, block hash mismatch")
 			}
 
 			cb := &proto.CatchupBlock{
