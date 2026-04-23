@@ -6,6 +6,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -161,5 +162,5 @@ func (b *Baton) driveLiveness(ctx context.Context, v *View) {
 	slot := scpkit.Slot(v.HighestExternalizedOrCommitted() + 1)
 	liblog.Infof(ctx, "requesting backfeed for slot %d", slot)
 	b.noteBackfeed()
-	b.handler.BackfeedSCPEnvelopes(ctx, slot, 0)
+	b.handler.BackfeedSCPEnvelopes(ctx, slot, systemfixed.SCPBackfeedTimeout)
 }

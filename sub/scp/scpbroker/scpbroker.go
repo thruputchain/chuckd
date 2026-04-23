@@ -13,21 +13,19 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-const defaultBackfeedTimeout = 2 * time.Second
-
 type SCPBackfeed interface {
 	BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration)
 	InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot)
 }
 
-type scpRepairer interface {
+type SCPRepairer interface {
 	RepairMissingSCP(ctx context.Context, slot scpkit.Slot) (proto.SCPEnvelopes, error)
 }
 
 type SCPBroker struct {
 	router          router.Router
 	storage         storage.SCPEnvelopePersistence
-	repair          scpRepairer
+	repair          SCPRepairer
 	controller      *scpd.SCPController
 	controllerReady chan struct{}
 	stopped         atomic.Bool
@@ -39,7 +37,7 @@ func NewSCPBroker(
 	ctx context.Context,
 	router router.Router,
 	storage storage.SCPEnvelopePersistence,
-	repair scpRepairer,
+	repair SCPRepairer,
 ) *SCPBroker {
 	brokerCtx, cancel := context.WithCancel(ctx)
 	return &SCPBroker{
@@ -89,14 +87,10 @@ func (x *SCPBroker) RepairEnvelopes(ctx context.Context, slot proto.SCPSlotIndex
 }
 
 func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, slot scpkit.Slot, timeout time.Duration) {
-	if timeout == 0 {
-		timeout = defaultBackfeedTimeout
-	}
 	go x.fulfillBackfeed(ctx, slot, timeout)
 }
 
 func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot, timeout time.Duration) {
-	// Preserve caller's context values (trace IDs, log fields) but detach its cancellation.
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(callerCtx), timeout)
 	defer cancel()
 	// Cancel when broker stops.
