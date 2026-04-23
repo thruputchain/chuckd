@@ -22,6 +22,7 @@ import (
 	"github.com/groundhogchain/lib-go/librpc"
 	"github.com/groundhogchain/lib-go/libtime"
 	proto "github.com/groundhogchain/protocol-go"
+	"github.com/rs/zerolog"
 )
 
 // hostScopedNetwork allows each validator to bind debug services on :port while
@@ -135,7 +136,7 @@ func setupValidatorBenchTest(
 	envVar string,
 	timeout time.Duration,
 ) validatorBenchSetup {
-	liblog.SetLogLevelDebug()
+	liblog.SetLogLevel(zerolog.TraceLevel)
 
 	if os.Getenv(envVar) != "1" {
 		t.Skipf("set %s=1 to run this integration test", envVar)

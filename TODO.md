@@ -1,5 +1,9 @@
 TESTS
 
+- [ ] use scp timeout to reduce number of nominations in the network
+  - stats on how often nominations timeout
+  - stats on number of nominations per round
+
 - [x] test: mocked scheduler, virtual network, 3-node/2-threshold, staggered start
 - [x] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts
 - [x] put mocked scheduler, virtual network tests in ci
