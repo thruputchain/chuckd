@@ -3,9 +3,9 @@ package scpbroker
 import (
 	"context"
 	"sync/atomic"
+	"time"
 
 	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
@@ -14,37 +14,45 @@ import (
 )
 
 type SCPBackfeed interface {
-	BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot)
+	BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration)
 	InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot)
+}
+
+type SCPRepairer interface {
+	RepairMissingSCP(ctx context.Context, slot scpkit.Slot) (proto.SCPEnvelopes, error)
 }
 
 type SCPBroker struct {
 	router          router.Router
 	storage         storage.SCPEnvelopePersistence
-	repair          *repairagent.RepairAgent
+	repair          SCPRepairer
 	controller      *scpd.SCPController
 	controllerReady chan struct{}
 	stopped         atomic.Bool
+	cancel          context.CancelFunc
+	ctx             context.Context
 }
 
 func NewSCPBroker(
 	ctx context.Context,
 	router router.Router,
 	storage storage.SCPEnvelopePersistence,
-	repair *repairagent.RepairAgent,
+	repair SCPRepairer,
 ) *SCPBroker {
+	brokerCtx, cancel := context.WithCancel(ctx)
 	return &SCPBroker{
 		router:          router,
 		storage:         storage,
 		repair:          repair,
 		controllerReady: make(chan struct{}),
+		cancel:          cancel,
+		ctx:             brokerCtx,
 	}
 }
 
-// Stop stops the broker from calling the scp controller.
-// However, in flight calls may result in scp controller calls after Stop returns.
 func (x *SCPBroker) Stop() {
 	x.stopped.CompareAndSwap(false, true)
+	x.cancel()
 }
 
 func (x *SCPBroker) IsStopped() bool {
@@ -63,7 +71,6 @@ func (x *SCPBroker) InitSCPLowestNonExternalized(ctx context.Context, slot scpki
 	x.controller.SetLowestNonExternalized(ctx, slot)
 }
 
-// ReceivedEnvelope persists received scp envelopes, and then releases them to scp.
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
 	if x.IsStopped() {
@@ -75,18 +82,21 @@ func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 	x.controller.ReceivedEnvelope(ctx, env)
 }
 
-// RepairEnvelopes retrieves past scp envelopes from persistence.
 func (x *SCPBroker) RepairEnvelopes(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
 	return x.storage.FindSCPEnvelopesForSlot(ctx, slot)
 }
 
-func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, slot scpkit.Slot) {
-	go x.fulfillBackfeed(context.WithoutCancel(ctx), slot)
+func (x *SCPBroker) BackfeedSCPEnvelopes(ctx context.Context, slot scpkit.Slot, timeout time.Duration) {
+	go x.fulfillBackfeed(ctx, slot, timeout)
 }
 
-func (x *SCPBroker) fulfillBackfeed(ctx context.Context, slot scpkit.Slot) {
+func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(callerCtx), timeout)
+	defer cancel()
+	// Cancel when broker stops.
+	stop := context.AfterFunc(x.ctx, cancel)
+	defer stop()
 
-	// XXX: this needs a timeout
 	envs, err := x.repair.RepairMissingSCP(ctx, slot)
 	if err != nil {
 		liblog.Errorf(ctx, "tried to repair missing scp envelopes for slot %d: %v", slot, err)
@@ -99,7 +109,6 @@ func (x *SCPBroker) fulfillBackfeed(ctx context.Context, slot scpkit.Slot) {
 
 	for i, env := range envs {
 		liblog.Debugf(ctx, "backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
-		// dont replay envelopes other than the requested slot
 		if env.Statement.Slot_index == slot {
 			x.ReceivedEnvelope(ctx, env)
 		}

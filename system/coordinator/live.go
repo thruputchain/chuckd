@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
@@ -148,8 +149,8 @@ func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue
 	x.multiplex.SendConsensusValue(ctx, cv)
 }
 
-func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot) {
-	x.scpBroker.BackfeedSCPEnvelopes(ctx, since)
+func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
+	x.scpBroker.BackfeedSCPEnvelopes(ctx, since, timeout)
 }
 
 func (x *LiveHandler) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
