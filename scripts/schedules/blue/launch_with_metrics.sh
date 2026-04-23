@@ -4,6 +4,10 @@ else
     capture_metrics=false
 fi
 
+# NOTE: override capture_metrics as it is causing ci to return non-zero exit code,
+# even when the experiment succeeds.
+capture_metrics=false
+
 if [[ $capture_metrics == true ]]; then
 
     echo "cloning metrics history ..."
