@@ -242,6 +242,23 @@ func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
 	return b.externalized[len(b.externalized)-1].Height() >= height
 }
 
+func (b *Baton) HighestCommitted() proto.BlockHeight {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+
+	return b.tipDb.Height
+}
+
+func (b *Baton) HighestCommittedOrExternalized() proto.BlockHeight {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+
+	if len(b.externalized) == 0 {
+		return b.tipDb.Height
+	}
+	return b.externalized[len(b.externalized)-1].Height()
+}
+
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
 func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalizedConsensus, error) {

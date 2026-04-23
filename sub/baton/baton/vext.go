@@ -27,7 +27,8 @@ func (b *Baton) validateExternalizedCue(
 	}
 }
 
-func (b *Baton) validateExternalizedConsensus(
+// validateCommittedConsensus validates a consensus value that has been committed to the database.
+func (b *Baton) validateCommittedConsensus(
 	ctx context.Context,
 	slot scpkit.Slot,
 	_ *proto.ConsensusValue,

@@ -117,7 +117,8 @@ func (b *Baton) validateCue(
 	cv, err := b.fetchCV(vCtx, slot, cvc)
 	if err != nil {
 		must.Assert(ctx, errors.Is(err, context.Canceled))
-		b.validateExternalizedCue(ctx, slot, cvc, reply)
+		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
+		reply <- scpkit.MaybeValidValue
 		return
 	}
 

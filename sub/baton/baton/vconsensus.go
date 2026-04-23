@@ -39,12 +39,21 @@ func (b *Baton) validateConsensus(
 	var err error
 	dbTip, extTip, err = b.WaitCommittedAt(ctx, cv.Nomination.Block_height-1)
 	if err != nil { // context cancelled
-		must.Assert(ctx,
-			errors.Is(err, ErrTipAlreadyAhead) || // from WaitCommittedAt
-				errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded), // from WaitExternalizedBeyond
-		)
-		b.validateExternalizedConsensus(ctx, slot, cv, cvc, reply)
-		return
+		switch {
+		case errors.Is(err, ErrTipAlreadyAhead): // from WaitCommittedAt
+			must.Assert(ctx, b.HighestCommitted() >= cv.Nomination.Block_height)
+			b.validateCommittedConsensus(ctx, slot, cv, cvc, reply)
+			return
+		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded): // from WaitExternalizedBeyond
+			highestExternalized := b.HighestCommittedOrExternalized()
+			liblog.Infof(ctx, "skipping validation due to externalizations ahead: height: %d; highest_externalized: %d",
+				cv.Nomination.Block_height, highestExternalized)
+			// assert highest externalized is at cv.Nomination.Block_height or above
+			must.Assert(ctx, highestExternalized >= cv.Nomination.Block_height)
+			reply <- scpkit.MaybeValidValue
+			return
+		}
+		panic("unreachable")
 	}
 
 	must.Assert(ctx, dbTip.Height+1 == cv.Nomination.Block_height)
@@ -107,9 +116,10 @@ func (b *Baton) validateConsensus(
 	}
 	if err != nil {
 		// err can only ever be context cancelled or deadline exceeded.
-		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 		// it occurs only if scp has externalized newer blocks
-		b.validateExternalizedConsensus(ctx, slot, cv, cvc, reply)
+		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+		must.Assert(ctx, b.HighestCommittedOrExternalized() >= cv.Nomination.Block_height)
+		reply <- scpkit.MaybeValidValue
 		return
 	}
 
@@ -155,7 +165,7 @@ func (b *Baton) tryValidateConsensusFast(
 	}
 
 	if cv.Nomination.Block_height <= dbTipOnRequest.Height {
-		b.validateExternalizedConsensus(ctx, slot, cv, cvc, reply)
+		b.validateCommittedConsensus(ctx, slot, cv, cvc, reply)
 		return true
 	}
 

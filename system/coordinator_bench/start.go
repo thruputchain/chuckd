@@ -2,6 +2,7 @@ package coordinator_bench
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
@@ -46,14 +47,17 @@ func (s *CoordinatorBenchSystem) Start(
 		for {
 			select {
 			case <-ctx.Done():
+				liblog.Errorf(ctx, "benchmark loop: context cancelled; exiting (%v)", ctx.Err())
 				return
 			case <-s.stop:
+				liblog.Errorf(ctx, "benchmark loop: terminated; exiting")
 				return
 			default:
 			}
 
 			cb := s.notify.ReceiveCommitted(ctx)
 			if cb == nil {
+				liblog.Errorf(ctx, "benchmark loop: no committed block received; exiting")
 				return
 			}
 			numCommitted++
@@ -73,8 +77,15 @@ func (s *CoordinatorBenchSystem) Start(
 			if completed {
 				// the benchmark is complete, print the results
 				benchDuration := time.Since(t0)
-				liblog.Infof(ctx, "coordinator benchmark completed in %s, %f ms/block",
-					benchDuration, float64(benchDuration.Milliseconds())/float64(numCommitted))
+				if numCommitted > 0 {
+					liblog.Infof(ctx, "coordinator benchmark completed in %s, %f ms/block",
+						benchDuration, float64(benchDuration.Milliseconds())/float64(numCommitted))
+					// this print is expected by CI metric harness
+					fmt.Println(float64(benchDuration.Milliseconds()) / float64(numCommitted))
+				} else {
+					liblog.Infof(ctx, "coordinator benchmark completed in %s, no blocks committed",
+						benchDuration)
+				}
 				close(ready)
 				break
 			}
@@ -84,12 +95,15 @@ func (s *CoordinatorBenchSystem) Start(
 		for {
 			select {
 			case <-ctx.Done():
+				liblog.Errorf(ctx, "benchmark tail: context cancelled; exiting (%v)", ctx.Err())
 				return
 			case <-s.stop:
+				liblog.Errorf(ctx, "benchmark tail: terminated; exiting")
 				return
 			default:
 			}
 			if s.notify.ReceiveCommitted(ctx) == nil {
+				liblog.Errorf(ctx, "benchmark tail: no committed block received; exiting")
 				return
 			}
 		}
