@@ -2,6 +2,8 @@ package testutil
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"math/rand"
 	"sync"
 
@@ -123,6 +125,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		}
 		hash = BlendPropopsedTx(hash, &ptxs[i])
 	}
+	hash = UniqueBlockHash(onto.Height+1, hash)
 	cv := proto.ConsensusValue{
 		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
 		Nomination: proto.Nomination{
@@ -156,6 +159,16 @@ func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) prot
 
 func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
 	return xorHash(base, protoutil.HashSignedTx(stx))
+}
+
+func UniqueBlockHash(height proto.BlockHeight, hash proto.BlockHash) proto.BlockHash {
+	var heightBytes [8]byte
+	binary.BigEndian.PutUint64(heightBytes[:], uint64(height))
+	heightHash := sha256.Sum256(heightBytes[:])
+	for i := range hash {
+		hash[i] ^= heightHash[i]
+	}
+	return hash
 }
 
 func xorHash(p, q proto.SHA256Hash) proto.SHA256Hash {

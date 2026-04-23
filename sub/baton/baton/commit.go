@@ -2,7 +2,6 @@ package baton
 
 import (
 	"context"
-	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/system/systemfixed"
@@ -40,15 +39,12 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 		}
 
 		validatedTip, err := b.validateProposal(ctx, cb.Onto, cv, cb.ConsensusValueHash())
-		if err != nil {
-			// err can only ever be context cancelled or deadline exceeded.
-			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-			// however, this error is not expected on the commit path,
-			// as the block being validated arises from an externalization or
-			// catchup (whose hash has been confirmed by an externalization)
-			// XXX: verify that the hashes in catchup blocks match the contents of the block
-			must.NoError(ctx, err)
-		}
+		// an error cannot arise here:
+		// - context cancellation or deadlines do not apply on the commit path
+		// - ErrNotValid is not expected on the commit path,
+		// as the block being validated arises from an externalization or
+		// catchup (whose hash has been linked to a following externalization)
+		must.NoError(ctx, err)
 		validatedBlockID = &validatedTip.Id
 	}
 
