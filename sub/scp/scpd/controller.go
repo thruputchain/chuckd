@@ -46,6 +46,12 @@ func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnve
 	must.NoError(ctx, err)
 }
 
+func (cc *SCPController) SetStateFromEnvelope(ctx context.Context, slot scpkit.Slot, env proto.SCPEnvelope) {
+	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
+	err := cc.Scp_control_set_state_from_envelope(context.WithoutCancel(ctx), slot, env)
+	must.NoError(ctx, err)
+}
+
 func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
 	t0 := time.Now()
 	defer func() {

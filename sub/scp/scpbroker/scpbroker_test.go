@@ -40,6 +40,9 @@ func (m *mockSCPControl) Scp_control_received_envelope(_ context.Context, _ prot
 	<-m.gate
 	return nil
 }
+func (m *mockSCPControl) Scp_control_set_state_from_envelope(context.Context, proto.SCPSlotIndex, proto.SCPEnvelope) error {
+	panic("unused")
+}
 func (m *mockSCPControl) Scp_control_set_qset(context.Context, proto.SCPQuorumSet) (proto.SCPOptQuorumSet, error) {
 	return nil, nil
 }

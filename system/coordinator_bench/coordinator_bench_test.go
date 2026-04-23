@@ -81,7 +81,8 @@ func Test2Healthy1Restart(t *testing.T) {
 	readyToRestart := make(chan struct{})
 	systems[0].Start(ctx, opcfgs[0], &restartAfterNumCommits, &maxHeight, readyToRestart, nil)
 	go func() {
-		<-readyToRestart
+		// when this is commented out, we hit a panic inside scp (wip)
+		// <-readyToRestart
 		time.Sleep(time.Second)
 		systems[0].Stop()
 		time.Sleep(10 * time.Second)
