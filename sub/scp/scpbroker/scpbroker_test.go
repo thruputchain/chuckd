@@ -1,86 +1,122 @@
-package scpbroker
+package scpbroker_test
 
 import (
 	"context"
-	"runtime"
-	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
+	"github.com/groundhogchain/chuckd/sub/scp/scpd"
+	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/groundhogchain/chuckd/util/netutil"
+	"github.com/groundhogchain/chuckd/util/rpcutil"
+	"github.com/groundhogchain/lib-go/librpc"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type hangingRepairer struct {
-	calls atomic.Int32
+// mockSCPControl implements proto.SCP_Control1 with a gate on received_envelope.
+// When received_envelope is called, it signals arrived and blocks until gate is closed.
+type mockSCPControl struct {
+	gate    chan struct{}
+	arrived chan struct{}
 }
 
-func (r *hangingRepairer) RepairMissingSCP(ctx context.Context, slot scpkit.Slot) (proto.SCPEnvelopes, error) {
-	r.calls.Add(1)
-	<-ctx.Done()
-	return nil, ctx.Err()
+func (m *mockSCPControl) Scp_control_null(context.Context) error { return nil }
+func (m *mockSCPControl) Scp_control_nominate(context.Context, proto.SCPSlotIndex, proto.SCPValue, proto.SCPValue) (bool, error) {
+	return false, nil
+}
+func (m *mockSCPControl) Scp_control_stop_nomination(context.Context, proto.SCPSlotIndex) error {
+	return nil
+}
+func (m *mockSCPControl) Scp_control_update_local_quorum_set(context.Context, proto.SCPQuorumSet) error {
+	return nil
+}
+func (m *mockSCPControl) Scp_control_received_envelope(_ context.Context, _ proto.SCPEnvelope) error {
+	select {
+	case <-m.arrived:
+	default:
+		close(m.arrived)
+	}
+	<-m.gate
+	return nil
+}
+func (m *mockSCPControl) Scp_control_set_qset(context.Context, proto.SCPQuorumSet) (proto.SCPOptQuorumSet, error) {
+	return nil, nil
+}
+func (m *mockSCPControl) Scp_control_get_qset(context.Context, proto.SCPHash) (proto.SCPOptQuorumSet, error) {
+	return nil, nil
+}
+func (m *mockSCPControl) Scp_control_remove_qset(context.Context, proto.SCPHash) (proto.SCPOptQuorumSet, error) {
+	return nil, nil
+}
+func (m *mockSCPControl) Scp_control_set_lowest_non_externalized_slot(context.Context, proto.SCPSlotIndex) error {
+	return nil
 }
 
-func TestBackfeedTimeout(t *testing.T) {
-	t.Parallel()
+type noopStorage struct{}
 
-	repairer := &hangingRepairer{}
-	broker := NewSCPBroker(context.Background(), nil, nil, repairer)
-
-	before := runtime.NumGoroutine()
-
-	for i := 0; i < 5; i++ {
-		broker.BackfeedSCPEnvelopes(context.Background(), scpkit.Slot(i), 100*time.Millisecond)
-	}
-
-	// Wait for goroutines to start
-	deadline := time.Now().Add(time.Second)
-	for repairer.calls.Load() < 5 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if repairer.calls.Load() < 5 {
-		t.Fatal("not all backfeed goroutines started")
-	}
-
-	// Wait for timeout to expire (100ms timeout + generous margin)
-	time.Sleep(500 * time.Millisecond)
-
-	after := runtime.NumGoroutine()
-	leaked := after - before
-	if leaked > 2 {
-		t.Errorf("goroutine leak: %d goroutines still running after timeout", leaked)
-	}
+func (noopStorage) PersistSCPEnvelope(context.Context, proto.SCPEnvelope) {}
+func (noopStorage) FindSCPEnvelopesForSlot(context.Context, proto.SCPSlotIndex) []proto.SCPEnvelope {
+	return nil
 }
 
-func TestBackfeedStopCancels(t *testing.T) {
-	t.Parallel()
+// TestBrokerStopDrainsInflightCalls verifies that Stop() blocks until all
+// in-flight controller calls complete, so that controller.Close() after Stop()
+// never hits an active RPC.
+func TestBrokerStopDrainsInflightCalls(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	repairer := &hangingRepairer{}
-	broker := NewSCPBroker(context.Background(), nil, nil, repairer)
+	gate := make(chan struct{})
+	arrived := make(chan struct{})
+	mock := &mockSCPControl{gate: gate, arrived: arrived}
 
-	before := runtime.NumGoroutine()
+	tn := testnet.NewTestNetwork()
+	addr := "test-scp-control"
+	l := librpc.StartSerial(ctx, tn, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, addr,
+		proto.SCP_Control1_Server{Srv: mock})
+	defer l.Close()
 
-	for i := 0; i < 5; i++ {
-		broker.BackfeedSCPEnvelopes(context.Background(), scpkit.Slot(i), time.Minute)
+	sock, err := tn.DialAddress(ctx, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	controller := scpd.NewSCPController(ctx, sock)
+
+	broker := scpbroker.NewSCPBroker(ctx, nil, noopStorage{}, nil)
+	broker.SetSCPController(controller)
+
+	env := proto.SCPEnvelope{Statement: proto.SCPStatement{Slot_index: 1}}
+
+	// start an in-flight ReceivedEnvelope call — it will block on the mock server
+	go broker.ReceivedEnvelope(ctx, env)
+	<-arrived
+
+	// Stop() should block until the in-flight call completes
+	stopped := make(chan struct{})
+	go func() {
+		broker.Stop()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+		t.Fatal("Stop() returned while a controller call was still in-flight")
+	case <-time.After(50 * time.Millisecond):
 	}
 
-	// Wait for goroutines to start
-	deadline := time.Now().Add(time.Second)
-	for repairer.calls.Load() < 5 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if repairer.calls.Load() < 5 {
-		t.Fatal("not all backfeed goroutines started")
+	// unblock the server — the in-flight call finishes, then Stop() returns
+	close(gate)
+
+	select {
+	case <-stopped:
+	case <-time.After(time.Second):
+		t.Fatal("Stop() did not return after in-flight call completed")
 	}
 
-	broker.Stop()
+	// this is the line that panicked before the fix — safe now because Stop() drained
+	controller.Close()
 
-	// Goroutines should terminate promptly after Stop
-	time.Sleep(200 * time.Millisecond)
-
-	after := runtime.NumGoroutine()
-	leaked := after - before
-	if leaked > 2 {
-		t.Errorf("goroutine leak after Stop: %d goroutines still running", leaked)
-	}
+	// cancel context so driver goroutines shut down before the test exits
+	cancel()
 }

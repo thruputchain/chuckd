@@ -2,6 +2,7 @@ package scpbroker
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,6 +32,7 @@ type SCPBroker struct {
 	stopped         atomic.Bool
 	cancel          context.CancelFunc
 	ctx             context.Context
+	inflight        sync.WaitGroup
 }
 
 func NewSCPBroker(
@@ -50,9 +52,12 @@ func NewSCPBroker(
 	}
 }
 
+// Stop stops the broker from calling the scp controller.
+// Blocks until all in-flight controller calls have completed.
 func (x *SCPBroker) Stop() {
 	x.stopped.CompareAndSwap(false, true)
 	x.cancel()
+	x.inflight.Wait()
 }
 
 func (x *SCPBroker) IsStopped() bool {
@@ -65,6 +70,8 @@ func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 }
 
 func (x *SCPBroker) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	x.inflight.Add(1)
+	defer x.inflight.Done()
 	if x.IsStopped() {
 		return
 	}
@@ -73,6 +80,8 @@ func (x *SCPBroker) InitSCPLowestNonExternalized(ctx context.Context, slot scpki
 
 func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
+	x.inflight.Add(1)
+	defer x.inflight.Done()
 	if x.IsStopped() {
 		return
 	}
