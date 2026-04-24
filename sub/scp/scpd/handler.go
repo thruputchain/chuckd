@@ -54,39 +54,39 @@ func (x *SCPHandler) Scp_handle_null(context.Context) error {
 
 func (x *SCPHandler) Scp_handle_emit_envelope(ctx context.Context, env proto.SCPEnvelope) error {
 	<-x.ready
-	return x.env.EmitEnvelope(ctx, env)
+	return x.env.SCPEmitEnvelope(ctx, env)
 }
 
 func (x *SCPHandler) Scp_handle_validate_ballot_value(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) (proto.SCPValidationLevel, error) {
 	<-x.ready
-	return x.scp.ValidateBallotValue(ctx, slotIndex, value), nil
+	return x.scp.SCPValidateBallotValue(ctx, slotIndex, value), nil
 }
 
 func (x *SCPHandler) Scp_handle_validate_nomination_value(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) (proto.SCPValidationLevel, error) {
 	<-x.ready
-	return x.scp.ValidateNominationValue(ctx, slotIndex, value), nil
+	return x.scp.SCPValidateNominationValue(ctx, slotIndex, value), nil
 }
 
 func (x *SCPHandler) Scp_handle_extract_valid_value(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) (proto.SCPOptValue, error) {
 	<-x.ready
-	return x.scp.ExtractValidValue(ctx, slotIndex, value), nil
+	return x.scp.SCPExtractValidValue(ctx, slotIndex, value), nil
 }
 
 func (x *SCPHandler) Scp_handle_combine_candidates(ctx context.Context, slotIndex proto.SCPSlotIndex, values proto.SCPValues) (proto.SCPOptValue, error) {
 	<-x.ready
-	v := x.scp.CombineCandidates(ctx, slotIndex, values)
+	v := x.scp.SCPCombineCandidates(ctx, slotIndex, values)
 	return &v, nil
 }
 
 func (x *SCPHandler) Scp_handle_value_externalized(ctx context.Context, slotIndex proto.SCPSlotIndex, value proto.SCPValue) error {
 	<-x.ready
-	x.scp.ExternalizedValue(ctx, slotIndex, value)
+	x.scp.SCPExternalizedValue(ctx, slotIndex, value)
 	return nil
 }
 
 func (x *SCPHandler) Scp_handle_get_quorum_set(ctx context.Context, hash proto.SCPHash) (proto.SCPOptQuorumSet, error) {
 	<-x.ready
-	return x.qset.GetQuorumSetLocally(ctx, hash)
+	return x.qset.SCPGetQuorumSetLocally(ctx, hash)
 }
 
 func (x *SCPHandler) Scp_handle_nominating_value(context.Context, proto.SCPSlotIndex, proto.SCPValue) error {

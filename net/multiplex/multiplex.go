@@ -141,7 +141,7 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	return nil
 }
 
-func (x *Multiplex) EmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
+func (x *Multiplex) SCPEmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
 	// persist the envelopes originating from our scp
 	x.storage.PersistSCPEnvelope(ctx, env)
 	return x.SendSCPEnvelope(ctx, env)

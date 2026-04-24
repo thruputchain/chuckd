@@ -40,9 +40,12 @@ func (b *Baton) start(ctx context.Context) {
 		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
 
-	// notify scpd of the lowest non-externalized slot
-	// XXX: prevent scpd from processing envelopes before this call.
-	b.handler.InitSCPLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
+	// initialize scp
+	b.handler.SCPInitLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
+	b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(b.tipDb.Height+1))
+
+	// prevents scpd from processing envelopes before the initialization above completes.
+	b.handler.SCPAcceptReceiveEnvelopes(ctx)
 
 	// load known externalizations above db tip
 	higherCV := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)

@@ -14,7 +14,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
 	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -41,8 +40,8 @@ type LiveHandler struct {
 	*catchup.CatchupBlockPool
 	multiplex     *multiplex.Multiplex
 	storage       *storage.DiskStorage
-	scpBroker     *scpbroker.SCPBroker
-	scpController scpkit.SCPController
+	scpBroker     scpkit.SCPCommander
+	scpController scpkit.SCPController //XXX: remove, make part of broker
 	m             libxdr.XdrMarshaler
 	//
 	rlk  sync.Mutex
@@ -65,7 +64,7 @@ func NewLiveHandler(
 	catchup *catchup.CatchupBlockPool,
 	multiplex *multiplex.Multiplex,
 	storage *storage.DiskStorage,
-	scpBroker *scpbroker.SCPBroker,
+	scpBroker scpkit.SCPCommander,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
@@ -107,18 +106,18 @@ func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResul
 	return tipResult, nil
 }
 
-func (x *LiveHandler) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
+func (x *LiveHandler) SubmitNomination(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	<-x.scpReady
 	valueBuf := x.m.MarshalXdr(value)
 	defer valueBuf.Recycle()
 	prevBuf := x.m.MarshalXdr(prev)
 	defer prevBuf.Recycle()
-	return x.scpController.Nominate(ctx, slot, valueBuf.Bytes(), prevBuf.Bytes())
+	return x.scpController.SCPNominate(ctx, slot, valueBuf.Bytes(), prevBuf.Bytes())
 }
 
-func (x *LiveHandler) StopNomination(ctx context.Context, slot scpkit.Slot) {
+func (x *LiveHandler) AbortNomination(ctx context.Context, slot scpkit.Slot) {
 	<-x.scpReady
-	x.scpController.StopNomination(ctx, slot)
+	x.scpController.SCPStopNomination(ctx, slot)
 }
 
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
@@ -149,10 +148,20 @@ func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue
 	x.multiplex.SendConsensusValue(ctx, cv)
 }
 
-func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
-	x.scpBroker.BackfeedSCPEnvelopes(ctx, since, timeout)
+// impl SCPBroker
+
+func (x *LiveHandler) SCPBackfeedEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
+	x.scpBroker.SCPBackfeedEnvelopes(ctx, since, timeout)
 }
 
-func (x *LiveHandler) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
-	x.scpBroker.InitSCPLowestNonExternalized(ctx, slot)
+func (x *LiveHandler) SCPInitLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	x.scpBroker.SCPInitLowestNonExternalized(ctx, slot)
+}
+
+func (x *LiveHandler) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
+	x.scpBroker.SCPReviveStateFromEnvelopes(ctx, slot)
+}
+
+func (x *LiveHandler) SCPAcceptReceiveEnvelopes(ctx context.Context) {
+	x.scpBroker.SCPAcceptReceiveEnvelopes(ctx)
 }

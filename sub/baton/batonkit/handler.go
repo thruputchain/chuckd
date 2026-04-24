@@ -8,7 +8,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/cvpool"
 	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
 	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
-	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/libtime"
@@ -26,7 +25,7 @@ type Handler interface {
 	repairservice.RepairProvider
 	cvpool.CVPool
 	catchup.CBPool
-	scpbroker.SCPBackfeed
+	scpkit.SCPCommander
 	catchup.CatchupAgent
 
 	DisseminateCV(context.Context, proto.ConsensusValue, proto.ConsensusValueHash)
@@ -37,15 +36,15 @@ type Handler interface {
 	Emit(ctx context.Context, event any)
 }
 
-type ID64 int64
-
-func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }
-
 type ConsensusController interface {
-	Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool
-	StopNomination(ctx context.Context, slot scpkit.Slot)
+	SubmitNomination(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool
+	AbortNomination(ctx context.Context, slot scpkit.Slot)
 }
 
 type BlockHandler interface {
 	Committed(ctx context.Context, cb *CommittableBlock)
 }
+
+type ID64 int64
+
+func (id ID64) String() string { return fmt.Sprintf("%x", int64(id)) }

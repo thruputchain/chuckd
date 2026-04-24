@@ -2,6 +2,7 @@ package scpkit
 
 import (
 	"context"
+	"time"
 
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -31,31 +32,44 @@ const (
 )
 
 type SCPEmitEnvelope interface {
-	EmitEnvelope(context.Context, proto.SCPEnvelope) error
+	SCPEmitEnvelope(context.Context, proto.SCPEnvelope) error
 }
 
 type SCPGetQuorumSet interface {
-	GetQuorumSetLocally(context.Context, proto.SCPHash) (*proto.SCPQuorumSet, error)
+	SCPGetQuorumSetLocally(context.Context, proto.SCPHash) (*proto.SCPQuorumSet, error)
 }
 
 type SCPHandler interface {
-	CombineCandidates(context.Context, Slot, []Value) Value
-	ValidateNominationValue(ctx context.Context, slot Slot, value Value) ValidationLevel
-	ValidateBallotValue(ctx context.Context, slot Slot, value Value) ValidationLevel
-	ExtractValidValue(ctx context.Context, slot Slot, value Value) *Value
-	ExternalizedValue(ctx context.Context, slot Slot, value Value)
+	SCPCombineCandidates(context.Context, Slot, []Value) Value
+	SCPValidateNominationValue(ctx context.Context, slot Slot, value Value) ValidationLevel
+	SCPValidateBallotValue(ctx context.Context, slot Slot, value Value) ValidationLevel
+	SCPExtractValidValue(ctx context.Context, slot Slot, value Value) *Value
+	SCPExternalizedValue(ctx context.Context, slot Slot, value Value)
 }
 
 type SCPController interface {
-	Nominate(ctx context.Context, slot Slot, value Value, prev Value) bool
-	StopNomination(ctx context.Context, slot Slot)
-	UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
-	ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
+	SCPNominate(ctx context.Context, slot Slot, value Value, prev Value) bool
+	SCPStopNomination(ctx context.Context, slot Slot)
+	SCPUpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
+	SCPReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
 	SCPKnownQSets
 }
 
 type SCPKnownQSets interface {
-	SetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet
-	GetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
-	RemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
+	SCPSetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet
+	SCPGetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
+	SCPRemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
+}
+
+type SCPCommander interface {
+	SCPBackfeedEnvelopes(ctx context.Context, since Slot, timeout time.Duration)
+	SCPInitLowestNonExternalized(ctx context.Context, slot Slot)
+	SCPReviveStateFromEnvelopes(ctx context.Context, slot Slot)
+	// connects scp to envelopes from other validators
+	SCPAcceptReceiveEnvelopes(ctx context.Context)
+}
+
+type SCPBroker interface {
+	SCPCommander
+	SCPController
 }

@@ -114,7 +114,7 @@ func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {
 }
 
 func (s *DiscoveryService) setQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
-	s.scpController.SetKnownQuorumSet(ctx, qset)
+	s.scpController.SCPSetKnownQuorumSet(ctx, qset)
 	s.hashQSet[libxdr.HashXdr(s.m, &qset)] = qset
 }
 
@@ -123,8 +123,12 @@ func (s *DiscoveryService) removeQuorumSet(ctx context.Context, qhash proto.SCPH
 	_, ok := s.hashQSet[qhash]
 	delete(s.hashQSet, qhash)
 	if ok {
-		s.scpController.RemoveKnownQuorumSet(ctx, qhash)
+		s.scpController.SCPRemoveKnownQuorumSet(ctx, qhash)
 	}
+}
+
+func (s *DiscoveryService) SCPGetQuorumSetLocally(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {
+	return s.GetQuorumSetLocally(ctx, hash)
 }
 
 func (s *DiscoveryService) GetQuorumSetLocally(ctx context.Context, hash proto.SCPHash) (*proto.SCPQuorumSet, error) {

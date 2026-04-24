@@ -40,7 +40,7 @@ func NewSCPController(ctx context.Context, sock net.Conn) *SCPController {
 	}
 }
 
-func (cc *SCPController) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+func (cc *SCPController) SCPReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	err := cc.Scp_control_received_envelope(context.WithoutCancel(ctx), env)
 	must.NoError(ctx, err)
@@ -52,7 +52,7 @@ func (cc *SCPController) SetStateFromEnvelope(ctx context.Context, slot scpkit.S
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
+func (cc *SCPController) SCPNominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
 	t0 := time.Now()
 	defer func() {
 		liblog.Debugf(ctx, "scpd_nominate_delay=%v | slot=%d", time.Since(t0), slot)
@@ -69,33 +69,33 @@ func (cc *SCPController) Nominate(ctx context.Context, slot scpkit.Slot, value s
 	return r
 }
 
-func (cc *SCPController) StopNomination(ctx context.Context, slot scpkit.Slot) {
+func (cc *SCPController) SCPStopNomination(ctx context.Context, slot scpkit.Slot) {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	err := cc.Scp_control_stop_nomination(context.WithoutCancel(ctx), slot)
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPController) UpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
+func (cc *SCPController) SCPUpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	err := cc.Scp_control_update_local_quorum_set(context.WithoutCancel(ctx), qset)
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPController) SetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet {
+func (cc *SCPController) SCPSetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	oqset, err := cc.Scp_control_set_qset(context.WithoutCancel(ctx), qset)
 	must.NoError(ctx, err)
 	return oqset
 }
 
-func (cc *SCPController) GetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
+func (cc *SCPController) SCPGetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	oqset, err := cc.Scp_control_get_qset(context.WithoutCancel(ctx), qhash)
 	must.NoError(ctx, err)
 	return oqset
 }
 
-func (cc *SCPController) RemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
+func (cc *SCPController) SCPRemoveKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	oqset, err := cc.Scp_control_remove_qset(context.WithoutCancel(ctx), qhash)
 	must.NoError(ctx, err)
