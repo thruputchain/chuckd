@@ -136,7 +136,7 @@ type nominateIn struct {
 	Prev  xdr.XdrType
 }
 
-func (h *TestRig) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
+func (h *TestRig) SubmitNomination(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
 	h.nominateRequest <- nominateIn{Slot: slot, Value: value, Prev: prev}
 	return <-h.nominateResponse
 }
@@ -150,7 +150,7 @@ func (h *TestRig) SignalNomination(result bool) {
 	h.nominateResponse <- result
 }
 
-func (h *TestRig) StopNomination(ctx context.Context, slot scpkit.Slot) {
+func (h *TestRig) AbortNomination(ctx context.Context, slot scpkit.Slot) {
 }
 
 func (h *TestRig) Signer() proto.ValidatorPublicInfo {
@@ -210,14 +210,23 @@ func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusVal
 	h.ConsensusValuePool.CVPoolAdd(ctx, cv, protoutil.HashCVFast(&cv))
 }
 
-func (h *TestRig) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+func (h *TestRig) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
 }
 
-func (h *TestRig) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
+func (h *TestRig) SCPBackfeedEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
 	h.backfeed <- struct{}{}
 }
 
 func (h *TestRig) WaitBackfeed(ctx context.Context) {
 	<-h.backfeed
 	liblog.Debugf(ctx, "CAPTURED: backfeed request")
+}
+
+func (h *TestRig) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
+	// not used
+}
+
+// connects scp to envelopes from other validators
+func (h *TestRig) SCPAllowFeedingEnvelopes(ctx context.Context) {
+	// not used
 }

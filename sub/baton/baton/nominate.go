@@ -135,7 +135,7 @@ func (b *Baton) nominate(
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nomination.Prev_block_hash}
 	n0 := time.Now()
-	accepted := b.handler.Nominate(ctx, scpkit.Slot(nomination.Block_height), cvc, &prevSummary)
+	accepted := b.handler.SubmitNomination(ctx, scpkit.Slot(nomination.Block_height), cvc, &prevSummary)
 	b.reportSCPNominationDelay(ctx, nomination.Block_height, time.Since(n0))
 
 	if accepted {

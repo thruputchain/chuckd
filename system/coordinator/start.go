@@ -91,7 +91,6 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	s.SCPBroker.SetSCPController(scpController)
 
 	s.Discovery.Start(s.ctx, scpController)
-	s.Live.SetSCP(scpController)
 	scpHandler.SetHandlers(s.Multiplex, s.Discovery, s.Baton.SCPHandler())
 
 	s.Dogwood.Start(s.ctx) // dogwood
@@ -151,7 +150,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				if !ok {
 					return
 				}
-				s.SCPBroker.ReceivedEnvelope(s.ctx, *env)
+				s.SCPBroker.SCPFeedEnvelope(s.ctx, *env)
 			}
 		}()
 

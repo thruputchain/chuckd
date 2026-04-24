@@ -30,7 +30,7 @@ func TestBackfeedTimeout(t *testing.T) {
 	before := runtime.NumGoroutine()
 
 	for i := 0; i < 5; i++ {
-		broker.BackfeedSCPEnvelopes(context.Background(), scpkit.Slot(i), 100*time.Millisecond)
+		broker.SCPBackfeedEnvelopes(context.Background(), scpkit.Slot(i), 100*time.Millisecond)
 	}
 
 	// Wait for goroutines to start
@@ -61,7 +61,7 @@ func TestBackfeedStopCancels(t *testing.T) {
 	before := runtime.NumGoroutine()
 
 	for i := 0; i < 5; i++ {
-		broker.BackfeedSCPEnvelopes(context.Background(), scpkit.Slot(i), time.Minute)
+		broker.SCPBackfeedEnvelopes(context.Background(), scpkit.Slot(i), time.Minute)
 	}
 
 	// Wait for goroutines to start

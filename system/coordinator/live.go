@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/groundhogchain/chuckd/net/multiplex"
 	"github.com/groundhogchain/chuckd/net/router"
@@ -14,7 +13,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/repair/repairagent"
 	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
 	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -39,11 +37,12 @@ type LiveHandler struct {
 	*repairservice.RepairService
 	*cvpool.ConsensusValuePool
 	*catchup.CatchupBlockPool
-	multiplex     *multiplex.Multiplex
-	storage       *storage.DiskStorage
-	scpBroker     *scpbroker.SCPBroker
-	scpController scpkit.SCPController
-	m             libxdr.XdrMarshaler
+	multiplex *multiplex.Multiplex
+	storage   *storage.DiskStorage
+	scpkit.SCPBroker
+	// scpBroker     scpkit.SCPCommander
+	// scpController scpkit.SCPController //XXX: remove, make part of broker
+	m libxdr.XdrMarshaler
 	//
 	rlk  sync.Mutex
 	rand *rand.Rand
@@ -65,7 +64,7 @@ func NewLiveHandler(
 	catchup *catchup.CatchupBlockPool,
 	multiplex *multiplex.Multiplex,
 	storage *storage.DiskStorage,
-	scpBroker *scpbroker.SCPBroker,
+	scpBroker scpkit.SCPBroker,
 	rand *rand.Rand,
 ) *LiveHandler {
 	return &LiveHandler{
@@ -81,17 +80,12 @@ func NewLiveHandler(
 		CatchupBlockPool:   catchup,
 		multiplex:          multiplex,
 		storage:            storage,
-		scpBroker:          scpBroker,
+		SCPBroker:          scpBroker,
 		m:                  libxdr.NewXdrMarshaler(),
 		rand:               rand,
 		scpReady:           make(chan struct{}),
 		schedReady:         make(chan struct{}),
 	}
-}
-
-func (x *LiveHandler) SetSCP(scp scpkit.SCPController) {
-	x.scpController = scp
-	close(x.scpReady)
 }
 
 func (x *LiveHandler) SetScheduler(conn sched.SchedulerCoordConn) {
@@ -107,27 +101,27 @@ func (x *LiveHandler) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResul
 	return tipResult, nil
 }
 
-func (x *LiveHandler) Nominate(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
-	<-x.scpReady
+func (x *LiveHandler) SubmitNomination(ctx context.Context, slot scpkit.Slot, value xdr.XdrType, prev xdr.XdrType) bool {
+	x.SCPWaitReady()
 	valueBuf := x.m.MarshalXdr(value)
 	defer valueBuf.Recycle()
 	prevBuf := x.m.MarshalXdr(prev)
 	defer prevBuf.Recycle()
-	return x.scpController.Nominate(ctx, slot, valueBuf.Bytes(), prevBuf.Bytes())
+	return x.SCPNominate(ctx, slot, valueBuf.Bytes(), prevBuf.Bytes())
 }
 
-func (x *LiveHandler) StopNomination(ctx context.Context, slot scpkit.Slot) {
-	<-x.scpReady
-	x.scpController.StopNomination(ctx, slot)
+func (x *LiveHandler) AbortNomination(ctx context.Context, slot scpkit.Slot) {
+	x.SCPWaitReady()
+	x.SCPStopNomination(ctx, slot)
 }
 
 func (x *LiveHandler) GetCatchupSources(ctx context.Context, seed int64) []proto.ValidatorPublicInfo {
-	<-x.scpReady
+	x.SCPWaitReady()
 	return x.router.ChooseCatchupProviders(ctx, seed)
 }
 
 func (x *LiveHandler) DialCatchup(ctx context.Context, v proto.ValidatorPublicInfo) (catchup.CatchupConn, error) {
-	<-x.scpReady
+	x.SCPWaitReady()
 	return catchup.DialCatchupClient(ctx, x.outside, v.Address)
 }
 
@@ -147,12 +141,4 @@ func (x *LiveHandler) Committed(ctx context.Context, cb *batonkit.CommittableBlo
 func (x *LiveHandler) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
 	x.ConsensusValuePool.CVPoolAdd(ctx, cv, cvh)
 	x.multiplex.SendConsensusValue(ctx, cv)
-}
-
-func (x *LiveHandler) BackfeedSCPEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
-	x.scpBroker.BackfeedSCPEnvelopes(ctx, since, timeout)
-}
-
-func (x *LiveHandler) InitSCPLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
-	x.scpBroker.InitSCPLowestNonExternalized(ctx, slot)
 }

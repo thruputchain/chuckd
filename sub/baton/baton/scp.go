@@ -19,7 +19,10 @@ type scpHandler struct {
 	baton *Baton
 }
 
-func (x scpHandler) CombineCandidates(ctx context.Context, slot scpkit.Slot, values []scpkit.Value) scpkit.Value {
+func (x scpHandler) SCPCombineCandidates(ctx context.Context, slot scpkit.Slot, values []scpkit.Value) scpkit.Value {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPCombineCandidates", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
+
 	<-x.baton.ready
 
 	if len(values) == 0 {
@@ -30,34 +33,40 @@ func (x scpHandler) CombineCandidates(ctx context.Context, slot scpkit.Slot, val
 	}
 }
 
-func (x scpHandler) ValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
-	ctx = liblog.Enterf(ctx, "ValidateBallotValue", "slot=%d", slot)
+func (x scpHandler) SCPValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPValidateBallotValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
 
 	return x.ValidateCue(ctx, slot, value, false)
 }
 
-func (x scpHandler) ValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
-	ctx = liblog.Enterf(ctx, "ValidateNominationValue", "slot=%d", slot)
+func (x scpHandler) SCPValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPValidateNominationValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
 
 	return x.ValidateCue(ctx, slot, value, true)
 }
 
-// During nomination, if a value is considered invalid (by ValidateNominationValue), scp calls ExtractValidValue to
+// During nomination, if a value is considered invalid (by ValidateNominationValue), scp calls SCPExtractValidValue to
 // give the application a chance to propose a derivative value that is valid. Stellar uses this call to strip invalid
 // upgrade proposals from an otherwise valid value.
-// If ExtractValidValue is not used, it must return nil!
+// If SCPExtractValidValue is not used, it must return nil!
 // Returning non-nil asserts that the returned value is valid.
-// In particular, returning the value passed to ExtractValidValue is a security vulnerability, because
-// scp calls ExtractValidValue only after ValidateNominationValue returned false on that value, and so
+// In particular, returning the value passed to SCPExtractValidValue is a security vulnerability, because
+// scp calls SCPExtractValidValue only after ValidateNominationValue returned false on that value, and so
 // returning that value is essentially asserting validity on a value that is definitely not valid.
-func (x scpHandler) ExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
+func (x scpHandler) SCPExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPExtractValidValue", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
+
 	<-x.baton.ready
 	return nil
 }
 
-func (x scpHandler) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
+func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPExternalizedValue", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
+
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue

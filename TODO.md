@@ -1,8 +1,10 @@
 TESTS
 
+- [ ] set_state_from_envelope on own messages
 - [ ] use scp timeout to reduce number of nominations in the network
   - stats on how often nominations timeout
   - stats on number of nominations per round
+- [ ] restart test not alligned on a commit boundary, rather random time
 
 - [x] test: mocked scheduler, virtual network, 3-node/2-threshold, staggered start
 - [x] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts

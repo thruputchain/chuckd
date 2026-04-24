@@ -122,6 +122,7 @@ func (b *Baton) validateCue(
 		return
 	}
 
+	// XXX(DoS): if cv disagrees with cue, take action regarding the source of the cv
 	if !b.ConsensusValueAgreesWithCue(cv, cvc) {
 		liblog.Infof(ctx, "cannot validate, consensus value disagrees with cue")
 		reply <- scpkit.InvalidValue

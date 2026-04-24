@@ -16,28 +16,28 @@ func NewTestSCP(scpHandler scpkit.SCPHandler) *TestSCP {
 
 func (x *TestSCP) CombineCandidates(ctx context.Context, slot scpkit.Slot, values []scpkit.Value) <-chan scpkit.Value {
 	ch := make(chan scpkit.Value, 1)
-	go func() { ch <- x.scpHandler.CombineCandidates(ctx, slot, values) }()
+	go func() { ch <- x.scpHandler.SCPCombineCandidates(ctx, slot, values) }()
 	return ch
 }
 
 func (x *TestSCP) ValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) <-chan scpkit.ValidationLevel {
 	ch := make(chan scpkit.ValidationLevel, 1)
-	go func() { ch <- x.scpHandler.ValidateNominationValue(ctx, slot, value) }()
+	go func() { ch <- x.scpHandler.SCPValidateNominationValue(ctx, slot, value) }()
 	return ch
 }
 
 func (x *TestSCP) ValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) <-chan scpkit.ValidationLevel {
 	ch := make(chan scpkit.ValidationLevel, 1)
-	go func() { ch <- x.scpHandler.ValidateBallotValue(ctx, slot, value) }()
+	go func() { ch <- x.scpHandler.SCPValidateBallotValue(ctx, slot, value) }()
 	return ch
 }
 
 func (x *TestSCP) ExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) <-chan *scpkit.Value {
 	ch := make(chan *scpkit.Value, 1)
-	go func() { ch <- x.scpHandler.ExtractValidValue(ctx, slot, value) }()
+	go func() { ch <- x.scpHandler.SCPExtractValidValue(ctx, slot, value) }()
 	return ch
 }
 
 func (x *TestSCP) ExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
-	go x.scpHandler.ExternalizedValue(ctx, slot, value)
+	go x.scpHandler.SCPExternalizedValue(ctx, slot, value)
 }
