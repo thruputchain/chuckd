@@ -12,9 +12,6 @@ func (s *System) Stop() {
 		liblog.Infof(s.ctx, "coordinator stopping")
 
 		s.signalGenesisIsReady()
-		if s.cancel != nil {
-			s.cancel()
-		}
 
 		// outside network: discovery, dogwood, catchup, repair
 		if s.outsideSrv != nil {
@@ -73,7 +70,15 @@ func (s *System) Stop() {
 			liblog.Infof(s.ctx, "coordinator closing scheduler connection")
 			s.SchedConn.Close()
 		}
+
+		// XXX: if we are going to implement graceful stop, it should not be context-based,
+		// so that interdependent services can be stopped in the correct order.
+		if s.cancel != nil {
+			s.cancel()
+		}
+
 		s.wg.Wait()
+
 		liblog.Infof(s.ctx, "coordinator stopped")
 	})
 }
