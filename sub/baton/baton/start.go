@@ -41,11 +41,11 @@ func (b *Baton) start(ctx context.Context) {
 	}
 
 	// initialize scp
-	b.handler.SCPInitLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
+	b.handler.SCPSetLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
 	b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(b.tipDb.Height+1))
 
 	// prevents scpd from processing envelopes before the initialization above completes.
-	b.handler.SCPAcceptReceiveEnvelopes(ctx)
+	b.handler.SCPAllowFeedingEnvelopes(ctx)
 
 	// load known externalizations above db tip
 	higherCV := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)

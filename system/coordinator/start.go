@@ -150,7 +150,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				if !ok {
 					return
 				}
-				s.SCPBroker.ReceivedEnvelope(s.ctx, *env)
+				s.SCPBroker.SCPFeedEnvelope(s.ctx, *env)
 			}
 		}()
 

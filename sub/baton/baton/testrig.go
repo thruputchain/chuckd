@@ -210,7 +210,7 @@ func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusVal
 	h.ConsensusValuePool.CVPoolAdd(ctx, cv, protoutil.HashCVFast(&cv))
 }
 
-func (h *TestRig) SCPInitLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+func (h *TestRig) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
 }
 
 func (h *TestRig) SCPBackfeedEnvelopes(ctx context.Context, since scpkit.Slot, timeout time.Duration) {
@@ -227,6 +227,6 @@ func (h *TestRig) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.S
 }
 
 // connects scp to envelopes from other validators
-func (h *TestRig) SCPAcceptReceiveEnvelopes(ctx context.Context) {
+func (h *TestRig) SCPAllowFeedingEnvelopes(ctx context.Context) {
 	// not used
 }

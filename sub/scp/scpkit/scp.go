@@ -52,6 +52,7 @@ type SCPController interface {
 	SCPStopNomination(ctx context.Context, slot Slot)
 	SCPUpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
 	SCPReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
+	SCPSetStateFromEnvelope(ctx context.Context, slot Slot, env proto.SCPEnvelope)
 	SCPKnownQSets
 }
 
@@ -63,10 +64,10 @@ type SCPKnownQSets interface {
 
 type SCPCommander interface {
 	SCPBackfeedEnvelopes(ctx context.Context, since Slot, timeout time.Duration)
-	SCPInitLowestNonExternalized(ctx context.Context, slot Slot)
+	SCPSetLowestNonExternalized(ctx context.Context, slot Slot)
 	SCPReviveStateFromEnvelopes(ctx context.Context, slot Slot)
 	// connects scp to envelopes from other validators
-	SCPAcceptReceiveEnvelopes(ctx context.Context)
+	SCPAllowFeedingEnvelopes(ctx context.Context)
 }
 
 type SCPBroker interface {

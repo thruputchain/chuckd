@@ -92,7 +92,7 @@ func TestBrokerStopDrainsInflightCalls(t *testing.T) {
 	env := proto.SCPEnvelope{Statement: proto.SCPStatement{Slot_index: 1}}
 
 	// start an in-flight ReceivedEnvelope call — it will block on the mock server
-	go broker.ReceivedEnvelope(ctx, env)
+	go broker.SCPFeedEnvelope(ctx, env)
 	<-arrived
 
 	// Stop() should block until the in-flight call completes

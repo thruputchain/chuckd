@@ -46,7 +46,7 @@ func (cc *SCPController) SCPReceivedEnvelope(ctx context.Context, env proto.SCPE
 	must.NoError(ctx, err)
 }
 
-func (cc *SCPController) SetStateFromEnvelope(ctx context.Context, slot scpkit.Slot, env proto.SCPEnvelope) {
+func (cc *SCPController) SCPSetStateFromEnvelope(ctx context.Context, slot scpkit.Slot, env proto.SCPEnvelope) {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	err := cc.Scp_control_set_state_from_envelope(context.WithoutCancel(ctx), slot, env)
 	must.NoError(ctx, err)
@@ -102,7 +102,7 @@ func (cc *SCPController) SCPRemoveKnownQuorumSet(ctx context.Context, qhash prot
 	return oqset
 }
 
-func (cc *SCPController) SetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+func (cc *SCPController) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
 	// dont cancel calls to scp; it may break the connection; they always succeed if scpd is healthy
 	err := cc.Scp_control_set_lowest_non_externalized_slot(context.WithoutCancel(ctx), slot)
 	must.NoError(ctx, err)

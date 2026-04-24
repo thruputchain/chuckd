@@ -10,6 +10,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/scp/scpd"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -24,6 +25,7 @@ type SCPBroker struct {
 	repair          SCPRepairer
 	controller      *scpd.SCPController
 	controllerReady chan struct{}
+	feedEnvelopes   chan struct{}
 	stopped         atomic.Bool
 	cancel          context.CancelFunc
 	ctx             context.Context
@@ -42,6 +44,7 @@ func NewSCPBroker(
 		storage:         storage,
 		repair:          repair,
 		controllerReady: make(chan struct{}),
+		feedEnvelopes:   make(chan struct{}),
 		cancel:          cancel,
 		ctx:             brokerCtx,
 	}
@@ -68,24 +71,21 @@ func (x *SCPBroker) SCPWaitReady() {
 	<-x.controllerReady
 }
 
-func (x *SCPBroker) SCPInitLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
-	x.inflight.Add(1)
-	defer x.inflight.Done()
-	if x.IsStopped() {
-		return
-	}
-	x.controller.SetLowestNonExternalized(ctx, slot)
-}
-
 func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
-	// panic("XXX")
+	for _, env := range x.storage.FindSCPEnvelopesForSlot(ctx, slot) {
+		if protoutil.NodeToValidatorID(env.Statement.Node_id) == protoutil.PublicVID(x.router.Self()) {
+			liblog.Infof(ctx, "scp set state from envelope: slot=%d; env=%v",
+				slot, protoutil.SCPEnvelopeShortString(env))
+			x.SCPSetStateFromEnvelope(ctx, slot, env)
+		}
+	}
 }
 
-func (x *SCPBroker) SCPAcceptReceiveEnvelopes(ctx context.Context) {
-	// panic("XXX")
+func (x *SCPBroker) SCPAllowFeedingEnvelopes(ctx context.Context) {
+	close(x.feedEnvelopes)
 }
 
-func (x *SCPBroker) ReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+func (x *SCPBroker) SCPFeedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
 	x.inflight.Add(1)
 	defer x.inflight.Done()
@@ -126,12 +126,21 @@ func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot,
 	for i, env := range envs {
 		liblog.Debugf(ctx, "backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
 		if env.Statement.Slot_index == slot {
-			x.ReceivedEnvelope(ctx, env)
+			x.SCPFeedEnvelope(ctx, env)
 		}
 	}
 }
 
 // impl SCPController
+
+func (x *SCPBroker) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
+	x.inflight.Add(1)
+	defer x.inflight.Done()
+	if x.IsStopped() {
+		panic("SCPBroker stopped")
+	}
+	x.controller.SCPSetLowestNonExternalized(ctx, slot)
+}
 
 func (x *SCPBroker) SCPNominate(ctx context.Context, slot scpkit.Slot, value scpkit.Value, prev scpkit.Value) bool {
 	x.inflight.Add(1)
@@ -161,12 +170,24 @@ func (x *SCPBroker) SCPUpdateQuorumSet(ctx context.Context, qset proto.SCPQuorum
 }
 
 func (x *SCPBroker) SCPReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
+	// do not let envelopes through until allowed by SCPAcceptReceiveEnvelopes
+	<-x.feedEnvelopes
+
 	x.inflight.Add(1)
 	defer x.inflight.Done()
 	if x.IsStopped() {
 		panic("SCPBroker stopped")
 	}
 	x.controller.SCPReceivedEnvelope(ctx, env)
+}
+
+func (x *SCPBroker) SCPSetStateFromEnvelope(ctx context.Context, slot scpkit.Slot, env proto.SCPEnvelope) {
+	x.inflight.Add(1)
+	defer x.inflight.Done()
+	if x.IsStopped() {
+		panic("SCPBroker stopped")
+	}
+	x.controller.SCPSetStateFromEnvelope(ctx, slot, env)
 }
 
 func (x *SCPBroker) SCPSetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet {
