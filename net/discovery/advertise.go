@@ -32,6 +32,9 @@ func (s *DiscoveryService) advertise(ctx context.Context) {
 }
 
 func (s *DiscoveryService) advertiseToAll(ctx context.Context, epoch int) {
+	s.inflight.Add(1)
+	defer s.inflight.Done()
+
 	limiter := make(chan struct{}, s.cfg.Advertise_par)
 	var wg sync.WaitGroup
 
@@ -54,6 +57,9 @@ func (s *DiscoveryService) advertiseToValidator(
 	v proto.ValidatorPublicInfo,
 	snapshot proto.KnownQuorumSets,
 ) {
+	s.inflight.Add(1)
+	defer s.inflight.Done()
+
 	// log.Infof("advertising to %s at epoch %d", protoutil.ValidatorPublicShortString(v), epoch)
 	c, err := DialDiscoveryClient(ctx, s.net, v.Address)
 	if err != nil {

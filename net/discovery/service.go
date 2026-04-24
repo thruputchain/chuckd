@@ -48,6 +48,7 @@ type DiscoveryService struct {
 	//
 	stopOnce sync.Once
 	done     chan struct{}
+	inflight sync.WaitGroup
 }
 
 func NewDiscoveryService(
@@ -98,6 +99,7 @@ func (s *DiscoveryService) Stop() {
 	s.stopOnce.Do(func() {
 		close(s.done)
 	})
+	s.inflight.Wait()
 }
 
 func (s *DiscoveryService) IsStopped() bool {
@@ -114,12 +116,18 @@ func (s *DiscoveryService) OurQuorumSet() proto.SCPQuorumSet {
 }
 
 func (s *DiscoveryService) setQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) {
+	s.inflight.Add(1)
+	defer s.inflight.Done()
+
 	s.scpController.SCPSetKnownQuorumSet(ctx, qset)
 	s.hashQSet[libxdr.HashXdr(s.m, &qset)] = qset
 }
 
 // XXX: qset garbage collection not implemented
 func (s *DiscoveryService) removeQuorumSet(ctx context.Context, qhash proto.SCPHash) {
+	s.inflight.Add(1)
+	defer s.inflight.Done()
+
 	_, ok := s.hashQSet[qhash]
 	delete(s.hashQSet, qhash)
 	if ok {
@@ -192,6 +200,9 @@ func (s *DiscoveryService) Discovery_update_quorums(
 }
 
 func (s *DiscoveryService) updateKnown(ctx context.Context, known proto.KnownQuorumSets) {
+	s.inflight.Add(1)
+	defer s.inflight.Done()
+
 	s.lk.Lock()
 	defer s.lk.Unlock()
 
@@ -204,6 +215,9 @@ func (s *DiscoveryService) updateKnown(ctx context.Context, known proto.KnownQuo
 }
 
 func (s *DiscoveryService) addQuorumSet(ctx context.Context, qset proto.SignedQuorumSetSnapshot) {
+	s.inflight.Add(1)
+	defer s.inflight.Done()
+
 	if !protoutil.VerifySignedQuorumSetSnapshot(s.m, qset) {
 		return
 	}
