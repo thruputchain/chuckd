@@ -1,65 +1,36 @@
+DOGWOOD SECURITY
+
+- [ ] add payload type to every send
+- [ ] init dogwood with size limit function based on payload type
+- [ ] multiplexer (user of dogwood) must check that payload type matches what's inside
+- [ ] update dogwood rpc
+- [ ] rename DogwoodInt64 to DogwoodU64, etc
+
+addresses:
+
+- https://github.com/groundhogchain/chuckd/issues/82
+
 TESTS
 
-- [ ] set_state_from_envelope on own messages
 - [ ] use scp timeout to reduce number of nominations in the network
   - stats on how often nominations timeout
   - stats on number of nominations per round
-- [ ] restart test not alligned on a commit boundary, rather random time
 
-- [x] test: mocked scheduler, virtual network, 3-node/2-threshold, staggered start
-- [x] test: mocked scheduler, virtual network, 3-node/2-threshold, 1 node restarts
-- [x] put mocked scheduler, virtual network tests in ci
-- [ ] fix ci exit code
-- [ ] test: die after nominating
+- [ ] test restart right after nomination
 - [ ] test memory and goroutine leaks
 
-- [x] staggered start (without sync) doesn't seem to work
-- [ ] loadgen test catchup (3-node, 1 node restarts)
-
-- [ ] design:
-  - when a node rejoins and is at slot S which is N slots behind live SCP, it will
-    receive validation requests for slots S+N, S+N+1, etc; currently these requests will wait
-    until the node's db reaches the height (via catchup); can we drop these requests knowing
-    the node's vote will not be necessary?
-
-- withhold scp envelopes with missing qsets until qsets learned or slot subsumed by externalizations
-
 SCP
-
-- [x] are our scp envelopes persisted?
-
-- [x] scp envelope persistence should NOT add timestamp (multiplies refeeded messages)
-
-- [ ] must we serve missing txs for our nominations after they are committed?
-  - dm: You need to keep transactions around for a little while, yes. Imagine a symmetric configuration with a quorum size of 2f+1 out of 3f+1 nodes. Now say f nodes are slow and missing the previous block, but then a different f nodes crash permanently. You don't want to have to do f complete blockchain state transfers when it would suffice just to send the f slow nodes a block's worth of transactions.
 
 - [ ] persist open nominations
   - [ ] on restart submit_vetted their txs to scheduler
 
-- [x] on start, replay persisted scp envelopes above db tip
-  - happens as by product of logic that requests backfeed after some time of no externalizations
-- [x] in general, never replay scp envelopes for slots below db tip (or below highest externalized?)
-  - [x] scpd skips envs below externalized, but it does not know the initial lowest non-externalized slot
-
 - [ ] check unions in scp envelopes are correct before passing to scpd (at parsing level?)
 
-===
+- [ ] ask scp whether we should bother nominating this round (optimization)
 
 - [ ] if qset for an incoming validation request is missing, should we wait until it arrives from discovery (instead of saying invalid)? Dos?
 
-- restarting scp
-  - [x] Feed all persisted envelopes above last committed
-  - [ ] A validate request for an already nominated block may result in missing txs, so don’t nominated before persisting txs (and serve them on demand) A node may have to request missing txs from self (if it nominated before restart)
-  - [ ] Coordinator also needs to remember it already nominated?
-  - [ ] unit tests?
-
-QUESTIONS
-
-- [ ] why `dogwood dropping partial incomplete transmission` appears before `counterparties online`?
-
-OPTIMIZATIONS
-
-- [ ] ask scp whether we should bother nominating this round
+- withhold scp envelopes with missing qsets until qsets learned or slot subsumed by externalizations?
 
 UPGRADES
 
