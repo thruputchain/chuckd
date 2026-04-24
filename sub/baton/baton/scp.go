@@ -20,6 +20,9 @@ type scpHandler struct {
 }
 
 func (x scpHandler) SCPCombineCandidates(ctx context.Context, slot scpkit.Slot, values []scpkit.Value) scpkit.Value {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPCombineCandidates", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
+
 	<-x.baton.ready
 
 	if len(values) == 0 {
@@ -31,14 +34,14 @@ func (x scpHandler) SCPCombineCandidates(ctx context.Context, slot scpkit.Slot, 
 }
 
 func (x scpHandler) SCPValidateBallotValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
-	ctx = liblog.Enterf(ctx, "ValidateBallotValue", "slot=%d", slot)
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPValidateBallotValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
 
 	return x.ValidateCue(ctx, slot, value, false)
 }
 
 func (x scpHandler) SCPValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
-	ctx = liblog.Enterf(ctx, "ValidateNominationValue", "slot=%d", slot)
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPValidateNominationValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
 
 	return x.ValidateCue(ctx, slot, value, true)
@@ -53,11 +56,17 @@ func (x scpHandler) SCPValidateNominationValue(ctx context.Context, slot scpkit.
 // scp calls SCPExtractValidValue only after ValidateNominationValue returned false on that value, and so
 // returning that value is essentially asserting validity on a value that is definitely not valid.
 func (x scpHandler) SCPExtractValidValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) *scpkit.Value {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPExtractValidValue", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
+
 	<-x.baton.ready
 	return nil
 }
 
 func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
+	ctx = liblog.Enterf(ctx, "SCPHandler.SCPExternalizedValue", "slot=%d", slot)
+	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
+
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue
