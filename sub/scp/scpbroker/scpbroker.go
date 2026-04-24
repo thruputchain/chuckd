@@ -64,6 +64,10 @@ func (x *SCPBroker) SetSCPController(controller *scpd.SCPController) {
 	close(x.controllerReady)
 }
 
+func (x *SCPBroker) SCPWaitReady() {
+	<-x.controllerReady
+}
+
 func (x *SCPBroker) SCPInitLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {
 	x.inflight.Add(1)
 	defer x.inflight.Done()

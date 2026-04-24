@@ -70,6 +70,7 @@ type SCPCommander interface {
 }
 
 type SCPBroker interface {
+	SCPWaitReady()
 	SCPCommander
 	SCPController
 }
