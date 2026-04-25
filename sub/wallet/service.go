@@ -2,6 +2,9 @@ package wallet
 
 import (
 	"context"
+	"errors"
+	"sync"
+	"sync/atomic"
 
 	"github.com/groundhogchain/chuckd/sub/kit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -10,6 +13,8 @@ import (
 
 type WalletService struct {
 	submitter kit.SignedTxSubmitter
+	inflight  sync.WaitGroup
+	stopped   atomic.Bool
 }
 
 func NewWalletService(
@@ -21,11 +26,27 @@ func NewWalletService(
 	}
 }
 
+func (svc *WalletService) Stop() {
+	svc.stopped.Store(true)
+	svc.inflight.Wait()
+}
+
+func (svc *WalletService) IsStopped() bool {
+	return svc.stopped.Load()
+}
+
 func (svc *WalletService) Wallet_null(context.Context) error {
 	return nil
 }
 
 func (svc *WalletService) Wallet_submit(ctx context.Context, submit proto.WalletSubmit) (proto.WalletAck, error) {
+
+	svc.inflight.Add(1)
+	defer svc.inflight.Done()
+
+	if svc.IsStopped() {
+		return proto.WalletAck{}, errors.New("wallet service is stopped")
+	}
 
 	svc.submitter.SubmitTxs(ctx, protoutil.Unpack(submit.Signed_transactions)...)
 

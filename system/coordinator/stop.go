@@ -1,9 +1,6 @@
 package coordinator
 
 import (
-	"context"
-	"time"
-
 	"github.com/groundhogchain/lib-go/liblog"
 )
 
@@ -37,10 +34,7 @@ func (s *System) Stop() {
 			s.UnvettedSubmitter.Stop()
 		}
 		if s.Wallet != nil {
-			liblog.Infof(s.ctx, "coordinator stopping wallet gateway")
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			s.Wallet.Stop(ctx)
-			cancel()
+			s.Wallet.Stop()
 		}
 
 		// inside network: scheduler calling coord

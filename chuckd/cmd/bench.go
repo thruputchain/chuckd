@@ -65,7 +65,6 @@ var (
 					DebugPort:      benchDebugPort,
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
-					WalletAddr:     benchWalletAddress,
 					SCPDaemonPath:  benchSCPDaemonPath,
 					SCPHandleAddr:  benchSCPHandleAddr,
 					SCPControlAddr: benchSCPControlAddr,
@@ -124,7 +123,6 @@ var (
 					DebugPort:      benchDebugPort,
 					InAddr:         benchInAddress,
 					OutAddr:        benchOutAddress,
-					WalletAddr:     benchWalletAddress,
 					SCPDaemonPath:  benchSCPDaemonPath,
 					SCPHandleAddr:  benchSCPHandleAddr,
 					SCPControlAddr: benchSCPControlAddr,
@@ -196,11 +194,10 @@ var (
 	benchBytesPerPay   int
 	benchNumCommits    int
 	//
-	benchStorageDir    string
-	benchInAddress     string
-	benchOutAddress    string
-	benchWalletAddress string
-	benchTxsPerSec     int64
+	benchStorageDir string
+	benchInAddress  string
+	benchOutAddress string
+	benchTxsPerSec  int64
 	//
 	benchSCPDaemonPath  string
 	benchSCPHandleAddr  string
@@ -242,7 +239,6 @@ func init() {
 	benchCoordinatorCmd.Flags().StringVar(&benchStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
 	benchCoordinatorCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchCoordinatorCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
-	benchCoordinatorCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
 	benchCoordinatorCmd.Flags().Int64Var(&benchTxsPerSec, "txs-per-sec", 1e4, "transactions per second")
 	benchCoordinatorCmd.Flags().IntVar(&benchSchedPort, "sched-port", 30555, "scheduler port")
 	benchCoordinatorCmd.Flags().IntVar(&benchDebugPort, "debug-port", 40555, "debug port")
@@ -256,7 +252,6 @@ func init() {
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchStorageDir, "storage-dir", "", "storage dir for consensus, scp, and catchup")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
-	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchTxsPerBlock, "txs-per-block", 1e4, "transactions per block")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchSchedAddr, "sched-addr", "", "scheduler address")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchDebugPort, "debug-port", 40555, "debug port")

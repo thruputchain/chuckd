@@ -11,7 +11,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
 )
 
 func CoordinatorBenchShellLocal(
@@ -37,7 +36,6 @@ func CoordinatorBenchShellLocal(
 
 	// gen quorum configs
 	baseCfg := common.MakeBaseConfig(round, int64(numVs), uint32(fanOut))
-	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
 	quorumCfgs, _ := common.GenQuorumConfigs(ctx, rand, baseCfg, validatorAddrs)
 
 	// start deploy script

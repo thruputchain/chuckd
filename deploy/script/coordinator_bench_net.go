@@ -42,7 +42,6 @@ func CoordinatorBenchScripts(
 	}
 
 	baseCfg := common.MakeBaseConfig(round, int64(nv), uint32(fanOut))
-	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
 	vcfgs, _ := common.GenQuorumConfigs(ctx, rand, baseCfg, vaddrs)
 
 	scripts := make([]string, nv)

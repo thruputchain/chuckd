@@ -154,7 +154,6 @@ func setupValidatorBenchTest(
 	validatorAddrs := []string{"v0:23000", "v1:23000", "v2:23000"}
 
 	baseCfg := common.MakeBaseConfig(400*time.Millisecond, int64(len(validatorAddrs)), 5)
-	baseCfg.Wallet_config = &proto.WalletConfig{Secret_key: []byte{1, 2, 3}}
 
 	cfgs, _ := common.GenQuorumConfigs(ctx, rand.New(rand.NewSource(1)), baseCfg, validatorAddrs)
 
@@ -196,7 +195,6 @@ func setupValidatorBenchTest(
 			DebugPort:      40555,
 			InAddr:         fmt.Sprintf("in-%d", i),
 			OutAddr:        validatorAddrs[i],
-			WalletAddr:     "127.0.0.1:0",
 			SCPDaemonPath:  scpdPath,
 			SCPHandleAddr:  fmt.Sprintf("127.0.0.1:%d", 3330+i),
 			SCPControlAddr: fmt.Sprintf("127.0.0.1:%d", 4440+i),

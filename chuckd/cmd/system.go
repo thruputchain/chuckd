@@ -45,7 +45,6 @@ var (
 					DebugPort:      0, // not used by coordinator system
 					InAddr:         serverInAddress,
 					OutAddr:        serverOutAddress,
-					WalletAddr:     serverWalletAddress,
 					SCPDaemonPath:  serverSCPDaemonPath,
 					SCPHandleAddr:  serverSCPHandleAddr,
 					SCPControlAddr: serverSCPControlAddr,
@@ -80,11 +79,10 @@ var (
 )
 
 var (
-	serverStorageDir    string
-	serverSchedAddress  string
-	serverInAddress     string
-	serverOutAddress    string
-	serverWalletAddress string
+	serverStorageDir   string
+	serverSchedAddress string
+	serverInAddress    string
+	serverOutAddress   string
 	//
 	serverSCPDaemonPath  string
 	serverSCPHandleAddr  string
@@ -102,7 +100,6 @@ func init() {
 	sysCoordinatorCmd.Flags().StringVar(&serverSchedAddress, "sched-addr", "localhost:7555", "address of scheduler")
 	sysCoordinatorCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:7888", "bind address for internal apis")
 	sysCoordinatorCmd.Flags().StringVar(&serverOutAddress, "out-addr", "localhost:9111", "bind address for external apis")
-	sysCoordinatorCmd.Flags().StringVar(&serverWalletAddress, "wallet-addr", "localhost:6666", "bind address for wallet api")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPDaemonPath, "scpd-path", scpdPath, "scpd path")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
