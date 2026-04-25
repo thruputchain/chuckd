@@ -1,3 +1,5 @@
+- [ ] update hogx for no wallet
+
 DOGWOOD SECURITY
 
 - [ ] add payload type to every send

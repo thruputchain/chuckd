@@ -17,7 +17,6 @@ func MakeBaseConfig(
 ) proto.Config {
 	return proto.Config{
 		Validator_config: nil,
-		Wallet_config:    nil,
 		Scp_config: &proto.SCPConfig{
 			Max_timeout_ms:                  1000,
 			Initial_ballot_timeout_ms:       750,

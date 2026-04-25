@@ -32,11 +32,6 @@ cat > config-${HOG_HOST_3}.json << EOF
             }
         ]
     },
-    "wallet_config": {
-        "secret_key": "010203",
-        "users": [
-        ]
-    },
     "discovery_config": {
         "advertise_interval_msec": "15000",
         "advertise_par": 5,
@@ -128,7 +123,6 @@ $1 -l ${LOG_LEVEL} --stack --config config-${HOG_HOST_3}.json \
             --num-commits 50 \
 			--storage-dir ./validator-storage-${HOG_HOST_3} \
 			--out-addr :50000 \
-			--wallet-addr :40000 \
 			--scpd-path $2 \
 			--scp-handle-addr 127.0.0.1:3300 \
 			--scp-control-addr 127.0.0.1:4400 \

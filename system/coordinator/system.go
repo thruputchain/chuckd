@@ -62,7 +62,7 @@ type System struct {
 	//
 	UnvettedSubmitter *UnvettedSubmitter
 	//
-	Wallet *wallet.WalletGateway
+	Wallet *wallet.WalletService
 	//
 	insideSrv  *Server
 	outsideSrv *Server
@@ -183,16 +183,14 @@ func NewSystem(
 		time.Duration(cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 	)
 
-	s.Wallet = wallet.NewWalletGateway(
+	s.Wallet = wallet.NewWalletService(
 		s.ctx,
 		s.UnvettedSubmitter,
-		cfg.Wallet_config.Secret_key,
-		cfg.Wallet_config.Users,
 	)
 
 	s.insideSrv = NewServer(s.ctx,
 		proto.CoordScheduler1_Server{Srv: s.CoordScheduler},
-		proto.Wallet1_Server{Srv: s.Wallet.Service()},
+		proto.Wallet1_Server{Srv: s.Wallet},
 	)
 
 	s.outsideSrv = NewServer(s.ctx,

@@ -50,7 +50,6 @@ type OperationalConfig struct {
 	DebugPort      int // used by coordinator bench only
 	InAddr         string
 	OutAddr        string
-	WalletAddr     string
 	SCPDaemonPath  string
 	SCPHandleAddr  string
 	SCPControlAddr string
@@ -96,8 +95,6 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 	s.Dogwood.Start(s.ctx) // dogwood
 
 	s.outsideSrv.Start(s.ctx, s.outside, opcfg.OutAddr) // discovery, dogwood, catchup, repair
-
-	s.Wallet.StartHTTP(s.ctx, opcfg.WalletAddr)
 
 	s.Dogwood.WaitReady(s.ctx) // wait until routes have been disseminated
 
