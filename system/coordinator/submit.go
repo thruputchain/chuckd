@@ -17,28 +17,28 @@ import (
 )
 
 type UnvettedSubmitter struct {
-	time    libtime.Time
-	maxSize int
-	maxWait time.Duration
-	lot     chan []*proto.SignedTransaction
-	parlot  chan proto.ParallelSignedTransactionBatch
-	done    chan struct{}
-	once    sync.Once
+	time         libtime.Time
+	maxBatchSize int
+	maxWait      time.Duration
+	lot          chan []*proto.SignedTransaction
+	parlot       chan proto.ParallelSignedTransactionBatch
+	done         chan struct{}
+	once         sync.Once
 }
 
 func NewUnvettedSubmitter(
 	ctx context.Context,
 	time libtime.Time,
-	maxSize int,
+	maxBatchSize int,
 	maxWait time.Duration,
 ) *UnvettedSubmitter {
 	return &UnvettedSubmitter{
-		time:    time,
-		maxSize: maxSize,
-		maxWait: maxWait,
-		lot:     make(chan []*proto.SignedTransaction),
-		parlot:  make(chan proto.ParallelSignedTransactionBatch),
-		done:    make(chan struct{}),
+		time:         time,
+		maxBatchSize: maxBatchSize,
+		maxWait:      maxWait,
+		lot:          make(chan []*proto.SignedTransaction),
+		parlot:       make(chan proto.ParallelSignedTransactionBatch),
+		done:         make(chan struct{}),
 	}
 }
 
@@ -70,7 +70,7 @@ func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoor
 		buf := NewBatchingBufferForSignedTxs(
 			ctx,
 			x.time,
-			x.maxSize,
+			x.maxBatchSize,
 			x.maxWait,
 			func(ctx context.Context, batch []proto.SignedTransaction) {
 				lot := xdrutil.ParallelizeSignedTransactionBatch(
