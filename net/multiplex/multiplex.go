@@ -5,6 +5,7 @@ import (
 
 	"github.com/groundhogchain/chuckd/net/dogwood"
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libflow"
@@ -81,12 +82,31 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 		}
 
 		switch xmsg.Type {
+
 		case proto.MultiplexMessageSubmittedTxs:
+			if len(payload) > systemfixed.MaxBytesTxsMessage {
+				liblog.Errorf(ctx, "submitted txs message too large: %d bytes", len(payload))
+				continue
+			}
+
 			x.receivedSubmittedTxs <- submittedTxsFrom{From: fromID, SubmittedTransactions: xmsg.Submitted()}
+
 		case proto.MultiplexMessageConsensusValue:
+			if len(payload) > systemfixed.MaxBytesConsensusValueMessage {
+				liblog.Errorf(ctx, "consensus value message too large: %d bytes", len(payload))
+				continue
+			}
+
 			x.receivedConsensusValue <- consensusValueFrom{From: fromID, ConsensusValue: xmsg.Consensus_value()}
+
 		case proto.MultiplexMessageSCP:
+			if len(payload) > systemfixed.MaxBytesSCPEnvelopeMessage {
+				liblog.Errorf(ctx, "scp envelope message too large: %d bytes", len(payload))
+				continue
+			}
+
 			x.receivedEnvelope <- envelopeFrom{From: fromID, SCPEnvelope: xmsg.Envelope()}
+
 		default:
 			liblog.Errorf(ctx, "unsupported multiplex message type %v", xmsg.Type)
 		}
@@ -104,7 +124,7 @@ func (x *Multiplex) SendSubmittedTxs(ctx context.Context, submitted *proto.Submi
 
 func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.SubmittedTransactions) {
 	liblog.Debugf(ctx, "%v multiplex sending %d txs",
-		protoutil.VIDString(x.self), xdrutil.SizeOfBatch(submitted.Transactions))
+		protoutil.VIDString(x.self), xdrutil.TokenSizeOfBatch(submitted.Transactions))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSubmittedTxs
 	*xmsg.Submitted() = *submitted
@@ -154,7 +174,7 @@ func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID,
 	case submittedTxsFrom := <-x.receivedSubmittedTxs:
 		liblog.Debugf(ctx, "%v multiplex received txs %d from %v",
 			protoutil.VIDString(x.self),
-			xdrutil.SizeOfBatch(submittedTxsFrom.Transactions),
+			xdrutil.TokenSizeOfBatch(submittedTxsFrom.Transactions),
 			protoutil.VIDString(submittedTxsFrom.From))
 		return submittedTxsFrom.From, submittedTxsFrom.SubmittedTransactions, true
 	}

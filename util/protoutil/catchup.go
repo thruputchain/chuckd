@@ -28,7 +28,7 @@ func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 		return NominationSerialized{}, nil, false
 	}
 
-	if xdrutil.SizeOfBatch(cb.Consensus_value.Nomination.Transactions_hash) != len(txs) {
+	if xdrutil.TokenSizeOfBatch(cb.Consensus_value.Nomination.Transactions_hash) != len(txs) {
 		return NominationSerialized{}, nil, false
 	}
 	for i, txh := range txh {

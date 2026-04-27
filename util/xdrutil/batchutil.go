@@ -20,7 +20,7 @@ func ValidateBatch(batch proto.ParallelBatch) error {
 	return nil
 }
 
-func SizeOfBatch(x proto.ParallelBatch) int {
+func TokenSizeOfBatch(x proto.ParallelBatch) int {
 	n := 0
 	for _, s := range x.Segment_tokens {
 		n += int(s)
@@ -28,10 +28,18 @@ func SizeOfBatch(x proto.ParallelBatch) int {
 	return n
 }
 
-func SizeOfBatches(x []proto.ParallelBatch) int {
+func ByteSizeOfBatch(x proto.ParallelBatch) int {
+	n := 0
+	for _, s := range x.Segment_bytes {
+		n += int(s)
+	}
+	return n
+}
+
+func TokenSizeOfBatches(x []proto.ParallelBatch) int {
 	n := 0
 	for _, b := range x {
-		n += SizeOfBatch(b)
+		n += TokenSizeOfBatch(b)
 	}
 	return n
 }

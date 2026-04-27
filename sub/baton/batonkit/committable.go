@@ -66,7 +66,7 @@ func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedT
 }
 
 func (cb *CommittableNomination) NumTransactions() int {
-	return xdrutil.SizeOfBatch(cb.cv.Nomination.Transactions_hash)
+	return xdrutil.TokenSizeOfBatch(cb.cv.Nomination.Transactions_hash)
 }
 
 type CommittableCatchup struct {

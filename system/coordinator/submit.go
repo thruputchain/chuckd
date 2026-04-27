@@ -103,7 +103,7 @@ func (x *UnvettedSubmitter) Start(ctx context.Context, sched proto.SchedulerCoor
 				return
 			case txs := <-x.parlot:
 				liblog.Debugf(ctx, "submitting %d parallel unvetted txs from wallet to scheduler",
-					xdrutil.SizeOfBatch(txs))
+					xdrutil.TokenSizeOfBatch(txs))
 				err := sched.Schedulercoord_submit_unvetted(ctx, txs)
 				must.NoError(ctx, err)
 			}
