@@ -138,6 +138,21 @@ func (x *TransmissionReceiver) expirePartial(ctx context.Context) {
 	}
 }
 
+// VerifyPackage verifies that the transmission parameters of a package are valid.
+// This prevents DoS attacks on the decoding process.
+func (x *TransmissionReceiver) VerifyPackage(from proto.ValidatorID, pkg *proto.DogwoodPackage) error {
+
+	regime := CalcRegime(int(pkg.Transmission.Num_payload_bytes))
+
+	if regime.NumPaySheaves != int(pkg.Transmission.Num_payload_sheaves) ||
+		regime.NumParitySheaves != int(pkg.Transmission.Num_parity_sheaves) ||
+		regime.MaxBytesPerChunk != int(pkg.Transmission.Max_bytes_per_chunk) {
+		return fmt.Errorf("invalid transmission parameters")
+	}
+
+	return nil
+}
+
 func (x *TransmissionReceiver) OnReceive(from proto.ValidatorID, pkg *proto.DogwoodPackage) {
 
 	key := transmissionKey{
