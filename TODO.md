@@ -1,11 +1,3 @@
-DOGWOOD SECURITY
-
-- [ ] enforce message size limits based on type
-
-resolves:
-
-- https://github.com/groundhogchain/chuckd/issues/82
-
 TESTS
 
 - [ ] use scp timeout to reduce number of nominations in the network
