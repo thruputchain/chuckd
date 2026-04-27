@@ -17,6 +17,7 @@ import (
 )
 
 type StreamProcessor interface {
+	VerifyPackage(proto.ValidatorID, *proto.DogwoodPackage) error
 	OnReceive(proto.ValidatorID, *proto.DogwoodPackage)
 }
 
@@ -66,6 +67,12 @@ func (r *StreamReceiver) Deliver(ctx context.Context, env proto.DogwoodDeliveryE
 
 func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryEnvelope) {
 
+	//XXX(DoS): slash the source?
+	if err := r.proc.VerifyPackage(env.Delivery.Stream.Source_id, &env.Delivery.Pkg); err != nil {
+		liblog.Errorf(ctx, "dropping delivery due to invalid package: %v", err)
+		return
+	}
+
 	// recover route
 	var route NavRoute
 
@@ -85,7 +92,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	}
 
 	// verify signature, if coming from a known validator
-	// XXX: should we verify regardless who its from?
+	// XXX(SECURITY): should we verify regardless who its from?
 	if v, ok := r.discovery.LookupValidator(env.Delivery.Stream.Source_id); ok {
 		if !protoutil.VerifyXdr(r.m, v.Public_key, &env.Delivery, env.Signature) {
 			return

@@ -1,6 +1,7 @@
 SECURITY
 
-- [ ] only process scp envelopes coming from our quorum sets
+- only process scp envelopes coming from our quorum sets?
+  - won't work because quorums may include nodes outside of our quorum sets
 
 TESTS
 
