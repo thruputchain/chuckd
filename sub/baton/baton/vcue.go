@@ -75,7 +75,8 @@ func (b *Baton) validateCue(
 	b.unlock()
 
 	// if the cv is in the future, we declare it maybe valid, which
-	// allows scp to externalize it.
+	// allows scp to externalize it, if a quorum certificate is witnessed.
+	// XXX(SECURITY): adversary can force all honest nodes to declare maybe valid to a future slot.
 	if cvc.Block_height > committedHeight+1 {
 		liblog.Errorf(ctx, "cv in the future: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 		reply <- scpkit.MaybeValidValue
