@@ -1,3 +1,7 @@
+SECURITY
+
+- [ ] only process scp envelopes coming from our quorum sets
+
 TESTS
 
 - [ ] use scp timeout to reduce number of nominations in the network

@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"sync/atomic"
 
 	"github.com/gofrs/flock"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -26,6 +27,7 @@ type DiskStorage struct {
 	//
 	scpM libxdr.XdrMarshaler
 	//
+	flk   atomic.Pointer[flock.Flock]
 	ready chan struct{}
 }
 
@@ -54,6 +56,7 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 	must.NoError(ctx, err)
 
 	flk := flock.New(path.Join(dir, "lock"))
+	x.flk.Store(flk)
 	locked, err := flk.TryLock()
 	must.NoError(ctx, err)
 	must.Assertf(ctx, locked, "storage directory %v is already locked by another process", dir)
