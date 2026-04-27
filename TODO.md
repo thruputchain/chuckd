@@ -1,17 +1,3 @@
-- [ ] update hogx for no wallet
-
-DOGWOOD SECURITY
-
-- [ ] add payload type to every send
-- [ ] init dogwood with size limit function based on payload type
-- [ ] multiplexer (user of dogwood) must check that payload type matches what's inside
-- [ ] update dogwood rpc
-- [ ] rename DogwoodInt64 to DogwoodU64, etc
-
-addresses:
-
-- https://github.com/groundhogchain/chuckd/issues/82
-
 TESTS
 
 - [ ] use scp timeout to reduce number of nominations in the network

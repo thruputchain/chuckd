@@ -120,7 +120,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				int(s.cfg.Mempool_config.Submission_lot_size),
 				time.Duration(s.cfg.Mempool_config.Submission_lot_wait_msec)*time.Millisecond,
 				func(ctx context.Context, batch proto.ParallelSignedTransactionBatch) {
-					liblog.Debugf(ctx, "disseminating %d vetted txs", xdrutil.SizeOfBatch(batch))
+					liblog.Debugf(ctx, "disseminating %d vetted txs", xdrutil.TokenSizeOfBatch(batch))
 					s.Multiplex.SendSubmittedTxs(
 						ctx,
 						&proto.SubmittedTransactions{Transactions: batch},
@@ -132,7 +132,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 				if !ok {
 					return
 				}
-				liblog.Debugf(ctx, "received %d vetted txs from scheduler", xdrutil.SizeOfBatch(batch))
+				liblog.Debugf(ctx, "received %d vetted txs from scheduler", xdrutil.TokenSizeOfBatch(batch))
 				buf.Submit(s.ctx, batch)
 			}
 		}()

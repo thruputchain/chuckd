@@ -24,7 +24,7 @@ func (b *Baton) validateProposal(
 
 	nomination := cv.Nomination
 
-	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
+	numTxs := xdrutil.TokenSizeOfBatch(nomination.Transactions_hash)
 
 	eventValidating := batonkit.EventValidating{
 		Onto:              onto,

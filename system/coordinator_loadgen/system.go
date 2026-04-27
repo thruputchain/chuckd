@@ -269,7 +269,7 @@ func (s *CoordinatorLoadgenSystem) PumpWorkTxs(
 		}
 		lastBurst = time.Now()
 
-		liblog.Infof(ctx, "submitting work tx batch %d with %d transactions", i, xdrutil.SizeOfBatch(txs))
+		liblog.Infof(ctx, "submitting work tx batch %d with %d transactions", i, xdrutil.TokenSizeOfBatch(txs))
 		ctl.SubmitParallelTxs(ctx, txs)
 
 		liblog.Infof(ctx, "waiting for work batch %d to commit", i)

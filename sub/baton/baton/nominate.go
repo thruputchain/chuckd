@@ -56,7 +56,7 @@ func (b *Baton) nominate(
 
 	nominatedBlock := result.Nominated_block()
 	nomination := nominatedBlock.Nomination
-	numTxs := xdrutil.SizeOfBatch(nomination.Transactions_hash)
+	numTxs := xdrutil.TokenSizeOfBatch(nomination.Transactions_hash)
 
 	tMempoolNominateEnd := b.handler.Now()
 	b.stampMempoolNominateEnd(nominatedBlock.Nomination.Block_height, tMempoolNominateEnd)

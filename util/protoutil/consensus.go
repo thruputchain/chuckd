@@ -52,8 +52,8 @@ func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
 	if err := xdrutil.ValidateBatch(cv.Nomination.Transactions_nondeterministic_data); err != nil {
 		return false
 	}
-	if xdrutil.SizeOfBatch(cv.Nomination.Transactions_hash) !=
-		xdrutil.SizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.TokenSizeOfBatch(cv.Nomination.Transactions_hash) !=
+		xdrutil.TokenSizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
 		return false
 	}
 	return true

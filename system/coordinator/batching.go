@@ -22,13 +22,13 @@ func NewBatchingBufferForParallelSignedTxs(
 		ctx,
 		time,
 		func(ctx context.Context, batches []proto.ParallelSignedTransactionBatch) {
-			liblog.Debugf(ctx, "disseminating %d vetted txs", xdrutil.SizeOfBatches(batches))
+			liblog.Debugf(ctx, "disseminating %d vetted txs", xdrutil.TokenSizeOfBatches(batches))
 			flush(ctx, xdrutil.JoinBatches(batches))
 		},
 		maxBatchSize,
 		maxWait,
 		func(batch proto.ParallelSignedTransactionBatch) int {
-			return xdrutil.SizeOfBatch(batch)
+			return xdrutil.TokenSizeOfBatch(batch)
 		},
 	)
 	return buf
