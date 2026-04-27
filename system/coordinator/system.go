@@ -26,6 +26,7 @@ import (
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -176,6 +177,9 @@ func NewSystem(
 		s.CBPool,
 	)
 
+	// SECURITY: ensure that the unvetted submitter can fit into the mempool coordinator RPC message limit.
+	must.Assert(ctx, int(proto.KMaxBytesSignedTransaction)*int(cfg.Mempool_config.Submission_lot_size) <
+		int(proto.KMempoolCoordinatorRpcMaxBytes)+int(proto.KRPCFrameMaxBytes))
 	s.UnvettedSubmitter = NewUnvettedSubmitter(
 		s.ctx,
 		libtime.RealTime{},
