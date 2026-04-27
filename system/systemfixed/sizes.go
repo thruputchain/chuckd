@@ -5,6 +5,7 @@ const (
 
 	MaxBytesConsensusValueMessage = 70e6
 
-	// MaxBytesSCPEnvelopeMessage must be smaller than the max message on the SCPD rpc bridge
+	// SECURITY: MaxBytesSCPEnvelopeMessage must be smaller than the max message of the SCPD rpc server.
+	// Otherwise, an oversize SCP message forwarded from dogwood to SCPD will cause a crash.
 	MaxBytesSCPEnvelopeMessage = 5e6
 )
