@@ -57,7 +57,7 @@ func MakeBaseConfig(
 		},
 		Mempool_config: &proto.MempoolConfig{
 			Transaction_ttl_msec:     2 * round.Milliseconds(),
-			Submission_lot_size:      50000,
+			Submission_lot_size:      1_000,
 			Submission_lot_wait_msec: 50,
 		},
 		Catchup_config: &proto.CatchupConfig{
