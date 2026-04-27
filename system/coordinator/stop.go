@@ -65,6 +65,10 @@ func (s *System) Stop() {
 			s.SchedConn.Close()
 		}
 
+		if s.Storage != nil {
+			s.Storage.Stop()
+		}
+
 		// XXX: if we are going to implement graceful stop, it should not be context-based,
 		// so that interdependent services can be stopped in the correct order.
 		if s.cancel != nil {

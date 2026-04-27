@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"runtime"
 	"sync/atomic"
 
 	"github.com/gofrs/flock"
@@ -64,14 +65,34 @@ func (x *DiskStorage) Start(ctx context.Context, dir string) {
 	go x.reclaimLoop(ctx)
 }
 
+func (x *DiskStorage) Stop() {
+	flk := x.flk.Swap(nil)
+	if flk != nil {
+		flk.Unlock()
+	}
+	runtime.GC()
+}
+
 // catchup blocks
+
+// WaitReady blocks until the storage is ready to be used and returns nil.
+// It returns non-nil error, if the storage system has been stopped or the context is done.
+func (x *DiskStorage) WaitReady(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		must.Assertf(ctx, false, "storage operation after context done")
+	case <-x.ready:
+		flk := x.flk.Load()
+		must.Assertf(ctx, flk != nil, "storage operation after stop")
+	}
+}
 
 func (x *DiskStorage) PrePersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
 	cvHash proto.ConsensusValueHash,
 ) {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; cv_hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
@@ -90,7 +111,7 @@ func (x *DiskStorage) PersistCatchupBlock(
 	cb proto.CatchupBlock,
 	cvHash proto.ConsensusValueHash,
 ) {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	liblog.Debugf(ctx, "persisting catchup block: height %d; cv_hash %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvHash))
@@ -112,7 +133,7 @@ func (x *DiskStorage) LookupCatchupBlock(
 	ctx context.Context,
 	cvHash proto.ConsensusValueHash,
 ) *proto.CatchupBlock {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	full, err := FindCatchupFileByHash(x.CatchupBlocksDirpath(), cvHash)
 	must.NoError(ctx, err)
@@ -134,7 +155,7 @@ func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	height proto.BlockHeight,
 	cvHash proto.ConsensusValueHash,
 ) {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	liblog.Debugf(ctx, "persisting already pre-persisted catchup block: height %d; cv_hash %s",
 		height, libxdr.HashString(cvHash))
@@ -146,7 +167,7 @@ func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 }
 
 func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	files, err := ListCatchupFilesAtHeight(x.CatchupBlocksDirpath(), height)
 	must.NoError(ctx, err)
@@ -168,7 +189,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 // consensus values
 
 func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	liblog.Debugf(ctx, "pre-persisting cv: height %d; cv_hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
@@ -185,7 +206,7 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue,
 }
 
 func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cvHash proto.ConsensusValueHash) {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	liblog.Debugf(ctx, "persisting cv: height %d; cv_hash %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvHash))
@@ -202,7 +223,7 @@ func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cv
 }
 
 func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, hash proto.ConsensusValueHash) *proto.ConsensusValue {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	full := x.ConsensusValueFilepath(height, hash)
 
@@ -216,7 +237,7 @@ func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, hash
 }
 
 func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	files, err := x.ListConsensusValueFilesAtHeight(height)
 	if err != nil {
@@ -274,7 +295,7 @@ var errStopWalking = fmt.Errorf("stop reverse file walk")
 // scp envelopes
 
 func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	hash := libxdr.HashXdr(x.scpM, &env)
 	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, hash[:5])
@@ -288,7 +309,7 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 }
 
 func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
-	<-x.ready
+	x.WaitReady(ctx)
 
 	found := []proto.SCPEnvelope{}
 
