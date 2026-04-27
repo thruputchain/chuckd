@@ -1,11 +1,13 @@
 package systemfixed
 
-const (
-	MaxBytesTxsMessage = 2_000_000_000
+import proto "github.com/groundhogchain/protocol-go"
 
-	MaxBytesConsensusValueMessage = 70_000_000
+const (
+	MaxBytesTxsMessage = int(proto.KCoordinatorMaxBytesTxsMessage)
+
+	MaxBytesConsensusValueMessage = int(proto.KCoordinatorMaxBytesCVMessage)
 
 	// SECURITY: MaxBytesSCPEnvelopeMessage must be smaller than the max message of the SCPD rpc server.
 	// Otherwise, an oversize SCP message forwarded from dogwood to SCPD will cause a crash.
-	MaxBytesSCPEnvelopeMessage = 5_000_000
+	MaxBytesSCPEnvelopeMessage = int(proto.KCoordinatorMaxBytesSCPEnvelopeMessage)
 )
