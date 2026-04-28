@@ -12,6 +12,7 @@ import (
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -30,6 +31,7 @@ type SCPBroker struct {
 	cancel          context.CancelFunc
 	ctx             context.Context
 	inflight        sync.WaitGroup
+	m               libxdr.XdrMarshaler
 }
 
 func NewSCPBroker(
@@ -47,6 +49,7 @@ func NewSCPBroker(
 		feedEnvelopes:   make(chan struct{}),
 		cancel:          cancel,
 		ctx:             brokerCtx,
+		m:               libxdr.NewXdrMarshaler(),
 	}
 }
 
@@ -88,6 +91,11 @@ func (x *SCPBroker) SCPAllowFeedingEnvelopes(ctx context.Context) {
 	close(x.feedEnvelopes)
 }
 
+// SCPFeedEnvelope feeds an envelope to the scp controller.
+// It verifies the signature of the envelope and persists it to the storage.
+// It then calls the scp controller to handle the envelope.
+// SECURITY: SCPFeedEnvelope is the only entrypoint for envelopes coming from
+// the network into the system.
 func (x *SCPBroker) SCPFeedEnvelope(ctx context.Context, env proto.SCPEnvelope) {
 	<-x.controllerReady
 	x.inflight.Add(1)
@@ -97,6 +105,12 @@ func (x *SCPBroker) SCPFeedEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	}
 
 	liblog.Debugf(ctx, "feeding envelope for slot %d", env.Statement.Slot_index)
+
+	if !scpkit.VerifyEnvelope(x.m, &env) {
+		liblog.Errorf(ctx, "dropping envelope due to invalid signature: %v", env)
+		return
+	}
+
 	x.storage.PersistSCPEnvelope(ctx, env)
 	x.controller.SCPReceivedEnvelope(ctx, env)
 }

@@ -26,6 +26,8 @@ func (x *RepairAgent) RepairMissingSCP(
 	}
 	defer c.Close()
 
+	// XXX(DoS): verify the signatures of the repaired envelopes and slash
+	// the source if the signatures are invalid.
 	envs, err := c.Repair_missing_scp_envelopes(ctx, slot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to repair missing scp envelopes for slot %d: %w", slot, err)
