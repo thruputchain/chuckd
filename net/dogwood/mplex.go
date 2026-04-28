@@ -64,7 +64,7 @@ func (x *Multiplex) selfString() string {
 	return protoutil.VIDString(protoutil.PublicVID(x.router.Self()))
 }
 
-func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedTreeNode) {
+func (x *Multiplex) DisseminateRoutes(ctx context.Context, ts []*dogwoodutil.LinkedDAGNode) {
 	liblog.Debugf(ctx, "dogwood multiplex at %v: disseminating %d routes", x.selfString(), len(ts))
 	rs := make([]proto.DogwoodTreeNodes, len(ts))
 	for i := range rs {
@@ -90,7 +90,7 @@ func (x *Multiplex) receiveRouting(ctx context.Context, p []byte) {
 	}
 
 	for _, treeNodes := range routing.Routes {
-		linked, err := dogwoodutil.BuildLinkedTree(x.mTree, treeNodes)
+		linked, err := dogwoodutil.BuildLinkedDagExpectTree(x.mTree, treeNodes)
 		if err != nil {
 			liblog.Errorf(ctx, "dogwood multiplex at %v: encountered invalid routing tree: %v", x.selfString(), err)
 			continue

@@ -47,12 +47,12 @@ type Navigator struct {
 }
 
 type RouteDisseminator interface {
-	DisseminateRoutes(context.Context, []*dogwoodutil.LinkedTreeNode)
+	DisseminateRoutes(context.Context, []*dogwoodutil.LinkedDAGNode)
 }
 
 type stampedRoute struct {
 	Stamp time.Time
-	Tree  *dogwoodutil.LinkedTreeNode
+	Tree  *dogwoodutil.LinkedDAGNode
 }
 
 func NewNavigator(
@@ -101,11 +101,11 @@ type NavRoute struct {
 }
 
 // GenRoute builds a new route, which is not cached and not disseminated
-func (nav *Navigator) GenRoute(ctx context.Context) *dogwoodutil.LinkedTreeNode {
+func (nav *Navigator) GenRoute(ctx context.Context) *dogwoodutil.LinkedDAGNode {
 	return nav.router.BuildDogwoodTree(nav.self, systemfixed.MaxRouteNodes)
 }
 
-func (nav *Navigator) CacheRoute(ctx context.Context, t *dogwoodutil.LinkedTreeNode) {
+func (nav *Navigator) CacheRoute(ctx context.Context, t *dogwoodutil.LinkedDAGNode) {
 
 	nav.lk.Lock()
 	defer nav.lk.Unlock()
@@ -169,7 +169,7 @@ func (nav *Navigator) replenish(ctx context.Context, m int) {
 		return
 	}
 
-	rs := make([]*dogwoodutil.LinkedTreeNode, m)
+	rs := make([]*dogwoodutil.LinkedDAGNode, m)
 	for i := 0; i < m; i++ {
 		rs[i] = nav.router.BuildDogwoodTree(nav.self, systemfixed.MaxRouteNodes)
 	}
@@ -215,7 +215,7 @@ func (nav *Navigator) advertise(ctx context.Context) {
 
 		// pick routes eligible to readvertise
 		nav.lk.Lock()
-		rs := make([]*dogwoodutil.LinkedTreeNode, 0)
+		rs := make([]*dogwoodutil.LinkedDAGNode, 0)
 		for _, v := range nav.ours {
 			if now.Sub(v.Stamp) < nav.routeTTL-2*nav.routeMaxLatency {
 				rs = append(rs, v.Tree)

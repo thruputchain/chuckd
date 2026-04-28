@@ -57,14 +57,14 @@ func (x *TestRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []p
 	panic("not used")
 }
 
-func (x *TestRouter) BuildDogwoodTree(vid ValidatorID, maxSize int) *dogwoodutil.LinkedTreeNode {
+func (x *TestRouter) BuildDogwoodTree(vid ValidatorID, maxSize int) *dogwoodutil.LinkedDAGNode {
 	return TestTreeLinked(x.trees[TestTreeKey{VID: vid}])
 }
 
-func TestTreeLinked(tt *TestTreeNode) *dogwoodutil.LinkedTreeNode {
-	l := &dogwoodutil.LinkedTreeNode{
+func TestTreeLinked(tt *TestTreeNode) *dogwoodutil.LinkedDAGNode {
+	l := &dogwoodutil.LinkedDAGNode{
 		Node:     protoutil.PublicVID(tt.V),
-		Children: make([]*dogwoodutil.LinkedTreeNode, len(tt.Children)),
+		Children: make([]*dogwoodutil.LinkedDAGNode, len(tt.Children)),
 	}
 	for i, tc := range tt.Children {
 		l.Children[i] = TestTreeLinked(tc)

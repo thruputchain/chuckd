@@ -66,7 +66,7 @@ func (x *StreamSender) NumStreams() int {
 
 func (x *StreamSender) Start(context.Context) {}
 
-func (x *StreamSender) DialOptRoute(ctx context.Context, optRoute *dogwoodutil.LinkedTreeNode) (*SendStream, error) {
+func (x *StreamSender) DialOptRoute(ctx context.Context, optRoute *dogwoodutil.LinkedDAGNode) (*SendStream, error) {
 	if optRoute == nil {
 		return x.Dial(ctx)
 	} else {
@@ -74,7 +74,7 @@ func (x *StreamSender) DialOptRoute(ctx context.Context, optRoute *dogwoodutil.L
 	}
 }
 
-func (x *StreamSender) DialRoute(ctx context.Context, t *dogwoodutil.LinkedTreeNode) (*SendStream, error) {
+func (x *StreamSender) DialRoute(ctx context.Context, t *dogwoodutil.LinkedDAGNode) (*SendStream, error) {
 
 	downstream, _ := t.FindChildren(x.discovery.SelfID())
 	nav := NavRoute{

@@ -16,7 +16,7 @@ func vid(b byte) proto.ValidatorID {
 
 // assertTreeEqual recursively checks two linked trees have identical structure
 // and node IDs.
-func assertTreeEqual(t *testing.T, want, got *LinkedTreeNode) {
+func assertTreeEqual(t *testing.T, want, got *LinkedDAGNode) {
 	t.Helper()
 	if want == nil && got == nil {
 		return
@@ -38,7 +38,7 @@ func assertTreeEqual(t *testing.T, want, got *LinkedTreeNode) {
 
 func TestBuildLinkedTree_Single(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	root := &LinkedTreeNode{Node: vid(1)}
+	root := &LinkedDAGNode{Node: vid(1)}
 
 	got, err := BuildLinkedTree(m, root.TreeNodes(m))
 	if err != nil {
@@ -55,12 +55,12 @@ func TestBuildLinkedTree_Multilevel(t *testing.T) {
 	//     2  3  4
 	//    /|     |
 	//   5 6     7
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{
 				Node: vid(2),
-				Children: []*LinkedTreeNode{
+				Children: []*LinkedDAGNode{
 					{Node: vid(5)},
 					{Node: vid(6)},
 				},
@@ -68,7 +68,7 @@ func TestBuildLinkedTree_Multilevel(t *testing.T) {
 			{Node: vid(3)},
 			{
 				Node: vid(4),
-				Children: []*LinkedTreeNode{
+				Children: []*LinkedDAGNode{
 					{Node: vid(7)},
 				},
 			},
@@ -86,12 +86,12 @@ func TestBuildLinkedTree_DeepLeftSpine(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
 	// A long left-leaning chain stresses iterative traversal depth.
 	const depth = 100
-	leaf := &LinkedTreeNode{Node: vid(byte(depth))}
+	leaf := &LinkedDAGNode{Node: vid(byte(depth))}
 	cur := leaf
 	for i := depth - 1; i >= 1; i-- {
-		cur = &LinkedTreeNode{
+		cur = &LinkedDAGNode{
 			Node:     vid(byte(i)),
-			Children: []*LinkedTreeNode{cur},
+			Children: []*LinkedDAGNode{cur},
 		}
 	}
 
@@ -105,9 +105,9 @@ func TestBuildLinkedTree_DeepLeftSpine(t *testing.T) {
 func TestBuildLinkedTree_PreservesChildOrder(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
 	// Use distinct sibling ids so a permutation would be detectable.
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{Node: vid(10)},
 			{Node: vid(20)},
 			{Node: vid(30)},
@@ -141,9 +141,9 @@ func TestBuildLinkedTree_Empty(t *testing.T) {
 
 func TestBuildLinkedTree_DuplicateNode(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{Node: vid(2)},
 		},
 	}
@@ -161,9 +161,9 @@ func TestBuildLinkedTree_DuplicateNode(t *testing.T) {
 
 func TestBuildLinkedTree_MissingChild(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{Node: vid(2)},
 			{Node: vid(3)},
 		},
@@ -184,12 +184,12 @@ func TestBuildLinkedTree_MissingChild(t *testing.T) {
 
 func TestBuildLinkedTree_MissingDeepDescendant(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{
 				Node: vid(2),
-				Children: []*LinkedTreeNode{
+				Children: []*LinkedDAGNode{
 					{Node: vid(3)},
 				},
 			},
@@ -207,13 +207,13 @@ func TestBuildLinkedTree_MissingDeepDescendant(t *testing.T) {
 
 func TestReconstructLinkedTree_RoundTrip(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{Node: vid(2)},
 			{
 				Node: vid(3),
-				Children: []*LinkedTreeNode{
+				Children: []*LinkedDAGNode{
 					{Node: vid(4)},
 				},
 			},
@@ -233,9 +233,9 @@ func TestReconstructLinkedTree_RoundTrip(t *testing.T) {
 
 func TestReconstructLinkedTree_HashMismatch(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	root := &LinkedTreeNode{
+	root := &LinkedDAGNode{
 		Node: vid(1),
-		Children: []*LinkedTreeNode{
+		Children: []*LinkedDAGNode{
 			{Node: vid(2)},
 		},
 	}
@@ -251,5 +251,145 @@ func TestReconstructLinkedTree_Empty(t *testing.T) {
 	var h proto.DogwoodTreeHash
 	if _, err := ReconstructLinkedTree(m, h, nil); err == nil {
 		t.Fatalf("expected error for empty input")
+	}
+}
+
+func TestIsTree_Nil(t *testing.T) {
+	var l *LinkedDAGNode
+	if !l.IsTree() {
+		t.Fatalf("nil receiver should be a tree")
+	}
+}
+
+func TestIsTree_Single(t *testing.T) {
+	root := &LinkedDAGNode{Node: vid(1)}
+	if !root.IsTree() {
+		t.Fatalf("single node should be a tree")
+	}
+}
+
+func TestIsTree_Tree(t *testing.T) {
+	// Tree:
+	//        1
+	//      / | \
+	//     2  3  4
+	//    /|     |
+	//   5 6     7
+	root := &LinkedDAGNode{
+		Node: vid(1),
+		Children: []*LinkedDAGNode{
+			{
+				Node: vid(2),
+				Children: []*LinkedDAGNode{
+					{Node: vid(5)},
+					{Node: vid(6)},
+				},
+			},
+			{Node: vid(3)},
+			{
+				Node: vid(4),
+				Children: []*LinkedDAGNode{
+					{Node: vid(7)},
+				},
+			},
+		},
+	}
+	if !root.IsTree() {
+		t.Fatalf("multilevel tree should be a tree")
+	}
+}
+
+func TestIsTree_SharedLeaf(t *testing.T) {
+	// Diamond: two parents share the same leaf pointer.
+	//      1
+	//     / \
+	//    2   3
+	//     \ /
+	//      4
+	shared := &LinkedDAGNode{Node: vid(4)}
+	root := &LinkedDAGNode{
+		Node: vid(1),
+		Children: []*LinkedDAGNode{
+			{Node: vid(2), Children: []*LinkedDAGNode{shared}},
+			{Node: vid(3), Children: []*LinkedDAGNode{shared}},
+		},
+	}
+	if root.IsTree() {
+		t.Fatalf("DAG with shared leaf should not be a tree")
+	}
+}
+
+func TestIsTree_SharedSubtree(t *testing.T) {
+	// Two parents share an entire subtree (sub) by pointer.
+	sub := &LinkedDAGNode{
+		Node: vid(10),
+		Children: []*LinkedDAGNode{
+			{Node: vid(11)},
+			{Node: vid(12)},
+		},
+	}
+	root := &LinkedDAGNode{
+		Node: vid(1),
+		Children: []*LinkedDAGNode{
+			{Node: vid(2), Children: []*LinkedDAGNode{sub}},
+			{Node: vid(3), Children: []*LinkedDAGNode{sub}},
+		},
+	}
+	if root.IsTree() {
+		t.Fatalf("DAG with shared subtree should not be a tree")
+	}
+}
+
+func TestIsTree_DistinctEqualSubtrees(t *testing.T) {
+	// Two parents reference structurally identical but distinct subtree
+	// instances. Since pointers differ, this is still a tree.
+	mkSub := func() *LinkedDAGNode {
+		return &LinkedDAGNode{
+			Node: vid(10),
+			Children: []*LinkedDAGNode{
+				{Node: vid(11)},
+			},
+		}
+	}
+	root := &LinkedDAGNode{
+		Node: vid(1),
+		Children: []*LinkedDAGNode{
+			{Node: vid(2), Children: []*LinkedDAGNode{mkSub()}},
+			{Node: vid(3), Children: []*LinkedDAGNode{mkSub()}},
+		},
+	}
+	if !root.IsTree() {
+		t.Fatalf("distinct equal subtrees should still form a tree")
+	}
+}
+
+func TestIsTree_BuildLinkedDAGSharesIdenticalSubtrees(t *testing.T) {
+	// BuildLinkedDAG de-duplicates identical subtrees into shared pointers,
+	// so the result should not be a tree when duplicate subtrees exist.
+	m := libxdr.NewXdrMarshaler()
+	root := &LinkedDAGNode{
+		Node: vid(1),
+		Children: []*LinkedDAGNode{
+			{
+				Node: vid(2),
+				Children: []*LinkedDAGNode{
+					{Node: vid(10)},
+				},
+			},
+			{
+				Node: vid(3),
+				Children: []*LinkedDAGNode{
+					{Node: vid(10)},
+				},
+			},
+		},
+	}
+
+	dag, err := BuildLinkedDAG(m, root.TreeNodes(m))
+	if err != nil {
+		t.Fatalf("BuildLinkedDAG: %v", err)
+	}
+	if dag.IsTree() {
+		t.Fatalf("BuildLinkedDAG output with duplicate subtrees should not be a tree")
 	}
 }
