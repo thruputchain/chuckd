@@ -1,5 +1,12 @@
 package systemfixed
 
+// Routing tree constants.
+const (
+	// MaxRouteNodes is the maximum number of nodes in a routing tree.
+	MaxRouteNodes = 1_000
+)
+
+// Parallel batch segmentation constants.
 const (
 	NominationSignedTransactionHashBatchMaxSegments = 20
 	NominationNondeterministicDataBatchMaxSegments  = 20

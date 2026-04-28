@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/net/router"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/dogwoodutil"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -101,7 +102,7 @@ type NavRoute struct {
 
 // GenRoute builds a new route, which is not cached and not disseminated
 func (nav *Navigator) GenRoute(ctx context.Context) *dogwoodutil.LinkedTreeNode {
-	return nav.router.BuildDogwoodTree(nav.self)
+	return nav.router.BuildDogwoodTree(nav.self, systemfixed.MaxRouteNodes)
 }
 
 func (nav *Navigator) CacheRoute(ctx context.Context, t *dogwoodutil.LinkedTreeNode) {
@@ -170,7 +171,7 @@ func (nav *Navigator) replenish(ctx context.Context, m int) {
 
 	rs := make([]*dogwoodutil.LinkedTreeNode, m)
 	for i := 0; i < m; i++ {
-		rs[i] = nav.router.BuildDogwoodTree(nav.self)
+		rs[i] = nav.router.BuildDogwoodTree(nav.self, systemfixed.MaxRouteNodes)
 	}
 
 	nav.disseminator.DisseminateRoutes(ctx, rs)

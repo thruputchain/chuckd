@@ -75,7 +75,7 @@ func (x *staticUniformRouter) ChooseCatchupProviders(ctx context.Context, seed i
 	return vs[:1]
 }
 
-func (x *staticUniformRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.LinkedTreeNode {
+func (x *staticUniformRouter) BuildDogwoodTree(rootID ValidatorID, maxSize int) *dogwoodutil.LinkedTreeNode {
 	vs := protoutil.ValidatorPublicToIDs(x.validators)
-	return buildDogwoodTree(x.maxFanOut, rootID, vs)
+	return buildDogwoodTree(x.maxFanOut, rootID, vs, maxSize)
 }

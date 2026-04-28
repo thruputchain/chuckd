@@ -80,6 +80,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	case env.Delivery.Route.Route_nodes != nil:
 		t, err := dogwoodutil.BuildLinkedTree(r.m, *env.Delivery.Route.Route_nodes)
 		if err != nil {
+			liblog.Errorf(ctx, "received delivery with faulty route: %v", err)
 			break
 		}
 		downstream, ok := t.FindChildren(r.discovery.SelfID())
