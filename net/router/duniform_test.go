@@ -21,7 +21,7 @@ func generateValidators(ctx context.Context, n int) []ValidatorPublicInfo {
 	return vs
 }
 
-func countNodes(t *dogwoodutil.LinkedTreeNode) int {
+func countNodes(t *dogwoodutil.LinkedDAGNode) int {
 	if t == nil {
 		return 0
 	}
@@ -115,7 +115,7 @@ func TestBuildDogwoodTree_RespectsFanOut(t *testing.T) {
 
 	must.Assert(ctx, countNodes(tree) == maxSize)
 
-	stack := []*dogwoodutil.LinkedTreeNode{tree}
+	stack := []*dogwoodutil.LinkedDAGNode{tree}
 	for len(stack) > 0 {
 		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]

@@ -9,12 +9,12 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type LinkedTreeNode struct {
+type LinkedDAGNode struct {
 	Node     proto.ValidatorID
-	Children []*LinkedTreeNode
+	Children []*LinkedDAGNode
 }
 
-func (l *LinkedTreeNode) TreeNodes(m libxdr.XdrMarshaler) proto.DogwoodTreeNodes {
+func (l *LinkedDAGNode) TreeNodes(m libxdr.XdrMarshaler) proto.DogwoodTreeNodes {
 	nodes := make(proto.DogwoodTreeNodes, 1, 1+len(l.Children))
 	nodes[0] = proto.DogwoodTreeNode{
 		Node:     l.Node,
@@ -28,7 +28,31 @@ func (l *LinkedTreeNode) TreeNodes(m libxdr.XdrMarshaler) proto.DogwoodTreeNodes
 	return nodes
 }
 
-func (l *LinkedTreeNode) FindChildren(v proto.ValidatorID) ([]proto.ValidatorID, bool) {
+// IsTree reports whether the DAG rooted at l is a tree, i.e. no node is
+// shared by multiple parents. Since shared subDAGs are represented as shared
+// *LinkedDAGNode pointers, this is equivalent to checking that every reachable
+// node is visited exactly once.
+func (l *LinkedDAGNode) IsTree() bool {
+	if l == nil {
+		return true
+	}
+	seen := map[*LinkedDAGNode]struct{}{}
+	stack := []*LinkedDAGNode{l}
+	for len(stack) > 0 {
+		n := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if _, ok := seen[n]; ok {
+			return false
+		}
+		seen[n] = struct{}{}
+		for _, ch := range n.Children {
+			stack = append(stack, ch)
+		}
+	}
+	return true
+}
+
+func (l *LinkedDAGNode) FindChildren(v proto.ValidatorID) ([]proto.ValidatorID, bool) {
 
 	if protoutil.ValidatorIDEqual(v, l.Node) {
 		children := make([]proto.ValidatorID, len(l.Children))
@@ -48,7 +72,7 @@ func (l *LinkedTreeNode) FindChildren(v proto.ValidatorID) ([]proto.ValidatorID,
 	return nil, false
 }
 
-func TreeHash(m libxdr.XdrMarshaler, t *LinkedTreeNode) proto.DogwoodTreeHash {
+func TreeHash(m libxdr.XdrMarshaler, t *LinkedDAGNode) proto.DogwoodTreeHash {
 	return TreeNodeHash(m, t.TreeNodes(m)[0])
 }
 
@@ -62,7 +86,7 @@ func ReconstructLinkedTree(
 	m libxdr.XdrMarshaler,
 	h proto.DogwoodTreeHash,
 	treeNodes proto.DogwoodTreeNodes,
-) (*LinkedTreeNode, error) {
+) (*LinkedDAGNode, error) {
 
 	if len(treeNodes) == 0 {
 		return nil, fmt.Errorf("missing tree nodes")
@@ -71,68 +95,16 @@ func ReconstructLinkedTree(
 		return nil, fmt.Errorf("root tree node hash mismatch")
 	}
 
-	return BuildLinkedTree(m, treeNodes)
+	return BuildLinkedDagExpectTree(m, treeNodes)
 }
 
-// The first node must be the root. All nodes must be part of the same tree.
-func BuildLinkedTree(m libxdr.XdrMarshaler, treeNodes proto.DogwoodTreeNodes) (*LinkedTreeNode, error) {
-
-	if len(treeNodes) == 0 {
-		return nil, fmt.Errorf("no tree nodes")
-	}
-	rootHash := TreeNodeHash(m, treeNodes[0])
-
-	// index all nodes by hash
-	hs := map[proto.DogwoodTreeHash]proto.DogwoodTreeNode{}
-	for _, treeNode := range treeNodes {
-		h := TreeNodeHash(m, treeNode)
-		if _, ok := hs[h]; ok {
-			return nil, fmt.Errorf("duplicate tree node")
-		}
-		hs[h] = treeNode
-	}
-
-	return buildLinkedTree(rootHash, hs)
-}
-
-func buildLinkedTree(
-	root proto.DogwoodTreeHash,
-	hs map[proto.DogwoodTreeHash]proto.DogwoodTreeNode,
-) (*LinkedTreeNode, error) {
-
-	makeLinked := func(h proto.DogwoodTreeHash) (*LinkedTreeNode, []proto.DogwoodTreeHash, error) {
-		node, ok := hs[h]
-		if !ok {
-			return nil, nil, fmt.Errorf("missing tree node for hash %x", h)
-		}
-		return &LinkedTreeNode{Node: node.Node}, node.Children, nil
-	}
-
-	type frame struct {
-		linked   *LinkedTreeNode
-		children []proto.DogwoodTreeHash
-	}
-
-	rootLinked, rootChildren, err := makeLinked(root)
+func BuildLinkedDagExpectTree(m libxdr.XdrMarshaler, treeNodes proto.DogwoodTreeNodes) (*LinkedDAGNode, error) {
+	t, err := BuildLinkedDAG(m, treeNodes)
 	if err != nil {
 		return nil, err
 	}
-	stack := []frame{{linked: rootLinked, children: rootChildren}}
-
-	for len(stack) > 0 {
-		f := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-
-		f.linked.Children = make([]*LinkedTreeNode, len(f.children))
-		for i, ch := range f.children {
-			child, grandChildren, err := makeLinked(ch)
-			if err != nil {
-				return nil, err
-			}
-			f.linked.Children[i] = child
-			stack = append(stack, frame{linked: child, children: grandChildren})
-		}
+	if !t.IsTree() {
+		return nil, fmt.Errorf("non-tree route")
 	}
-
-	return rootLinked, nil
+	return t, nil
 }
