@@ -57,7 +57,7 @@ func (x *TestRouter) ChooseCatchupProviders(ctx context.Context, seed int64) []p
 	panic("not used")
 }
 
-func (x *TestRouter) BuildDogwoodTree(vid ValidatorID) *dogwoodutil.LinkedTreeNode {
+func (x *TestRouter) BuildDogwoodTree(vid ValidatorID, maxSize int) *dogwoodutil.LinkedTreeNode {
 	return TestTreeLinked(x.trees[TestTreeKey{VID: vid}])
 }
 

@@ -69,28 +69,39 @@ func (x *dynamicUniformRouter) ChooseCatchupProviders(ctx context.Context, seed 
 	return vs[:1]
 }
 
-func (x *dynamicUniformRouter) BuildDogwoodTree(rootID ValidatorID) *dogwoodutil.LinkedTreeNode {
+func (x *dynamicUniformRouter) BuildDogwoodTree(rootID ValidatorID, maxSize int) *dogwoodutil.LinkedTreeNode {
 	vs := protoutil.SnapshotValidatorIDs(x.discovery.CachedSnapshots())
-	return buildDogwoodTree(x.treeFanOut, rootID, vs)
+	return buildDogwoodTree(x.treeFanOut, rootID, vs, maxSize)
 }
 
-func buildDogwoodTree(fanOut int, rootID ValidatorID, vs map[proto.ValidatorID]bool) *dogwoodutil.LinkedTreeNode {
+// buildDogwoodTree builds a uniform tree of validators rooted at rootID.
+// At most maxSize nodes are produced (including the root). vs is consumed
+// in the process; rootID is removed from it on entry.
+func buildDogwoodTree(fanOut int, rootID ValidatorID, vs map[proto.ValidatorID]bool, maxSize int) *dogwoodutil.LinkedTreeNode {
 	delete(vs, rootID)
 	root := &dogwoodutil.LinkedTreeNode{Node: rootID}
+	if maxSize <= 1 || len(vs) == 0 {
+		return root
+	}
+	remaining := maxSize - 1 // budget for non-root nodes
 	ch := make(chan *dogwoodutil.LinkedTreeNode, len(vs)+1)
 	ch <- root
 	for n := range ch {
-		d := min(len(vs), fanOut)
+		d := min(len(vs), fanOut, remaining)
+		if d <= 0 {
+			break
+		}
 		n.Children = make([]*dogwoodutil.LinkedTreeNode, d)
 		for i := range n.Children {
 			for id := range vs {
 				delete(vs, id)
 				n.Children[i] = &dogwoodutil.LinkedTreeNode{Node: id}
 				ch <- n.Children[i]
+				remaining--
 				break
 			}
 		}
-		if len(vs) == 0 {
+		if remaining == 0 || len(vs) == 0 {
 			break
 		}
 	}

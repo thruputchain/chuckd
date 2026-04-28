@@ -100,21 +100,39 @@ func buildLinkedTree(
 	hs map[proto.DogwoodTreeHash]proto.DogwoodTreeNode,
 ) (*LinkedTreeNode, error) {
 
-	node, ok := hs[root]
-	if !ok {
-		return nil, fmt.Errorf("missing root node")
-	}
-
-	linked := &LinkedTreeNode{
-		Node: node.Node,
-	}
-	for _, ch := range node.Children {
-		l, err := buildLinkedTree(ch, hs)
-		if err != nil {
-			return nil, err
+	makeLinked := func(h proto.DogwoodTreeHash) (*LinkedTreeNode, []proto.DogwoodTreeHash, error) {
+		node, ok := hs[h]
+		if !ok {
+			return nil, nil, fmt.Errorf("missing tree node for hash %x", h)
 		}
-		linked.Children = append(linked.Children, l)
+		return &LinkedTreeNode{Node: node.Node}, node.Children, nil
 	}
 
-	return linked, nil
+	type frame struct {
+		linked   *LinkedTreeNode
+		children []proto.DogwoodTreeHash
+	}
+
+	rootLinked, rootChildren, err := makeLinked(root)
+	if err != nil {
+		return nil, err
+	}
+	stack := []frame{{linked: rootLinked, children: rootChildren}}
+
+	for len(stack) > 0 {
+		f := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		f.linked.Children = make([]*LinkedTreeNode, len(f.children))
+		for i, ch := range f.children {
+			child, grandChildren, err := makeLinked(ch)
+			if err != nil {
+				return nil, err
+			}
+			f.linked.Children[i] = child
+			stack = append(stack, frame{linked: child, children: grandChildren})
+		}
+	}
+
+	return rootLinked, nil
 }
