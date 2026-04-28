@@ -95,7 +95,7 @@ func ReconstructLinkedTree(
 		return nil, fmt.Errorf("root tree node hash mismatch")
 	}
 
-	return BuildLinkedTree(m, treeNodes)
+	return BuildLinkedDagExpectTree(m, treeNodes)
 }
 
 func BuildLinkedDagExpectTree(m libxdr.XdrMarshaler, treeNodes proto.DogwoodTreeNodes) (*LinkedDAGNode, error) {
@@ -107,67 +107,4 @@ func BuildLinkedDagExpectTree(m libxdr.XdrMarshaler, treeNodes proto.DogwoodTree
 		return nil, fmt.Errorf("non-tree route")
 	}
 	return t, nil
-}
-
-// The first node must be the root. All nodes must be part of the same tree.
-func BuildLinkedTree(m libxdr.XdrMarshaler, treeNodes proto.DogwoodTreeNodes) (*LinkedDAGNode, error) {
-
-	if len(treeNodes) == 0 {
-		return nil, fmt.Errorf("no tree nodes")
-	}
-	rootHash := TreeNodeHash(m, treeNodes[0])
-
-	// index all nodes by hash
-	hs := map[proto.DogwoodTreeHash]proto.DogwoodTreeNode{}
-	for _, treeNode := range treeNodes {
-		h := TreeNodeHash(m, treeNode)
-		if _, ok := hs[h]; ok {
-			return nil, fmt.Errorf("duplicate tree node")
-		}
-		hs[h] = treeNode
-	}
-
-	return buildLinkedTree(rootHash, hs)
-}
-
-func buildLinkedTree(
-	root proto.DogwoodTreeHash,
-	hs map[proto.DogwoodTreeHash]proto.DogwoodTreeNode,
-) (*LinkedDAGNode, error) {
-
-	makeLinked := func(h proto.DogwoodTreeHash) (*LinkedDAGNode, []proto.DogwoodTreeHash, error) {
-		node, ok := hs[h]
-		if !ok {
-			return nil, nil, fmt.Errorf("missing tree node for hash %x", h)
-		}
-		return &LinkedDAGNode{Node: node.Node}, node.Children, nil
-	}
-
-	type frame struct {
-		linked   *LinkedDAGNode
-		children []proto.DogwoodTreeHash
-	}
-
-	rootLinked, rootChildren, err := makeLinked(root)
-	if err != nil {
-		return nil, err
-	}
-	stack := []frame{{linked: rootLinked, children: rootChildren}}
-
-	for len(stack) > 0 {
-		f := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-
-		f.linked.Children = make([]*LinkedDAGNode, len(f.children))
-		for i, ch := range f.children {
-			child, grandChildren, err := makeLinked(ch)
-			if err != nil {
-				return nil, err
-			}
-			f.linked.Children[i] = child
-			stack = append(stack, frame{linked: child, children: grandChildren})
-		}
-	}
-
-	return rootLinked, nil
 }

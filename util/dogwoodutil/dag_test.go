@@ -7,23 +7,18 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// assertDAGMatchesTree asserts that BuildLinkedDAG and BuildLinkedTree produce
-// structurally identical outputs on the given tree.
+// assertDAGMatchesTree asserts that BuildLinkedDAG produces a structure
+// matching the given tree.
 func assertDAGMatchesTree(t *testing.T, root *LinkedDAGNode) {
 	t.Helper()
 	m := libxdr.NewXdrMarshaler()
 	nodes := root.TreeNodes(m)
 
-	wantTree, err := BuildLinkedTree(m, nodes)
-	if err != nil {
-		t.Fatalf("BuildLinkedTree: %v", err)
-	}
 	gotDAG, err := BuildLinkedDAG(m, nodes)
 	if err != nil {
 		t.Fatalf("BuildLinkedDAG: %v", err)
 	}
-	assertTreeEqual(t, wantTree, gotDAG)
-	assertTreeEqual(t, root, gotDAG)
+	assertNodesEqual(t, root, gotDAG)
 }
 
 func TestBuildLinkedDAG_AgreesWithTree_Single(t *testing.T) {
@@ -83,7 +78,7 @@ func TestBuildLinkedDAG_AgreesWithTree_PreservesChildOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildLinkedDAG: %v", err)
 	}
-	assertTreeEqual(t, root, got)
+	assertNodesEqual(t, root, got)
 	for i, ch := range got.Children {
 		if ch.Node != root.Children[i].Node {
 			t.Fatalf("child order mismatch at %d: want %x got %x",
@@ -142,8 +137,8 @@ func TestBuildLinkedDAG_SharedSubtree(t *testing.T) {
 		Children: []*LinkedDAGNode{subA, subB},
 	}
 
-	// As a tree, the encoding contains duplicate (identical) nodes, which
-	// BuildLinkedTree rejects. BuildLinkedDAG must accept them and dedup.
+	// As a tree, the encoding contains duplicate (identical) nodes.
+	// BuildLinkedDAG must accept them and dedup.
 	nodes := root.TreeNodes(m)
 
 	got, err := BuildLinkedDAG(m, nodes)
@@ -164,12 +159,11 @@ func TestBuildLinkedDAG_SharedSubtree(t *testing.T) {
 
 	// The DAG is structurally indistinguishable from the original tree
 	// (same node sequence, same arity), so assertTreeEqual still passes.
-	assertTreeEqual(t, root, got)
+	assertNodesEqual(t, root, got)
 }
 
-// TestBuildLinkedDAG_DuplicateInputTolerated verifies that, unlike
-// BuildLinkedTree, BuildLinkedDAG does not reject duplicate entries since
-// they encode the same node.
+// TestBuildLinkedDAG_DuplicateInputTolerated verifies that BuildLinkedDAG
+// does not reject duplicate entries since they encode the same node.
 func TestBuildLinkedDAG_DuplicateInputTolerated(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
 	root := &LinkedDAGNode{
@@ -185,5 +179,5 @@ func TestBuildLinkedDAG_DuplicateInputTolerated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildLinkedDAG: %v", err)
 	}
-	assertTreeEqual(t, root, got)
+	assertNodesEqual(t, root, got)
 }
