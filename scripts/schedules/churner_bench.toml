@@ -1,0 +1,44 @@
+name = "churner_bench"
+
+[[jobs]]
+name = "{{ .hog_schedule }}_{{ .hog_host_key }}_of_{{ .hog_host_count }}"
+script = """
+
+git init -q .
+git remote add origin git@github.com:{{ .github_repo }}.git
+git fetch --depth 1 origin {{ .git_commit }} --quiet --no-progress
+git checkout {{ .git_commit }}
+git submodule update --init --recursive
+
+source ./scripts/setup_go.sh
+./scripts/build_chuckd.sh
+
+source ./scripts/setup_cargo.sh
+./scripts/build_scpd.sh
+./scripts/build_churner.sh
+
+export PATH=$(pwd):$PATH
+cp scpd.dev scpd
+
+
+RUST_LOG=1 hogx-churner \
+    --chuckd-path ./chuckd.dev \
+    --scpd-path ./scpd \
+    coordinator-bench \
+    --max-height 200 \
+    --on-mean-sec 10 \
+    --off-mean-sec 3
+"""
+after = """
+killall scpd chuckd.dev || true
+"""
+
+[jobs.host]
+1 = "?"
+
+[jobs.env]
+GIT_REPO = "{{ .github_repo }}"
+GIT_COMMIT = "{{ .git_commit }}"
+GIT_BRANCH = "{{ .git_branch }}"
+CARGO_REGISTRIES_GROUNDHOG_TOKEN = "{{ .cargo_registry_token }}"
+CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS = "{{ .cargo_registry_global_credential_providers }}"
