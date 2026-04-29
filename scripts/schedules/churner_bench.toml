@@ -22,12 +22,13 @@ cp scpd.dev scpd
 
 
 RUST_LOG=1 hogx-churner \
-    --chuckd-path ./chuckd.dev \
-    --scpd-path ./scpd \
+    --chuckd-path $(pwd)/chuckd.dev \
+    --scpd-path $(pwd)/scpd \
     coordinator-bench \
     --max-height 200 \
     --on-mean-sec 10 \
     --off-mean-sec 3
+
 """
 after = """
 killall scpd chuckd.dev || true
