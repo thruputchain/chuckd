@@ -8,7 +8,7 @@ ROOT=$(pwd)
 cd ${SCRIPT_DIR}/../hogx
 
 cargo --config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml
-cargo build --offline --locked -p cmd-churner --bin hogx-churner
+cargo build --offline --locked -p churner --bin hogx-churner
 cp ./target/debug/hogx-churner ${ROOT}/hogx-churner
 
 cd ${ROOT}
