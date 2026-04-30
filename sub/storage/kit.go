@@ -50,7 +50,9 @@ func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePers
 
 type SCPEnvelopePersistence interface {
 	PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)
+	PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope)
 	FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
+	FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
 }
 
 type Config struct {

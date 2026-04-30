@@ -173,6 +173,14 @@ func (x *DiskStorage) SCPEnvelopeFilepath(slot proto.SCPSlotIndex, hash []byte) 
 	)
 }
 
+// We persist only the latest envelope from us.
+func (x *DiskStorage) SCPEnvelopeFromLocalFilepath(slot proto.SCPSlotIndex) string {
+	return path.Join(
+		x.SCPEnvelopeSlotpath(slot),
+		"scp-last-from-local.xdr",
+	)
+}
+
 // catchup blocks
 
 func (x *DiskStorage) CatchupBlocksDirpath() string {

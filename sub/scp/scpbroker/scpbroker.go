@@ -72,7 +72,7 @@ func (x *SCPBroker) SCPWaitReady() {
 }
 
 func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
-	for _, env := range x.storage.FindSCPEnvelopesForSlot(ctx, slot) {
+	for _, env := range x.storage.FindSCPEnvelopesForSlotFromLocal(ctx, slot) {
 		if protoutil.NodeToValidatorID(env.Statement.Node_id) == protoutil.PublicVID(x.router.Self()) {
 			liblog.Infof(ctx, "scp set state from envelope: slot=%d; env=%v",
 				slot, protoutil.SCPEnvelopeShortString(env))

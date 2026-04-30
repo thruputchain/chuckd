@@ -1,3 +1,9 @@
+CORRECTNESS
+
+- [x] set_state_from_envelope should only send the latest envelope from us per slot
+- [ ] on startup do set_state_from_envelope for all slots above db that we've participated in,
+      or do this when the slot is engaged via scp?
+
 SECURITY
 
 - only process scp envelopes coming from our quorum sets?

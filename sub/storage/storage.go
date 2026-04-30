@@ -308,6 +308,37 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 	)
 }
 
+func (x *DiskStorage) PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope) {
+	x.WaitReady(ctx)
+
+	full := x.SCPEnvelopeFromLocalFilepath(env.Statement.Slot_index)
+
+	x.scpPP.Persist(ctx, full,
+		func(w io.Writer) error {
+			libxdr.MarshalXdrWriter(w, &env)
+			return nil
+		},
+	)
+}
+
+func (x *DiskStorage) FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
+	x.WaitReady(ctx)
+
+	full := x.SCPEnvelopeFromLocalFilepath(slot)
+
+	if !isPresent(full) {
+		return nil
+	}
+
+	env := proto.SCPEnvelope{}
+	err := x.scpPP.Load(ctx, full, func(r io.Reader) error {
+		return libxdr.UnmarshalXdrReader(&env, r)
+	})
+	must.NoError(ctx, err)
+
+	return []proto.SCPEnvelope{env}
+}
+
 func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
 	x.WaitReady(ctx)
 

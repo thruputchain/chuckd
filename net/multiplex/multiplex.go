@@ -161,9 +161,11 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	return nil
 }
 
+// / SCPEmitEnvelope is called directly by SCPHandler to service requests from SCP.
 func (x *Multiplex) SCPEmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
 	// persist the envelopes originating from our scp
 	x.storage.PersistSCPEnvelope(ctx, env)
+	x.storage.PersistSCPEnvelopeFromLocal(ctx, env)
 	return x.SendSCPEnvelope(ctx, env)
 }
 
