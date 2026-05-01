@@ -238,7 +238,7 @@ func (x *RepairService) Repair_missing_cv(
 	// requests for missing cvs will block the repair attempts forever,
 	// and they need to be aborted at the caller when they discover newer externalization have happened.
 
-	cvx := x.cvpool.CVPoolLookup(ctx, cvh)
+	cvx := x.cvpool.CVPoolLookup(ctx, height, cvh)
 	if cvx != nil {
 		liblog.Infof(ctx, "repair_missing_cv serving from pool: height=%d; cv_hash=%s", height, libxdr.HashString(cvh))
 		return cvx, nil
