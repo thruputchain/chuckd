@@ -2,7 +2,7 @@ CORRECTNESS
 
 - [x] set_state_from_envelope should only send the latest envelope from us per slot
 - [x] on startup do set_state_from_envelope for all slots above db that we've participated in,
-- [ ] when replaying repaired messages from the network, don't replay our own
+- [x] when replaying repaired messages from the network, don't replay our own
 
 - [ ] baton should not send nominations for slots it has nominated for already via set_state_from_envelope
 
