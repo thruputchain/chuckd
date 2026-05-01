@@ -135,7 +135,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 			err, len(rtx.Transactions))
 	}()
 
-	cb := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Cv_hash)
+	cb := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Height, env.Missing_transactions.Cv_hash)
 	if cb == nil {
 		liblog.Errorf(ctx, "catchup block not found in storage: cv_hash=%s",
 			libxdr.HashString(env.Missing_transactions.Cv_hash))
