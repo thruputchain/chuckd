@@ -47,15 +47,6 @@ type SCPHandler interface {
 	SCPExternalizedValue(ctx context.Context, slot Slot, value Value)
 }
 
-type SCPController interface {
-	SCPNominate(ctx context.Context, slot Slot, value Value, prev Value) bool
-	SCPStopNomination(ctx context.Context, slot Slot)
-	SCPUpdateQuorumSet(ctx context.Context, qset proto.SCPQuorumSet)
-	SCPReceivedEnvelope(ctx context.Context, env proto.SCPEnvelope)
-	SCPSetStateFromEnvelope(ctx context.Context, slot Slot, env proto.SCPEnvelope)
-	SCPKnownQSets
-}
-
 type SCPKnownQSets interface {
 	SCPSetKnownQuorumSet(ctx context.Context, qset proto.SCPQuorumSet) proto.SCPOptQuorumSet
 	SCPGetKnownQuorumSet(ctx context.Context, qhash proto.SCPHash) proto.SCPOptQuorumSet
@@ -71,7 +62,8 @@ type SCPCommander interface {
 }
 
 type SCPBroker interface {
-	SCPWaitReady()
 	SCPCommander
-	SCPController
+	SCPWaitReady()
+	SCPNominate(ctx context.Context, slot Slot, value Value, prev Value) bool
+	SCPStopNomination(ctx context.Context, slot Slot)
 }
