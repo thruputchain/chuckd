@@ -69,8 +69,8 @@ func (b *Baton) validateCue(
 
 	// check if the value was already validated
 	b.lock()
-	alreadyValidated := b.getValidatedConsensusFromCVH(cvc.Cv_hash)
-	alreadyInvalidated := b.isInvalidatedCVH(cvc.Cv_hash)
+	alreadyValidated := b.getValidatedCV(cvc.Cv_hash, cvc.Block_height)
+	alreadyInvalidated := b.isInvalidated(cvc.Cv_hash, cvc.Block_height)
 	committedHeight := b.tipDb.Height
 	b.unlock()
 

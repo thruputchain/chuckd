@@ -57,6 +57,7 @@ type Baton struct {
 
 type validated struct {
 	*proto.ConsensusValue
+	proto.BlockHeight
 	proto.BlockID
 }
 

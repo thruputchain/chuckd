@@ -143,7 +143,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 	return &TestBlock{
 		ConsensusValue:    cv,
-		ConsensusValueCue: protoutil.CueFromConsensusValue(&cv),
+		ConsensusValueCue: protoutil.CVC(&cv),
 		Txs:               txs,
 		Catchup: proto.CatchupBlock{
 			Consensus_value: cv,

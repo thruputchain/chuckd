@@ -93,7 +93,7 @@ func (b *Baton) nominate(
 	}
 
 	q0 := b.handler.Now()
-	cvc := b.cueFromConsensusValue(cv)
+	cvc := b.cvc(cv)
 	liblog.Debugf(ctx, "hashing cv for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
 
 	evNominating := batonkit.EventNominating{
@@ -125,7 +125,7 @@ func (b *Baton) nominate(
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
 	b.lock()
-	b.setValidated(cv, cvc.Cv_hash, nominatedBlock.Block_id)
+	b.setValidated(cv, cvc.Cv_hash, nomination.Block_height, nominatedBlock.Block_id)
 	b.unlock()
 
 	// notify the repair service that we are making the nomination, so that it
