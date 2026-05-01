@@ -1,9 +1,10 @@
 CORRECTNESS
 
 - [x] set_state_from_envelope should only send the latest envelope from us per slot
+- [x] on startup do set_state_from_envelope for all slots above db that we've participated in,
+- [ ] when replaying repaired messages from the network, don't replay our own
 
-- [ ] on startup do set_state_from_envelope for all slots above db that we've participated in,
-      or do this when the slot is engaged via scp?
+- [ ] baton should not send nominations for slots it has nominated for already via set_state_from_envelope
 
 - [ ] scp: do externalize messages even need validation?
 - [ ] allow only messages from the transitive closure of our fba

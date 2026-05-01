@@ -128,7 +128,10 @@ func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot,
 
 	for i, env := range envs {
 		liblog.Debugf(ctx, "backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
-		if env.Statement.Slot_index == slot {
+		// replay envelopes for the requested slot, but not our own!
+		if env.Statement.Slot_index == slot &&
+			!protoutil.ValidatorIDEqual(
+				protoutil.NodeToValidatorID(env.Statement.Node_id), protoutil.PublicVID(x.router.Self())) {
 			x.SCPFeedEnvelope(ctx, env)
 		}
 	}
