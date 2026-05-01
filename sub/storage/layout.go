@@ -290,26 +290,36 @@ func FindCatchupFileByHash(dir string, cvHash proto.ConsensusValueHash) (string,
 // Matches strings like: "00000000000000001234"
 var scpSlotRE = regexp.MustCompile(`^[0-9]{12}$`)
 
-func ListSCPSlotDirs(dir string) ([]string, error) {
+func ListSCPSlotDirs(dir string) ([]string, []proto.SCPSlotIndex, error) {
 
 	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil, nil
+	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var matches []string
+	var indices []proto.SCPSlotIndex
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
 		}
 		name := e.Name()
 		if scpSlotRE.MatchString(name) {
+			slotIndex, err := strconv.ParseInt(name, 10, 64)
+			if err != nil {
+				panic("bug: regex matched a number")
+			}
 			matches = append(matches, filepath.Join(dir, name))
+			indices = append(indices, proto.SCPSlotIndex(slotIndex))
 		}
 	}
 
 	// list in ascending order
 	sort.Slice(matches, func(i int, j int) bool { return matches[i] < matches[j] })
+	sort.Slice(indices, func(i int, j int) bool { return indices[i] < indices[j] })
 
-	return matches, nil
+	return matches, indices, nil
 }

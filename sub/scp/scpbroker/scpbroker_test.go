@@ -66,6 +66,9 @@ func (noopStorage) FindSCPEnvelopesForSlot(context.Context, proto.SCPSlotIndex) 
 func (noopStorage) FindSCPEnvelopesForSlotFromLocal(context.Context, proto.SCPSlotIndex) []proto.SCPEnvelope {
 	return nil
 }
+func (noopStorage) ListSlotsWithSCPEnvelopesNotBelow(context.Context, proto.SCPSlotIndex) []proto.SCPSlotIndex {
+	return nil
+}
 
 // TestBrokerStopDrainsInflightCalls verifies that Stop() blocks until all
 // in-flight controller calls complete, so that controller.Close() after Stop()

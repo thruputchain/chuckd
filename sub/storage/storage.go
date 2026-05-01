@@ -362,3 +362,22 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 
 	return found
 }
+
+// ListSlotsWithSCPEnvelopesNotBelow lists all slots not below a given slot that have persisted scp envelopes.
+// The slots are returned in ascending order.
+func (x *DiskStorage) ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, below proto.SCPSlotIndex) []proto.SCPSlotIndex {
+	x.WaitReady(ctx)
+
+	_, allFound, err := ListSCPSlotDirs(x.SCPEnvelopesDirpath())
+	must.NoError(ctx, err)
+
+	found := []proto.SCPSlotIndex{}
+	for _, index := range allFound {
+		if index < below {
+			continue
+		}
+		found = append(found, index)
+	}
+
+	return found
+}

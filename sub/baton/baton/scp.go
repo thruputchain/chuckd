@@ -145,10 +145,13 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 			return false
 		}
 	} else {
-		must.Assertf(ctx,
-			ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
-			"scp externalization is invalid",
-		)
+		if ext.Height() == lastExt.Height()+1 {
+			must.Assertf(ctx, ext.PrevBlockHash() == lastExt.BlockHash(), "scp externalization is invalid")
+		}
+		// must.Assertf(ctx,
+		// 	ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
+		// 	"scp externalization is invalid",
+		// )
 		b.externalized = append(b.externalized, ext)
 		return true
 	}

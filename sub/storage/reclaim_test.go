@@ -102,7 +102,7 @@ func TestReclaimSCPEnvelopesRemovesOldestSlots(t *testing.T) {
 		st.PersistSCPEnvelope(ctx, env)
 	}
 
-	slotdirs, err := ListSCPSlotDirs(st.SCPEnvelopesDirpath())
+	slotdirs, _, err := ListSCPSlotDirs(st.SCPEnvelopesDirpath())
 	if err != nil {
 		t.Fatalf("ListSCPSlotDirs (before reclaim) returned error: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestReclaimSCPEnvelopesRemovesOldestSlots(t *testing.T) {
 
 	st.reclaimSCPEnvelopes(ctx)
 
-	slotdirs, err = ListSCPSlotDirs(st.SCPEnvelopesDirpath())
+	slotdirs, _, err = ListSCPSlotDirs(st.SCPEnvelopesDirpath())
 	if err != nil {
 		t.Fatalf("ListSCPSlotDirs (after reclaim) returned error: %v", err)
 	}
