@@ -80,7 +80,7 @@ func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit
 		for _, env := range x.storage.FindSCPEnvelopesForSlotFromLocal(ctx, slot) {
 			if protoutil.NodeToValidatorID(env.Statement.Node_id) == protoutil.PublicVID(x.router.Self()) {
 				liblog.Infof(ctx, "scp set state from envelope: slot=%d; env=%v",
-					slot, protoutil.SCPEnvelopeShortString(env))
+					slot, protoutil.SCPEnvelopeDisplay(env))
 				x.SCPSetStateFromEnvelope(ctx, slot, env)
 			}
 		}

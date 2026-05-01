@@ -150,7 +150,7 @@ func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusVa
 func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
 	liblog.Debugf(ctx, "%v multiplex sending envelope: %v",
 		protoutil.VIDString(x.self),
-		protoutil.SCPEnvelopeShortString(env))
+		protoutil.SCPEnvelopeDisplay(env))
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageSCP
 	*xmsg.Envelope() = env
@@ -203,7 +203,7 @@ func (x *Multiplex) ReceiveEnvelope(ctx context.Context) (proto.ValidatorID, *pr
 		liblog.Debugf(ctx, "%v multiplex received envelope from %v: %v",
 			protoutil.VIDString(x.self),
 			protoutil.VIDString(envelopeFrom.From),
-			protoutil.SCPEnvelopeShortString(*envelopeFrom.SCPEnvelope))
+			protoutil.SCPEnvelopeDisplay(*envelopeFrom.SCPEnvelope))
 		return envelopeFrom.From, envelopeFrom.SCPEnvelope, true
 	}
 }
