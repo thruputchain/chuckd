@@ -58,8 +58,15 @@ func (m *mockSCPControl) Scp_control_set_lowest_non_externalized_slot(context.Co
 
 type noopStorage struct{}
 
-func (noopStorage) PersistSCPEnvelope(context.Context, proto.SCPEnvelope) {}
+func (noopStorage) PersistSCPEnvelope(context.Context, proto.SCPEnvelope)          {}
+func (noopStorage) PersistSCPEnvelopeFromLocal(context.Context, proto.SCPEnvelope) {}
 func (noopStorage) FindSCPEnvelopesForSlot(context.Context, proto.SCPSlotIndex) []proto.SCPEnvelope {
+	return nil
+}
+func (noopStorage) FindSCPEnvelopesForSlotFromLocal(context.Context, proto.SCPSlotIndex) []proto.SCPEnvelope {
+	return nil
+}
+func (noopStorage) ListSlotsWithSCPEnvelopesNotBelow(context.Context, proto.SCPSlotIndex) []proto.SCPSlotIndex {
 	return nil
 }
 

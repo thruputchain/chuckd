@@ -50,7 +50,16 @@ func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePers
 
 type SCPEnvelopePersistence interface {
 	PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)
+
+	PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope)
+
 	FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
+
+	FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
+
+	// ListSlotsWithSCPEnvelopesNotBelow lists all slots not below a given slot that have persisted scp envelopes.
+	// The slots are returned in ascending order.
+	ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, below proto.SCPSlotIndex) []proto.SCPSlotIndex
 }
 
 type Config struct {

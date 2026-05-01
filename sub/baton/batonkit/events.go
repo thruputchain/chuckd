@@ -1,6 +1,7 @@
 package batonkit
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -20,8 +21,14 @@ type EventNominating struct {
 }
 
 func (x EventNominating) String() string {
-	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; block_hash %s",
-		x.Height, x.NumTx, libxdr.HashString(x.BlockHash))
+	h := sha256.New()
+	libxdr.MarshalXdrWriter(h, x.DbgConsensusValueCue)
+	cvcHash := h.Sum(nil)
+
+	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; block_hash %s; scp_value: %x",
+		x.Height, x.NumTx, libxdr.HashString(x.BlockHash),
+		cvcHash[:3],
+	)
 }
 
 type EventNominated struct {

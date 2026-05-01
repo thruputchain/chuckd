@@ -72,11 +72,14 @@ func (x *SCPBroker) SCPWaitReady() {
 }
 
 func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
-	for _, env := range x.storage.FindSCPEnvelopesForSlot(ctx, slot) {
-		if protoutil.NodeToValidatorID(env.Statement.Node_id) == protoutil.PublicVID(x.router.Self()) {
-			liblog.Infof(ctx, "scp set state from envelope: slot=%d; env=%v",
-				slot, protoutil.SCPEnvelopeShortString(env))
-			x.SCPSetStateFromEnvelope(ctx, slot, env)
+	for _, slot := range x.storage.ListSlotsWithSCPEnvelopesNotBelow(ctx, slot) {
+		liblog.Infof(ctx, "reviving state from envelopes for slot %d", slot)
+		for _, env := range x.storage.FindSCPEnvelopesForSlotFromLocal(ctx, slot) {
+			if protoutil.NodeToValidatorID(env.Statement.Node_id) == protoutil.PublicVID(x.router.Self()) {
+				liblog.Infof(ctx, "scp set state from envelope: slot=%d; env=%v",
+					slot, protoutil.SCPEnvelopeShortString(env))
+				x.SCPSetStateFromEnvelope(ctx, slot, env)
+			}
 		}
 	}
 }
@@ -125,7 +128,10 @@ func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot,
 
 	for i, env := range envs {
 		liblog.Debugf(ctx, "backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
-		if env.Statement.Slot_index == slot {
+		// replay envelopes for the requested slot, but not our own!
+		if env.Statement.Slot_index == slot &&
+			!protoutil.ValidatorIDEqual(
+				protoutil.NodeToValidatorID(env.Statement.Node_id), protoutil.PublicVID(x.router.Self())) {
 			x.SCPFeedEnvelope(ctx, env)
 		}
 	}

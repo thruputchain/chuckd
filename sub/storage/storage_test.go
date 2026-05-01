@@ -96,6 +96,37 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 	}
 }
 
+func TestListSlotsWithSCPEnvelopesNotBelow(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	dir := t.TempDir()
+	cfg := Config{
+		Freq:             time.Hour,
+		MaxCatchupBlocks: 10,
+		MaxSCPSlots:      10,
+	}
+
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
+
+	st.PersistSCPEnvelope(ctx, newEnvelope(3, 0x11))
+	st.PersistSCPEnvelopeFromLocal(ctx, newEnvelope(4, 0x12))
+	st.PersistSCPEnvelope(ctx, newEnvelope(6, 0x13))
+
+	got := st.ListSlotsWithSCPEnvelopesNotBelow(ctx, 4)
+	want := []proto.SCPSlotIndex{4, 6}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ListSlotsWithSCPEnvelopesNotBelow mismatch:\n got: %v\nwant: %v", got, want)
+	}
+
+	got = st.ListSlotsWithSCPEnvelopesNotBelow(ctx, 5)
+	want = []proto.SCPSlotIndex{6}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ListSlotsWithSCPEnvelopesNotBelow mismatch:\n got: %v\nwant: %v", got, want)
+	}
+}
+
 func TestFindConsensusValue(t *testing.T) {
 	t.Parallel()
 

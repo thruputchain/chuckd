@@ -49,7 +49,7 @@ func (x *DiskStorage) reclaimSCPEnvelopes(ctx context.Context) {
 
 	slotsDir := x.SCPEnvelopesDirpath()
 
-	slotdirs, err := ListSCPSlotDirs(slotsDir)
+	slotdirs, _, err := ListSCPSlotDirs(slotsDir)
 	if err != nil {
 		liblog.Errorf(ctx, "reclaiming scp envelopes storage: %v", err)
 		return

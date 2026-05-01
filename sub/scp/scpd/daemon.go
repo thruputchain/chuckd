@@ -70,7 +70,7 @@ func StartSCPDaemon(
 		"--config-path", tmpPath,
 		"--secret-key", secretKeyText,
 	)
-	cmd.Env = []string{"RUST_BACKTRACE=1", "RUST_LOG=" + liblog.GetLogLevel().String()}
+	cmd.Env = []string{"RUST_BACKTRACE=full", "RUST_LOG=" + liblog.GetLogLevel().String()}
 	cmd.Stdout = libtext.NewPrefixWriter(liblog.Writer(ctx), "[scpd:out] ")
 	cmd.Stderr = libtext.NewPrefixWriter(liblog.Writer(ctx), "[scpd:err] ")
 
