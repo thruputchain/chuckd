@@ -97,7 +97,7 @@ func (b *Baton) validateConsensus(
 
 	// check if block previous invalidated to prevent expensive validation
 	b.lock()
-	alreadyInvalidated := b.isInvalidatedCVH(cvc.Cv_hash)
+	alreadyInvalidated := b.isInvalidated(cvc.Cv_hash, cvc.Block_height)
 	b.unlock()
 	if alreadyInvalidated {
 		reply <- scpkit.InvalidValue
@@ -128,7 +128,7 @@ func (b *Baton) validateConsensus(
 		libxdr.HashString(cv.Nomination.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
 	b.lock()
-	b.setValidated(cv, cvc.Cv_hash, validatedTip.Id)
+	b.setValidated(cv, cvc.Cv_hash, cv.Nomination.Block_height, validatedTip.Id)
 	b.unlock()
 
 	reply <- scpkit.FullyValidValue
@@ -155,7 +155,7 @@ func (b *Baton) tryValidateConsensusFast(
 
 	b.lock()
 	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidatedBlockIDFromCVH(cvc.Cv_hash)
+	alreadyValidated := b.getValidatedBlockID(cvc.Cv_hash, cvc.Block_height)
 	b.unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {

@@ -21,11 +21,13 @@ type CVPool interface {
 
 	CVPoolLookup(
 		ctx context.Context,
+		height proto.BlockHeight,
 		hash proto.ConsensusValueHash,
 	) *proto.ConsensusValue
 
 	CVPoolWaitFor(
 		ctx context.Context,
+		height proto.BlockHeight,
 		hash proto.ConsensusValueHash,
 	) (*proto.ConsensusValue, error)
 

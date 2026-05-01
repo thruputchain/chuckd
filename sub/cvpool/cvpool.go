@@ -78,15 +78,21 @@ func (cvp *ConsensusValuePool) purge() {
 
 func (cvp *ConsensusValuePool) CVPoolLookup(
 	ctx context.Context,
+	height proto.BlockHeight,
 	h proto.ConsensusValueHash,
 ) *proto.ConsensusValue {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
-	return cvp.cv[h]
+	cv, ok := cvp.cv[h]
+	if ok && cv.Nomination.Block_height == height {
+		return cv
+	}
+	return nil
 }
 
 func (cvp *ConsensusValuePool) CVPoolWaitFor(
 	ctx context.Context,
+	height proto.BlockHeight,
 	hash proto.ConsensusValueHash,
 ) (*proto.ConsensusValue, error) {
 	stop := context.AfterFunc(ctx, func() { cvp.cond.Broadcast() })
@@ -99,7 +105,7 @@ func (cvp *ConsensusValuePool) CVPoolWaitFor(
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if cv, ok := cvp.cv[hash]; ok {
+			if cv, ok := cvp.cv[hash]; ok && cv.Nomination.Block_height == height {
 				return cv, nil
 			}
 			cvp.cond.Wait()

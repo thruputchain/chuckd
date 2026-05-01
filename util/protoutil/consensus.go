@@ -60,7 +60,7 @@ func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
 }
 
 // cv must be pre-validated with IsSaneConsensusValue, otherwise panic.
-func CueFromConsensusValue(cv *proto.ConsensusValue) proto.ConsensusValueCue {
+func CVC(cv *proto.ConsensusValue) proto.ConsensusValueCue {
 	return proto.ConsensusValueCue{
 		Proposer:        cv.Nomination.Proposer,
 		Cv_hash:         HashCVFast(cv),

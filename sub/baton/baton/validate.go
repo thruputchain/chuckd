@@ -9,31 +9,37 @@ func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	return protoutil.HashCVFast(cv)
 }
 
-func (b *Baton) cueFromConsensusValue(cv *proto.ConsensusValue) *proto.ConsensusValueCue {
-	cvc := protoutil.CueFromConsensusValue(cv)
+func (b *Baton) cvc(cv *proto.ConsensusValue) *proto.ConsensusValueCue {
+	cvc := protoutil.CVC(cv)
 	return &cvc
 }
 
 // validated cache
 
-func (b *Baton) setValidated(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash, blockID proto.BlockID) {
+func (b *Baton) setValidated(
+	cv *proto.ConsensusValue,
+	cvh proto.ConsensusValueHash,
+	height proto.BlockHeight,
+	blockID proto.BlockID,
+) {
 	b.validated[cvh] = validated{
 		ConsensusValue: cv,
+		BlockHeight:    height,
 		BlockID:        blockID,
 	}
 }
 
-func (b *Baton) getValidatedConsensusFromCVH(cvh proto.ConsensusValueHash) *proto.ConsensusValue {
+func (b *Baton) getValidatedCV(cvh proto.ConsensusValueHash, height proto.BlockHeight) *proto.ConsensusValue {
 	v, ok := b.validated[cvh]
-	if !ok {
+	if !ok || v.BlockHeight != height {
 		return nil
 	}
 	return v.ConsensusValue
 }
 
-func (b *Baton) getValidatedBlockIDFromCVH(cvh proto.ConsensusValueHash) *proto.BlockID {
+func (b *Baton) getValidatedBlockID(cvh proto.ConsensusValueHash, height proto.BlockHeight) *proto.BlockID {
 	v, ok := b.validated[cvh]
-	if !ok {
+	if !ok || v.BlockHeight != height {
 		return nil
 	}
 	return &v.BlockID
@@ -45,7 +51,7 @@ func (b *Baton) setInvalidated(cv *proto.ConsensusValue, cvh proto.ConsensusValu
 	b.invalidated[cvh] = invalidated{ConsensusValue: cv}
 }
 
-func (b *Baton) isInvalidatedCVH(cvh proto.ConsensusValueHash) bool {
-	_, ok := b.invalidated[cvh]
-	return ok
+func (b *Baton) isInvalidated(cvh proto.ConsensusValueHash, height proto.BlockHeight) bool {
+	cv, ok := b.invalidated[cvh]
+	return ok && cv.ConsensusValue.Nomination.Block_height == height
 }

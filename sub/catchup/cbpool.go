@@ -105,10 +105,18 @@ func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 // Blocks we have nominated but are not committed will be found in pre-persist.
 func (cbp *CatchupBlockPool) CBPoolLookup(
 	ctx context.Context,
+	height proto.BlockHeight,
 	cvHash proto.ConsensusValueHash,
 ) *proto.CatchupBlock {
 	cbp.waitFinishPrePersist(ctx, cvHash)
-	return cbp.persist.LookupCatchupBlock(ctx, cvHash)
+	cb := cbp.persist.LookupCatchupBlock(ctx, cvHash)
+	if cb == nil {
+		return nil
+	}
+	if cb.Consensus_value.Nomination.Block_height != height {
+		return nil
+	}
+	return cb
 }
 
 func (cbp *CatchupBlockPool) CBPoolFindCommitted(

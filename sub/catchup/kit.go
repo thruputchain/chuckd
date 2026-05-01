@@ -38,6 +38,7 @@ type CBPool interface {
 	// CBPoolLookup will discover any block that was previously persisted or pre-persisted.
 	CBPoolLookup(
 		ctx context.Context,
+		height proto.BlockHeight,
 		cvHash proto.ConsensusValueHash,
 	) *proto.CatchupBlock
 
