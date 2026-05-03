@@ -50,9 +50,8 @@ func (h *TestGen) GenSignedTx(ctx context.Context) *proto.SignedTransaction {
 	}
 	return &proto.SignedTransaction{
 		Signatures: []proto.DecoratedSignature{{
-			Auth_claim_idx: 0,
-			Public_key_id:  0,
-			Signature:      protoutil.SignXdr(h.m, h.user, &tx),
+			Public_key_id: 0,
+			Signature:     protoutil.SignXdr(h.m, h.user, &tx),
 		}},
 		Tx: tx,
 	}
