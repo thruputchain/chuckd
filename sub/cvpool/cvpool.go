@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/groundhogchain/chuckd/sub/storage"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -30,7 +31,7 @@ func NewCVPool(ctx context.Context, persist storage.ConsensusValuePersistence) *
 func (cvp *ConsensusValuePool) CVPoolAdd(
 	ctx context.Context,
 	cv proto.ConsensusValue,
-	cvh proto.ConsensusValueHash,
+	cue proto.ConsensusValueCue,
 ) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
@@ -38,17 +39,17 @@ func (cvp *ConsensusValuePool) CVPoolAdd(
 	if cv.Nomination.Block_height <= cvp.bottom {
 		return
 	}
-	cvp.cv[cvh] = &cv
+	cvp.cv[cue.Cv_hash] = &cv
 	cvp.cond.Broadcast()
-	go cvp.persist.PrePersistCV(context.WithoutCancel(ctx), cv, cvh)
+	go cvp.persist.PrePersistCV(context.WithoutCancel(ctx), cv, cue.Cv_hash)
 }
 
 func (cvp *ConsensusValuePool) CVPoolCommit(
 	ctx context.Context,
 	cv proto.ConsensusValue,
-	cvh proto.ConsensusValueHash,
+	cue proto.ConsensusValueCue,
 ) {
-	cvp.persist.PersistCV(ctx, cv, cvh)
+	cvp.persist.PersistCV(ctx, cv, cue.Cv_hash)
 
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
@@ -56,7 +57,7 @@ func (cvp *ConsensusValuePool) CVPoolCommit(
 	if cv.Nomination.Block_height <= cvp.bottom {
 		return
 	}
-	cvp.cv[cvh] = &cv
+	cvp.cv[cue.Cv_hash] = &cv
 	cvp.cond.Broadcast()
 }
 
@@ -78,13 +79,12 @@ func (cvp *ConsensusValuePool) purge() {
 
 func (cvp *ConsensusValuePool) CVPoolLookup(
 	ctx context.Context,
-	height proto.BlockHeight,
-	h proto.ConsensusValueHash,
+	cue proto.ConsensusValueCue,
 ) *proto.ConsensusValue {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
-	cv, ok := cvp.cv[h]
-	if ok && cv.Nomination.Block_height == height {
+	cv, ok := cvp.cv[cue.Cv_hash]
+	if ok && protoutil.CVAgreesWithCue(cv, &cue) {
 		return cv
 	}
 	return nil
@@ -92,8 +92,7 @@ func (cvp *ConsensusValuePool) CVPoolLookup(
 
 func (cvp *ConsensusValuePool) CVPoolWaitFor(
 	ctx context.Context,
-	height proto.BlockHeight,
-	hash proto.ConsensusValueHash,
+	cue proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 	stop := context.AfterFunc(ctx, func() { cvp.cond.Broadcast() })
 	defer stop()
@@ -105,7 +104,7 @@ func (cvp *ConsensusValuePool) CVPoolWaitFor(
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if cv, ok := cvp.cv[hash]; ok && cv.Nomination.Block_height == height {
+			if cv, ok := cvp.cv[cue.Cv_hash]; ok && protoutil.CVAgreesWithCue(cv, &cue) {
 				return cv, nil
 			}
 			cvp.cond.Wait()
@@ -117,10 +116,13 @@ func (cvp *ConsensusValuePool) CVPoolWaitFor(
 
 func (cvp *ConsensusValuePool) CVPoolFind(
 	ctx context.Context,
-	height proto.BlockHeight,
-	hash proto.ConsensusValueHash,
+	cue proto.ConsensusValueCue,
 ) *proto.ConsensusValue {
-	return cvp.persist.FindCV(ctx, height, hash)
+	cv := cvp.persist.FindCV(ctx, cue.Block_height, cue.Cv_hash)
+	if cv != nil && protoutil.CVAgreesWithCue(cv, &cue) {
+		return cv
+	}
+	return nil
 }
 
 func (cvp *ConsensusValuePool) CVPoolFindCommitted(

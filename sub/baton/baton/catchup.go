@@ -62,6 +62,10 @@ func (a CatchupArrival) ConsensusValueHash() proto.ConsensusValueHash {
 	return a.cvhash
 }
 
+func (a CatchupArrival) ConsensusValueCue() proto.ConsensusValueCue {
+	return protoutil.CVCGivenCVHash(a.ConsensusValue(), a.cvhash)
+}
+
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {
 	return a.txs
 }

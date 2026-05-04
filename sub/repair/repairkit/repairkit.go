@@ -16,7 +16,6 @@ type RepairAgent interface {
 	RepairMissingCV(
 		ctx context.Context,
 		from proto.ValidatorPublicInfo,
-		missing proto.ConsensusValueHash,
-		height proto.BlockHeight,
+		missing proto.ConsensusValueCue,
 	) (*proto.ConsensusValue, error)
 }

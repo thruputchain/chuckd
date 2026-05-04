@@ -1,3 +1,6 @@
+- [ ] cvpool keys with cue hash
+- [ ] address XXX
+
 CORRECTNESS
 
 - [x] set_state_from_envelope should only send the latest envelope from us per slot

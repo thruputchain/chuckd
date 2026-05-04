@@ -76,7 +76,7 @@ func (x ViewCatchupBlock) Committable() batonkit.Committable {
 	}
 	return batonkit.NewCommittableCatchup(
 		x.Candidate.Block(),
-		x.Candidate.ConsensusValueHash(),
+		x.Candidate.ConsensusValueCue(),
 		x.Candidate.SignedTransactions(),
 		x.Validated,
 	)
@@ -122,13 +122,13 @@ func (x ViewExtConsensusBlock) Committable() batonkit.Committable {
 	case x.Validated != nil:
 		return batonkit.NewCommittableNomination(
 			x.Ext.ConsensusValue(),
-			x.Ext.ConsensusValueHash(),
+			x.Ext.ConsensusValueCue(),
 			x.Validated,
 		)
 	case x.Catchup != nil:
 		return batonkit.NewCommittableCatchup(
 			x.Catchup.Block(),
-			x.Catchup.ConsensusValueHash(),
+			x.Catchup.ConsensusValueCue(),
 			x.Catchup.SignedTransactions(),
 			nil,
 		)
@@ -170,7 +170,7 @@ func (x ViewExtCueBlock) Committable() batonkit.Committable {
 	if x.Catchup != nil {
 		return batonkit.NewCommittableCatchup(
 			x.Catchup.Block(),
-			x.Catchup.ConsensusValueHash(),
+			x.Catchup.ConsensusValueCue(),
 			x.Catchup.SignedTransactions(),
 			nil,
 		)

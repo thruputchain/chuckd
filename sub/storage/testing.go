@@ -11,13 +11,13 @@ import (
 
 type TestCatchupBlockPersistence struct {
 	mu        sync.RWMutex
-	pre       map[proto.ConsensusValueHash]proto.CatchupBlock
+	pre       map[protoutil.CVCHash]proto.CatchupBlock
 	persisted map[proto.BlockHeight]proto.CatchupBlock
 }
 
 func NewTestCatchupBlockPersistence() *TestCatchupBlockPersistence {
 	return &TestCatchupBlockPersistence{
-		pre:       make(map[proto.ConsensusValueHash]proto.CatchupBlock),
+		pre:       make(map[protoutil.CVCHash]proto.CatchupBlock),
 		persisted: make(map[proto.BlockHeight]proto.CatchupBlock),
 	}
 }
@@ -25,23 +25,23 @@ func NewTestCatchupBlockPersistence() *TestCatchupBlockPersistence {
 func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
-	cvHash proto.ConsensusValueHash,
+	cvch protoutil.CVCHash,
 ) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 
-	x.pre[cvHash] = cb
+	x.pre[cvch] = cb
 }
 
 func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
-	cvHash proto.ConsensusValueHash,
+	cvch protoutil.CVCHash,
 ) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 
-	p, ok := x.pre[cvHash]
+	p, ok := x.pre[cvch]
 	// dont delete p from pre, so it can be found by LookupCatchupBlock
 	must.Assert(ctx, ok)
 	must.Assert(ctx, p.Consensus_value.Nomination.Block_height == height)
@@ -51,12 +51,12 @@ func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 
 func (x *TestCatchupBlockPersistence) LookupCatchupBlock(
 	ctx context.Context,
-	cvHash proto.ConsensusValueHash,
+	cvch protoutil.CVCHash,
 ) *proto.CatchupBlock {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 
-	cb, ok := x.pre[cvHash]
+	cb, ok := x.pre[cvch]
 	if !ok {
 		return nil
 	}

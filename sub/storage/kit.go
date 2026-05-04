@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -13,14 +14,14 @@ type CatchupBlockPersistence interface {
 	PrePersistCatchupBlock(
 		ctx context.Context,
 		cb proto.CatchupBlock,
-		cvHash proto.ConsensusValueHash,
+		cvch protoutil.CVCHash,
 	)
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
-		cvHash proto.ConsensusValueHash,
+		cvch protoutil.CVCHash,
 	)
-	LookupCatchupBlock(ctx context.Context, cvHash proto.ConsensusValueHash) *proto.CatchupBlock
+	LookupCatchupBlock(ctx context.Context, cvch protoutil.CVCHash) *proto.CatchupBlock
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock
 }
 

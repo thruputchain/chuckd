@@ -15,6 +15,14 @@ type externalized interface {
 	PrevBlockHash() proto.BlockHash
 }
 
+func externalizedMatch(ext1, ext2 externalized) bool {
+	return ext1.Height() == ext2.Height() &&
+		ext1.BlockHash() == ext2.BlockHash() &&
+		ext1.PrevBlockHash() == ext2.PrevBlockHash() &&
+		ext1.ConsensusValueHash() == ext2.ConsensusValueHash() &&
+		ext1.PrevConsensusValueHash() == ext2.PrevConsensusValueHash()
+}
+
 func ExternalizedString(ext externalized) string {
 	return fmt.Sprintf("Externalized[height %d; block_hash %s; prev_block_hash %s; cvh %s; prev_cvh %s]",
 		ext.Height(), libxdr.HashString(ext.BlockHash()), libxdr.HashString(ext.PrevBlockHash()),
@@ -22,14 +30,17 @@ func ExternalizedString(ext externalized) string {
 }
 
 type externalizedConsensus struct {
-	cv   *proto.ConsensusValue
-	hash proto.ConsensusValueHash
+	cue proto.ConsensusValueCue
+	cv  *proto.ConsensusValue
 }
 
-func (b *Baton) newExternalized(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash) externalizedConsensus {
+func newExternalized(
+	cue proto.ConsensusValueCue,
+	cv *proto.ConsensusValue,
+) externalizedConsensus {
 	return externalizedConsensus{
-		cv:   cv,
-		hash: cvh,
+		cue: cue,
+		cv:  cv,
 	}
 }
 
@@ -37,8 +48,12 @@ func (x externalizedConsensus) ConsensusValue() *proto.ConsensusValue {
 	return x.cv
 }
 
+func (x externalizedConsensus) ConsensusValueCue() proto.ConsensusValueCue {
+	return x.cue
+}
+
 func (x externalizedConsensus) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.hash
+	return x.cue.Cv_hash
 }
 
 func (x externalizedConsensus) PrevConsensusValueHash() proto.ConsensusValueHash {

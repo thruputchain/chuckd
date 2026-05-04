@@ -12,24 +12,25 @@ type Committable interface {
 	AlreadyValidated() *proto.BlockID
 	ConsensusValueHash() proto.ConsensusValueHash
 	AsConsensusValue() *proto.ConsensusValue
+	ConsensusValueCue() proto.ConsensusValueCue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	NumTransactions() int
 }
 
 type CommittableNomination struct {
 	cv        *proto.ConsensusValue // always present
-	cvhash    proto.ConsensusValueHash
+	cvc       proto.ConsensusValueCue
 	validated *proto.BlockID // always present
 }
 
 func NewCommittableNomination(
 	cv *proto.ConsensusValue,
-	cvh proto.ConsensusValueHash,
+	cvc proto.ConsensusValueCue,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
 		cv:        cv,
-		cvhash:    cvh,
+		cvc:       cvc,
 		validated: validated,
 	}
 }
@@ -54,7 +55,11 @@ func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
 }
 
 func (cb *CommittableNomination) ConsensusValueHash() proto.ConsensusValueHash {
-	return cb.cvhash
+	return cb.cvc.Cv_hash
+}
+
+func (cb *CommittableNomination) ConsensusValueCue() proto.ConsensusValueCue {
+	return cb.cvc
 }
 
 func (cb *CommittableNomination) AsConsensusValue() *proto.ConsensusValue {
@@ -71,20 +76,20 @@ func (cb *CommittableNomination) NumTransactions() int {
 
 type CommittableCatchup struct {
 	catchup   *proto.CatchupBlock // always present
-	cvhash    proto.ConsensusValueHash
+	cvc       proto.ConsensusValueCue
 	txs       []proto.SignedTransaction
 	validated *proto.BlockID // optional
 }
 
 func NewCommittableCatchup(
 	catchup *proto.CatchupBlock,
-	cvhash proto.ConsensusValueHash,
+	cvc proto.ConsensusValueCue,
 	txs []proto.SignedTransaction,
 	validated *proto.BlockID,
 ) *CommittableCatchup {
 	return &CommittableCatchup{
 		catchup:   catchup,
-		cvhash:    cvhash,
+		cvc:       cvc,
 		txs:       txs,
 		validated: validated,
 	}
@@ -107,7 +112,11 @@ func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {
 }
 
 func (cb *CommittableCatchup) ConsensusValueHash() proto.ConsensusValueHash {
-	return cb.cvhash
+	return cb.cvc.Cv_hash
+}
+
+func (cb *CommittableCatchup) ConsensusValueCue() proto.ConsensusValueCue {
+	return cb.cvc
 }
 
 func (cb *CommittableCatchup) AsConsensusValue() *proto.ConsensusValue {

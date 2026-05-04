@@ -84,7 +84,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	// if we participated in this round, the cv shold be in our cv pool,
 	// otherwise it is too late to repair a missing cv value.
-	cv := x.baton.handler.CVPoolLookup(ctx, cvc.Block_height, cvc.Cv_hash)
+	cv := x.baton.handler.CVPoolLookup(ctx, cvc)
 
 	x.baton.lock()
 	defer x.baton.unlock()
@@ -100,11 +100,11 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.Nomination.Block_height))
 
-		extConsensus := x.baton.newExternalized(cv, cvc.Cv_hash)
+		extConsensus := newExternalized(cvc, cv)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			// XXX: Is CV persistence necessary here, considering it also happens in commit?
 			t0 := time.Now()
-			x.baton.handler.CVPoolCommit(ctx, *cv, cvc.Cv_hash)
+			x.baton.handler.CVPoolCommit(ctx, *cv, cvc)
 			persistCVDelay := time.Since(t0)
 			x.baton.reportPersistCV(cv.Nomination.Block_height, persistCVDelay)
 			liblog.Debugf(ctx, "cv_persist_delay=%v | height=%d", persistCVDelay, cv.Nomination.Block_height)
@@ -131,10 +131,12 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 			for i, priorExt := range b.externalized {
 				if priorExt.Height() == extConsensus.Height() {
 					if _, priorIsCue := priorExt.(externalizedCue); priorIsCue {
-						must.Assert(ctx, extConsensus.BlockHash() == priorExt.BlockHash())
-						must.Assert(ctx, extConsensus.PrevBlockHash() == priorExt.PrevBlockHash())
-						b.externalized[i] = extConsensus
-						return true
+						if externalizedMatch(extConsensus, priorExt) {
+							b.externalized[i] = extConsensus
+							return true
+						} else {
+							liblog.Fatalf(ctx, "externalization mismatch: new %v vs prior %v", extConsensus, priorExt)
+						}
 					} else {
 						return false
 					}
