@@ -80,7 +80,7 @@ func initAfterFlags() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	liblog.SetLogLevel(level, rootColor)
+	liblog.SetLogLevel(level)
 
 	librpc.SetLogCalls(rootRpcLogCalls)
 	librpc.SetLogStats(rootRpcLogStats)

@@ -138,7 +138,7 @@ func setupValidatorBenchTest(
 	envVar string,
 	timeout time.Duration,
 ) validatorBenchSetup {
-	liblog.SetLogLevel(zerolog.TraceLevel, false)
+	liblog.SetLogLevel(zerolog.TraceLevel)
 
 	if os.Getenv(envVar) != "1" {
 		t.Skipf("set %s=1 to run this integration test", envVar)
