@@ -106,15 +106,10 @@ func (b *Baton) validateProposal(
 			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; cv_hash=%s",
 				nomination.Block_height, libxdr.HashString(cvh))
 			missing := proto.MissingTransactions{
+				Height:             nomination.Block_height,
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
-				Cue: proto.ConsensusValueCue{
-					Proposer:        nomination.Proposer,
-					Cv_hash:         cvh,
-					Prev_cv_hash:    cv.Prev_cv_hash,
-					Block_height:    nomination.Block_height,
-					Block_hash:      nomination.Block_hash,
-					Prev_block_hash: nomination.Prev_block_hash,
-				},
+				Cv_hash:            cvh,
+				Block_hash:         nomination.Block_hash,
 			}
 			err := b.repairMissingTxs(ctx, nomination.Proposer, missing)
 			if err != nil { // err can only be context cancelled
@@ -146,11 +141,11 @@ func (b *Baton) repairMissingTxs(
 ) (err error) {
 
 	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; cv_hash=%s; block_hash=%s",
-		len(missing.Transaction_hashes), missing.Cue.Block_height, libxdr.HashString(missing.Cue.Cv_hash), libxdr.HashString(missing.Cue.Block_hash))
+		len(missing.Transaction_hashes), missing.Height, libxdr.HashString(missing.Cv_hash), libxdr.HashString(missing.Block_hash))
 	defer func() {
 		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; cv_hash=%s; block_hash=%s; error=%v",
-			len(missing.Transaction_hashes), missing.Cue.Block_height,
-			libxdr.HashString(missing.Cue.Cv_hash), libxdr.HashString(missing.Cue.Block_hash), err)
+			len(missing.Transaction_hashes), missing.Height,
+			libxdr.HashString(missing.Cv_hash), libxdr.HashString(missing.Block_hash), err)
 
 	}()
 

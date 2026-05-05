@@ -58,11 +58,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_cv(ctx, proto.ConsensusValueCue{
-		Proposer:     from,
-		Cv_hash:      missing,
-		Block_height: height,
-	})
+	reply, err := c.Repair_missing_cv(ctx, missing, height)
 	if err != nil {
 		return nil, fmt.Errorf("calling Repair_missing_cv: %w", err)
 	}
