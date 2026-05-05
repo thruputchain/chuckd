@@ -16,30 +16,27 @@ type CBPool interface {
 	CBPoolAdd(
 		ctx context.Context,
 		cv proto.CatchupBlock,
-		cvHash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	)
 
 	// CBPoolWaitPrePersist ensures that a block completed pre-persisting.
 	// CatchupBlockPoolAdd must have been called before this function can be called.
 	CBPoolWaitPrePersist(
 		ctx context.Context,
-		height proto.BlockHeight,
-		cvHash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	)
 
 	// CBPoolWaitPersist ensures that a block is persisted.
 	// CatchupBlockPoolAdd must have been called before this function can be called.
 	CBPoolWaitPersist(
 		ctx context.Context,
-		height proto.BlockHeight,
-		cvHash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	)
 
 	// CBPoolLookup will discover any block that was previously persisted or pre-persisted.
 	CBPoolLookup(
 		ctx context.Context,
-		height proto.BlockHeight,
-		cvHash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	) *proto.CatchupBlock
 
 	CBPoolFindCommitted(

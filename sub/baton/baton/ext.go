@@ -8,11 +8,26 @@ import (
 )
 
 type externalized interface {
+	Proposer() proto.ValidatorPublicInfo
+	Height() proto.BlockHeight
 	ConsensusValueHash() proto.ConsensusValueHash
 	PrevConsensusValueHash() proto.ConsensusValueHash
-	Height() proto.BlockHeight
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
+}
+
+func externalizedStack(prev externalized, next externalized) bool {
+	return next.Height() == prev.Height()+1 &&
+		next.PrevBlockHash() == prev.BlockHash() &&
+		next.PrevConsensusValueHash() == prev.ConsensusValueHash()
+}
+
+func externalizedAgree(ext1, ext2 externalized) bool {
+	return ext1.Height() == ext2.Height() &&
+		ext1.BlockHash() == ext2.BlockHash() &&
+		ext1.PrevBlockHash() == ext2.PrevBlockHash() &&
+		ext1.ConsensusValueHash() == ext2.ConsensusValueHash() &&
+		ext1.PrevConsensusValueHash() == ext2.PrevConsensusValueHash()
 }
 
 func ExternalizedString(ext externalized) string {
@@ -22,23 +37,34 @@ func ExternalizedString(ext externalized) string {
 }
 
 type externalizedConsensus struct {
-	cv   *proto.ConsensusValue
-	hash proto.ConsensusValueHash
+	cue proto.ConsensusValueCue
+	cv  *proto.ConsensusValue
 }
 
-func (b *Baton) newExternalized(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash) externalizedConsensus {
+func newExternalized(
+	cue proto.ConsensusValueCue,
+	cv *proto.ConsensusValue,
+) externalizedConsensus {
 	return externalizedConsensus{
-		cv:   cv,
-		hash: cvh,
+		cue: cue,
+		cv:  cv,
 	}
+}
+
+func (x externalizedConsensus) Proposer() proto.ValidatorPublicInfo {
+	return x.cv.Nomination.Proposer
 }
 
 func (x externalizedConsensus) ConsensusValue() *proto.ConsensusValue {
 	return x.cv
 }
 
+func (x externalizedConsensus) ConsensusValueCue() proto.ConsensusValueCue {
+	return x.cue
+}
+
 func (x externalizedConsensus) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.hash
+	return x.cue.Cv_hash
 }
 
 func (x externalizedConsensus) PrevConsensusValueHash() proto.ConsensusValueHash {
@@ -60,6 +86,10 @@ func (x externalizedConsensus) PrevBlockHash() proto.BlockHash {
 type externalizedCue struct {
 	height proto.BlockHeight
 	cvc    *proto.ConsensusValueCue
+}
+
+func (x externalizedCue) Proposer() proto.ValidatorPublicInfo {
+	return x.cvc.Proposer
 }
 
 func (x externalizedCue) ConsensusValueHash() proto.ConsensusValueHash {

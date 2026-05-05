@@ -58,7 +58,7 @@ func TestNominateCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue)
+	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue, *nominating_1.DbgConsensusValueCue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -93,7 +93,7 @@ func TestValidateExternalized(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue)
+	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue, *nominating_1.DbgConsensusValueCue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -145,7 +145,7 @@ func TestValidateCommit(t *testing.T) {
 
 	// consume nomination
 	nomination := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.PlaceConsensusValue(ctx, *nomination.DbgConsensusValue)
+	rig.PlaceConsensusValue(ctx, *nomination.DbgConsensusValue, *nomination.DbgConsensusValueCue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -267,7 +267,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.PassTime(tick)
 		rig.WaitBackfeed(ctx)
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusValue)
+		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusValue, theirBlock.ConsensusValueCue)
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
 			proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
@@ -281,7 +281,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.WaitBackfeed(ctx)
 		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.PlaceConsensusValue(ctx, *nominated.DbgConsensusValue)
+			rig.PlaceConsensusValue(ctx, *nominated.DbgConsensusValue, *nominated.DbgConsensusValueCue)
 			rig.ExternalizedValue(
 				ctx,
 				proto.SCPSlotIndex(nominated.DbgConsensusValue.Nomination.Block_height),

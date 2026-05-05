@@ -104,7 +104,7 @@ func (b *Baton) validateConsensus(
 		return
 	}
 
-	validatedTip, err := b.validateProposal(ctx, *dbTip, cv, cvc.Cv_hash)
+	validatedTip, err := b.validateProposal(ctx, *dbTip, cv, *cvc)
 	if errors.Is(err, batonkit.ErrNotValid) {
 		// cache invalidation to prevent dos
 		b.lock()

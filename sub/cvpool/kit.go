@@ -10,33 +10,30 @@ type CVPool interface {
 	CVPoolAdd(
 		ctx context.Context,
 		cv proto.ConsensusValue,
-		cvh proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue, // passed for efficiency purposes
 	)
 
 	CVPoolCommit(
 		ctx context.Context,
 		cv proto.ConsensusValue,
-		cvh proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue, // passed for efficiency purposes
 	)
 
 	CVPoolLookup(
 		ctx context.Context,
-		height proto.BlockHeight,
-		hash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	) *proto.ConsensusValue
 
 	CVPoolWaitFor(
 		ctx context.Context,
-		height proto.BlockHeight,
-		hash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	) (*proto.ConsensusValue, error)
 
 	// height-dependent queries
 
 	CVPoolFind(
 		ctx context.Context,
-		height proto.BlockHeight,
-		hash proto.ConsensusValueHash,
+		cue proto.ConsensusValueCue,
 	) *proto.ConsensusValue
 
 	CVPoolFindCommitted(

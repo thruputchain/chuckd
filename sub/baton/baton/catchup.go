@@ -34,6 +34,10 @@ type CatchupArrival struct {
 	txs    []proto.SignedTransaction
 }
 
+func (a CatchupArrival) Proposer() proto.ValidatorPublicInfo {
+	return a.block.Consensus_value.Nomination.Proposer
+}
+
 func (a CatchupArrival) Provider() proto.ValidatorID {
 	return a.source
 }
@@ -60,6 +64,10 @@ func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
 
 func (a CatchupArrival) ConsensusValueHash() proto.ConsensusValueHash {
 	return a.cvhash
+}
+
+func (a CatchupArrival) ConsensusValueCue() proto.ConsensusValueCue {
+	return protoutil.CVCGivenCVHash(a.ConsensusValue(), a.cvhash)
 }
 
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {

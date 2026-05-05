@@ -32,11 +32,11 @@ func (b *Baton) start(ctx context.Context) {
 		tipCV := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
-		b.tipExt = b.newExternalized(tipCV, b.hashCV(tipCV))
+		b.tipExt = newExternalized(protoutil.CVC(tipCV), tipCV)
 		liblog.Infof(ctx, "externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
 	} else {
 		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
-		b.tipExt = b.newExternalized(&assumedCV, b.hashCV(&assumedCV))
+		b.tipExt = newExternalized(protoutil.CVC(&assumedCV), &assumedCV)
 		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
 
@@ -50,7 +50,7 @@ func (b *Baton) start(ctx context.Context) {
 	// load known externalizations above db tip
 	higherCV := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
 	for _, cv := range higherCV {
-		b.externalized = append(b.externalized, b.newExternalized(&cv, b.hashCV(&cv)))
+		b.externalized = append(b.externalized, newExternalized(protoutil.CVC(&cv), &cv))
 	}
 
 	liblog.Infof(ctx, "baton db restored at height %d", b.tipDb.Height)

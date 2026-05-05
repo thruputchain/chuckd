@@ -89,7 +89,7 @@ func (b *Baton) validateCue(
 		return
 	}
 	if alreadyValidated != nil {
-		if b.ConsensusValueAgreesWithCue(alreadyValidated, cvc) {
+		if protoutil.CVAgreesWithCue(alreadyValidated, cvc) {
 			liblog.Debugf(ctx, "cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
 			reply <- scpkit.FullyValidValue
 		} else {
@@ -124,7 +124,7 @@ func (b *Baton) validateCue(
 	}
 
 	// XXX(DoS): if cv disagrees with cue, take action regarding the source of the cv
-	if !b.ConsensusValueAgreesWithCue(cv, cvc) {
+	if !protoutil.CVAgreesWithCue(cv, cvc) {
 		liblog.Infof(ctx, "cannot validate, consensus value disagrees with cue")
 		reply <- scpkit.InvalidValue
 		return
@@ -143,7 +143,7 @@ func (b *Baton) fetchCV(
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
 
 	// lookup in cvpool
-	cv := b.handler.CVPoolLookup(ctx, cvc.Block_height, cvc.Cv_hash)
+	cv := b.handler.CVPoolLookup(ctx, *cvc)
 	if cv != nil {
 		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cv_hash=%s, proposer=%s",
 			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
@@ -158,7 +158,7 @@ func (b *Baton) fetchCV(
 	// try repairing the missing cv
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.RepairMissingCV(ctx, cvc.Proposer, cvc.Cv_hash, proto.BlockHeight(slot))
+		cv, err := b.handler.RepairMissingCV(ctx, cvc.Proposer, *cvc)
 		if err != nil {
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
@@ -169,7 +169,7 @@ func (b *Baton) fetchCV(
 	// try getting the cv from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.CVPoolWaitFor(ctx, cvc.Block_height, cvc.Cv_hash)
+		cv, err := b.handler.CVPoolWaitFor(ctx, *cvc)
 		if err != nil {
 			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
@@ -188,7 +188,7 @@ func (b *Baton) fetchCV(
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
 				slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
 				protoutil.VPublicShortString(cvc.Proposer))
-			b.handler.CVPoolAdd(ctx, *cv, cvc.Cv_hash)
+			b.handler.CVPoolAdd(ctx, *cv, *cvc)
 			return cv, nil
 		} else {
 			panic("unreachable")

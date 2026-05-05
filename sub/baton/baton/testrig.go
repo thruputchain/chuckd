@@ -191,8 +191,7 @@ func (h *TestRig) RepairMissingTxs(
 func (h *TestRig) RepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing proto.ConsensusValueHash,
-	height proto.BlockHeight,
+	missing proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 	panic("not used")
 }
@@ -203,11 +202,11 @@ func (h *TestRig) AnnounceNomination(height proto.BlockHeight, cvh proto.Consens
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
-func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvh proto.ConsensusValueHash) {
+func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvc proto.ConsensusValueCue) {
 }
 
-func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue) {
-	h.ConsensusValuePool.CVPoolAdd(ctx, cv, protoutil.HashCVFast(&cv))
+func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue, cvc proto.ConsensusValueCue) {
+	h.ConsensusValuePool.CVPoolAdd(ctx, cv, cvc)
 }
 
 func (h *TestRig) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {

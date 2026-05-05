@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -13,21 +14,21 @@ type CatchupBlockPersistence interface {
 	PrePersistCatchupBlock(
 		ctx context.Context,
 		cb proto.CatchupBlock,
-		cvHash proto.ConsensusValueHash,
+		cvch protoutil.CVCHash,
 	)
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
-		cvHash proto.ConsensusValueHash,
+		cvch protoutil.CVCHash,
 	)
-	LookupCatchupBlock(ctx context.Context, cvHash proto.ConsensusValueHash) *proto.CatchupBlock
+	LookupCatchupBlock(ctx context.Context, cvch protoutil.CVCHash) *proto.CatchupBlock
 	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock
 }
 
 type ConsensusValuePersistence interface {
-	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
-	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
-	FindCV(ctx context.Context, height proto.BlockHeight, hash proto.ConsensusValueHash) *proto.ConsensusValue
+	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash)
+	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash)
+	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.CVCHash) *proto.ConsensusValue
 	FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
 	FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue
 }

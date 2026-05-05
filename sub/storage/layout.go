@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -33,12 +34,12 @@ func SlotToParts(h int64) [3]string {
 	}
 }
 
-func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, hash proto.ConsensusValueHash) string {
+func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, cvch protoutil.CVCHash) string {
 	parts := SlotToParts(slot)
 	return path.Join(
 		x.ConsensusValuesDirpath(),
 		parts[0], parts[1], parts[2],
-		fmt.Sprintf("consensus-%012d-%x.xdr", slot, hash),
+		fmt.Sprintf("consensus-%012d-%x.xdr", slot, cvch),
 	)
 }
 
@@ -190,10 +191,10 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, hash proto.ConsensusValueHash) string {
+func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, cvch protoutil.CVCHash) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
-		fmt.Sprintf("catchup-%012d-%x.xdr", height, hash),
+		fmt.Sprintf("catchup-%012d-%x.xdr", height, cvch),
 	)
 }
 
@@ -248,7 +249,7 @@ func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, e
 	return filtered, nil
 }
 
-func FindCatchupFileByHash(dir string, cvHash proto.ConsensusValueHash) (string, error) {
+func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -257,7 +258,7 @@ func FindCatchupFileByHash(dir string, cvHash proto.ConsensusValueHash) (string,
 		return "", err
 	}
 
-	persistSuffix := fmt.Sprintf("-%x.xdr", cvHash)
+	persistSuffix := fmt.Sprintf("-%x.xdr", cvch)
 	prePersistSuffix := persistSuffix + ".prepersist"
 
 	var matches []string
@@ -283,7 +284,7 @@ func FindCatchupFileByHash(dir string, cvHash proto.ConsensusValueHash) (string,
 		// for the same catchup block.
 		// it should not be possible that multiple files have the same hash, but
 		// different heights.
-		return "", fmt.Errorf("multiple catchup files found for hash %x: %v", cvHash, matches)
+		return "", fmt.Errorf("multiple catchup files found for hash %x: %v", cvch, matches)
 	}
 }
 

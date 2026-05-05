@@ -1,3 +1,9 @@
+- [x] cvpool keys with cue hash
+- [ ] address XXX
+- [ ] cue equality, including proposer
+- [ ] baton fields: persiting, validated, etc (use cue hash)
+- [ ] log cvc hash everywhere, instead of cv hash
+
 CORRECTNESS
 
 - [x] set_state_from_envelope should only send the latest envelope from us per slot

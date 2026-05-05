@@ -19,17 +19,17 @@ import (
 func (x *RepairAgent) RepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing proto.ConsensusValueHash,
-	height proto.BlockHeight,
+	missing proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
 	backoff := netutil.NewBackoff(x.backoffCfg, librand.NewRand())
 
 attempting:
 	for {
-		cv, err := x.attemptRepairMissingCV(ctx, from, missing, height)
+		cv, err := x.attemptRepairMissingCV(ctx, from, missing)
 		if err != nil {
-			liblog.Errorf(ctx, "failed attempt to repair missing cv at height %d from %s: %v", height, protoutil.VPublicShortString(from), err)
+			liblog.Errorf(ctx, "failed attempt to repair missing cv at height %d from %s: %v",
+				missing.Block_height, protoutil.VPublicShortString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)
@@ -48,8 +48,7 @@ attempting:
 func (x *RepairAgent) attemptRepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing proto.ConsensusValueHash,
-	height proto.BlockHeight,
+	missing proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
@@ -58,22 +57,22 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_cv(ctx, missing, height)
+	reply, err := c.Repair_missing_cv(ctx, missing)
 	if err != nil {
 		return nil, fmt.Errorf("calling Repair_missing_cv: %w", err)
 	}
 
 	if reply == nil {
 		return nil, fmt.Errorf("no repaired consensus value returned, cvh %s, vid %s",
-			libxdr.HashString(missing), protoutil.VIDString(protoutil.PublicVID(from)))
+			libxdr.HashString(missing.Cv_hash), protoutil.VIDString(protoutil.PublicVID(from)))
 	}
 
 	// verify returned cv matches hash
 	if !protoutil.IsSaneConsensusValue(reply) {
 		return nil, fmt.Errorf("repaired consensus value is not sane")
 	}
-	if missing != protoutil.HashCVFast(reply) {
-		return nil, fmt.Errorf("repaired consensus value hash mismatch")
+	if missing != protoutil.CVC(reply) {
+		return nil, fmt.Errorf("repaired consensus value cue mismatch")
 	}
 
 	return reply, nil

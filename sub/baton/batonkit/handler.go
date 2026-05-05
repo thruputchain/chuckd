@@ -28,7 +28,7 @@ type Handler interface {
 	scpkit.SCPCommander
 	catchup.CatchupAgent
 
-	DisseminateCV(context.Context, proto.ConsensusValue, proto.ConsensusValueHash)
+	DisseminateCV(context.Context, proto.ConsensusValue, proto.ConsensusValueCue)
 
 	GenerateID64(context.Context) ID64
 	RestoreDb(context.Context) (proto.SchedulerGetTipResult, error)
