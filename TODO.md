@@ -1,4 +1,4 @@
-- [ ] cvpool keys with cue hash
+- [x] cvpool keys with cue hash
 - [ ] address XXX
 - [ ] baton fields: persiting, validated, etc (use cue hash)
 - [ ] log cvc hash everywhere, instead of cv hash

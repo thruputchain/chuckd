@@ -26,9 +26,9 @@ type CatchupBlockPersistence interface {
 }
 
 type ConsensusValuePersistence interface {
-	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
-	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash proto.ConsensusValueHash)
-	FindCV(ctx context.Context, height proto.BlockHeight, hash proto.ConsensusValueHash) *proto.ConsensusValue
+	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash)
+	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash)
+	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.CVCHash) *proto.ConsensusValue
 	FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
 	FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue
 }

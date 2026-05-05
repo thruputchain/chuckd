@@ -34,12 +34,12 @@ func SlotToParts(h int64) [3]string {
 	}
 }
 
-func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, hash proto.ConsensusValueHash) string {
+func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, cvch protoutil.CVCHash) string {
 	parts := SlotToParts(slot)
 	return path.Join(
 		x.ConsensusValuesDirpath(),
 		parts[0], parts[1], parts[2],
-		fmt.Sprintf("consensus-%012d-%x.xdr", slot, hash),
+		fmt.Sprintf("consensus-%012d-%x.xdr", slot, cvch),
 	)
 }
 
