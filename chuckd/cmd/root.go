@@ -44,7 +44,6 @@ var (
 	rootInstanceID       string
 	rootMetricsAddr      string
 	rootStackTrace       bool
-	rootColor            bool
 	rootLogLevel         string
 	rootMaxMsgSize       int
 	rootRpcLogCalls      bool
@@ -79,7 +78,7 @@ func initAfterFlags() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	liblog.SetLogLevel(level, rootColor)
+	liblog.SetLogLevel(level, true)
 
 	librpc.SetLogCalls(rootRpcLogCalls)
 	librpc.SetLogStats(rootRpcLogStats)
