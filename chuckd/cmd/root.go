@@ -44,6 +44,7 @@ var (
 	rootInstanceID       string
 	rootMetricsAddr      string
 	rootStackTrace       bool
+	rootColor            bool
 	rootLogLevel         string
 	rootMaxMsgSize       int
 	rootRpcLogCalls      bool
@@ -60,6 +61,7 @@ func init() {
 		"config file (default is $HOME/"+cmdkit.LocalAgentPath+"/"+cmdkit.LocalAgentConfigFilebase+")")
 	rootCmd.PersistentFlags().Int64Var(&rootSeed, "seed", 0x0102030405060708, "randomness seed")
 	rootCmd.PersistentFlags().StringVarP(&rootLogLevel, "level", "l", "info", "log level")
+	rootCmd.PersistentFlags().BoolVar(&rootColor, "color", true, "colorize log output")
 	rootCmd.PersistentFlags().StringVarP(&rootCPUProfilePath, "cpu", "p", "", "cpu profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootTraceProfilePath, "trace", "t", "", "trace profile path")
 	rootCmd.PersistentFlags().StringVarP(&rootMemProfilePath, "mem", "m", "", "memory profile path")
@@ -78,7 +80,7 @@ func initAfterFlags() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	liblog.SetLogLevel(level, true)
+	liblog.SetLogLevel(level, rootColor)
 
 	librpc.SetLogCalls(rootRpcLogCalls)
 	librpc.SetLogStats(rootRpcLogStats)
