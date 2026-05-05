@@ -34,6 +34,10 @@ type CatchupArrival struct {
 	txs    []proto.SignedTransaction
 }
 
+func (a CatchupArrival) Proposer() proto.ValidatorPublicInfo {
+	return a.block.Consensus_value.Nomination.Proposer
+}
+
 func (a CatchupArrival) Provider() proto.ValidatorID {
 	return a.source
 }

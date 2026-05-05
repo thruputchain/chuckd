@@ -131,7 +131,7 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 			for i, priorExt := range b.externalized {
 				if priorExt.Height() == extConsensus.Height() {
 					if _, priorIsCue := priorExt.(externalizedCue); priorIsCue {
-						if externalizedMatch(extConsensus, priorExt) {
+						if externalizedAgree(extConsensus, priorExt) {
 							b.externalized[i] = extConsensus
 							return true
 						} else {
@@ -148,12 +148,8 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 		}
 	} else {
 		if ext.Height() == lastExt.Height()+1 {
-			must.Assertf(ctx, ext.PrevBlockHash() == lastExt.BlockHash(), "scp externalization is invalid")
+			must.Assert(ctx, externalizedStack(lastExt, ext))
 		}
-		// must.Assertf(ctx,
-		// 	ext.Height() == lastExt.Height()+1 && ext.PrevBlockHash() == lastExt.BlockHash(),
-		// 	"scp externalization is invalid",
-		// )
 		b.externalized = append(b.externalized, ext)
 		return true
 	}

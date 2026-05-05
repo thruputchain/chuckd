@@ -89,3 +89,11 @@ func CVAgreesWithCue(cv *proto.ConsensusValue, cvc *proto.ConsensusValueCue) boo
 		cvc.Prev_block_hash == cv.Nomination.Prev_block_hash &&
 		cvc.Prev_cv_hash == cv.Prev_cv_hash
 }
+
+func CVCEquals(cvc1, cvc2 proto.ConsensusValueCue) bool {
+	// XXX: cvc1.Proposer == cvc2.Proposer
+	return cvc1.Block_height == cvc2.Block_height &&
+		cvc1.Block_hash == cvc2.Block_hash &&
+		cvc1.Prev_block_hash == cvc2.Prev_block_hash &&
+		cvc1.Prev_cv_hash == cvc2.Prev_cv_hash
+}
