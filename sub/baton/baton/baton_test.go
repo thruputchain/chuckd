@@ -21,7 +21,7 @@ import (
 var testMarshaler = libxdr.NewXdrMarshaler()
 
 func TestMain(m *testing.M) {
-	liblog.SetLogLevel(zerolog.DebugLevel)
+	liblog.SetLogLevel(zerolog.DebugLevel, true)
 	runtime.SetRootSeed(0)
 	libruntime.InstallStackTraceOnInterrupt()
 	exitCode := m.Run()
