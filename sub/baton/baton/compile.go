@@ -156,7 +156,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if u.Validated == nil {
 				if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-					if ca.ConsensusValueHash() == u.ConsensusValueHash() {
+					if protoutil.CVCEquals(ca.ConsensusValueCue(), BlockCue(u)) {
 						u.Catchup = &ca
 						v.Blocks[i] = u
 					} else {
@@ -167,7 +167,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 		case ViewExtCueBlock:
 			if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 				// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-				if ca.ConsensusValueHash() == u.ConsensusValueHash() {
+				if protoutil.CVCEquals(ca.ConsensusValueCue(), BlockCue(u)) {
 					u.Catchup = &ca
 					v.Blocks[i] = u
 				} else {
