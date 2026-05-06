@@ -38,9 +38,9 @@ type EventNominated struct {
 }
 
 func (x EventNominated) String() string {
-	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; cv_hash %s; block_hash %s",
+	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; cvc %s; block_hash %s",
 		x.Height, x.NumTx,
-		libxdr.HashString(x.DbgConsensusValueCue.Cv_hash),
+		protoutil.CVCDisplay(x.DbgConsensusValueCue),
 		libxdr.HashString(x.BlockHash))
 }
 
@@ -54,9 +54,10 @@ type EventCommitted struct {
 }
 
 func (x EventCommitted) String() string {
-	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; cv_hash %s; block_hash %s; proposer %s",
+	cue := x.DbgValidatable.ConsensusValueCue()
+	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; cvc %s; block_hash %s; proposer %s",
 		x.Height, x.DbgValidatable.NumTransactions(),
-		libxdr.HashString(x.DbgValidatable.ConsensusValueHash()),
+		protoutil.CVCDisplay(&cue),
 		libxdr.HashString(x.BlockHash),
 		protoutil.VPublicShortString(x.DbgValidatable.AsConsensusValue().Nomination.Proposer))
 }
@@ -67,15 +68,15 @@ type EventValidating struct {
 	NumTx      int
 	Height     proto.BlockHeight
 	BlockHash  proto.BlockHash
-	CVHash     proto.ConsensusValueHash
 	//
-	DbgConsensusValue *proto.ConsensusValue
+	DbgConsensusValue    *proto.ConsensusValue
+	DbgConsensusValueCue *proto.ConsensusValueCue
 }
 
 func (x EventValidating) String() string {
-	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; cv_hash %s; block_hash %s; proposer %s",
+	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; cvc %s; block_hash %s; proposer %s",
 		x.Height, x.NumTx,
-		libxdr.HashString(x.CVHash),
+		protoutil.CVCDisplay(x.DbgConsensusValueCue),
 		libxdr.HashString(x.BlockHash),
 		protoutil.VPublicShortString(x.DbgConsensusValue.Nomination.Proposer))
 }
@@ -86,15 +87,15 @@ type EventValidated struct {
 	NumTx     int
 	Height    proto.BlockHeight
 	BlockHash proto.BlockHash
-	CVHash    proto.ConsensusValueHash
 	//
-	DbgConsensusValue *proto.ConsensusValue
+	DbgConsensusValue    *proto.ConsensusValue
+	DbgConsensusValueCue *proto.ConsensusValueCue
 }
 
 func (x EventValidated) String() string {
-	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; cv_hash %s; block_hash %s; proposer %s",
+	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; cvc %s; block_hash %s; proposer %s",
 		x.Height, x.NumTx,
-		libxdr.HashString(x.CVHash),
+		protoutil.CVCDisplay(x.DbgConsensusValueCue),
 		libxdr.HashString(x.BlockHash),
 		protoutil.VPublicShortString(x.DbgConsensusValue.Nomination.Proposer))
 }

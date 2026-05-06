@@ -23,8 +23,8 @@ func (b *Baton) validateConsensus(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; cv_hash %s; proposer %s",
-		slot, libxdr.HashString(cv.Nomination.Block_hash), libxdr.HashString(cvc.Cv_hash),
+	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; cvc %s; proposer %s",
+		slot, libxdr.HashString(cv.Nomination.Block_hash), protoutil.CVCDisplay(cvc),
 		protoutil.VPublicShortString(cvc.Proposer))
 
 	if b.tryValidateConsensusFast(ctx, slot, cv, cvc, reply) {

@@ -215,7 +215,7 @@ func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cv
 
 	liblog.Debugf(ctx, "persisting cv: height %d; cvc %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvch))
-	defer liblog.Debugf(ctx, "persisted cv: height %d; cv_hash %s",
+	defer liblog.Debugf(ctx, "persisted cv: height %d; cvc %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvch))
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvch)

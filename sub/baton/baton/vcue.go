@@ -31,16 +31,16 @@ func (x scpHandler) ValidateCue(
 	if nomination {
 		kind = "nomination"
 	}
-	liblog.Infof(ctx, "validate value (%s) requested: slot %d; cv_hash %s; block_hash %s; proposer %s",
-		kind, slot, libxdr.HashString(cvc.Cv_hash), libxdr.HashString(cvc.Block_hash),
+	liblog.Infof(ctx, "validate value (%s) requested: slot %d; cvc %s; block_hash %s; proposer %s",
+		kind, slot, protoutil.CVCDisplay(&cvc), libxdr.HashString(cvc.Block_hash),
 		protoutil.VPublicShortString(cvc.Proposer))
 	defer func() {
-		liblog.Infof(ctx, "validate value (%s) completed: slot %d; cv_hash %s; block_hash %s; proposer %s; result %v",
-			kind, slot, libxdr.HashString(cvc.Cv_hash), libxdr.HashString(cvc.Block_hash),
+		liblog.Infof(ctx, "validate value (%s) completed: slot %d; cvc %s; block_hash %s; proposer %s; result %v",
+			kind, slot, protoutil.CVCDisplay(&cvc), libxdr.HashString(cvc.Block_hash),
 			protoutil.VPublicShortString(cvc.Proposer), scpkit.ValidationLevelString(level))
 	}()
 
-	x.baton.validating.Lock(cvc.Cv_hash)
+	x.baton.validating.Lock(cvc.Cv_hash) // XXX: locking must be on cvc hash
 	defer x.baton.validating.Unlock(cvc.Cv_hash)
 
 	reply := make(chan scpkit.ValidationLevel, 1)
@@ -57,14 +57,14 @@ func (b *Baton) validateCue(
 ) {
 
 	if slot != scpkit.Slot(cvc.Block_height) {
-		liblog.Errorf(ctx, "scp slot disagrees with cv cue: cv_hash %s; slot %d; cue_height %d",
-			libxdr.HashString(cvc.Cv_hash), slot, proto.BlockHeight(cvc.Block_height))
+		liblog.Errorf(ctx, "scp slot disagrees with cv cue: cvc %s; slot %d; cue_height %d",
+			protoutil.CVCDisplay(cvc), slot, proto.BlockHeight(cvc.Block_height))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	liblog.Debugf(ctx, "validating cue: height %d; block_hash %s; cv_hash %s; proposer %s",
-		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
+	liblog.Debugf(ctx, "validating cue: height %d; block_hash %s; cvc %s; proposer %s",
+		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 		protoutil.VPublicShortString(cvc.Proposer))
 
 	// check if the value was already validated
@@ -78,23 +78,23 @@ func (b *Baton) validateCue(
 	// allows scp to externalize it, if a quorum certificate is witnessed.
 	// XXX(SECURITY): adversary can force all honest nodes to declare maybe valid to a future slot.
 	if cvc.Block_height > committedHeight+1 {
-		liblog.Errorf(ctx, "cv in the future: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+		liblog.Errorf(ctx, "cv in the future: cvc %s", protoutil.CVCDisplay(cvc))
 		reply <- scpkit.MaybeValidValue
 		return
 	}
 
 	if alreadyInvalidated {
-		liblog.Errorf(ctx, "cv already invalidated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+		liblog.Errorf(ctx, "cv already invalidated: cvc %s", protoutil.CVCDisplay(cvc))
 		reply <- scpkit.InvalidValue
 		return
 	}
 	if alreadyValidated != nil {
 		if protoutil.CVAgreesWithCue(alreadyValidated, cvc) {
-			liblog.Debugf(ctx, "cv already validated: cv_hash %s", libxdr.HashString(cvc.Cv_hash))
+			liblog.Debugf(ctx, "cv already validated: cvc %s", protoutil.CVCDisplay(cvc))
 			reply <- scpkit.FullyValidValue
 		} else {
-			liblog.Errorf(ctx, "cv already validated, but disagrees with cue: cv_hash %s",
-				libxdr.HashString(cvc.Cv_hash))
+			liblog.Errorf(ctx, "cv already validated, but disagrees with cue: cvc %s",
+				protoutil.CVCDisplay(cvc))
 			reply <- scpkit.InvalidValue
 		}
 		return
@@ -107,8 +107,8 @@ func (b *Baton) validateCue(
 	go func() {
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
-		liblog.Debugf(ctx, "cancelling validating cue: height %d; block_hash %s; cv_hash %s",
-			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash))
+		liblog.Debugf(ctx, "cancelling validating cue: height %d; block_hash %s; cvc %s",
+			slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc))
 		vCtxCancel()
 	}()
 	defer vCtxCancel()
@@ -139,8 +139,8 @@ func (b *Baton) fetchCV(
 	cvc *proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
-	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
-		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
+	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cvc %s; proposer=%s",
+		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
 
 	// lookup in cvpool
 	cv, err := b.handler.CVPoolLookup(ctx, *cvc)
@@ -149,13 +149,13 @@ func (b *Baton) fetchCV(
 	}
 	must.NoError(ctx, err)
 	if cv != nil {
-		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cv_hash=%s, proposer=%s",
-			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
+		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cvc %s, proposer=%s",
+			slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
 		return cv, nil
 	}
 
-	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cv_hash=%s, proposer=%s",
-		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
+	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cvc %s, proposer=%s",
+		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
 
 	cvReturn := make(chan *proto.ConsensusValue, 2)
 
@@ -183,14 +183,14 @@ func (b *Baton) fetchCV(
 
 	select {
 	case <-ctx.Done():
-		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
-			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
+		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cvc=%s; proposer=%s",
+			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 			protoutil.VPublicShortString(cvc.Proposer))
 		return nil, ctx.Err()
 	case cv, ok := <-cvReturn:
 		if ok {
-			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cv_hash=%s; proposer=%s",
-				slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash),
+			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cvc=%s; proposer=%s",
+				slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 				protoutil.VPublicShortString(cvc.Proposer))
 			b.handler.CVPoolAdd(ctx, *cv, *cvc)
 			return cv, nil

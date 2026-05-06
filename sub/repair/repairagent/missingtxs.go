@@ -10,7 +10,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -48,11 +47,11 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 	missing proto.MissingTransactions,
 ) (txs []proto.SignedTransaction, err error) {
 
-	ctx = liblog.Enterf(ctx, "RepairMissingTxs", "proposer=%s; height=%d; cv_hash=%s",
-		protoutil.VPublicShortString(proposer), missing.Cue.Block_height, libxdr.HashString(missing.Cue.Cv_hash))
+	ctx = liblog.Enterf(ctx, "RepairMissingTxs", "proposer=%s; height=%d; cvc=%s",
+		protoutil.VPublicShortString(proposer), missing.Cue.Block_height, protoutil.CVCDisplay(&missing.Cue))
 	defer func() {
-		liblog.Leavef(ctx, "proposer=%s; height=%d; cv_hash=%s; error=%v; found=%d",
-			protoutil.VPublicShortString(proposer), missing.Cue.Block_height, libxdr.HashString(missing.Cue.Cv_hash),
+		liblog.Leavef(ctx, "proposer=%s; height=%d; cvc=%s; error=%v; found=%d",
+			protoutil.VPublicShortString(proposer), missing.Cue.Block_height, protoutil.CVCDisplay(&missing.Cue),
 			err, len(txs))
 	}()
 
