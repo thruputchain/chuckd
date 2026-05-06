@@ -24,6 +24,8 @@ cp scpd.dev scpd
 NO_COLOR=1 RUST_LOG=debug hogx-churner \
     --chuckd-path $(pwd)/chuckd.dev \
     --scpd-path $(pwd)/scpd \
+    --num-validators {{ .num_validators }} \
+    --num-restarting {{ .num_restarting }} \
     coordinator-bench \
     --max-height 36000 \
     --on-mean-sec 10 \

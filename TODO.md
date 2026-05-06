@@ -1,6 +1,3 @@
-- [ ] churner with chosen number of restarting nodes
-  - [ ] long-running ci with 2 non-restarting nodes
-
 - [ ] bug: in churner experiment one node gets stuck at block 1150 (needs reproduction)
 
 CORRECTNESS

@@ -1,8 +1,8 @@
-name: Churner benchmark nightly 3 nodes
+name: Churner benchmark nightly 1 of 3 nodes churning
 
 on:
   schedule:
-    - cron: "0 20 * * *"
+    - cron: "0 4 * * *"
   workflow_dispatch:
 env:
   CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
@@ -46,4 +46,6 @@ jobs:
             --key=git_branch --value=main \
             --key=cargo_registry_token --value=${{ secrets.GROUNDHOG_REGISTRY_TOKEN }} \
             --key=cargo_registry_global_credential_providers --value=${{ env.CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS }} \
+            --key=num_validators --value=3 \
+            --key=num_restarting --value=1 \
             ./scripts/schedules/churner_bench_nightly.toml
