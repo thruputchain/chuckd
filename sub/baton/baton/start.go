@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -22,6 +23,9 @@ func (b *Baton) start(ctx context.Context) {
 	// restore db
 	var err error
 	tipResult, err := b.handler.RestoreDb(ctx)
+	if errors.Is(err, context.Canceled) {
+		return
+	}
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
 	b.tipDb = *tipResult.Db_tip()
@@ -29,7 +33,11 @@ func (b *Baton) start(ctx context.Context) {
 
 	// genesis block has height 0, and no corresponding consensus value
 	if b.tipDb.Height > 0 {
-		tipCV := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
+		tipCV, err := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		must.NoError(ctx, err)
 		must.Assert(ctx, tipCV != nil)
 		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
 		b.tipExt = newExternalized(protoutil.CVC(tipCV), tipCV)
@@ -49,7 +57,11 @@ func (b *Baton) start(ctx context.Context) {
 	b.handler.SCPAllowFeedingEnvelopes(ctx)
 
 	// load known externalizations above db tip
-	higherCV := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
+	higherCV, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	must.NoError(ctx, err)
 	for _, cv := range higherCV {
 		b.externalized = append(b.externalized, newExternalized(protoutil.CVC(&cv), &cv))
 	}

@@ -66,7 +66,7 @@ func (svc *CatchupService) Stop() {
 	svc.l = nil
 }
 
-func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
+func (svc *CatchupService) Lookup(ctx context.Context, height proto.BlockHeight) (*proto.CatchupBlock, error) {
 	return svc.pool.CBPoolFindCommitted(ctx, height)
 }
 
@@ -95,7 +95,12 @@ func (svc *CatchupService) Catchup_solicit(
 	blocks := []proto.CatchupBlock{}
 	for _, span := range spans {
 		for h := span.From; h < span.To; h++ {
-			if cb := svc.Lookup(ctx, h); cb != nil {
+			cb, err := svc.Lookup(ctx, h)
+			if err != nil {
+				liblog.Errorf(ctx, "catchup_solicit lookup: %v", err)
+				return proto.SignedCatchupBlocksResult{}, err
+			}
+			if cb != nil {
 				blocks = append(blocks, *cb)
 			}
 		}

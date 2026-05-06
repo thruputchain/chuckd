@@ -109,7 +109,8 @@ func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 
 func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusValue) {
 	dbTip := h.GetTip(ctx)
-	cvTip := h.FindCommittedCV(ctx, dbTip.Height) // cvTip must be non-nil
+	cvTip, err := h.FindCommittedCV(ctx, dbTip.Height) // cvTip must be non-nil
+	must.NoError(ctx, err)
 	return dbTip, *cvTip
 }
 
@@ -221,8 +222,9 @@ func (h *TestRig) WaitBackfeed(ctx context.Context) {
 	liblog.Debugf(ctx, "CAPTURED: backfeed request")
 }
 
-func (h *TestRig) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
+func (h *TestRig) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) error {
 	// not used
+	return nil
 }
 
 // connects scp to envelopes from other validators

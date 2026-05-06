@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -18,7 +19,15 @@ func (b *Baton) validateExternalizedCue(
 ) {
 	liblog.Debugf(ctx, "validating cue for already externalized slot %d", slot)
 
-	cv := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
+	cv, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
+	if errors.Is(err, context.Canceled) {
+		// context cancellation is expected only if validation is being aborted due to externalizations ahead.
+		// cancellation on this condition is triggered in validateCue.
+		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
+		reply <- scpkit.MaybeValidValue
+		return
+	}
+	must.NoError(ctx, err)
 	must.Assert(ctx, cv != nil)
 
 	if protoutil.CVAgreesWithCue(cv, cvc) {
@@ -38,7 +47,15 @@ func (b *Baton) validateCommittedConsensus(
 ) {
 	liblog.Debugf(ctx, "validating consensus value for already externalized slot %d", slot)
 
-	cvx := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
+	cvx, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
+	if errors.Is(err, context.Canceled) {
+		// context cancellation is expected only if validation is being aborted due to externalizations ahead.
+		// cancellation on this condition is triggered in validateCue.
+		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
+		reply <- scpkit.MaybeValidValue
+		return
+	}
+	must.NoError(ctx, err)
 	must.Assert(ctx, cvx != nil)
 
 	if b.hashCV(cvx) == cvc.Cv_hash {
