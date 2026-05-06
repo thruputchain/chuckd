@@ -194,7 +194,7 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, cvch protoutil.CVCHash) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
-		fmt.Sprintf("catchup-%012d-%x.xdr", height, cvch),
+		fmt.Sprintf("catchup-%012d-%x.xdr", height, cvch.Bytes()),
 	)
 }
 
@@ -258,7 +258,7 @@ func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
 		return "", err
 	}
 
-	persistSuffix := fmt.Sprintf("-%x.xdr", cvch)
+	persistSuffix := fmt.Sprintf("-%x.xdr", cvch.Bytes())
 	prePersistSuffix := persistSuffix + ".prepersist"
 
 	var matches []string
@@ -284,7 +284,7 @@ func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
 		// for the same catchup block.
 		// it should not be possible that multiple files have the same hash, but
 		// different heights.
-		return "", fmt.Errorf("multiple catchup files found for hash %x: %v", cvch, matches)
+		return "", fmt.Errorf("multiple catchup files found for hash %v: %v", cvch.Display(), matches)
 	}
 }
 

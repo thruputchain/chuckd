@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 )
 
 func touch(t *testing.T, full string) {
@@ -18,10 +18,10 @@ func touch(t *testing.T, full string) {
 	}
 }
 
-func mustHash(fill byte) proto.ConsensusValueHash {
-	var h proto.ConsensusValueHash
-	for i := range h {
-		h[i] = fill
+func mustHash(fill byte) protoutil.CVCHash {
+	var h protoutil.CVCHash
+	for i := range h.Slice() {
+		h.Slice()[i] = fill
 		fill++
 	}
 	return h
@@ -103,8 +103,8 @@ func TestFindCatchupFilesByHash_MissingDirReturnsEmpty(t *testing.T) {
 	}
 }
 
-func toHex(h proto.ConsensusValueHash) string {
-	return stringLowerHex(h[:])
+func toHex(h protoutil.CVCHash) string {
+	return stringLowerHex(h.Slice())
 }
 
 func stringLowerHex(b []byte) string {

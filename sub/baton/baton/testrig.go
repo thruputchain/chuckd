@@ -89,7 +89,7 @@ func NewTestRig(
 	)
 	// place a consensus value for the db tip
 	cv0 := assumedConsensusValueAtHeight(0)
-	h.TestCVPersistence.PersistCV(ctx, cv0, protoutil.HashCVFast(&cv0))
+	h.TestCVPersistence.PersistCV(ctx, cv0, protoutil.CVCHashFromCV(&cv0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)

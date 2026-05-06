@@ -7,7 +7,6 @@ import (
 	"github.com/groundhogchain/chuckd/sub/storage"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -38,12 +37,12 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 	cvch := protoutil.HashCVC(&cue)
 
 	liblog.Infof(ctx, "adding catchup block to pool: height %d; cvc %s; proposer %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvch),
+		cb.Consensus_value.Nomination.Block_height, cvch.Display(),
 		protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
 	if _, alreadyPersisting := cbp.persisting[cvch]; alreadyPersisting {
 		liblog.Infof(ctx, "catchup block already persisting: height %d; cvc %s; proposer %s",
-			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvch),
+			cb.Consensus_value.Nomination.Block_height, cvch.Display(),
 			protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 		return nil
 	}
@@ -58,7 +57,7 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 		close(donePersisting)
 
 		liblog.Debugf(ctx, "finished pre-persisting catchup block: height %d; cvc %s; proposer %s",
-			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvch),
+			cb.Consensus_value.Nomination.Block_height, cvch.Display(),
 			protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
 		cbp.lk.Lock()
@@ -77,13 +76,13 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cue proto
 	cbp.lk.Unlock()
 	if !ok {
 		liblog.Infof(ctx, "catchup need not wait for pre-persist: cvc %s",
-			libxdr.HashString(cvch))
+			cvch.Display())
 		return
 	}
 	<-donePersisting
 
 	liblog.Infof(ctx, "finished waiting for catchup to pre-persist: cvc %s",
-		libxdr.HashString(cvch))
+		cvch.Display())
 }
 
 func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(

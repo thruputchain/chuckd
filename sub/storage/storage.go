@@ -99,11 +99,9 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height,
-		libxdr.HashString(cvch))
+		cb.Consensus_value.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "pre-persisted catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height,
-		libxdr.HashString(cvch))
+		cb.Consensus_value.Nomination.Block_height, cvch.Display())
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvch)
 	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
@@ -124,9 +122,9 @@ func (x *DiskStorage) PersistCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "persisting catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvch))
+		cb.Consensus_value.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "persisted catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvch))
+		cb.Consensus_value.Nomination.Block_height, cvch.Display())
 
 	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvch)
 	x.catchupPP.Persist(ctx, full,
@@ -174,9 +172,9 @@ func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "persisting already pre-persisted catchup block: height %d; cvc %s",
-		height, libxdr.HashString(cvch))
+		height, cvch.Display())
 	defer liblog.Debugf(ctx, "persisted already pre-persisted catchup block: height %d; cvc %s",
-		height, libxdr.HashString(cvch))
+		height, cvch.Display())
 
 	full := x.CatchupBlockFilepath(height, cvch)
 	x.catchupPP.PersistAlreadyPrePersisted(ctx, full)
@@ -214,9 +212,9 @@ func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cv
 	}
 
 	liblog.Debugf(ctx, "persisting cv: height %d; cvc %s",
-		cv.Nomination.Block_height, libxdr.HashString(cvch))
+		cv.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "persisted cv: height %d; cvc %s",
-		cv.Nomination.Block_height, libxdr.HashString(cvch))
+		cv.Nomination.Block_height, cvch.Display())
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvch)
 	x.consensusPP.Persist(ctx, full,
@@ -235,9 +233,9 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue,
 	}
 
 	liblog.Debugf(ctx, "pre-persisting cv: height %d; cvc %s",
-		cv.Nomination.Block_height, libxdr.HashString(cvch))
+		cv.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "pre-persisted cv: height %d; cvc %s",
-		cv.Nomination.Block_height, libxdr.HashString(cvch))
+		cv.Nomination.Block_height, cvch.Display())
 
 	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvch)
 	x.consensusPP.PrePersist(ctx, full,

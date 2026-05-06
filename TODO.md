@@ -5,12 +5,11 @@
 
 - [x] log cvc hash everywhere, instead of cv hash
 
-- [ ] cvchash as struct type
-
 - [ ] run churner in -race mode (and in ci)
 - [ ] churner with chosen number of restarting nodes
   - [ ] long-running ci with 2 non-restarting nodes
 
+- [x] cvchash as struct type
 - [ ] address XXX
 - [ ] cue equality, including proposer
 - [ ] baton fields: persiting, validated, etc (use cue hash)
