@@ -74,10 +74,18 @@ func (x *SCPBroker) SCPWaitReady() {
 	<-x.controllerReady
 }
 
-func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) {
-	for _, slot := range x.storage.ListSlotsWithSCPEnvelopesNotBelow(ctx, slot) {
+func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit.Slot) error {
+	slots, err := x.storage.ListSlotsWithSCPEnvelopesNotBelow(ctx, slot)
+	if err != nil {
+		return err
+	}
+	for _, slot := range slots {
 		liblog.Infof(ctx, "reviving state from envelopes for slot %d", slot)
-		for _, env := range x.storage.FindSCPEnvelopesForSlotFromLocal(ctx, slot) {
+		envs, err := x.storage.FindSCPEnvelopesForSlotFromLocal(ctx, slot)
+		if err != nil {
+			return err
+		}
+		for _, env := range envs {
 			if protoutil.NodeToValidatorID(env.Statement.Node_id) == protoutil.PublicVID(x.router.Self()) {
 				liblog.Infof(ctx, "scp set state from envelope: slot=%d; env=%v",
 					slot, protoutil.SCPEnvelopeDisplay(env))
@@ -85,6 +93,7 @@ func (x *SCPBroker) SCPReviveStateFromEnvelopes(ctx context.Context, slot scpkit
 			}
 		}
 	}
+	return nil
 }
 
 func (x *SCPBroker) SCPAllowFeedingEnvelopes(ctx context.Context) {
@@ -115,7 +124,7 @@ func (x *SCPBroker) SCPFeedEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	x.controller.SCPReceivedEnvelope(ctx, env)
 }
 
-func (x *SCPBroker) RepairEnvelopes(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
+func (x *SCPBroker) RepairEnvelopes(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
 	return x.storage.FindSCPEnvelopesForSlot(ctx, slot)
 }
 

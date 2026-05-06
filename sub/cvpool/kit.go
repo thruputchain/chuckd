@@ -11,18 +11,18 @@ type CVPool interface {
 		ctx context.Context,
 		cv proto.ConsensusValue,
 		cue proto.ConsensusValueCue, // passed for efficiency purposes
-	)
+	) error
 
 	CVPoolCommit(
 		ctx context.Context,
 		cv proto.ConsensusValue,
 		cue proto.ConsensusValueCue, // passed for efficiency purposes
-	)
+	) error
 
 	CVPoolLookup(
 		ctx context.Context,
 		cue proto.ConsensusValueCue,
-	) *proto.ConsensusValue
+	) (*proto.ConsensusValue, error)
 
 	CVPoolWaitFor(
 		ctx context.Context,
@@ -34,19 +34,19 @@ type CVPool interface {
 	CVPoolFind(
 		ctx context.Context,
 		cue proto.ConsensusValueCue,
-	) *proto.ConsensusValue
+	) (*proto.ConsensusValue, error)
 
 	CVPoolFindCommitted(
 		ctx context.Context,
 		height proto.BlockHeight,
-	) *proto.ConsensusValue
+	) (*proto.ConsensusValue, error)
 
 	CVPoolFindHighestCommitted(
 		ctx context.Context,
-	) *proto.ConsensusValue
+	) (*proto.ConsensusValue, error)
 
 	CVPoolFindCommittedAbove(
 		ctx context.Context,
 		above proto.BlockHeight,
-	) []proto.ConsensusValue
+	) ([]proto.ConsensusValue, error)
 }

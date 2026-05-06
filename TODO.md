@@ -1,8 +1,9 @@
 - [x] cvpool keys with cue hash
+- [ ] log cvc hash everywhere, instead of cv hash
+
 - [ ] address XXX
 - [ ] cue equality, including proposer
 - [ ] baton fields: persiting, validated, etc (use cue hash)
-- [ ] log cvc hash everywhere, instead of cv hash
 
 CORRECTNESS
 

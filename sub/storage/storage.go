@@ -78,13 +78,14 @@ func (x *DiskStorage) Stop() {
 
 // WaitReady blocks until the storage is ready to be used and returns nil.
 // It returns non-nil error, if the storage system has been stopped or the context is done.
-func (x *DiskStorage) WaitReady(ctx context.Context) {
+func (x *DiskStorage) WaitReady(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
-		must.Assertf(ctx, false, "storage operation after context done")
+		return ctx.Err()
 	case <-x.ready:
 		flk := x.flk.Load()
 		must.Assertf(ctx, flk != nil, "storage operation after stop")
+		return nil
 	}
 }
 
@@ -92,8 +93,10 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
 	cvch protoutil.CVCHash,
-) {
-	x.WaitReady(ctx)
+) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; cvc %s",
 		cb.Consensus_value.Nomination.Block_height,
@@ -107,14 +110,18 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
 	})
+
+	return nil
 }
 
 func (x *DiskStorage) PersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
 	cvch protoutil.CVCHash,
-) {
-	x.WaitReady(ctx)
+) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	liblog.Debugf(ctx, "persisting catchup block: height %d; cvc %s",
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cvch))
@@ -128,6 +135,8 @@ func (x *DiskStorage) PersistCatchupBlock(
 			return nil
 		},
 	)
+
+	return nil
 }
 
 // LookupCatchupBlock finds persisted or pre-persisted catchup blocks with given cv hash.
@@ -135,13 +144,15 @@ func (x *DiskStorage) PersistCatchupBlock(
 func (x *DiskStorage) LookupCatchupBlock(
 	ctx context.Context,
 	cvch protoutil.CVCHash,
-) *proto.CatchupBlock {
-	x.WaitReady(ctx)
+) (*proto.CatchupBlock, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	full, err := FindCatchupFileByHash(x.CatchupBlocksDirpath(), cvch)
 	must.NoError(ctx, err)
 	if full == "" {
-		return nil
+		return nil, nil
 	}
 
 	cb := &proto.CatchupBlock{}
@@ -150,15 +161,17 @@ func (x *DiskStorage) LookupCatchupBlock(
 	})
 	must.NoError(ctx, err)
 
-	return cb
+	return cb, nil
 }
 
 func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
 	cvch protoutil.CVCHash,
-) {
-	x.WaitReady(ctx)
+) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	liblog.Debugf(ctx, "persisting already pre-persisted catchup block: height %d; cvc %s",
 		height, libxdr.HashString(cvch))
@@ -167,15 +180,19 @@ func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 
 	full := x.CatchupBlockFilepath(height, cvch)
 	x.catchupPP.PersistAlreadyPrePersisted(ctx, full)
+
+	return nil
 }
 
-func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock {
-	x.WaitReady(ctx)
+func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHeight) (*proto.CatchupBlock, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	files, err := ListCatchupFilesAtHeight(x.CatchupBlocksDirpath(), height)
 	must.NoError(ctx, err)
 	if len(files) == 0 {
-		return nil
+		return nil, nil
 	}
 	must.Assertf(ctx, len(files) == 1, "expected exactly one catchup file at height %d, got %d", height, len(files))
 	full := files[len(files)-1]
@@ -186,13 +203,15 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 	})
 	must.NoError(ctx, err)
 
-	return cb
+	return cb, nil
 }
 
 // consensus values
 
-func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) {
-	x.WaitReady(ctx)
+func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	liblog.Debugf(ctx, "persisting cv: height %d; cvc %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvch))
@@ -206,10 +225,14 @@ func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cv
 			return nil
 		},
 	)
+
+	return nil
 }
 
-func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) {
-	x.WaitReady(ctx)
+func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	liblog.Debugf(ctx, "pre-persisting cv: height %d; cvc %s",
 		cv.Nomination.Block_height, libxdr.HashString(cvch))
@@ -223,10 +246,14 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue,
 			return nil
 		},
 	)
+
+	return nil
 }
 
-func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) *proto.ConsensusValue {
-	x.WaitReady(ctx)
+func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusValue, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	full := x.ConsensusValueFilepath(height, cvch)
 
@@ -236,21 +263,23 @@ func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch
 	})
 	must.NoError(ctx, err)
 
-	return cv
+	return cv, nil
 }
 
-func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue {
-	x.WaitReady(ctx)
+func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusValue, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	files, err := x.ListConsensusValueFilesAtHeight(height)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil
+			return nil, nil
 		}
 		must.NoError(ctx, err)
 	}
 	if len(files) == 0 {
-		return nil
+		return nil, nil
 	}
 	must.Assertf(ctx, len(files) == 1, "expected exactly one committed consensus value file at height %d, got %d", height, len(files))
 	full := files[len(files)-1]
@@ -261,10 +290,10 @@ func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHei
 	})
 	must.NoError(ctx, err)
 
-	return cv
+	return cv, nil
 }
 
-func (x *DiskStorage) FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue {
+func (x *DiskStorage) FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusValue, error) {
 	return x.FindCommittedCV(ctx, x.findConsensusValueMaxHeight(ctx))
 }
 
@@ -297,8 +326,10 @@ var errStopWalking = fmt.Errorf("stop reverse file walk")
 
 // scp envelopes
 
-func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) {
-	x.WaitReady(ctx)
+func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	hash := libxdr.HashXdr(x.scpM, &env)
 	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, hash[:5])
@@ -309,10 +340,14 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 			return nil
 		},
 	)
+
+	return nil
 }
 
-func (x *DiskStorage) PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope) {
-	x.WaitReady(ctx)
+func (x *DiskStorage) PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope) error {
+	if err := x.WaitReady(ctx); err != nil {
+		return err
+	}
 
 	full := x.SCPEnvelopeFromLocalFilepath(env.Statement.Slot_index)
 
@@ -322,15 +357,19 @@ func (x *DiskStorage) PersistSCPEnvelopeFromLocal(ctx context.Context, env proto
 			return nil
 		},
 	)
+
+	return nil
 }
 
-func (x *DiskStorage) FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
-	x.WaitReady(ctx)
+func (x *DiskStorage) FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	full := x.SCPEnvelopeFromLocalFilepath(slot)
 
 	if !isPresent(full) {
-		return nil
+		return nil, nil
 	}
 
 	env := proto.SCPEnvelope{}
@@ -339,11 +378,13 @@ func (x *DiskStorage) FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot
 	})
 	must.NoError(ctx, err)
 
-	return []proto.SCPEnvelope{env}
+	return []proto.SCPEnvelope{env}, nil
 }
 
-func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope {
-	x.WaitReady(ctx)
+func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	found := []proto.SCPEnvelope{}
 
@@ -351,7 +392,7 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 
 	envpaths, err := ListScpFiles(slotpath)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 
 	for _, envpath := range envpaths {
@@ -363,13 +404,15 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 		found = append(found, env)
 	}
 
-	return found
+	return found, nil
 }
 
 // ListSlotsWithSCPEnvelopesNotBelow lists all slots not below a given slot that have persisted scp envelopes.
 // The slots are returned in ascending order.
-func (x *DiskStorage) ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, below proto.SCPSlotIndex) []proto.SCPSlotIndex {
-	x.WaitReady(ctx)
+func (x *DiskStorage) ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, below proto.SCPSlotIndex) ([]proto.SCPSlotIndex, error) {
+	if err := x.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 
 	_, allFound, err := ListSCPSlotDirs(x.SCPEnvelopesDirpath())
 	must.NoError(ctx, err)
@@ -382,5 +425,5 @@ func (x *DiskStorage) ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, bel
 		found = append(found, index)
 	}
 
-	return found
+	return found, nil
 }

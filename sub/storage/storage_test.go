@@ -32,7 +32,10 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 
 	st.PersistCatchupBlock(ctx, cb, protoutil.HashCVFast(&cv))
 
-	got := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
+	got, err := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
+	if err != nil {
+		t.Fatalf("FindCatchupBlock returned error: %v", err)
+	}
 	if got == nil {
 		t.Fatalf("FindCatchupBlock returned no result")
 	}
@@ -41,7 +44,10 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		t.Fatalf("FindCatchupBlock mismatch:\n got: %#v\nwant: %#v", *got, cb)
 	}
 
-	found := st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
+	found, err := st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
+	if err != nil {
+		t.Fatalf("FindCatchupBlock returned error: %v", err)
+	}
 	if found != nil {
 		t.Fatalf("expected missing block, got some")
 	}
@@ -72,7 +78,10 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 		st.PersistSCPEnvelope(ctx, env)
 	}
 
-	got := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(4))
+	got, err := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(4))
+	if err != nil {
+		t.Fatalf("FindSCPEnvelopesForSlot returned error: %v", err)
+	}
 
 	if len(got) != 2 {
 		t.Fatalf("expected 2 envelopes, got %d", len(got))
@@ -85,12 +94,18 @@ func TestFindSCPEnvelopesSinceSlot(t *testing.T) {
 		t.Fatalf("got %d, want 4", got[1].Statement.Slot_index)
 	}
 
-	afterGap := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(6))
+	afterGap, err := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(6))
+	if err != nil {
+		t.Fatalf("FindSCPEnvelopesForSlot returned error: %v", err)
+	}
 	if len(afterGap) != 1 || afterGap[0].Statement.Slot_index != proto.SCPSlotIndex(6) {
 		t.Fatalf("expected single envelope at slot 6, got %+v", afterGap)
 	}
 
-	none := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(10))
+	none, err := st.FindSCPEnvelopesForSlot(ctx, proto.SCPSlotIndex(10))
+	if err != nil {
+		t.Fatalf("FindSCPEnvelopesForSlot returned error: %v", err)
+	}
 	if len(none) != 0 {
 		t.Fatalf("expected no envelopes starting from slot 10, got %d", len(none))
 	}
@@ -114,13 +129,19 @@ func TestListSlotsWithSCPEnvelopesNotBelow(t *testing.T) {
 	st.PersistSCPEnvelopeFromLocal(ctx, newEnvelope(4, 0x12))
 	st.PersistSCPEnvelope(ctx, newEnvelope(6, 0x13))
 
-	got := st.ListSlotsWithSCPEnvelopesNotBelow(ctx, 4)
+	got, err := st.ListSlotsWithSCPEnvelopesNotBelow(ctx, 4)
+	if err != nil {
+		t.Fatalf("ListSlotsWithSCPEnvelopesNotBelow returned error: %v", err)
+	}
 	want := []proto.SCPSlotIndex{4, 6}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ListSlotsWithSCPEnvelopesNotBelow mismatch:\n got: %v\nwant: %v", got, want)
 	}
 
-	got = st.ListSlotsWithSCPEnvelopesNotBelow(ctx, 5)
+	got, err = st.ListSlotsWithSCPEnvelopesNotBelow(ctx, 5)
+	if err != nil {
+		t.Fatalf("ListSlotsWithSCPEnvelopesNotBelow returned error: %v", err)
+	}
 	want = []proto.SCPSlotIndex{6}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ListSlotsWithSCPEnvelopesNotBelow mismatch:\n got: %v\nwant: %v", got, want)
@@ -144,7 +165,10 @@ func TestFindConsensusValue(t *testing.T) {
 	cv := newConsensusValue(time.Unix(1700001000, 0).UTC(), 10)
 	st.PersistCV(ctx, cv, protoutil.HashCVFast(&cv))
 
-	got := st.FindCommittedCV(ctx, cv.Nomination.Block_height)
+	got, err := st.FindCommittedCV(ctx, cv.Nomination.Block_height)
+	if err != nil {
+		t.Fatalf("FindCommittedCV returned error: %v", err)
+	}
 	if got == nil {
 		t.Fatalf("FindConsensusValue returned nil for persisted height %d", cv.Nomination.Block_height)
 	}
@@ -153,7 +177,11 @@ func TestFindConsensusValue(t *testing.T) {
 		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, cv)
 	}
 
-	if missing := st.FindCommittedCV(ctx, cv.Nomination.Block_height+1); missing != nil {
+	missing, err := st.FindCommittedCV(ctx, cv.Nomination.Block_height+1)
+	if err != nil {
+		t.Fatalf("FindCommittedCV returned error: %v", err)
+	}
+	if missing != nil {
 		t.Fatalf("expected nil for non-existent height, got %+v", missing)
 	}
 }
@@ -182,7 +210,10 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		st.PersistCV(ctx, cv, protoutil.HashCVFast(&cv))
 	}
 
-	got := FindCommittedConsensusValuesAbove(ctx, st, 4)
+	got, err := FindCommittedConsensusValuesAbove(ctx, st, 4)
+	if err != nil {
+		t.Fatalf("FindCommittedConsensusValuesAbove returned error: %v", err)
+	}
 
 	if len(got) != len(consensusValues) {
 		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusValues), len(got))

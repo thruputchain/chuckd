@@ -42,7 +42,8 @@ func (b *Baton) start(ctx context.Context) {
 
 	// initialize scp
 	b.handler.SCPSetLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
-	b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(b.tipDb.Height+1))
+	err = b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(b.tipDb.Height+1))
+	must.NoError(ctx, err)
 
 	// prevents scpd from processing envelopes before the initialization above completes.
 	b.handler.SCPAllowFeedingEnvelopes(ctx)

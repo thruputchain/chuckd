@@ -56,7 +56,7 @@ type SCPKnownQSets interface {
 type SCPCommander interface {
 	SCPBackfeedEnvelopes(ctx context.Context, since Slot, timeout time.Duration)
 	SCPSetLowestNonExternalized(ctx context.Context, slot Slot)
-	SCPReviveStateFromEnvelopes(ctx context.Context, slot Slot)
+	SCPReviveStateFromEnvelopes(ctx context.Context, slot Slot) error
 	// connects scp to envelopes from other validators
 	SCPAllowFeedingEnvelopes(ctx context.Context)
 }

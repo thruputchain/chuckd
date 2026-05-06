@@ -74,10 +74,18 @@ func TestReclaimCatchupBlocksRemovesOldest(t *testing.T) {
 		}
 	}
 
-	if found := st.FindCatchupBlock(ctx, proto.BlockHeight(heights[0])); found != nil {
+	found, err := st.FindCatchupBlock(ctx, proto.BlockHeight(heights[0]))
+	if err != nil {
+		t.Fatalf("FindCatchupBlock returned error: %v", err)
+	}
+	if found != nil {
 		t.Fatalf("expected catchup block %d to be reclaimed, got some", heights[0])
 	}
-	if found := st.FindCatchupBlock(ctx, proto.BlockHeight(heights[2])); found == nil {
+	found, err = st.FindCatchupBlock(ctx, proto.BlockHeight(heights[2]))
+	if err != nil {
+		t.Fatalf("FindCatchupBlock returned error: %v", err)
+	}
+	if found == nil {
 		t.Fatalf("expected catchup block %d to remain readable, got none", heights[2])
 	}
 }
