@@ -56,16 +56,6 @@ type Baton struct {
 	batchRepairM   libxdr.XdrMarshaler
 }
 
-type validated struct {
-	*proto.ConsensusValue
-	proto.BlockHeight
-	proto.BlockID
-}
-
-type invalidated struct {
-	*proto.ConsensusValue
-}
-
 func NewBaton(
 	ctx context.Context,
 	cfg proto.BatonConfig,
