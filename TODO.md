@@ -11,10 +11,10 @@
 
 - [x] cvchash as struct type
 - [x] address XXX
-  - [ ] baton.validated/invalidated use cue
-  - [ ] AnnounceNomination use cue
-  - [ ] x.baton.validating.Lock(cvc.Cv_hash) // XXX: locking must be on cvc hash
-  - [ ] scan for leftover ConsensusValueHash type usage
+  - [x] baton.validated/invalidated use cue
+  - [x] AnnounceNomination use cue
+  - [x] x.baton.validating.Lock(cvc.Cv_hash) // XXX: locking must be on cvc hash
+  - [x] scan for leftover ConsensusValueHash type usage
 - [ ] cue equality, including proposer
   - CVAgreesWithCue, CVCEquals
 - [ ] baton fields: persiting, validated, etc (use cue hash)

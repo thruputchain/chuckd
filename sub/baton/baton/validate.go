@@ -5,10 +5,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
-	return protoutil.HashCVFast(cv)
-}
-
 // validated cache
 
 func (b *Baton) setValidated(

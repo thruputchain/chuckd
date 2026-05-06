@@ -197,7 +197,7 @@ func (h *TestRig) RepairMissingCV(
 	panic("not used")
 }
 
-func (h *TestRig) AnnounceNomination(height proto.BlockHeight, cvh proto.ConsensusValueHash) {
+func (h *TestRig) AnnounceNomination(cue *proto.ConsensusValueCue) {
 }
 
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}

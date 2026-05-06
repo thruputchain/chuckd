@@ -130,7 +130,7 @@ func (b *Baton) nominate(
 
 	// notify the repair service that we are making the nomination, so that it
 	// honors requests for missing transactions
-	b.handler.AnnounceNomination(cvc.Block_height, cvc.Cv_hash)
+	b.handler.AnnounceNomination(cvc)
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nomination.Prev_block_hash}

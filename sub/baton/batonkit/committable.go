@@ -10,7 +10,6 @@ type Committable interface {
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
-	ConsensusValueHash() proto.ConsensusValueHash
 	AsConsensusValue() *proto.ConsensusValue
 	ConsensusValueCue() *proto.ConsensusValueCue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
@@ -52,10 +51,6 @@ func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
 		panic("bug")
 	}
 	return cb.validated
-}
-
-func (cb *CommittableNomination) ConsensusValueHash() proto.ConsensusValueHash {
-	return cb.cvc.Cv_hash
 }
 
 func (cb *CommittableNomination) ConsensusValueCue() *proto.ConsensusValueCue {
@@ -109,10 +104,6 @@ func (cb *CommittableCatchup) PrevBlockHash() proto.BlockHash {
 
 func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {
 	return cb.validated
-}
-
-func (cb *CommittableCatchup) ConsensusValueHash() proto.ConsensusValueHash {
-	return cb.cvc.Cv_hash
 }
 
 func (cb *CommittableCatchup) ConsensusValueCue() *proto.ConsensusValueCue {

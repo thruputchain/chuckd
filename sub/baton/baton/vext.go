@@ -58,7 +58,7 @@ func (b *Baton) validateCommittedConsensus(
 	must.NoError(ctx, err)
 	must.Assert(ctx, cvx != nil)
 
-	if b.hashCV(cvx) == cvc.Cv_hash {
+	if protoutil.HashCVFast(cvx) == cvc.Cv_hash {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue
