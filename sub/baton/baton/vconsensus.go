@@ -97,18 +97,18 @@ func (b *Baton) validateConsensus(
 
 	// check if block previous invalidated to prevent expensive validation
 	b.lock()
-	alreadyInvalidated := b.isInvalidated(cvc.Cv_hash, cvc.Block_height)
+	alreadyInvalidated := b.isInvalidated(cvc)
 	b.unlock()
 	if alreadyInvalidated {
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	validatedTip, err := b.validateProposal(ctx, *dbTip, cv, *cvc)
+	validatedTip, err := b.validateProposal(ctx, *dbTip, cv, cvc)
 	if errors.Is(err, batonkit.ErrNotValid) {
 		// cache invalidation to prevent dos
 		b.lock()
-		b.setInvalidated(cv, cvc.Cv_hash)
+		b.setInvalidated(cv, cvc)
 		b.unlock()
 
 		reply <- scpkit.InvalidValue
@@ -128,7 +128,7 @@ func (b *Baton) validateConsensus(
 		libxdr.HashString(cv.Nomination.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
 	b.lock()
-	b.setValidated(cv, cvc.Cv_hash, cv.Nomination.Block_height, validatedTip.Id)
+	b.setValidated(cv, cvc, validatedTip.Id)
 	b.unlock()
 
 	reply <- scpkit.FullyValidValue
@@ -155,7 +155,7 @@ func (b *Baton) tryValidateConsensusFast(
 
 	b.lock()
 	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidatedBlockID(cvc.Cv_hash, cvc.Block_height)
+	alreadyValidated := b.getValidatedBlockID(cvc)
 	b.unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {

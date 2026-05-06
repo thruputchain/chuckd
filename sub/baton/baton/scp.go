@@ -101,7 +101,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.Nomination.Block_height))
 
-		extConsensus := newExternalized(cvc, cv)
+		extConsensus := newExternalized(&cvc, cv)
 		if x.baton.placeExternalization(ctx, extConsensus) {
 			// XXX: Is CV persistence necessary here, considering it also happens in commit?
 			t0 := time.Now()

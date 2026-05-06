@@ -66,7 +66,7 @@ func (a CatchupArrival) ConsensusValueHash() proto.ConsensusValueHash {
 	return a.cvhash
 }
 
-func (a CatchupArrival) ConsensusValueCue() proto.ConsensusValueCue {
+func (a CatchupArrival) ConsensusValueCue() *proto.ConsensusValueCue {
 	return protoutil.CVCGivenCVHash(a.ConsensusValue(), a.cvhash)
 }
 

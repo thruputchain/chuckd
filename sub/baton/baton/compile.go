@@ -102,7 +102,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		if extConsensus, ok := ext.(externalizedConsensus); ok {
 			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtConsensusBlock{
 				Ext:       extConsensus,
-				Validated: b.getValidatedBlockID(ext.ConsensusValueHash(), ext.Height()),
+				Validated: b.getValidatedBlockID(ext.ConsensusValueCue()),
 			}
 		} else {
 			extCue := ext.(externalizedCue)
@@ -146,7 +146,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 				v.Blocks[i] = ViewCatchupBlock{
 					Candidate: ca,
 					Linked:    false, // linked will be computed later
-					Validated: b.getValidatedBlockID(ca.ConsensusValueHash(), ca.BlockHeight()),
+					Validated: b.getValidatedBlockID(ca.ConsensusValueCue()),
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}

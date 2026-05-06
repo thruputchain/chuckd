@@ -10,8 +10,13 @@
   - [ ] long-running ci with 2 non-restarting nodes
 
 - [x] cvchash as struct type
-- [ ] address XXX
+- [x] address XXX
+  - [ ] baton.validated/invalidated use cue
+  - [ ] AnnounceNomination use cue
+  - [ ] x.baton.validating.Lock(cvc.Cv_hash) // XXX: locking must be on cvc hash
+  - [ ] scan for leftover ConsensusValueHash type usage
 - [ ] cue equality, including proposer
+  - CVAgreesWithCue, CVCEquals
 - [ ] baton fields: persiting, validated, etc (use cue hash)
 
 - [ ] bug: in churner experiment one node gets stuck at block 1150 (needs reproduction)

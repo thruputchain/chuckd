@@ -19,7 +19,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	cvc := cb.ConsensusValueCue()
 	liblog.Infof(ctx, "committing: height %d; block_hash %s; cvc %s; proposer %s",
 		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()),
-		protoutil.CVCDisplay(&cvc),
+		protoutil.CVCDisplay(cvc),
 		protoutil.VPublicShortString(cb.AsConsensusValue().Nomination.Proposer))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
@@ -51,10 +51,10 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	}
 
 	// CV must be guaranteed persisted before the db commits.
-	b.handler.CVPoolCommit(ctx, *cb.AsConsensusValue(), cb.ConsensusValueCue())
+	b.handler.CVPoolCommit(ctx, *cb.AsConsensusValue(), *cb.ConsensusValueCue())
 
 	// catchup block must be guaranteed persisted before the db commits.
-	b.handler.CBPoolWaitPersist(ctx, cb.ConsensusValueCue())
+	b.handler.CBPoolWaitPersist(ctx, *cb.ConsensusValueCue())
 
 	// commit to db
 	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)

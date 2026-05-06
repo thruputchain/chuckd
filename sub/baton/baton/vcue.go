@@ -40,8 +40,8 @@ func (x scpHandler) ValidateCue(
 			protoutil.VPublicShortString(cvc.Proposer), scpkit.ValidationLevelString(level))
 	}()
 
-	x.baton.validating.Lock(cvc.Cv_hash) // XXX: locking must be on cvc hash
-	defer x.baton.validating.Unlock(cvc.Cv_hash)
+	x.baton.validating.Lock(protoutil.HashCVC(&cvc))
+	defer x.baton.validating.Unlock(protoutil.HashCVC(&cvc))
 
 	reply := make(chan scpkit.ValidationLevel, 1)
 	go x.baton.validateCue(ctx, slot, &cvc, reply)
@@ -69,8 +69,8 @@ func (b *Baton) validateCue(
 
 	// check if the value was already validated
 	b.lock()
-	alreadyValidated := b.getValidatedCV(cvc.Cv_hash, cvc.Block_height)
-	alreadyInvalidated := b.isInvalidated(cvc.Cv_hash, cvc.Block_height)
+	alreadyValidated := b.getValidatedCV(cvc)
+	alreadyInvalidated := b.isInvalidated(cvc)
 	committedHeight := b.tipDb.Height
 	b.unlock()
 

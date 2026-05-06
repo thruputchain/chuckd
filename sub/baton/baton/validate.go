@@ -13,28 +13,27 @@ func (b *Baton) hashCV(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 
 func (b *Baton) setValidated(
 	cv *proto.ConsensusValue,
-	cvh proto.ConsensusValueHash,
-	height proto.BlockHeight,
+	cvc *proto.ConsensusValueCue,
 	blockID proto.BlockID,
 ) {
-	b.validated[cvh] = validated{
+	b.validated[protoutil.HashCVC(cvc)] = validated{
 		ConsensusValue: cv,
-		BlockHeight:    height,
+		BlockHeight:    cvc.Block_height,
 		BlockID:        blockID,
 	}
 }
 
-func (b *Baton) getValidatedCV(cvh proto.ConsensusValueHash, height proto.BlockHeight) *proto.ConsensusValue {
-	v, ok := b.validated[cvh]
-	if !ok || v.BlockHeight != height {
+func (b *Baton) getValidatedCV(cvc *proto.ConsensusValueCue) *proto.ConsensusValue {
+	v, ok := b.validated[protoutil.HashCVC(cvc)]
+	if !ok || v.BlockHeight != cvc.Block_height {
 		return nil
 	}
 	return v.ConsensusValue
 }
 
-func (b *Baton) getValidatedBlockID(cvh proto.ConsensusValueHash, height proto.BlockHeight) *proto.BlockID {
-	v, ok := b.validated[cvh]
-	if !ok || v.BlockHeight != height {
+func (b *Baton) getValidatedBlockID(cvc *proto.ConsensusValueCue) *proto.BlockID {
+	v, ok := b.validated[protoutil.HashCVC(cvc)]
+	if !ok || v.BlockHeight != cvc.Block_height {
 		return nil
 	}
 	return &v.BlockID
@@ -42,11 +41,11 @@ func (b *Baton) getValidatedBlockID(cvh proto.ConsensusValueHash, height proto.B
 
 // invalidated cache
 
-func (b *Baton) setInvalidated(cv *proto.ConsensusValue, cvh proto.ConsensusValueHash) {
-	b.invalidated[cvh] = invalidated{ConsensusValue: cv}
+func (b *Baton) setInvalidated(cv *proto.ConsensusValue, cvc *proto.ConsensusValueCue) {
+	b.invalidated[protoutil.HashCVC(cvc)] = invalidated{ConsensusValue: cv}
 }
 
-func (b *Baton) isInvalidated(cvh proto.ConsensusValueHash, height proto.BlockHeight) bool {
-	cv, ok := b.invalidated[cvh]
-	return ok && cv.ConsensusValue.Nomination.Block_height == height
+func (b *Baton) isInvalidated(cvc *proto.ConsensusValueCue) bool {
+	cv, ok := b.invalidated[protoutil.HashCVC(cvc)]
+	return ok && cv.ConsensusValue.Nomination.Block_height == cvc.Block_height
 }

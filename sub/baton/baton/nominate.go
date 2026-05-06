@@ -102,7 +102,7 @@ func (b *Baton) nominate(
 		Height:               nomination.Block_height,
 		BlockHash:            nomination.Block_hash,
 		DbgConsensusValue:    cv,
-		DbgConsensusValueCue: &cvc,
+		DbgConsensusValueCue: cvc,
 	}
 	liblog.Infof(ctx, "%v", evNominating)
 	b.handler.Emit(ctx, evNominating)
@@ -111,31 +111,31 @@ func (b *Baton) nominate(
 	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
 	// not be able to externalize the value (and look for catchup when no other nodes exist).
 	// to fix this, we populate the cv in the local pool optimistically.
-	b.handler.CVPoolAdd(ctx, *cv, cvc)
+	b.handler.CVPoolAdd(ctx, *cv, *cvc)
 
 	// kick-off an optimistic pre-persist of the catchup block;
 	// this will be committed/persisted by commit if the block is committed.
-	b.handler.CBPoolAdd(ctx, *cb, cvc)
+	b.handler.CBPoolAdd(ctx, *cb, *cvc)
 
 	// catchup block must be pre-persisted before we nominate it to SCP, because
 	// if the SCP message goes out before the pre-persist is complete, and the node dies
 	// it won't be able to server missing transaction requests.
-	b.handler.CBPoolWaitPrePersist(ctx, cvc)
+	b.handler.CBPoolWaitPrePersist(ctx, *cvc)
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
 	b.lock()
-	b.setValidated(cv, cvc.Cv_hash, nomination.Block_height, nominatedBlock.Block_id) //XXX: use cue
+	b.setValidated(cv, cvc, nominatedBlock.Block_id)
 	b.unlock()
 
 	// notify the repair service that we are making the nomination, so that it
 	// honors requests for missing transactions
-	b.handler.AnnounceNomination(cvc.Block_height, cvc.Cv_hash) //XXX: use cue
+	b.handler.AnnounceNomination(cvc.Block_height, cvc.Cv_hash)
 
 	// nominate to consensus
 	prevSummary := proto.PrevNominationSummary{Block_hash: nomination.Prev_block_hash}
 	n0 := time.Now()
-	accepted := b.handler.SubmitNomination(ctx, scpkit.Slot(nomination.Block_height), &cvc, &prevSummary)
+	accepted := b.handler.SubmitNomination(ctx, scpkit.Slot(nomination.Block_height), cvc, &prevSummary)
 	b.reportSCPNominationDelay(ctx, nomination.Block_height, time.Since(n0))
 
 	if accepted {
@@ -144,7 +144,7 @@ func (b *Baton) nominate(
 		liblog.Debugf(ctx, "disseminating consensus value for slot %d with hash %s",
 			nomination.Block_height,
 			libxdr.HashString(cvc.Cv_hash))
-		b.handler.DisseminateCV(ctx, *cv, cvc)
+		b.handler.DisseminateCV(ctx, *cv, *cvc)
 
 		evNominated := batonkit.EventNominated{
 			Onto:                 ontoDb,
@@ -152,7 +152,7 @@ func (b *Baton) nominate(
 			Height:               nomination.Block_height,
 			BlockHash:            nomination.Block_hash,
 			DbgConsensusValue:    cv,
-			DbgConsensusValueCue: &cvc,
+			DbgConsensusValueCue: cvc,
 		}
 		liblog.Infof(ctx, "%v", evNominated)
 		b.handler.Emit(ctx, evNominated)
@@ -160,7 +160,7 @@ func (b *Baton) nominate(
 		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
 
-		return cv, &cvc, nominatedBlock.Block_id, nil
+		return cv, cvc, nominatedBlock.Block_id, nil
 	} else {
 		liblog.Errorf(ctx, "nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 

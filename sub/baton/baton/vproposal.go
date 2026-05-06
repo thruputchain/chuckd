@@ -19,7 +19,7 @@ func (b *Baton) validateProposal(
 	ctx context.Context,
 	onto proto.DbTip,
 	cv *proto.ConsensusValue,
-	cvc proto.ConsensusValueCue,
+	cvc *proto.ConsensusValueCue,
 ) (proto.DbTip, error) {
 
 	nomination := cv.Nomination
@@ -31,7 +31,7 @@ func (b *Baton) validateProposal(
 		NumTx:                numTxs,
 		Height:               nomination.Block_height,
 		BlockHash:            nomination.Block_hash,
-		DbgConsensusValueCue: &cvc,
+		DbgConsensusValueCue: cvc,
 		DbgConsensusValue:    cv,
 	}
 	liblog.Infof(ctx, "%v", eventValidating)
@@ -43,7 +43,7 @@ func (b *Baton) validateProposal(
 			NumTx:                numTxs,
 			Height:               nomination.Block_height,
 			BlockHash:            nomination.Block_hash,
-			DbgConsensusValueCue: &cvc,
+			DbgConsensusValueCue: cvc,
 			DbgConsensusValue:    cv,
 		}
 		liblog.Infof(ctx, "%v", eventValidated)
@@ -52,7 +52,7 @@ func (b *Baton) validateProposal(
 
 	for {
 		liblog.Infof(ctx, "scheduler validating: height=%d; cvc=%s",
-			nomination.Block_height, protoutil.CVCDisplay(&cvc))
+			nomination.Block_height, protoutil.CVCDisplay(cvc))
 		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, nomination)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -65,7 +65,7 @@ func (b *Baton) validateProposal(
 
 		case proto.SchedulerValidationOK:
 			liblog.Debugf(ctx, "scheduler validated: height=%d; cvc=%s",
-				nomination.Block_height, protoutil.CVCDisplay(&cvc))
+				nomination.Block_height, protoutil.CVCDisplay(cvc))
 
 			vblock := schedValidResult.Block()
 
@@ -83,30 +83,30 @@ func (b *Baton) validateProposal(
 
 			// kick-off an optimistic pre-persist of the catchup block;
 			// this will be committed/persisted by commit if the block is committed.
-			b.handler.CBPoolAdd(ctx, *cb, cvc)
+			b.handler.CBPoolAdd(ctx, *cb, *cvc)
 
 			return vblock.Db_tip, nil
 
 		case proto.SchedulerValidationInvalid:
 			liblog.Infof(ctx, "scheduler invalidated: height=%d; cvc=%s",
-				nomination.Block_height, protoutil.CVCDisplay(&cvc))
+				nomination.Block_height, protoutil.CVCDisplay(cvc))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationTooLateToValidate:
 			liblog.Infof(ctx, "scheduler is too late to validate: height=%d; cvc=%s",
-				nomination.Block_height, protoutil.CVCDisplay(&cvc))
+				nomination.Block_height, protoutil.CVCDisplay(cvc))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationUnknownParentBlock:
 			liblog.Infof(ctx, "scheduler cannot validate due to missing parent block: height=%d; cvc=%s",
-				nomination.Block_height, protoutil.CVCDisplay(&cvc))
+				nomination.Block_height, protoutil.CVCDisplay(cvc))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationMissingTxs:
 			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; cvc=%s",
-				nomination.Block_height, protoutil.CVCDisplay(&cvc))
+				nomination.Block_height, protoutil.CVCDisplay(cvc))
 			missing := proto.MissingTransactions{
-				Cue:                cvc,
+				Cue:                *cvc,
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
 			}
 			err := b.repairMissingTxs(ctx, nomination.Proposer, missing)

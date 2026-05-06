@@ -11,6 +11,7 @@ type externalized interface {
 	Proposer() proto.ValidatorPublicInfo
 	Height() proto.BlockHeight
 	ConsensusValueHash() proto.ConsensusValueHash
+	ConsensusValueCue() *proto.ConsensusValueCue
 	PrevConsensusValueHash() proto.ConsensusValueHash
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
@@ -37,12 +38,12 @@ func ExternalizedString(ext externalized) string {
 }
 
 type externalizedConsensus struct {
-	cue proto.ConsensusValueCue
+	cue *proto.ConsensusValueCue
 	cv  *proto.ConsensusValue
 }
 
 func newExternalized(
-	cue proto.ConsensusValueCue,
+	cue *proto.ConsensusValueCue,
 	cv *proto.ConsensusValue,
 ) externalizedConsensus {
 	return externalizedConsensus{
@@ -59,7 +60,7 @@ func (x externalizedConsensus) ConsensusValue() *proto.ConsensusValue {
 	return x.cv
 }
 
-func (x externalizedConsensus) ConsensusValueCue() proto.ConsensusValueCue {
+func (x externalizedConsensus) ConsensusValueCue() *proto.ConsensusValueCue {
 	return x.cue
 }
 
@@ -86,6 +87,10 @@ func (x externalizedConsensus) PrevBlockHash() proto.BlockHash {
 type externalizedCue struct {
 	height proto.BlockHeight
 	cvc    *proto.ConsensusValueCue
+}
+
+func (x externalizedCue) ConsensusValueCue() *proto.ConsensusValueCue {
+	return x.cvc
 }
 
 func (x externalizedCue) Proposer() proto.ValidatorPublicInfo {

@@ -40,8 +40,6 @@ type LiveHandler struct {
 	multiplex *multiplex.Multiplex
 	storage   *storage.DiskStorage
 	scpkit.SCPBroker
-	// scpBroker     scpkit.SCPCommander
-	// scpController scpkit.SCPController //XXX: remove, make part of broker
 	m libxdr.XdrMarshaler
 	//
 	rlk  sync.Mutex
