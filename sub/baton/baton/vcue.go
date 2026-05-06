@@ -44,7 +44,7 @@ func (x scpHandler) ValidateCue(
 	defer x.baton.validating.Unlock(protoutil.HashCVC(&cvc))
 
 	reply := make(chan scpkit.ValidationLevel, 1)
-	go x.baton.validateCue(ctx, slot, &cvc, reply)
+	go x.baton.validateCue(context.WithoutCancel(ctx), slot, &cvc, reply)
 	level = <-reply
 	return
 }

@@ -1,11 +1,3 @@
-- [x] cvpool keys with cue hash
-
-- [ ] test context cancellation during validation request?
-- [ ] use a dedicated channel for validation abort?
-
-- [x] log cvc hash everywhere, instead of cv hash
-
-- [ ] run churner in -race mode (and in ci)
 - [ ] churner with chosen number of restarting nodes
   - [ ] long-running ci with 2 non-restarting nodes
 
