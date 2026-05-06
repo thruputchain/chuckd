@@ -9,23 +9,9 @@
 - [ ] churner with chosen number of restarting nodes
   - [ ] long-running ci with 2 non-restarting nodes
 
-- [x] cvchash as struct type
-- [x] address XXX
-  - [x] baton.validated/invalidated use cue
-  - [x] AnnounceNomination use cue
-  - [x] x.baton.validating.Lock(cvc.Cv_hash) // XXX: locking must be on cvc hash
-  - [x] scan for leftover ConsensusValueHash type usage
-- [ ] cue equality, including proposer
-  - CVAgreesWithCue, CVCEquals
-- [ ] baton fields: persiting, validated, etc (use cue hash)
-
 - [ ] bug: in churner experiment one node gets stuck at block 1150 (needs reproduction)
 
 CORRECTNESS
-
-- [x] set_state_from_envelope should only send the latest envelope from us per slot
-- [x] on startup do set_state_from_envelope for all slots above db that we've participated in,
-- [x] when replaying repaired messages from the network, don't replay our own
 
 - [ ] baton should not send nominations for slots it has nominated for already via set_state_from_envelope
 
