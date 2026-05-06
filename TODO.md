@@ -1,9 +1,22 @@
 - [x] cvpool keys with cue hash
+
+- [ ] test context cancellation during validation request?
+- [ ] use a dedicated channel for validation abort?
+
 - [ ] log cvc hash everywhere, instead of cv hash
+  - [ ] update churner regex for cvc
+
+- [ ] cvchash as struct type
+
+- [ ] run churner in -race mode (and in ci)
+- [ ] churner with chosen number of restarting nodes
+  - [ ] long-running ci with 2 non-restarting nodes
 
 - [ ] address XXX
 - [ ] cue equality, including proposer
 - [ ] baton fields: persiting, validated, etc (use cue hash)
+
+- [ ] bug: in churner experiment one node gets stuck at block 1150 (needs reproduction)
 
 CORRECTNESS
 
