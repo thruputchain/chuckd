@@ -134,7 +134,11 @@ func (x *RepairService) repairMissingTxsFromStorage(
 			err, len(rtx.Transactions))
 	}()
 
-	cb := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Cue)
+	cb, err := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Cue)
+	if err != nil {
+		liblog.Errorf(ctx, "repair_missing_txs failed to lookup catchup block: %v", err)
+		return proto.RepairedTransactions{}, err
+	}
 	if cb == nil {
 		liblog.Errorf(ctx, "catchup block not found in storage: cv_hash=%s",
 			libxdr.HashString(env.Missing_transactions.Cue.Cv_hash))
@@ -236,14 +240,21 @@ func (x *RepairService) Repair_missing_cv(
 	// requests for missing cvs will block the repair attempts forever,
 	// and they need to be aborted at the caller when they discover newer externalization have happened.
 
-	cvx := x.cvpool.CVPoolLookup(ctx, cvc)
+	cvx, err := x.cvpool.CVPoolLookup(ctx, cvc)
+	if err != nil {
+		liblog.Errorf(ctx, "repair_missing_cv failed to lookup cv in pool: %v", err)
+	}
 	if cvx != nil {
 		liblog.Infof(ctx, "repair_missing_cv serving from pool: height=%d; cv_hash=%s",
 			cvc.Block_height, libxdr.HashString(cvc.Cv_hash))
 		return cvx, nil
 	}
 
-	cv := x.cvpool.CVPoolFind(ctx, cvc)
+	cv, err := x.cvpool.CVPoolFind(ctx, cvc)
+	if err != nil {
+		liblog.Errorf(ctx, "repair_missing_cv failed to find cv in pool: %v", err)
+		return nil, err
+	}
 	if cv != nil {
 		liblog.Infof(ctx, "repair_missing_cv serving from storage: height=%d; cv_hash=%s",
 			cvc.Block_height, libxdr.HashString(cvc.Cv_hash))
@@ -262,5 +273,10 @@ func (x *RepairService) Repair_missing_scp_envelopes(
 	<-x.brokerReady
 
 	liblog.Debugf(ctx, "repair missing scp envelopes request, for slot %d", slot)
-	return x.scpBroker.RepairEnvelopes(ctx, slot), nil
+	envs, err := x.scpBroker.RepairEnvelopes(ctx, slot)
+	if err != nil {
+		liblog.Errorf(ctx, "repair_missing_scp_envelopes failed to repair envelopes: %v", err)
+		return nil, err
+	}
+	return envs, nil
 }

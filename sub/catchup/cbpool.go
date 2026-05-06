@@ -8,6 +8,7 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -30,7 +31,7 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 	ctx context.Context,
 	cb proto.CatchupBlock,
 	cue proto.ConsensusValueCue,
-) {
+) error {
 	cbp.lk.Lock()
 	defer cbp.lk.Unlock()
 
@@ -38,19 +39,21 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 		cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cue.Cv_hash),
 		protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
 
-	if _, alreadyPersisting := cbp.persisting[cue.Cv_hash]; alreadyPersisting {
+	cvch := protoutil.HashCVC(&cue)
+	if _, alreadyPersisting := cbp.persisting[cvch]; alreadyPersisting {
 		liblog.Infof(ctx, "catchup block already persisting: height %d; cv_hash %s; proposer %s",
 			cb.Consensus_value.Nomination.Block_height, libxdr.HashString(cue.Cv_hash),
 			protoutil.VPublicShortString(cb.Consensus_value.Nomination.Proposer))
-		return
+		return nil
 	}
 
 	donePersisting := make(chan struct{})
-	cvch := protoutil.HashCVC(&cue)
 	cbp.persisting[cvch] = donePersisting
 
 	go func() {
-		cbp.persist.PrePersistCatchupBlock(context.WithoutCancel(ctx), cb, cvch)
+		err := cbp.persist.PrePersistCatchupBlock(context.WithoutCancel(ctx), cb, cvch)
+		must.NoError(ctx, err)
+
 		close(donePersisting)
 
 		liblog.Debugf(ctx, "finished pre-persisting catchup block: height %d; cv_hash %s; proposer %s",
@@ -61,6 +64,8 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 		defer cbp.lk.Unlock()
 		delete(cbp.persisting, cvch)
 	}()
+
+	return nil
 }
 
 func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cue proto.ConsensusValueCue) {
@@ -83,23 +88,25 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cue proto
 func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
-) {
+) error {
 	liblog.Infof(ctx, "waiting for pre-persisting of catchup block: height %d; cv_hash %s",
 		cue.Block_height, libxdr.HashString(cue.Cv_hash))
 
 	cbp.waitFinishPrePersist(ctx, cue)
 	// NOTE: we have no way of knowing currently if the block had initiated pre-persist at all.
+
+	return nil
 }
 
 func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
-) {
+) error {
 	liblog.Infof(ctx, "waiting for persisting of catchup block: height %d; cv_hash %s",
 		cue.Block_height, libxdr.HashString(cue.Cv_hash))
 
 	cbp.waitFinishPrePersist(ctx, cue)
-	cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, cue.Block_height, protoutil.HashCVC(&cue))
+	return cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, cue.Block_height, protoutil.HashCVC(&cue))
 }
 
 // CBPoolLookup finds persisted or pre-persisted catchup blocks with given cv hash.
@@ -107,21 +114,24 @@ func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 func (cbp *CatchupBlockPool) CBPoolLookup(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
-) *proto.CatchupBlock {
+) (*proto.CatchupBlock, error) {
 	cbp.waitFinishPrePersist(ctx, cue)
-	cb := cbp.persist.LookupCatchupBlock(ctx, protoutil.HashCVC(&cue))
+	cb, err := cbp.persist.LookupCatchupBlock(ctx, protoutil.HashCVC(&cue))
+	if err != nil {
+		return nil, err
+	}
 	if cb == nil {
-		return nil
+		return nil, nil
 	}
 	if cb.Consensus_value.Nomination.Block_height != cue.Block_height {
-		return nil
+		return nil, nil
 	}
-	return cb
+	return cb, nil
 }
 
 func (cbp *CatchupBlockPool) CBPoolFindCommitted(
 	ctx context.Context,
 	height proto.BlockHeight,
-) *proto.CatchupBlock {
+) (*proto.CatchupBlock, error) {
 	return cbp.persist.FindCatchupBlock(ctx, height)
 }

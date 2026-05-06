@@ -15,52 +15,67 @@ type CatchupBlockPersistence interface {
 		ctx context.Context,
 		cb proto.CatchupBlock,
 		cvch protoutil.CVCHash,
-	)
+	) error
+
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
 		cvch protoutil.CVCHash,
-	)
-	LookupCatchupBlock(ctx context.Context, cvch protoutil.CVCHash) *proto.CatchupBlock
-	FindCatchupBlock(ctx context.Context, height proto.BlockHeight) *proto.CatchupBlock
+	) error
+
+	LookupCatchupBlock(
+		ctx context.Context,
+		cvch protoutil.CVCHash,
+	) (*proto.CatchupBlock, error)
+
+	FindCatchupBlock(
+		ctx context.Context,
+		height proto.BlockHeight,
+	) (*proto.CatchupBlock, error)
 }
 
 type ConsensusValuePersistence interface {
-	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash)
-	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash)
-	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.CVCHash) *proto.ConsensusValue
-	FindCommittedCV(ctx context.Context, height proto.BlockHeight) *proto.ConsensusValue
-	FindHighestCommittedCV(ctx context.Context) *proto.ConsensusValue
+	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash) error
+	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash) error
+	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.CVCHash) (*proto.ConsensusValue, error)
+	FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusValue, error)
+	FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusValue, error)
 }
 
-func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) []proto.ConsensusValue {
+func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) ([]proto.ConsensusValue, error) {
 	found := []proto.ConsensusValue{}
-	highest := x.FindHighestCommittedCV(ctx)
+	highest, err := x.FindHighestCommittedCV(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if highest == nil {
-		return nil
+		return nil, nil
 	}
 	for height := above + 1; height <= highest.Nomination.Block_height; height++ {
-		cv := x.FindCommittedCV(ctx, height)
+		cv, err := x.FindCommittedCV(ctx, height)
+		if err != nil {
+			return nil, err
+		}
 		if cv == nil {
 			continue
 		}
 		found = append(found, *cv)
 	}
-	return found
+	return found, nil
 }
 
 type SCPEnvelopePersistence interface {
-	PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope)
+	PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) error
 
-	PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope)
+	PersistSCPEnvelopeFromLocal(ctx context.Context, env proto.SCPEnvelope) error
 
-	FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
+	FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error)
 
-	FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) []proto.SCPEnvelope
+	FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot proto.SCPSlotIndex) ([]proto.SCPEnvelope, error)
 
 	// ListSlotsWithSCPEnvelopesNotBelow lists all slots not below a given slot that have persisted scp envelopes.
 	// The slots are returned in ascending order.
-	ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, below proto.SCPSlotIndex) []proto.SCPSlotIndex
+	ListSlotsWithSCPEnvelopesNotBelow(ctx context.Context, below proto.SCPSlotIndex) ([]proto.SCPSlotIndex, error)
 }
 
 type Config struct {

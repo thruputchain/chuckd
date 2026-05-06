@@ -116,12 +116,12 @@ func (b *Baton) validateCue(
 	// fetchCV will be aborted if externalization or commits beyond the nominated block height occur
 	// BLOCKING
 	cv, err := b.fetchCV(vCtx, slot, cvc)
-	if err != nil {
-		must.Assert(ctx, errors.Is(err, context.Canceled))
+	if errors.Is(err, context.Canceled) {
 		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
 		reply <- scpkit.MaybeValidValue
 		return
 	}
+	must.NoError(ctx, err)
 
 	// XXX(DoS): if cv disagrees with cue, take action regarding the source of the cv
 	if !protoutil.CVAgreesWithCue(cv, cvc) {
@@ -143,7 +143,11 @@ func (b *Baton) fetchCV(
 		slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
 
 	// lookup in cvpool
-	cv := b.handler.CVPoolLookup(ctx, *cvc)
+	cv, err := b.handler.CVPoolLookup(ctx, *cvc)
+	if errors.Is(err, context.Canceled) {
+		return nil, ctx.Err()
+	}
+	must.NoError(ctx, err)
 	if cv != nil {
 		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cv_hash=%s, proposer=%s",
 			slot, libxdr.HashString(cvc.Block_hash), libxdr.HashString(cvc.Cv_hash), protoutil.VPublicShortString(cvc.Proposer))
