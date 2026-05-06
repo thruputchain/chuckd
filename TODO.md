@@ -4,6 +4,7 @@
 - [ ] use a dedicated channel for validation abort?
 
 - [ ] log cvc hash everywhere, instead of cv hash
+  - [ ] all CVCs must be passed as pointers (enables memoizing hash)
   - [ ] update churner regex for cvc
 
 - [ ] cvchash as struct type

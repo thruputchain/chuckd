@@ -27,32 +27,32 @@ func (b *Baton) validateProposal(
 	numTxs := xdrutil.TokenSizeOfBatch(nomination.Transactions_hash)
 
 	eventValidating := batonkit.EventValidating{
-		Onto:              onto,
-		NumTx:             numTxs,
-		Height:            nomination.Block_height,
-		BlockHash:         nomination.Block_hash,
-		CVHash:            cvc.Cv_hash,
-		DbgConsensusValue: cv,
+		Onto:                 onto,
+		NumTx:                numTxs,
+		Height:               nomination.Block_height,
+		BlockHash:            nomination.Block_hash,
+		DbgConsensusValueCue: &cvc,
+		DbgConsensusValue:    cv,
 	}
 	liblog.Infof(ctx, "%v", eventValidating)
 	b.handler.Emit(ctx, eventValidating)
 
 	defer func() {
 		eventValidated := batonkit.EventValidated{
-			Onto:              onto,
-			NumTx:             numTxs,
-			Height:            nomination.Block_height,
-			BlockHash:         nomination.Block_hash,
-			CVHash:            cvc.Cv_hash,
-			DbgConsensusValue: cv,
+			Onto:                 onto,
+			NumTx:                numTxs,
+			Height:               nomination.Block_height,
+			BlockHash:            nomination.Block_hash,
+			DbgConsensusValueCue: &cvc,
+			DbgConsensusValue:    cv,
 		}
 		liblog.Infof(ctx, "%v", eventValidated)
 		b.handler.Emit(ctx, eventValidated)
 	}()
 
 	for {
-		liblog.Infof(ctx, "scheduler validating: height=%d; cv_hash=%s",
-			nomination.Block_height, libxdr.HashString(cvc.Cv_hash))
+		liblog.Infof(ctx, "scheduler validating: height=%d; cvc=%s",
+			nomination.Block_height, protoutil.CVCDisplay(&cvc))
 		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, nomination)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -64,8 +64,8 @@ func (b *Baton) validateProposal(
 		switch schedValidResult.Outcome {
 
 		case proto.SchedulerValidationOK:
-			liblog.Debugf(ctx, "scheduler validated: height=%d; cv_hash=%s",
-				nomination.Block_height, libxdr.HashString(cvc.Cv_hash))
+			liblog.Debugf(ctx, "scheduler validated: height=%d; cvc=%s",
+				nomination.Block_height, protoutil.CVCDisplay(&cvc))
 
 			vblock := schedValidResult.Block()
 
@@ -88,23 +88,23 @@ func (b *Baton) validateProposal(
 			return vblock.Db_tip, nil
 
 		case proto.SchedulerValidationInvalid:
-			liblog.Infof(ctx, "scheduler invalidated: height=%d; cv_hash=%s",
-				nomination.Block_height, libxdr.HashString(cvc.Cv_hash))
+			liblog.Infof(ctx, "scheduler invalidated: height=%d; cvc=%s",
+				nomination.Block_height, protoutil.CVCDisplay(&cvc))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationTooLateToValidate:
-			liblog.Infof(ctx, "scheduler is too late to validate: height=%d; cv_hash=%s",
-				nomination.Block_height, libxdr.HashString(cvc.Cv_hash))
+			liblog.Infof(ctx, "scheduler is too late to validate: height=%d; cvc=%s",
+				nomination.Block_height, protoutil.CVCDisplay(&cvc))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationUnknownParentBlock:
-			liblog.Infof(ctx, "scheduler cannot validate due to missing parent block: height=%d; cv_hash=%s",
-				nomination.Block_height, libxdr.HashString(cvc.Cv_hash))
+			liblog.Infof(ctx, "scheduler cannot validate due to missing parent block: height=%d; cvc=%s",
+				nomination.Block_height, protoutil.CVCDisplay(&cvc))
 			return proto.DbTip{}, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationMissingTxs:
-			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; cv_hash=%s",
-				nomination.Block_height, libxdr.HashString(cvc.Cv_hash))
+			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; cvc=%s",
+				nomination.Block_height, protoutil.CVCDisplay(&cvc))
 			missing := proto.MissingTransactions{
 				Cue:                cvc,
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
@@ -138,13 +138,13 @@ func (b *Baton) repairMissingTxs(
 	missing proto.MissingTransactions,
 ) (err error) {
 
-	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; cv_hash=%s; block_hash=%s",
-		len(missing.Transaction_hashes), missing.Cue.Block_height, libxdr.HashString(missing.Cue.Cv_hash),
+	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; cvc=%s; block_hash=%s",
+		len(missing.Transaction_hashes), missing.Cue.Block_height, protoutil.CVCDisplay(&missing.Cue),
 		libxdr.HashString(missing.Cue.Block_hash))
 	defer func() {
-		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; cv_hash=%s; block_hash=%s; error=%v",
+		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; cvc=%s; block_hash=%s; error=%v",
 			len(missing.Transaction_hashes), missing.Cue.Block_height,
-			libxdr.HashString(missing.Cue.Cv_hash), libxdr.HashString(missing.Cue.Block_hash), err)
+			protoutil.CVCDisplay(&missing.Cue), libxdr.HashString(missing.Cue.Block_hash), err)
 
 	}()
 
