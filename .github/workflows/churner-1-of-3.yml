@@ -1,4 +1,4 @@
-name: Churner benchmark 3 nodes
+name: Churner benchmark 1 of 3 nodes churning
 
 on:
   push:
@@ -45,4 +45,6 @@ jobs:
             --key=git_branch --value=${{ github.head_ref || github.ref_name }} \
             --key=cargo_registry_token --value=${{ secrets.GROUNDHOG_REGISTRY_TOKEN }} \
             --key=cargo_registry_global_credential_providers --value=${{ env.CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS }} \
+            --key=num_validators --value=3 \
+            --key=num_restarting --value=1 \
             ./scripts/schedules/churner_bench.toml
