@@ -3,9 +3,7 @@
 - [ ] test context cancellation during validation request?
 - [ ] use a dedicated channel for validation abort?
 
-- [ ] log cvc hash everywhere, instead of cv hash
-  - [ ] all CVCs must be passed as pointers (enables memoizing hash)
-  - [ ] update churner regex for cvc
+- [x] log cvc hash everywhere, instead of cv hash
 
 - [ ] cvchash as struct type
 
