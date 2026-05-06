@@ -2,11 +2,6 @@
 
 CORRECTNESS
 
-- [ ] baton should not send nominations for slots it has nominated for already via set_state_from_envelope
-
-- [ ] scp: do externalize messages even need validation?
-- [ ] allow only messages from the transitive closure of our fba
-
 - [ ] stellar: are future nomination envelopes not given to scp?
 - [ ] stellar: is maybe valid response only given to ballot validations?
 
@@ -20,15 +15,14 @@ TESTS
   - stats on how often nominations timeout
   - stats on number of nominations per round
 
-- [ ] test restart right after nomination
 - [ ] test memory and goroutine leaks
 
 SCP
 
+- [ ] baton should not send nominations for slots it has nominated for already via set_state_from_envelope
 - [ ] persist open nominations
   - [ ] on restart submit_vetted their txs to scheduler
-
-- [ ] check unions in scp envelopes are correct before passing to scpd (at parsing level?)
+  - [ ] test restart right after nomination
 
 - [ ] ask scp whether we should bother nominating this round (optimization)
 

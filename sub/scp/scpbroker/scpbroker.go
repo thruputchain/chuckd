@@ -115,8 +115,8 @@ func (x *SCPBroker) SCPFeedEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 
 	liblog.Debugf(ctx, "feeding envelope for slot %d", env.Statement.Slot_index)
 
-	if !scpkit.VerifyEnvelope(x.m, &env) {
-		liblog.Errorf(ctx, "dropping envelope due to invalid signature: %v", env)
+	if err := scpkit.VerifyEnvelope(x.m, &env); err != nil {
+		liblog.Errorf(ctx, "dropping envelope due to %v: %v", err, protoutil.SCPEnvelopeDisplay(env))
 		return
 	}
 
