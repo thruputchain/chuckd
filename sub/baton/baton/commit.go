@@ -2,6 +2,7 @@ package baton
 
 import (
 	"context"
+	"errors"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/system/systemfixed"
@@ -46,6 +47,11 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 		// - ErrNotValid is not expected on the commit path,
 		// as the block being validated arises from an externalization or
 		// catchup (whose hash has been linked to a following externalization)
+		if errors.Is(err, batonkit.ErrNotValid) {
+			// if the catchup block is verified (which it is), this should never happen
+			// unless a quorum of validators maliciously externalized an invalid block.
+			liblog.Fatalf(ctx, "committing catchup failed to validate: %v", err)
+		}
 		must.NoError(ctx, err)
 		validatedBlockID = &validatedTip.Id
 	}
