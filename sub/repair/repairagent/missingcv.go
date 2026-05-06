@@ -26,7 +26,7 @@ func (x *RepairAgent) RepairMissingCV(
 
 attempting:
 	for {
-		cv, err := x.attemptRepairMissingCV(ctx, from, missing)
+		cv, err := x.attemptRepairMissingCV(ctx, from, &missing)
 		if err != nil {
 			liblog.Errorf(ctx, "failed attempt to repair missing cv at height %d from %s: %v",
 				missing.Block_height, protoutil.VPublicShortString(from), err)
@@ -48,7 +48,7 @@ attempting:
 func (x *RepairAgent) attemptRepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing proto.ConsensusValueCue,
+	missing *proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
@@ -57,7 +57,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_cv(ctx, missing)
+	reply, err := c.Repair_missing_cv(ctx, *missing)
 	if err != nil {
 		return nil, fmt.Errorf("calling Repair_missing_cv: %w", err)
 	}
@@ -71,7 +71,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	if !protoutil.IsSaneConsensusValue(reply) {
 		return nil, fmt.Errorf("repaired consensus value is not sane")
 	}
-	if missing != protoutil.CVC(reply) {
+	if !protoutil.CVCEquals(missing, protoutil.CVC(reply)) {
 		return nil, fmt.Errorf("repaired consensus value cue mismatch")
 	}
 

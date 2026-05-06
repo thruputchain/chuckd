@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblock"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -38,9 +39,9 @@ type Baton struct {
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupArrivals catchupArrivals                  // received catchup blocks
 	externalized    []externalized                   // known externalizations
-	validating      *liblock.KeyedMutex[proto.ConsensusValueHash]
-	validated       map[proto.ConsensusValueHash]validated
-	invalidated     map[proto.ConsensusValueHash]invalidated
+	validating      *liblock.KeyedMutex[protoutil.CVCHash]
+	validated       map[protoutil.CVCHash]validated
+	invalidated     map[protoutil.CVCHash]invalidated
 	liveness        liveness
 
 	// metrics (no lock necessary)
@@ -53,16 +54,6 @@ type Baton struct {
 	catchupResultM libxdr.XdrMarshaler
 	batchCatchupM  libxdr.XdrMarshaler
 	batchRepairM   libxdr.XdrMarshaler
-}
-
-type validated struct {
-	*proto.ConsensusValue
-	proto.BlockHeight
-	proto.BlockID
-}
-
-type invalidated struct {
-	*proto.ConsensusValue
 }
 
 func NewBaton(
@@ -79,9 +70,9 @@ func NewBaton(
 		maxCatchupHeight: int(cfg.Max_catchup_height),
 		ready:            make(chan struct{}),
 		catchupWaiting:   map[batonkit.ID64]catchupRequest{},
-		validating:       liblock.NewKeyedMutex[proto.ConsensusValueHash](),
-		validated:        map[proto.ConsensusValueHash]validated{},
-		invalidated:      map[proto.ConsensusValueHash]invalidated{},
+		validating:       liblock.NewKeyedMutex[protoutil.CVCHash](),
+		validated:        map[protoutil.CVCHash]validated{},
+		invalidated:      map[protoutil.CVCHash]invalidated{},
 		cvM:              libxdr.NewXdrMarshaler(),
 		nomM:             libxdr.NewXdrMarshaler(),
 		catchupReqM:      libxdr.NewXdrMarshaler(),

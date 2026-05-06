@@ -25,8 +25,8 @@ type ViewBlock interface {
 	Icon() string
 }
 
-func BlockCue(b ViewBlock) proto.ConsensusValueCue {
-	return proto.ConsensusValueCue{
+func BlockCue(b ViewBlock) *proto.ConsensusValueCue {
+	return &proto.ConsensusValueCue{
 		Proposer:        b.Proposer(),
 		Block_height:    b.BlockHeight(),
 		Cv_hash:         b.ConsensusValueHash(),

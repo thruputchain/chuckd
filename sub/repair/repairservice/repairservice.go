@@ -26,7 +26,7 @@ type RepairService struct {
 	brokerReady chan struct{}
 	//
 	lk        sync.Mutex
-	nominated map[proto.ConsensusValueHash]proto.BlockHeight
+	nominated map[protoutil.CVCHash]proto.BlockHeight
 }
 
 func NewRepairService(
@@ -38,7 +38,7 @@ func NewRepairService(
 		cbpool:      cbpool,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
-		nominated:   map[proto.ConsensusValueHash]proto.BlockHeight{},
+		nominated:   map[protoutil.CVCHash]proto.BlockHeight{},
 	}
 }
 
@@ -58,25 +58,18 @@ func (x *RepairService) Repair_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *RepairService) AnnounceNomination(height proto.BlockHeight, cvh proto.ConsensusValueHash) {
+func (x *RepairService) AnnounceNomination(cue *proto.ConsensusValueCue) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
 	// clear older nominations
 	for mHash, mHeight := range x.nominated {
-		if mHeight < height {
+		if mHeight < cue.Block_height {
 			delete(x.nominated, mHash)
 		}
 	}
 
-	x.nominated[cvh] = height
-}
-
-func (x *RepairService) isOurNomination(cvh proto.ConsensusValueHash) bool {
-	x.lk.Lock()
-	defer x.lk.Unlock()
-	_, ok := x.nominated[cvh]
-	return ok
+	x.nominated[protoutil.HashCVC(cue)] = cue.Block_height
 }
 
 func (x *RepairService) Repair_missing_txs(

@@ -57,7 +57,7 @@ func (x EventCommitted) String() string {
 	cue := x.DbgValidatable.ConsensusValueCue()
 	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; cvc %s; block_hash %s; proposer %s",
 		x.Height, x.DbgValidatable.NumTransactions(),
-		protoutil.CVCDisplay(&cue),
+		protoutil.CVCDisplay(cue),
 		libxdr.HashString(x.BlockHash),
 		protoutil.VPublicShortString(x.DbgValidatable.AsConsensusValue().Nomination.Proposer))
 }
