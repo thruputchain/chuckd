@@ -21,7 +21,7 @@ export PATH=$(pwd):$PATH
 cp scpd.dev scpd
 
 
-RUST_LOG=debug hogx-churner \
+NO_COLOR=1 RUST_LOG=debug hogx-churner \
     --chuckd-path $(pwd)/chuckd.dev \
     --scpd-path $(pwd)/scpd \
     coordinator-bench \
