@@ -122,6 +122,7 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 	}
 
 	// XXX: move this into a catchup agent
+	// XXX: long catchup requests should be split into multiple requests
 	go func(src proto.ValidatorPublicInfo, id batonkit.ID64, spans []Span) {
 
 		var result catchupArrivals
