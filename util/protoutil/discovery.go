@@ -102,6 +102,9 @@ func (xs SignedValidatorInfoSnapshotsByDescendingTimestamp) Sort() { sort.Sort(x
 // verification
 
 func VerifySignedQuorumSetSnapshot(m libxdr.XdrMarshaler, v proto.SignedQuorumSetSnapshot) bool {
+	if err := VerifyQSet(v.Quorum_set_snapshot.Quorum_set); err != nil {
+		return false
+	}
 	return VerifyXdr(m, v.Signer.Public_key, &v.Quorum_set_snapshot, v.Signature)
 }
 
