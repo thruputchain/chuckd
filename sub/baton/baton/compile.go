@@ -3,6 +3,7 @@ package baton
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -84,6 +85,10 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		} else {
 			return nil, ErrDbConsensusDisagree
 		}
+	}
+
+	if scpTopHeight == math.MaxInt64 {
+		liblog.Fatalf(ctx, "top externalized height is too high: %d", scpTopHeight)
 	}
 
 	n := int(scpTopHeight) + 1 - int(dbBlock.TipDb.Height)
