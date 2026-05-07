@@ -149,6 +149,9 @@ func (x *TransmissionReceiver) VerifyPackage(from proto.ValidatorID, pkg *proto.
 		regime.MaxBytesPerChunk != int(pkg.Transmission.Max_bytes_per_chunk) {
 		return fmt.Errorf("invalid transmission parameters")
 	}
+	if len(pkg.Chunk.Chunk) > regime.MaxBytesPerChunk {
+		return fmt.Errorf("invalid chunk size")
+	}
 
 	return nil
 }
