@@ -88,6 +88,8 @@ func NewSystem(
 ) *System {
 	sysCtx, sysCancel := context.WithCancel(ctx)
 
+	must.NoError(ctx, protoutil.VerifyQSet(cfg.Scp_config.Quorum_set))
+
 	vid := protoutil.PublicVID(cfg.Validator_config.Private_info.Public_info)
 	liblog.Infof(ctx, "initializing validator %v", protoutil.VIDString(vid))
 

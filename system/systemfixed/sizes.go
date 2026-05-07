@@ -15,3 +15,9 @@ const (
 const (
 	MaxBytesCatchupReply = 1_000_000_000
 )
+
+const (
+	KCoordinatorScpdRpcMaxBytes = 10 * (proto.KCoordinatorMaxBytesSCPEnvelopeMessage +
+		proto.KCoordinatorMaxBytesSCPQuorumSet +
+		proto.KRPCFrameMaxBytes)
+)
