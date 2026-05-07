@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/util/netutil"
+	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/rpcutil"
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librpc"
@@ -31,7 +31,7 @@ func DialCatchupClient(ctx context.Context, dialer libnet.AddressDialer, addr st
 }
 
 func NewCatchupClient(ctx context.Context, sock net.Conn) *CatchupClient {
-	driver := librpc.NewDriverSerial(ctx, sock, netutil.MaxMessageSize, rpcutil.BaseDriverRegime)
+	driver := librpc.NewDriverSerial(ctx, sock, systemfixed.MaxBytesCatchupReply, rpcutil.BaseDriverRegime)
 	go driver.Go()
 
 	return &CatchupClient{

@@ -11,3 +11,7 @@ const (
 	// Otherwise, an oversize SCP message forwarded from dogwood to SCPD will cause a crash.
 	MaxBytesSCPEnvelopeMessage = int(proto.KCoordinatorMaxBytesSCPEnvelopeMessage)
 )
+
+const (
+	MaxBytesCatchupReply = 1_000_000_000
+)
