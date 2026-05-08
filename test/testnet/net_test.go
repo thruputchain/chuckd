@@ -15,7 +15,7 @@ func TestDialAccept(t *testing.T) {
 	testPkt := []byte{1, 2, 3}
 
 	v := NewTestNetwork()
-	l, _ := v.Listen(ctx, "", testAddress)
+	l, _ := v.listen(ctx, "", testAddress)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -37,7 +37,7 @@ func TestDialAccept(t *testing.T) {
 		c.Close()
 	}()
 
-	c, _ := v.Dial(ctx, "", testAddress)
+	c, _ := v.dial(ctx, "", testAddress)
 	n, err := c.Write(testPkt)
 	if n != 3 {
 		t.Errorf("expecting 3, got %d", n)
@@ -55,7 +55,7 @@ func TestCloseRemovesListenerAddress(t *testing.T) {
 	testAddress := "alpha"
 
 	v := NewTestNetwork()
-	l, err := v.Listen(ctx, "", testAddress)
+	l, err := v.listen(ctx, "", testAddress)
 	if err != nil {
 		t.Fatalf("listen failed: %v", err)
 	}
@@ -64,13 +64,13 @@ func TestCloseRemovesListenerAddress(t *testing.T) {
 		t.Fatalf("close failed: %v", err)
 	}
 
-	if _, err := v.Dial(ctx, "", testAddress); err == nil {
+	if _, err := v.dial(ctx, "", testAddress); err == nil {
 		t.Fatalf("expected dial to fail after listener close")
 	} else if !strings.Contains(err.Error(), "no listener on address") {
 		t.Fatalf("unexpected dial error: %v", err)
 	}
 
-	if _, err := v.Listen(ctx, "", testAddress); err != nil {
+	if _, err := v.listen(ctx, "", testAddress); err != nil {
 		t.Fatalf("expected address to be reusable after close: %v", err)
 	}
 }

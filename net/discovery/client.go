@@ -17,8 +17,8 @@ type DiscoveryClient struct {
 	driver *rpc.Driver
 }
 
-func DialDiscoveryClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*DiscoveryClient, error) {
-	sock, err := dialer.DialAddress(ctx, address)
+func DialDiscoveryClient(ctx context.Context, dialer libnet.Dialer, address string) (*DiscoveryClient, error) {
+	sock, err := dialer.Dial(ctx, address)
 	if err != nil {
 		return nil, err
 	}

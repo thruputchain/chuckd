@@ -21,8 +21,8 @@ type EchoClient struct {
 	driver *rpc.Driver
 }
 
-func DialEchoClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*EchoClient, error) {
-	sock, err := dialer.DialAddress(ctx, addr)
+func DialEchoClient(ctx context.Context, dialer libnet.Dialer, addr string) (*EchoClient, error) {
+	sock, err := dialer.Dial(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

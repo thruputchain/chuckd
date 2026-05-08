@@ -22,8 +22,8 @@ type RepairClient struct {
 	driver *rpc.Driver
 }
 
-func DialRepairClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*RepairClient, error) {
-	sock, err := dialer.DialAddress(ctx, addr)
+func DialRepairClient(ctx context.Context, dialer libnet.Dialer, addr string) (*RepairClient, error) {
+	sock, err := dialer.Dial(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

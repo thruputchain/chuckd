@@ -16,7 +16,7 @@ import (
 
 type RepairAgent struct {
 	backoffCfg netutil.BackoffConfig
-	net        libnet.AddressDialer
+	net        libnet.Dialer
 	rand       *librand.SyncRand
 	signatory  protoutil.Signatory
 	router     router.Router
@@ -26,7 +26,7 @@ type RepairAgent struct {
 
 func NewRepairAgent(
 	cfg proto.RepairConfig,
-	net libnet.AddressDialer,
+	net libnet.Dialer,
 	rand *rand.Rand,
 	signatory protoutil.Signatory,
 	router router.Router,

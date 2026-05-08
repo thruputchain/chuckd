@@ -10,7 +10,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func WaitCounterpartiesReady(ctx context.Context, dialer libnet.AddressDialer, vs []proto.ValidatorPublicInfo) {
+func WaitCounterpartiesReady(ctx context.Context, dialer libnet.Dialer, vs []proto.ValidatorPublicInfo) {
 	var wg sync.WaitGroup
 	for _, v := range vs {
 		wg.Add(1)
@@ -22,7 +22,7 @@ func WaitCounterpartiesReady(ctx context.Context, dialer libnet.AddressDialer, v
 	wg.Wait()
 }
 
-func WaitCounterpartyReady(ctx context.Context, dialer libnet.AddressDialer, v proto.ValidatorPublicInfo) error {
+func WaitCounterpartyReady(ctx context.Context, dialer libnet.Dialer, v proto.ValidatorPublicInfo) error {
 	for i := 0; ; i++ {
 		select {
 		case <-ctx.Done():
@@ -41,7 +41,7 @@ func WaitCounterpartyReady(ctx context.Context, dialer libnet.AddressDialer, v p
 	}
 }
 
-func pingDowgwood(ctx context.Context, dialer libnet.AddressDialer, address string) error {
+func pingDowgwood(ctx context.Context, dialer libnet.Dialer, address string) error {
 	c, err := DialDogwoodClient(ctx, dialer, address)
 	if err != nil {
 		return err

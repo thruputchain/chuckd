@@ -18,15 +18,15 @@ type LoadgenClient struct {
 	driver *rpc.Driver
 }
 
-func DialLoadgenClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*LoadgenClient, error) {
-	sock, err := dialer.DialAddress(ctx, address)
+func DialLoadgenClient(ctx context.Context, dialer libnet.Dialer, address string) (*LoadgenClient, error) {
+	sock, err := dialer.Dial(ctx, address)
 	if err != nil {
 		return nil, err
 	}
 	return NewLoadgenClient(ctx, sock), nil
 }
 
-func DialLoadgenClientRetry(ctx context.Context, dialer libnet.AddressDialer, address string) (*LoadgenClient, error) {
+func DialLoadgenClientRetry(ctx context.Context, dialer libnet.Dialer, address string) (*LoadgenClient, error) {
 	for {
 		client, err := DialLoadgenClient(ctx, dialer, address)
 		if err == nil {

@@ -11,7 +11,7 @@ import (
 
 func ConnectToScheduler(
 	ctx context.Context,
-	net libnet.AddressDialer,
+	net libnet.Dialer,
 	schedAddr string,
 	coordInAddr string,
 ) (SchedulerCoordConn, error) {

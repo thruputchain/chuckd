@@ -22,11 +22,11 @@ func (x *TestNetwork) String() string {
 	return "testnet"
 }
 
-func (x *TestNetwork) DialAddress(ctx context.Context, address string) (net.Conn, error) {
-	return x.Dial(ctx, "", address)
+func (x *TestNetwork) Dial(ctx context.Context, address string) (net.Conn, error) {
+	return x.dial(ctx, "", address)
 }
 
-func (x *TestNetwork) Dial(ctx context.Context, network string, address string) (net.Conn, error) {
+func (x *TestNetwork) dial(_ context.Context, _ string, address string) (net.Conn, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
@@ -38,11 +38,11 @@ func (x *TestNetwork) Dial(ctx context.Context, network string, address string) 
 	return l.dial()
 }
 
-func (x *TestNetwork) Listen(ctx context.Context, network string, address string) (net.Listener, error) {
-	return x.ListenAddress(ctx, address)
+func (x *TestNetwork) listen(ctx context.Context, _ string, address string) (net.Listener, error) {
+	return x.Listen(ctx, address)
 }
 
-func (x *TestNetwork) ListenAddress(ctx context.Context, address string) (net.Listener, error) {
+func (x *TestNetwork) Listen(ctx context.Context, address string) (net.Listener, error) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 

@@ -71,8 +71,8 @@ type CoordSchedulerClient struct {
 	driver *rpc.Driver
 }
 
-func DialCoordSchedulerClient(ctx context.Context, dialer libnet.AddressDialer, address string) (CoordSchedulerConn, error) {
-	sock, err := dialer.DialAddress(ctx, address)
+func DialCoordSchedulerClient(ctx context.Context, dialer libnet.Dialer, address string) (CoordSchedulerConn, error) {
+	sock, err := dialer.Dial(ctx, address)
 	if err != nil {
 		return nil, err
 	}

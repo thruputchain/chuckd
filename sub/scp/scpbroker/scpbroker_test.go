@@ -91,7 +91,7 @@ func TestBrokerStopDrainsInflightCalls(t *testing.T) {
 		proto.SCP_Control1_Server{Srv: mock})
 	defer l.Close()
 
-	sock, err := tn.DialAddress(ctx, addr)
+	sock, err := tn.Dial(ctx, addr)
 	if err != nil {
 		t.Fatal(err)
 	}

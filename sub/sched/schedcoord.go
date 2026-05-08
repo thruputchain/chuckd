@@ -22,8 +22,8 @@ type SchedulerCoordClient struct {
 	driver *rpc.Driver
 }
 
-func DialSchedulerCoordClient(ctx context.Context, dialer libnet.AddressDialer, address string) (SchedulerCoordConn, error) {
-	sock, err := dialer.DialAddress(ctx, address)
+func DialSchedulerCoordClient(ctx context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
+	sock, err := dialer.Dial(ctx, address)
 	if err != nil {
 		return nil, err
 	}

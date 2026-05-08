@@ -23,7 +23,7 @@ func StartAndWaitCounterpartiesReady(
 
 func WaitCounterpartiesReady(
 	ctx context.Context,
-	net libnet.AddressDialer,
+	net libnet.Dialer,
 	addr []string,
 ) error {
 

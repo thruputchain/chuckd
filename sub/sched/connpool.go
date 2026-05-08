@@ -13,7 +13,7 @@ import (
 
 func ConnectPoolToScheduler(
 	ctx context.Context,
-	net libnet.AddressDialer,
+	net libnet.Dialer,
 	schedAddr string,
 ) (SchedulerCoordConn, error) {
 	const N = 20
@@ -36,7 +36,7 @@ func ConnectPoolToScheduler(
 
 func dialSchedulerUntilSuccess(
 	ctx context.Context,
-	net libnet.AddressDialer,
+	net libnet.Dialer,
 	schedAddr string,
 ) (schedConn SchedulerCoordConn, err error) {
 	for {

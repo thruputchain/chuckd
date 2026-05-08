@@ -36,15 +36,15 @@ func (n hostScopedNetwork) String() string {
 	return n.base.String()
 }
 
-func (n hostScopedNetwork) DialAddress(ctx context.Context, address string) (net.Conn, error) {
-	return n.base.DialAddress(ctx, address)
+func (n hostScopedNetwork) Dial(ctx context.Context, address string) (net.Conn, error) {
+	return n.base.Dial(ctx, address)
 }
 
-func (n hostScopedNetwork) ListenAddress(ctx context.Context, address string) (net.Listener, error) {
+func (n hostScopedNetwork) Listen(ctx context.Context, address string) (net.Listener, error) {
 	if strings.HasPrefix(address, ":") {
-		return n.base.ListenAddress(ctx, n.host+address)
+		return n.base.Listen(ctx, n.host+address)
 	}
-	return n.base.ListenAddress(ctx, address)
+	return n.base.Listen(ctx, address)
 }
 
 const virtualBenchEnvVar = "RUN_CHUCKD_VIRTUAL_TEST"

@@ -22,8 +22,8 @@ type DogwoodClient struct {
 	driver *rpc.Driver
 }
 
-func DialDogwoodClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*DogwoodClient, error) {
-	sock, err := dialer.DialAddress(ctx, addr)
+func DialDogwoodClient(ctx context.Context, dialer libnet.Dialer, addr string) (*DogwoodClient, error) {
+	sock, err := dialer.Dial(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

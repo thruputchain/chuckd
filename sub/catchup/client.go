@@ -22,8 +22,8 @@ type CatchupClient struct {
 	driver *rpc.Driver
 }
 
-func DialCatchupClient(ctx context.Context, dialer libnet.AddressDialer, addr string) (*CatchupClient, error) {
-	sock, err := dialer.DialAddress(ctx, addr)
+func DialCatchupClient(ctx context.Context, dialer libnet.Dialer, addr string) (*CatchupClient, error) {
+	sock, err := dialer.Dial(ctx, addr)
 	if err != nil {
 		return nil, err
 	}

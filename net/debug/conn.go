@@ -17,8 +17,8 @@ type DebugClient struct {
 	driver *rpc.Driver
 }
 
-func DialDebugClient(ctx context.Context, dialer libnet.AddressDialer, address string) (*DebugClient, error) {
-	sock, err := dialer.DialAddress(ctx, address)
+func DialDebugClient(ctx context.Context, dialer libnet.Dialer, address string) (*DebugClient, error) {
+	sock, err := dialer.Dial(ctx, address)
 	if err != nil {
 		return nil, err
 	}
