@@ -45,7 +45,7 @@ var (
 				)
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				outside := libnet.TCPNet{}
+				outside := libnet.TCPReuseNet{}
 				testCfg := coordinator_bench.CoordinatorBenchConfig{
 					TxsPerSec: benchTxsPerSec,
 					SchedPort: benchSchedPort,
@@ -106,7 +106,7 @@ var (
 					inside = testnet.NewTestNetwork()
 					schedSystem = scheduler.NewMockScheduler(ctx, inside, cfg.Validator_config.Private_info, path.Join(benchStorageDir, "db"))
 				} else {
-					inside = libnet.TCPNet{}
+					inside = libnet.TCPReuseNet{}
 					schedSystem = scheduler.NewLiveScheduler()
 				}
 				// coordinator
@@ -115,7 +115,7 @@ var (
 					libtime.RealTime{},
 					runtime.NewRandFromRoot(),
 					inside,
-					libnet.TCPNet{},
+					libnet.TCPReuseNet{},
 					cfg,
 					testCfg,
 					schedSystem,

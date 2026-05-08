@@ -29,8 +29,8 @@ var (
 			return cmdkit.Invoke(ctx, func() {
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				inside := libnet.Network(libnet.TCPNet{})
-				outside := libnet.Network(libnet.TCPNet{})
+				inside := libnet.Network(libnet.TCPReuseNet{})
+				outside := libnet.Network(libnet.TCPReuseNet{})
 				srv := coordinator.NewSystem(
 					ctx,
 					nil,

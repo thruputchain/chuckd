@@ -16,7 +16,7 @@ require (
 
 require (
 	github.com/dustin/go-humanize v1.0.1
-	github.com/groundhogchain/lib-go v0.0.0-20260508161549-3d82650fc427
+	github.com/groundhogchain/lib-go v0.0.0-20260508162816-77b5580c5e96
 	github.com/groundhogchain/protocol-go v0.0.0-20260507225730-97d6510d2c9c
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.0.0-20260507185951-17b997ee737d
