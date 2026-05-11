@@ -91,6 +91,7 @@ func (s *DiscoveryService) Start(ctx context.Context, controller scpkit.SCPKnown
 	s.lk.Lock()
 	s.setQuorumSet(ctx, s.ourQSet)
 	s.lk.Unlock()
+	s.RebuildSnapshot(ctx)
 
 	go s.advertise(ctx)
 	go s.snapshot(ctx)
