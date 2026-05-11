@@ -157,6 +157,9 @@ func (x *DiskStorage) LookupCatchupBlock(
 	err = x.catchupPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cb, r)
 	})
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
 	must.NoError(ctx, err)
 
 	return cb, nil
@@ -199,6 +202,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 	err = x.catchupPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cb, r)
 	})
+	// os.ErrNotExist can only occur if the disk is corrupted.
 	must.NoError(ctx, err)
 
 	return cb, nil
@@ -259,6 +263,9 @@ func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch
 	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cv, r)
 	})
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
 	must.NoError(ctx, err)
 
 	return cv, nil
@@ -286,6 +293,7 @@ func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHei
 	err = x.consensusPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(cv, r)
 	})
+	// os.ErrNotExist can only occur if the disk is corrupted.
 	must.NoError(ctx, err)
 
 	return cv, nil
@@ -374,6 +382,7 @@ func (x *DiskStorage) FindSCPEnvelopesForSlotFromLocal(ctx context.Context, slot
 	err := x.scpPP.Load(ctx, full, func(r io.Reader) error {
 		return libxdr.UnmarshalXdrReader(&env, r)
 	})
+	// os.ErrNotExist can only occur if the disk is corrupted.
 	must.NoError(ctx, err)
 
 	return []proto.SCPEnvelope{env}, nil
@@ -398,6 +407,7 @@ func (x *DiskStorage) FindSCPEnvelopesForSlot(ctx context.Context, slot proto.SC
 		err := x.scpPP.Load(ctx, envpath, func(r io.Reader) error {
 			return libxdr.UnmarshalXdrReader(&env, r)
 		})
+		// os.ErrNotExist can only occur if the disk is corrupted.
 		must.NoError(ctx, err)
 		found = append(found, env)
 	}

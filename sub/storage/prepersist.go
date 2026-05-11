@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path"
@@ -40,6 +41,7 @@ func (x *PrePersist) unlock(filepath string) {
 	delete(x.lks, filepath)
 }
 
+// Load can return os.ErrNotExist, or a reader error from r.
 func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) error) error {
 	x.lock(full)
 	defer x.unlock(full)
@@ -55,6 +57,9 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 	}
 
 	file, err := os.Open(full)
+	if errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 	must.NoError(ctx, err)
 	defer file.Close()
 
