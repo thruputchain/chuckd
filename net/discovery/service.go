@@ -93,6 +93,7 @@ func (s *DiscoveryService) Start(ctx context.Context, controller scpkit.SCPKnown
 	s.lk.Unlock()
 
 	go s.advertise(ctx)
+	go s.snapshot(ctx)
 }
 
 func (s *DiscoveryService) Stop() {
@@ -253,59 +254,5 @@ func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
 		}
 	} else {
 		s.knownVs[key] = v
-	}
-}
-
-func (s *DiscoveryService) CachedSnapshots() proto.KnownQuorumSets {
-	s.cachedLk.Lock()
-	defer s.cachedLk.Unlock()
-
-	// don't rebuild snapshots more frequently than once every 10 seconds
-	if time.Since(s.cachedStamp) < time.Duration(s.cfg.Snapshot_ttl_msec)*time.Millisecond {
-		return proto.KnownQuorumSets{
-			Quorum_set_snapshots: s.cachedSnapshots,
-			Validator_snapshots:  s.cachedValidators,
-		}
-	}
-
-	// build snapshots
-	s.lk.Lock()
-
-	// qsets
-	ourSignedQSet := protoutil.MakeSignedQuorumSetSnapshot(s.m, s.privInfo, s.ourQSet)
-	allQsets := []proto.SignedQuorumSetSnapshot{ourSignedQSet}
-	for _, signedQSet := range s.knownQSets {
-		allQsets = append(allQsets, signedQSet)
-	}
-	protoutil.SortSignedQuorumSetSnapshotsByDescendingTimestamp(allQsets)
-
-	// validators
-	vv := map[proto.ValidatorID]proto.SignedValidatorInfoSnapshot{}
-	for _, v := range s.ourValidators {
-		vv[protoutil.PublicVID(v)] = protoutil.MakeSignedValidatorInfoSnapshot(s.m, s.privInfo, v)
-	}
-	for _, v := range s.knownVs {
-		key := protoutil.PublicVID(v.Signer)
-		_, ok := vv[key]
-		if !ok { // prioritize our info
-			vv[key] = v
-		}
-	}
-	allVs := []proto.SignedValidatorInfoSnapshot{}
-	for _, v := range vv {
-		allVs = append(allVs, v)
-	}
-	protoutil.SortSignedValidatorInfoSnapshots(allVs)
-
-	s.lk.Unlock()
-
-	// update cache
-	s.cachedSnapshots = allQsets
-	s.cachedValidators = allVs
-	s.cachedStamp = time.Now()
-
-	return proto.KnownQuorumSets{
-		Quorum_set_snapshots: s.cachedSnapshots,
-		Validator_snapshots:  allVs,
 	}
 }
