@@ -68,7 +68,7 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 	return nil
 }
 
-func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cue proto.ConsensusValueCue) {
+func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cue proto.ConsensusValueCue) error {
 	cvch := protoutil.HashCVC(&cue)
 
 	cbp.lk.Lock()
@@ -77,12 +77,16 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, cue proto
 	if !ok {
 		liblog.Infof(ctx, "catchup need not wait for pre-persist: cvc %s",
 			cvch.Display())
-		return
+		return nil
 	}
-	<-donePersisting
-
-	liblog.Infof(ctx, "finished waiting for catchup to pre-persist: cvc %s",
-		cvch.Display())
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-donePersisting:
+		liblog.Infof(ctx, "finished waiting for catchup to pre-persist: cvc %s",
+			cvch.Display())
+		return nil
+	}
 }
 
 func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(
@@ -92,8 +96,11 @@ func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(
 	liblog.Infof(ctx, "waiting for pre-persisting of catchup block: height %d; cvc %s",
 		cue.Block_height, protoutil.CVCDisplay(&cue))
 
-	cbp.waitFinishPrePersist(ctx, cue)
 	// NOTE: we have no way of knowing currently if the block had initiated pre-persist at all.
+	err := cbp.waitFinishPrePersist(ctx, cue)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -105,7 +112,11 @@ func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 	liblog.Infof(ctx, "waiting for persisting of catchup block: height %d; cvc %s",
 		cue.Block_height, protoutil.CVCDisplay(&cue))
 
-	cbp.waitFinishPrePersist(ctx, cue)
+	err := cbp.waitFinishPrePersist(ctx, cue)
+	if err != nil {
+		return err
+	}
+
 	return cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, cue.Block_height, protoutil.HashCVC(&cue))
 }
 
@@ -115,7 +126,11 @@ func (cbp *CatchupBlockPool) CBPoolLookup(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
 ) (*proto.CatchupBlock, error) {
-	cbp.waitFinishPrePersist(ctx, cue)
+	err := cbp.waitFinishPrePersist(ctx, cue)
+	if err != nil {
+		return nil, err
+	}
+
 	cb, err := cbp.persist.LookupCatchupBlock(ctx, protoutil.HashCVC(&cue))
 	if err != nil {
 		return nil, err
@@ -123,6 +138,7 @@ func (cbp *CatchupBlockPool) CBPoolLookup(
 	if cb == nil {
 		return nil, nil
 	}
+
 	if cb.Consensus_value.Nomination.Block_height != cue.Block_height {
 		return nil, nil
 	}
