@@ -105,11 +105,16 @@ func (cvp *ConsensusValuePool) CVPoolWaitFor(
 	cue proto.ConsensusValueCue,
 ) (*proto.ConsensusValue, error) {
 	cvch := protoutil.HashCVC(&cue)
-	stop := context.AfterFunc(ctx, func() { cvp.cond.Broadcast() })
+
+	stop := context.AfterFunc(ctx, func() {
+		cvp.lk.Lock()
+		defer cvp.lk.Unlock()
+		cvp.cond.Broadcast()
+	})
 	defer stop()
+
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
-
 	for {
 		select {
 		case <-ctx.Done():
