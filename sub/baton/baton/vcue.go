@@ -167,14 +167,15 @@ func (b *Baton) fetchCV(
 	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cvc %s, proposer=%s",
 		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
 
+	fetchCtx, fetchCancel := context.WithCancel(ctx)
 	cvReturn := make(chan *proto.ConsensusValue, 2)
 
 	// try repairing the missing cv
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.RepairMissingCV(ctx, cvc.Proposer, *cvc)
+		cv, err := b.handler.RepairMissingCV(fetchCtx, cvc.Proposer, *cvc)
 		if err != nil {
-			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+			must.Assert(fetchCtx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
 		}
 		cvReturn <- cv
@@ -183,9 +184,9 @@ func (b *Baton) fetchCV(
 	// try getting the cv from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.CVPoolWaitFor(ctx, *cvc)
+		cv, err := b.handler.CVPoolWaitFor(fetchCtx, *cvc)
 		if err != nil {
-			must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+			must.Assert(fetchCtx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
 		}
 		cvReturn <- cv
@@ -193,12 +194,14 @@ func (b *Baton) fetchCV(
 
 	select {
 	case <-ctx.Done():
+		fetchCancel()
 		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cvc=%s; proposer=%s",
 			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 			protoutil.VPublicShortString(cvc.Proposer))
 		return nil, ctx.Err()
 	case cv, ok := <-cvReturn:
 		if ok {
+			fetchCancel()
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cvc=%s; proposer=%s",
 				slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 				protoutil.VPublicShortString(cvc.Proposer))
