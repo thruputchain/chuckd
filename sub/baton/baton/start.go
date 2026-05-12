@@ -48,23 +48,27 @@ func (b *Baton) start(ctx context.Context) {
 		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
 
-	// initialize scp
-	b.handler.SCPSetLowestNonExternalized(ctx, scpkit.Slot(b.tipDb.Height+1))
-	err = b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(b.tipDb.Height+1))
-	must.NoError(ctx, err)
-
-	// prevents scpd from processing envelopes before the initialization above completes.
-	b.handler.SCPAllowFeedingEnvelopes(ctx)
-
 	// load known externalizations above db tip
 	higherCV, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
 	must.NoError(ctx, err)
+	highestExternalized := b.tipDb.Height
 	for _, cv := range higherCV {
 		b.externalized = append(b.externalized, newExternalized(protoutil.CVC(&cv), &cv))
+		if cv.Nomination.Block_height > highestExternalized {
+			highestExternalized = cv.Nomination.Block_height
+		}
 	}
+
+	// initialize scp
+	b.handler.SCPSetLowestNonExternalized(ctx, scpkit.Slot(highestExternalized+1))
+	err = b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(highestExternalized+1))
+	must.NoError(ctx, err)
+
+	// prevents scpd from processing envelopes before the initialization above completes.
+	b.handler.SCPAllowFeedingEnvelopes(ctx)
 
 	liblog.Infof(ctx, "baton db restored at height %d", b.tipDb.Height)
 
