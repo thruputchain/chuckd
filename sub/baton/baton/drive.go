@@ -36,11 +36,12 @@ func (b *Baton) drive(ctx context.Context) {
 // driveCommit commits the next block, if one is available and no commit is in progress
 func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	cb := v.NextBlockToCommit()
-	if cb == nil || b.committing {
+	if cb == nil || b.committing != nil {
 		return
 	}
 
-	b.committing = true
+	committingHeight := cb.BlockHeight()
+	b.committing = &committingHeight
 	// cancel ongoing nominations trumped by this commit to save compute
 	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
@@ -52,8 +53,8 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 		{
 			b.lock()
 
-			must.Assertf(ctx, b.committing, "race committing")
-			b.committing = false
+			must.Assertf(ctx, b.committing != nil, "race committing")
+			b.committing = nil
 
 			if b.tipDb.Height+1 != cb.BlockHeight() {
 				panic("bug")
