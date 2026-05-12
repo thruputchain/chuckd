@@ -32,7 +32,7 @@ type Baton struct {
 	levers batonkit.BatonLevers
 
 	// state, under lk
-	committing      bool
+	committing      *proto.BlockHeight
 	nominating      *nominating
 	tipDb           proto.DbTip
 	tipExt          externalizedConsensus

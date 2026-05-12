@@ -76,6 +76,12 @@ func (b *Baton) validateCue(
 
 	// if the cv is in the future, we declare it maybe valid, which
 	// allows scp to externalize it, if a quorum certificate is witnessed.
+	//
+	// XXX(SECURITY): we may already be committing the parent block of the validation request,
+	// but this race cannot be accounted for as commit in validation are
+	// not synchronizable with each other. this race should be addressed by
+	// scp/protocol-level logic.
+	//
 	// XXX(SECURITY): adversary can force all honest nodes to declare maybe valid to a future slot.
 	if cvc.Block_height > committedHeight+1 {
 		liblog.Errorf(ctx, "cv in the future: cvc %s", protoutil.CVCDisplay(cvc))
