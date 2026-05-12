@@ -2,7 +2,6 @@ package baton
 
 import (
 	"context"
-	"time"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -102,15 +101,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.Nomination.Block_height))
 
 		extConsensus := newExternalized(&cvc, cv)
-		if x.baton.placeExternalization(ctx, extConsensus) {
-			// XXX: Is CV persistence necessary here, considering it also happens in commit?
-			t0 := time.Now()
-			x.baton.handler.CVPoolCommit(ctx, *cv, cvc)
-			persistCVDelay := time.Since(t0)
-			x.baton.reportPersistCV(cv.Nomination.Block_height, persistCVDelay)
-			liblog.Debugf(ctx, "cv_persist_delay=%v | height=%d", persistCVDelay, cv.Nomination.Block_height)
-		}
-
+		x.baton.placeExternalization(ctx, extConsensus)
 	}
 }
 
