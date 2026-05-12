@@ -79,8 +79,7 @@ func (a CatchupArrival) NominationSerialized() protoutil.NominationSerialized {
 }
 
 type catchupRequest struct {
-	validator proto.ValidatorID
-	spans     []Span
+	spans []Span
 }
 
 // baton
@@ -109,21 +108,14 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 
 	id := b.handler.GenerateID64(ctx)
 
-	src := b.handler.GetCatchupSources(ctx, int64(id))
-	if len(src) == 0 {
-		liblog.Errorf(ctx, "no catchup sources found among known validators")
-		return
-	}
-
 	// mark pending request
 	b.catchupWaiting[id] = catchupRequest{
-		validator: protoutil.PublicVID(src[0]),
-		spans:     spans,
+		spans: spans,
 	}
 
 	// XXX: move this into a catchup agent
 	// XXX: long catchup requests should be split into multiple requests
-	go func(src proto.ValidatorPublicInfo, id batonkit.ID64, spans []Span) {
+	go func(id batonkit.ID64, spans []Span) {
 
 		var result catchupArrivals
 
@@ -136,6 +128,14 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 			// update known catchup blocks
 			b.catchupArrivals = append(b.catchupArrivals, result...)
 		}()
+
+		// find sources
+		srcs := b.handler.GetCatchupSources(ctx, int64(id))
+		if len(srcs) == 0 {
+			liblog.Errorf(ctx, "no catchup sources found among known validators")
+			return
+		}
+		src := srcs[0]
 
 		c, err := b.handler.DialCatchup(ctx, src)
 		if err != nil {
@@ -187,5 +187,5 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 			}
 		}
 
-	}(src[0], id, spans)
+	}(id, spans)
 }
