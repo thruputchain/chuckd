@@ -76,7 +76,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 			continue
 		}
 		var xmsg proto.MultiplexMessage
-		if err := libxdr.UnmarshalXdr(&xmsg, payload); err != nil {
+		if err := libxdr.UnmarshalXdrEOF(&xmsg, payload); err != nil {
 			liblog.Errorf(ctx, "cannot unmarshal multiplex message: %v", err)
 			continue
 		}
