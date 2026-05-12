@@ -120,8 +120,8 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 		var result catchupArrivals
 
 		defer func() {
-			b.lock()
-			defer b.unlock()
+			b.lk.Lock()
+			defer b.lk.Unlock()
 
 			// unmark pending request
 			delete(b.catchupWaiting, id)
