@@ -70,7 +70,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue
-	if err := libxdr.UnmarshalXdr(&cvc, value); err != nil {
+	if err := libxdr.UnmarshalXdrEOF(&cvc, value); err != nil {
 		liblog.Fatalf(ctx, "scp externalized value for slot %d which cannot be decoded", slot)
 		return
 	}
