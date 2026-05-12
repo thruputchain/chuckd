@@ -137,7 +137,11 @@ func (b *Baton) Kick() {
 }
 
 func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHeight) {
-	stop := context.AfterFunc(ctx, func() { b.cond.Broadcast() })
+	stop := context.AfterFunc(ctx, func() {
+		b.lk.Lock()
+		defer b.lk.Unlock()
+		b.cond.Broadcast()
+	})
 	defer stop()
 	b.lk.Lock()
 	defer b.lk.Unlock()
@@ -186,8 +190,13 @@ var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalizedConsensus, error) {
 	liblog.Infof(ctx, "waiting for commit at height %d", height)
 
-	stop := context.AfterFunc(ctx, func() { b.cond.Broadcast() })
+	stop := context.AfterFunc(ctx, func() {
+		b.lk.Lock()
+		defer b.lk.Unlock()
+		b.cond.Broadcast()
+	})
 	defer stop()
+
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for {
