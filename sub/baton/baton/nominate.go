@@ -124,9 +124,9 @@ func (b *Baton) nominate(
 
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
-	b.lock()
+	b.lk.Lock()
 	b.setValidated(cv, cvc, nominatedBlock.Block_id)
-	b.unlock()
+	b.lk.Unlock()
 
 	// notify the repair service that we are making the nomination, so that it
 	// honors requests for missing transactions

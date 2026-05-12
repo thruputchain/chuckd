@@ -72,11 +72,11 @@ func (b *Baton) validateCue(
 		protoutil.VPublicShortString(cvc.Proposer))
 
 	// check if the value was already validated
-	b.lock()
+	b.lk.Lock()
 	alreadyValidated := b.getValidatedCV(cvc)
 	alreadyInvalidated := b.isInvalidated(cvc)
 	committedHeight := b.tipDb.Height
-	b.unlock()
+	b.lk.Unlock()
 
 	// if the cv is in the future, we declare it maybe valid, which
 	// allows scp to externalize it, if a quorum certificate is witnessed.
