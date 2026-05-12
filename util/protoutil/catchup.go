@@ -13,10 +13,12 @@ func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 	bool,
 ) {
 
-	txh, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_value.Nomination.Transactions_hash)
+	txh, err := xdrutil.SerializeSignedTransactionHashBatch(
+		cb.Consensus_value.Nomination.Transactions_hash)
 	if err != nil {
 		return NominationSerialized{}, nil, false
 	}
+
 	txd, err := xdrutil.SerializeNondeterministicProposalDataBatch(
 		cb.Consensus_value.Nomination.Transactions_nondeterministic_data)
 	if err != nil {
@@ -28,9 +30,10 @@ func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 		return NominationSerialized{}, nil, false
 	}
 
-	if xdrutil.TokenSizeOfBatch(cb.Consensus_value.Nomination.Transactions_hash) != len(txs) {
+	if len(txh) != len(txs) || len(txh) != len(txd) {
 		return NominationSerialized{}, nil, false
 	}
+
 	for i, txh := range txh {
 		if txh != HashSignedTx(&txs[i]) {
 			return NominationSerialized{}, nil, false
