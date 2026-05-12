@@ -55,6 +55,10 @@ func (b *Baton) validateCue(
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
+	// validateCue reserves cancellation as a signal of externalization ahead.
+	// so we make sure no other source of cancellation can be injected.
+	// TODO: in a future design, context cancellation should be separate from externalization signals.
+	ctx = context.WithoutCancel(ctx)
 
 	if slot != scpkit.Slot(cvc.Block_height) {
 		liblog.Errorf(ctx, "scp slot disagrees with cv cue: cvc %s; slot %d; cue_height %d",
