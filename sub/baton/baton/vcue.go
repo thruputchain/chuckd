@@ -22,7 +22,7 @@ func (x scpHandler) ValidateCue(
 	<-x.baton.ready
 
 	var cvc proto.ConsensusValueCue
-	err := libxdr.UnmarshalXdr(&cvc, value)
+	err := libxdr.UnmarshalXdrEOF(&cvc, value)
 	if err != nil {
 		return scpkit.InvalidValue
 	}
