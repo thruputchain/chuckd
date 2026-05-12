@@ -96,9 +96,9 @@ func (b *Baton) validateConsensus(
 	// validate proposal
 
 	// check if block previous invalidated to prevent expensive validation
-	b.lock()
+	b.lk.Lock()
 	alreadyInvalidated := b.isInvalidated(cvc)
-	b.unlock()
+	b.lk.Unlock()
 	if alreadyInvalidated {
 		reply <- scpkit.InvalidValue
 		return
@@ -107,9 +107,9 @@ func (b *Baton) validateConsensus(
 	validatedTip, err := b.validateProposal(ctx, *dbTip, cv, cvc)
 	if errors.Is(err, batonkit.ErrNotValid) {
 		// cache invalidation to prevent dos
-		b.lock()
+		b.lk.Lock()
 		b.setInvalidated(cv, cvc)
-		b.unlock()
+		b.lk.Unlock()
 
 		reply <- scpkit.InvalidValue
 		return
@@ -127,9 +127,9 @@ func (b *Baton) validateConsensus(
 	liblog.Debugf(ctx, "caching validation for block %s and consensus %s",
 		libxdr.HashString(cv.Nomination.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
-	b.lock()
+	b.lk.Lock()
 	b.setValidated(cv, cvc, validatedTip.Id)
-	b.unlock()
+	b.lk.Unlock()
 
 	reply <- scpkit.FullyValidValue
 }
@@ -153,10 +153,10 @@ func (b *Baton) tryValidateConsensusFast(
 		return true
 	}
 
-	b.lock()
+	b.lk.Lock()
 	dbTipOnRequest := b.tipDb
 	alreadyValidated := b.getValidatedBlockID(cvc)
-	b.unlock()
+	b.lk.Unlock()
 
 	if !protoutil.IsSaneConsensusValue(cv) {
 		liblog.Infof(ctx, "cannot validate, nomination not sane")
