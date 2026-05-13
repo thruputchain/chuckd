@@ -338,7 +338,7 @@ func (x *DiskStorage) PersistSCPEnvelope(ctx context.Context, env proto.SCPEnvel
 	}
 
 	hash := libxdr.HashXdr(x.scpM, &env)
-	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, hash[:5])
+	full := x.SCPEnvelopeFilepath(env.Statement.Slot_index, hash[:])
 
 	x.scpPP.Persist(ctx, full,
 		func(w io.Writer) error {
