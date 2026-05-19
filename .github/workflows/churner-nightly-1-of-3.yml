@@ -1,8 +1,8 @@
 name: Churner benchmark nightly 1 of 3 nodes churning
 
 on:
-  schedule:
-    - cron: "0 4 * * *"
+  # schedule:
+  #   - cron: "0 4 * * *"
   workflow_dispatch:
 env:
   CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
