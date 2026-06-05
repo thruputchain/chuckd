@@ -25,9 +25,10 @@ var ctx = context.Background()
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "chuckd",
-		Short: "chuckd is a command-line client for the groundhog coordinator server",
-		Long:  ``,
+		Use:     "chuckd",
+		Short:   "chuckd is a command-line client for the groundhog coordinator server",
+		Long:    ``,
+		Version: ghc.Short(),
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
