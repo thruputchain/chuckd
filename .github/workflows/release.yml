@@ -57,12 +57,23 @@ jobs:
       - name: Build scpd
         run: ./scripts/build_scpd.sh
 
+      - name: Package coordinator
+        run: |
+          set -euo pipefail
+
+          package_dir="chuckd-coordinator-linux-x86_64"
+          mkdir -p "$package_dir"
+          install -m 0755 chuckd.dev "$package_dir/chuckd"
+          install -m 0755 scpd.dev "$package_dir/scpd"
+          tar -C "$package_dir" -czf "${package_dir}.tar.gz" chuckd scpd
+          sha256sum "${package_dir}.tar.gz" > SHA256SUMS
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            chuckd.dev
-            scpd.dev
+            chuckd-coordinator-linux-x86_64.tar.gz
+            SHA256SUMS
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
