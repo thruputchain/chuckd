@@ -110,7 +110,12 @@ func loadGenesisConfigurationFile(ctx context.Context, filePath string) proto.Ge
 	return genesis
 }
 
-func loadGenesisIfNeeded(ctx context.Context, ctl coordinator.Control, genesisPath string) {
+type genesisControl interface {
+	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
+	LoadGenesisConfiguration(context.Context, proto.GenesisConfiguration) (proto.DbSchedResult, error)
+}
+
+func loadGenesisIfNeeded(ctx context.Context, ctl genesisControl, genesisPath string) {
 	tip, err := ctl.GetTip(ctx)
 	must.NoError(ctx, err)
 
