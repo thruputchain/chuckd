@@ -50,6 +50,9 @@ func intro(
 		return nil
 	case proto.CoordinatorRegistrationInvalidProtocol:
 		return fmt.Errorf("coordinator protocol not accepted by scheduler")
+	case proto.CoordinatorRegistrationAlreadyRegistered:
+		liblog.Infof(ctx, "coordinator already registered with scheduler")
+		return nil
 	}
-	panic("unreachable")
+	return fmt.Errorf("unexpected coordinator registration outcome: %v", outcome)
 }

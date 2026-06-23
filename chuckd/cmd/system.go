@@ -1,15 +1,21 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/system/dogwood"
+	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
+	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
 )
 
@@ -51,6 +57,9 @@ var (
 					IsValidator:    serverSCPIsValidator,
 				}
 				ctl := srv.Start(ctx, opcfg)
+				if serverGenesisPath != "" {
+					loadGenesisIfNeeded(ctx, ctl, serverGenesisPath)
+				}
 				ctl.SignalGenesisIsReady()
 				select {} // hang
 			})
@@ -88,7 +97,38 @@ var (
 	serverSCPHandleAddr  string
 	serverSCPControlAddr string
 	serverSCPIsValidator bool
+	serverGenesisPath    string
 )
+
+func loadGenesisConfigurationFile(ctx context.Context, filePath string) proto.GenesisConfiguration {
+	data, err := os.ReadFile(filePath)
+	must.Assertf(ctx, err == nil, "reading genesis file (%w)", err)
+
+	var genesis proto.GenesisConfiguration
+	err = libxdr.JsonToXdr(&genesis, data)
+	must.NoError(ctx, err)
+	return genesis
+}
+
+func loadGenesisIfNeeded(ctx context.Context, ctl coordinator.Control, genesisPath string) {
+	tip, err := ctl.GetTip(ctx)
+	must.NoError(ctx, err)
+
+	switch tip.Outcome {
+	case proto.SchedulerGetTipOK:
+		liblog.Infof(ctx, "scheduler genesis already loaded at %v", protoutil.DbTipString(*tip.Db_tip()))
+		return
+	case proto.SchedulerGetTipNoGenesisBlock:
+		genesis := loadGenesisConfigurationFile(ctx, genesisPath)
+		result, err := ctl.LoadGenesisConfiguration(ctx, genesis)
+		must.NoError(ctx, err)
+		must.Assertf(ctx, result == proto.DbSchedResultOK, "loading genesis failed with %v", result)
+		liblog.Infof(ctx, "loaded genesis configuration from %s", genesisPath)
+		return
+	default:
+		must.Errorf(ctx, "unexpected scheduler tip outcome %v", tip.Outcome)
+	}
+}
 
 func init() {
 	rootCmd.AddCommand(sysCmd)
@@ -104,6 +144,7 @@ func init() {
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPHandleAddr, "scp-handle-addr", "localhost:3333", "scp handler addr")
 	sysCoordinatorCmd.Flags().StringVar(&serverSCPControlAddr, "scp-control-addr", "localhost:3334", "scp controller addr")
 	sysCoordinatorCmd.Flags().BoolVar(&serverSCPIsValidator, "scp-is-validator", true, "scp is validator")
+	sysCoordinatorCmd.Flags().StringVar(&serverGenesisPath, "genesis-file", "", "JSON-XDR genesis configuration to load when scheduler has no genesis")
 
 	sysCmd.AddCommand(sysDogwoodCmd)
 	sysDogwoodCmd.Flags().StringVar(&serverInAddress, "in-addr", "localhost:10101", "address for api")
