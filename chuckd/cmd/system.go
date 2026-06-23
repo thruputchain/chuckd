@@ -122,6 +122,14 @@ func loadGenesisIfNeeded(ctx context.Context, ctl coordinator.Control, genesisPa
 		genesis := loadGenesisConfigurationFile(ctx, genesisPath)
 		result, err := ctl.LoadGenesisConfiguration(ctx, genesis)
 		must.NoError(ctx, err)
+		if result != proto.DbSchedResultOK {
+			tip, err := ctl.GetTip(ctx)
+			must.NoError(ctx, err)
+			if tip.Outcome == proto.SchedulerGetTipOK {
+				liblog.Infof(ctx, "scheduler genesis loaded concurrently at %v", protoutil.DbTipString(*tip.Db_tip()))
+				return
+			}
+		}
 		must.Assertf(ctx, result == proto.DbSchedResultOK, "loading genesis failed with %v", result)
 		liblog.Infof(ctx, "loaded genesis configuration from %s", genesisPath)
 		return
