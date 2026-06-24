@@ -201,8 +201,18 @@ func validateSocketAddress(name string, address string) error {
 	if net.ParseIP(host) == nil {
 		return fmt.Errorf("invalid %s address %q: host must be an IP literal", name, address)
 	}
-	if _, err := net.ResolveTCPAddr("tcp", address); err != nil {
-		return fmt.Errorf("invalid %s address %q: %w", name, address, err)
+	return nil
+}
+
+func validateHostedBootstrapManifestConfig(cfg hostedBootstrapConfig) error {
+	if cfg.runtimeManifestOut == "" {
+		return nil
+	}
+	if err := validateSocketAddress("scheduler", cfg.schedulerAddress); err != nil {
+		return err
+	}
+	if err := validateSocketAddress("indexer", cfg.indexerAddress); err != nil {
+		return err
 	}
 	return nil
 }
@@ -246,10 +256,7 @@ func writeHostedRuntimeManifest(metadata hostedBootstrapMetadata, cfg hostedBoot
 	if cfg.runtimeManifestOut == "" {
 		return [32]byte{}, nil
 	}
-	if err := validateSocketAddress("scheduler", cfg.schedulerAddress); err != nil {
-		return [32]byte{}, err
-	}
-	if err := validateSocketAddress("indexer", cfg.indexerAddress); err != nil {
+	if err := validateHostedBootstrapManifestConfig(cfg); err != nil {
 		return [32]byte{}, err
 	}
 	derivation, err := rawJSONField("bootstrapAccountDerivation", metadata.BootstrapAccountDerivation)
@@ -288,6 +295,10 @@ func writeHostedRuntimeManifest(metadata hostedBootstrapMetadata, cfg hostedBoot
 }
 
 func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) error {
+	if err := validateHostedBootstrapManifestConfig(cfg); err != nil {
+		return err
+	}
+
 	metadata, err := loadHostedBootstrapMetadata(cfg.metadataPath)
 	if err != nil {
 		return err

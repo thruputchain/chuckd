@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -176,5 +177,19 @@ func TestWriteHostedRuntimeManifestRejectsHostnameEndpoint(t *testing.T) {
 	}, hostedBootstrapCommit{})
 	if err == nil {
 		t.Fatal("expected hostname scheduler endpoint to fail")
+	}
+}
+
+func TestInitializeHostedBootstrapValidatesManifestConfigBeforeMetadata(t *testing.T) {
+	err := initializeHostedBootstrap(context.Background(), hostedBootstrapConfig{
+		metadataPath:       filepath.Join(t.TempDir(), "missing-metadata.json"),
+		schedulerAddress:   "localhost:8070",
+		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
+	})
+	if err == nil {
+		t.Fatal("expected hostname scheduler endpoint to fail")
+	}
+	if !strings.Contains(err.Error(), "host must be an IP literal") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
