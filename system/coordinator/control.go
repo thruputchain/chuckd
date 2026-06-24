@@ -18,6 +18,10 @@ func (x Control) LoadGenesisConfiguration(ctx context.Context, gb proto.GenesisC
 	return x.conn.Schedcoord_load_genesis_configuration(ctx, gb)
 }
 
+func (x Control) GetTip(ctx context.Context) (proto.SchedulerGetTipResult, error) {
+	return x.conn.Schedcoord_get_tip(ctx)
+}
+
 func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) {
 	x.system.UnvettedSubmitter.SubmitTxs(ctx, txs...)
 }
