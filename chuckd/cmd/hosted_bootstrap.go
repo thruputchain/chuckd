@@ -10,11 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
+	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -34,7 +37,7 @@ var (
 	hostedBootstrapInitializeCmd = &cobra.Command{
 		Use:   "initialize",
 		Short: "submit and commit hosted devnet initialization transactions",
-		Long:  "Submit and commit hosted devnet initialization transactions during the fenced bootstrap phase. Run this after genesis is loaded and before normal coordinators start.",
+		Long:  "Write no-transaction hosted devnet runtime manifests. Non-empty hosted bootstrap initialization must run through `chuckd sys coordinator --hosted-bootstrap-metadata` so Baton commits the bootstrap block.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmdkit.Invoke(ctx, func() {
 				must.NoError(ctx, initializeHostedBootstrap(ctx, hostedBootstrapConfig{
@@ -63,6 +66,15 @@ type hostedBootstrapConfig struct {
 	indexerAddress     string
 	publicRPCURL       string
 	runtimeManifestOut string
+}
+
+type hostedBootstrapCoordinator interface {
+	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
+	SetLevers(batonkit.BatonLevers)
+	SetHooks(batonkit.BatonHooks)
+	SignalGenesisIsReady()
+	SubmitTxs(context.Context, []*proto.SignedTransaction)
+	ResumeNominating()
 }
 
 type hostedBootstrapMetadata struct {
@@ -307,6 +319,9 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 	if err != nil {
 		return err
 	}
+	if len(txs) > 0 {
+		return fmt.Errorf("standalone hosted bootstrap initialization cannot commit transactions safely; use chuckd sys coordinator --hosted-bootstrap-metadata so Baton commits the bootstrap block")
+	}
 
 	client, err := sched.DialSchedulerCoordClient(ctx, libnet.TCPNet{}, cfg.schedulerAddress)
 	if err != nil {
@@ -336,38 +351,116 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 		return nil
 	}
 
-	batch := xdrutil.ParallelizeSignedTransactionBatch(
-		libxdr.NewXdrMarshaler(), systemfixed.UnvettedTxBatchMaxSegments, txs)
-	if err := client.Schedulercoord_submit_unvetted(ctx, batch); err != nil {
-		return fmt.Errorf("submitting hosted bootstrap initialization transactions: %w", err)
+	return nil
+}
+
+func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBootstrapConfig, ctl hostedBootstrapCoordinator, notify *coordinator.NotifyReceive) error {
+	if err := validateHostedBootstrapManifestConfig(cfg); err != nil {
+		return err
+	}
+	metadata, err := loadHostedBootstrapMetadata(cfg.metadataPath)
+	if err != nil {
+		return err
+	}
+	txs, err := decodeHostedBootstrapTransactions(metadata)
+	if err != nil {
+		return err
 	}
 
-	nomination, err := client.Schedulercoord_nominate(ctx, *tip.Db_tip())
+	tip, err := ctl.GetTip(ctx)
 	if err != nil {
-		return fmt.Errorf("nominating hosted bootstrap initialization block: %w", err)
+		return fmt.Errorf("getting scheduler tip: %w", err)
 	}
-	if nomination.Outcome != proto.SchedulerNominationOK {
-		return fmt.Errorf("hosted bootstrap nomination failed: %v", nomination.Outcome)
+	if tip.Outcome != proto.SchedulerGetTipOK {
+		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
 	}
-	commitOutcome, err := client.Schedulercoord_commit_block(ctx, nomination.Nominated_block().Block_id)
-	if err != nil {
-		return fmt.Errorf("committing hosted bootstrap initialization block: %w", err)
+	if tip.Db_tip().Height > 0 {
+		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", tip.Db_tip().Height)
 	}
-	if commitOutcome != proto.SchedulerCommitOK {
-		return fmt.Errorf("hosted bootstrap commit failed: %v", commitOutcome)
+	if len(txs) == 0 {
+		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
+		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: tip.Db_tip().Height, BlockHash: "0x" + hex.EncodeToString(tip.Db_tip().Block_hash[:])})
+		if err != nil {
+			return fmt.Errorf("writing hosted runtime manifest: %w", err)
+		}
+		if cfg.runtimeManifestOut != "" {
+			liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
+		}
+		ctl.SignalGenesisIsReady()
+		return nil
 	}
-	commit := hostedBootstrapCommit{
-		Height:    nomination.Nominated_block().Nomination.Block_height,
-		BlockHash: "0x" + hex.EncodeToString(nomination.Nominated_block().Nomination.Block_hash[:]),
+
+	uncommitted := map[proto.SignedTransactionHash]struct{}{}
+	for i := range txs {
+		uncommitted[protoutil.HashSignedTx(&txs[i])] = struct{}{}
 	}
+
+	var mu sync.Mutex
+	var commit hostedBootstrapCommit
+	var complete bool
+	var hookErr error
+	ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
+	ctl.SetHooks(batonkit.JustCommitHook(func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
+		mu.Lock()
+		defer mu.Unlock()
+
+		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusValue().Nomination.Transactions_hash)
+		if err != nil {
+			hookErr = err
+			return batonkit.BatonLevers{PauseNominating: true}
+		}
+		for _, hash := range hashes {
+			delete(uncommitted, hash)
+		}
+		complete = len(uncommitted) == 0
+		if complete {
+			blockHash := cb.BlockHash()
+			commit = hostedBootstrapCommit{
+				Height:    cb.BlockHeight(),
+				BlockHash: "0x" + hex.EncodeToString(blockHash[:]),
+			}
+		}
+		return batonkit.BatonLevers{PauseNominating: complete}
+	}))
+	defer ctl.SetHooks(nil)
+
+	ctl.SignalGenesisIsReady()
+	txPtrs := make([]*proto.SignedTransaction, len(txs))
+	for i := range txs {
+		txPtrs[i] = &txs[i]
+	}
+	ctl.SubmitTxs(ctx, txPtrs)
+
+	// Give the submitter's batching goroutine time to deliver the fenced init txs
+	// before nominations resume, matching the loadgen init path.
+	time.Sleep(500 * time.Millisecond)
+	ctl.ResumeNominating()
+
+	for {
+		if notify.ReceiveCommitted(ctx) == nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return fmt.Errorf("hosted bootstrap commit notification channel closed")
+		}
+		mu.Lock()
+		done := complete
+		err := hookErr
+		mu.Unlock()
+		if err != nil {
+			return fmt.Errorf("inspecting hosted bootstrap committed block: %w", err)
+		}
+		if done {
+			break
+		}
+	}
+
 	manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, commit)
 	if err != nil {
 		return fmt.Errorf("writing hosted runtime manifest: %w", err)
 	}
-
 	liblog.Infof(ctx, "hosted bootstrap initialized network=%s genesis=%s txs=%d height=%d block_hash=%s",
-		metadata.NetworkID, metadata.GenesisHash, len(txs), nomination.Nominated_block().Nomination.Block_height,
-		libxdr.HashString(nomination.Nominated_block().Nomination.Block_hash))
+		metadata.NetworkID, metadata.GenesisHash, len(txs), commit.Height, commit.BlockHash)
 	if cfg.runtimeManifestOut != "" {
 		liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
 	}

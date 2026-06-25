@@ -174,6 +174,35 @@ func TestValidateCommit(t *testing.T) {
 	}
 }
 
+func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
+	ctx, rig, baton, _ := testSetup()
+
+	block := rig.GenNomination(ctx, 1)
+	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
+	validated, err := rig.Schedulercoord_validate(ctx, rig.GetTip(ctx), block.ConsensusValue.Nomination)
+	if err != nil {
+		t.Fatalf("validate block: %v", err)
+	}
+	if validated.Outcome != proto.SchedulerValidationOK {
+		t.Fatalf("validate block outcome: %v", validated.Outcome)
+	}
+	cvc := protoutil.CVC(&block.ConsensusValue)
+	if err := rig.CVPoolCommit(ctx, block.ConsensusValue, *cvc); err != nil {
+		t.Fatalf("commit cv: %v", err)
+	}
+	if outcome, err := rig.Schedulercoord_commit_block(ctx, validated.Block().Db_tip.Id); err != nil || outcome != proto.SchedulerCommitOK {
+		t.Fatalf("commit block: outcome=%v err=%v", outcome, err)
+	}
+
+	baton.Start(ctx)
+	if baton.tipDb.Height != 1 {
+		t.Fatalf("restored height = %d, want 1", baton.tipDb.Height)
+	}
+	if baton.tipExt.Height() != 1 {
+		t.Fatalf("restored externalized height = %d, want 1", baton.tipExt.Height())
+	}
+}
+
 // TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
 // The validator will request catchup twice, because the test catchup system returns one block at a time,
 // regardless of how many were requested.

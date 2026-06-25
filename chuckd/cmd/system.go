@@ -35,11 +35,17 @@ var (
 			return cmdkit.Invoke(ctx, func() {
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
+				var notify coordinator.Notify
+				var hostedBootstrapNotify *coordinator.NotifyReceive
+				if serverHostedBootstrapMetadataPath != "" {
+					hostedBootstrapNotify = coordinator.NewNotifyReceive()
+					notify = hostedBootstrapNotify
+				}
 				inside := libnet.Network(libnet.TCPReuseNet{})
 				outside := libnet.Network(libnet.TCPReuseNet{})
 				srv := coordinator.NewSystem(
 					ctx,
-					nil,
+					notify,
 					runtime.NewRandFromRoot(),
 					cfg,
 					inside,
@@ -61,15 +67,16 @@ var (
 					loadGenesisIfNeeded(ctx, ctl, serverGenesisPath)
 				}
 				if serverHostedBootstrapMetadataPath != "" {
-					must.NoError(ctx, initializeHostedBootstrap(ctx, hostedBootstrapConfig{
+					must.NoError(ctx, initializeHostedBootstrapWithCoordinator(ctx, hostedBootstrapConfig{
 						metadataPath:       serverHostedBootstrapMetadataPath,
 						schedulerAddress:   serverSchedAddress,
 						indexerAddress:     serverHostedBootstrapIndexerAddress,
 						publicRPCURL:       serverHostedBootstrapPublicRPCURL,
 						runtimeManifestOut: serverHostedBootstrapRuntimeManifestOut,
-					}))
+					}, ctl, hostedBootstrapNotify))
+				} else {
+					ctl.SignalGenesisIsReady()
 				}
-				ctl.SignalGenesisIsReady()
 				select {} // hang
 			})
 		},
