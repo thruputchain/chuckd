@@ -66,6 +66,19 @@ func TestSysCoordinatorCommandHasGenesisFileFlag(t *testing.T) {
 	}
 }
 
+func TestSysCoordinatorCommandHasHostedBootstrapFlags(t *testing.T) {
+	for _, name := range []string{
+		"hosted-bootstrap-metadata",
+		"hosted-bootstrap-indexer",
+		"hosted-bootstrap-public-rpc-url",
+		"hosted-bootstrap-runtime-manifest-out",
+	} {
+		if flag := sysCoordinatorCmd.Flags().Lookup(name); flag == nil {
+			t.Fatalf("sys coordinator is missing --%s flag", name)
+		}
+	}
+}
+
 type fakeGenesisControl struct {
 	tips        []proto.SchedulerGetTipResult
 	getErr      error
