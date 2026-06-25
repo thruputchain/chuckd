@@ -454,6 +454,8 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 			break
 		}
 	}
+	ctl.SetHooks(nil)
+	ctl.ResumeNominating()
 
 	manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, commit)
 	if err != nil {

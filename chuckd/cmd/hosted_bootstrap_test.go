@@ -87,6 +87,7 @@ type fakeHostedBootstrapCoordinator struct {
 	hooks     batonkit.BatonHooks
 	signaled  bool
 	resumed   bool
+	resumes   int
 	submitted []*proto.SignedTransaction
 	commit    *batonkit.CommittableBlock
 	notify    *coordinator.NotifyReceive
@@ -114,6 +115,8 @@ func (x *fakeHostedBootstrapCoordinator) SubmitTxs(_ context.Context, txs []*pro
 
 func (x *fakeHostedBootstrapCoordinator) ResumeNominating() {
 	x.resumed = true
+	x.resumes++
+	x.levers.PauseNominating = false
 	if x.hooks != nil && x.commit != nil {
 		x.levers = x.hooks.CommitHook(x.commit)
 		go x.notify.Committed(context.Background(), x.commit)
@@ -329,8 +332,11 @@ func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.
 	if len(ctl.submitted) != 1 {
 		t.Fatalf("submitted %d txs, want 1", len(ctl.submitted))
 	}
-	if !ctl.levers.PauseNominating {
-		t.Fatal("expected commit hook to pause nominations after hosted bootstrap txs commit")
+	if ctl.resumes != 2 {
+		t.Fatalf("expected bootstrap resume and final resume, got %d resumes", ctl.resumes)
+	}
+	if ctl.levers.PauseNominating {
+		t.Fatal("expected nominations resumed after hosted bootstrap txs commit")
 	}
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {

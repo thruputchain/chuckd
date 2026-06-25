@@ -82,12 +82,24 @@ func StartSCPDaemon(
 	}
 	libruntime.InstallInterruptHook(kill)
 
-	time.Sleep(300 * time.Millisecond) // allow time for the scp control service to start
-
 	// connect controller
 
-	controller, err := DialSCPController(ctx, libnet.TCPNet{}, controlAddr)
-	must.NoError(ctx, err)
+	var controller *SCPController
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		controller, err = DialSCPController(ctx, libnet.TCPNet{}, controlAddr)
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			must.NoError(ctx, err)
+		}
+		select {
+		case <-ctx.Done():
+			must.NoError(ctx, ctx.Err())
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 
 	return handler, controller, func() { kill(os.Kill) }
 }
