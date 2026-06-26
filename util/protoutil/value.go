@@ -11,7 +11,7 @@ type ValueHash struct {
 	bytes proto.SHA256Hash
 }
 
-func NewCVCHash(b []byte) ValueHash {
+func NewValueHash(b []byte) ValueHash {
 	return ValueHash{bytes: proto.SHA256Hash(b)}
 }
 
@@ -30,7 +30,7 @@ func (x ValueHash) Display() string {
 func HashValue(value *proto.ConsensusValue) ValueHash {
 	h := sha256.New()
 	libxdr.MarshalXdrWriter(h, value)
-	return NewCVCHash(h.Sum(nil))
+	return NewValueHash(h.Sum(nil))
 }
 
 func ValueHashFromBasis(basis *proto.ConsensusBasis) ValueHash {
@@ -39,10 +39,10 @@ func ValueHashFromBasis(basis *proto.ConsensusBasis) ValueHash {
 
 // basis must be pre-validated with IsSaneConsensusBasis, otherwise panic.
 func BasisValue(basis *proto.ConsensusBasis) *proto.ConsensusValue {
-	return CVCGivenCVHash(basis, HashBasisFast(basis))
+	return ValueGivenBasisHash(basis, HashBasisFast(basis))
 }
 
-func CVCGivenCVHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusBasisHash) *proto.ConsensusValue {
+func ValueGivenBasisHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusBasisHash) *proto.ConsensusValue {
 	return &proto.ConsensusValue{
 		Proposer:        basis.Nomination.Proposer,
 		Basis_hash:      basisHash,

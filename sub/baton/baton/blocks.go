@@ -17,7 +17,7 @@ type ViewBlock interface {
 	//
 	IsMissing() bool
 	IsExtConsensus() bool
-	IsExtCue() bool
+	IsExtValue() bool
 	IsCatchup() bool
 	IsDb() bool
 	//
@@ -55,7 +55,7 @@ func (x ViewDbBlock) PrevBasisHash() proto.ConsensusBasisHash {
 }
 func (x ViewDbBlock) IsMissing() bool                   { return false }
 func (x ViewDbBlock) IsExtConsensus() bool              { return false }
-func (x ViewDbBlock) IsExtCue() bool                    { return false }
+func (x ViewDbBlock) IsExtValue() bool                  { return false }
 func (x ViewDbBlock) IsCatchup() bool                   { return false }
 func (x ViewDbBlock) IsDb() bool                        { return true }
 func (x ViewDbBlock) Committable() batonkit.Committable { panic("should not be called") }
@@ -81,7 +81,7 @@ func (x ViewCatchupBlock) PrevBasisHash() proto.ConsensusBasisHash {
 }
 func (x ViewCatchupBlock) IsMissing() bool      { return false }
 func (x ViewCatchupBlock) IsExtConsensus() bool { return false }
-func (x ViewCatchupBlock) IsExtCue() bool       { return false }
+func (x ViewCatchupBlock) IsExtValue() bool     { return false }
 func (x ViewCatchupBlock) IsCatchup() bool      { return true }
 func (x ViewCatchupBlock) IsDb() bool           { return false }
 func (x ViewCatchupBlock) Committable() batonkit.Committable {
@@ -129,7 +129,7 @@ func (x ViewExtConsensusBlock) PrevBasisHash() proto.ConsensusBasisHash {
 }
 func (x ViewExtConsensusBlock) IsMissing() bool      { return false }
 func (x ViewExtConsensusBlock) IsExtConsensus() bool { return true }
-func (x ViewExtConsensusBlock) IsExtCue() bool       { return false }
+func (x ViewExtConsensusBlock) IsExtValue() bool     { return false }
 func (x ViewExtConsensusBlock) IsCatchup() bool      { return false }
 func (x ViewExtConsensusBlock) IsDb() bool           { return false }
 func (x ViewExtConsensusBlock) Committable() batonkit.Committable {
@@ -156,33 +156,33 @@ func (x ViewExtConsensusBlock) Icon() string {
 
 // externalized value block
 
-type ViewExtCueBlock struct {
+type ViewExtValueBlock struct {
 	Ext     externalizedValue
 	Catchup *CatchupArrival
 }
 
-func (x ViewExtCueBlock) Proposer() proto.ValidatorPublicInfo { return x.Ext.Proposer() }
-func (x ViewExtCueBlock) BlockHash() proto.BlockHash {
+func (x ViewExtValueBlock) Proposer() proto.ValidatorPublicInfo { return x.Ext.Proposer() }
+func (x ViewExtValueBlock) BlockHash() proto.BlockHash {
 	return x.Ext.BlockHash()
 }
-func (x ViewExtCueBlock) BlockHeight() proto.BlockHeight {
+func (x ViewExtValueBlock) BlockHeight() proto.BlockHeight {
 	return x.Ext.Height()
 }
-func (x ViewExtCueBlock) PrevBlockHash() proto.BlockHash {
+func (x ViewExtValueBlock) PrevBlockHash() proto.BlockHash {
 	return x.Ext.PrevBlockHash()
 }
-func (x ViewExtCueBlock) BasisHash() proto.ConsensusBasisHash {
+func (x ViewExtValueBlock) BasisHash() proto.ConsensusBasisHash {
 	return x.Ext.ConsensusBasisHash()
 }
-func (x ViewExtCueBlock) PrevBasisHash() proto.ConsensusBasisHash {
+func (x ViewExtValueBlock) PrevBasisHash() proto.ConsensusBasisHash {
 	return x.Ext.PrevConsensusBasisHash()
 }
-func (x ViewExtCueBlock) IsMissing() bool      { return false }
-func (x ViewExtCueBlock) IsExtConsensus() bool { return false }
-func (x ViewExtCueBlock) IsExtCue() bool       { return true }
-func (x ViewExtCueBlock) IsCatchup() bool      { return false }
-func (x ViewExtCueBlock) IsDb() bool           { return false }
-func (x ViewExtCueBlock) Committable() batonkit.Committable {
+func (x ViewExtValueBlock) IsMissing() bool      { return false }
+func (x ViewExtValueBlock) IsExtConsensus() bool { return false }
+func (x ViewExtValueBlock) IsExtValue() bool     { return true }
+func (x ViewExtValueBlock) IsCatchup() bool      { return false }
+func (x ViewExtValueBlock) IsDb() bool           { return false }
+func (x ViewExtValueBlock) Committable() batonkit.Committable {
 	if x.Catchup != nil {
 		return batonkit.NewCommittableCatchup(
 			x.Catchup.Block(),
@@ -193,7 +193,7 @@ func (x ViewExtCueBlock) Committable() batonkit.Committable {
 	}
 	return nil
 }
-func (x ViewExtCueBlock) Icon() string {
+func (x ViewExtValueBlock) Icon() string {
 	return fmt.Sprintf("Y:%d", x.Ext.Height())
 }
 
@@ -211,7 +211,7 @@ func (x ViewMissing) BasisHash() proto.ConsensusBasisHash     { panic("must not 
 func (x ViewMissing) PrevBasisHash() proto.ConsensusBasisHash { panic("must not call") }
 func (x ViewMissing) IsMissing() bool                         { return true }
 func (x ViewMissing) IsExtConsensus() bool                    { return false }
-func (x ViewMissing) IsExtCue() bool                          { return false }
+func (x ViewMissing) IsExtValue() bool                        { return false }
 func (x ViewMissing) IsCatchup() bool                         { return false }
 func (x ViewMissing) IsDb() bool                              { return false }
 func (x ViewMissing) Committable() batonkit.Committable       { return nil }

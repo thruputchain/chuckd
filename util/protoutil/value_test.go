@@ -60,7 +60,7 @@ func TestValidatorPublicInfoRecursiveFieldEqualityMatchesGoValueEquality(t *test
 	}
 }
 
-func TestConsensusValueCueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T) {
+func TestConsensusValueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T) {
 	base := sampleConsensusValue(11)
 
 	testCases := []struct {
@@ -122,7 +122,7 @@ func TestConsensusValueCueRecursiveFieldEqualityMatchesGoValueEquality(t *testin
 			right := base
 			tc.mutate(&right)
 
-			gotRecursiveFieldByField := consensusValueCueFieldByFieldEqual(left, right)
+			gotRecursiveFieldByField := consensusValueFieldByFieldEqual(left, right)
 			gotDirectGoValue := left == right
 			if gotRecursiveFieldByField != gotDirectGoValue {
 				t.Fatalf(
@@ -132,15 +132,15 @@ func TestConsensusValueCueRecursiveFieldEqualityMatchesGoValueEquality(t *testin
 				)
 			}
 
-			gotCVCEquals := ValueEquals(&left, &right)
-			if gotCVCEquals != gotDirectGoValue {
-				t.Fatalf("CVCEquals (%v) != direct Go value comparison (%v)", gotCVCEquals, gotDirectGoValue)
+			gotValueEquals := ValueEquals(&left, &right)
+			if gotValueEquals != gotDirectGoValue {
+				t.Fatalf("ValueEquals (%v) != direct Go value comparison (%v)", gotValueEquals, gotDirectGoValue)
 			}
 		})
 	}
 }
 
-func consensusValueCueFieldByFieldEqual(left, right proto.ConsensusValue) bool {
+func consensusValueFieldByFieldEqual(left, right proto.ConsensusValue) bool {
 	return left.Proposer.Public_key == right.Proposer.Public_key &&
 		left.Proposer.Address == right.Proposer.Address &&
 		left.Basis_hash == right.Basis_hash &&

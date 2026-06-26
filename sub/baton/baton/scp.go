@@ -93,8 +93,8 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	if basis == nil {
 
-		extCue := externalizedValue{height: proto.BlockHeight(slot), value: &value}
-		x.baton.placeExternalization(ctx, extCue)
+		extValue := externalizedValue{height: proto.BlockHeight(slot), value: &value}
+		x.baton.placeExternalization(ctx, extValue)
 
 	} else {
 
@@ -122,7 +122,7 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 		if extConsensus, ok := ext.(externalizedBasis); ok {
 			for i, priorExt := range b.externalized {
 				if priorExt.Height() == extConsensus.Height() {
-					if _, priorIsCue := priorExt.(externalizedValue); priorIsCue {
+					if _, priorIsValue := priorExt.(externalizedValue); priorIsValue {
 						if externalizedAgree(extConsensus, priorExt) {
 							b.externalized[i] = extConsensus
 							return true

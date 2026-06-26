@@ -67,7 +67,7 @@ func (a CatchupArrival) ConsensusBasisHash() proto.ConsensusBasisHash {
 }
 
 func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
-	return protoutil.CVCGivenCVHash(a.ConsensusBasis(), a.basis)
+	return protoutil.ValueGivenBasisHash(a.ConsensusBasis(), a.basis)
 }
 
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {

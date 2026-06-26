@@ -68,7 +68,7 @@ func (v *View) NeededUnrequestedSpans() Spans {
 					j := i
 					start = &j
 				}
-			case ViewExtConsensusBlock, ViewExtCueBlock:
+			case ViewExtConsensusBlock, ViewExtValueBlock:
 				if u.Committable() != nil {
 					if start != nil {
 						spans = append(spans, Span{From: v.indexHeight(*start), To: v.indexHeight(i)})
