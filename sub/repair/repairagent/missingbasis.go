@@ -72,7 +72,7 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 		return nil, fmt.Errorf("repaired consensus basis is not sane")
 	}
 	if !protoutil.ValueEquals(missing, protoutil.BasisValue(reply)) {
-		return nil, fmt.Errorf("repaired consensus basis cue mismatch")
+		return nil, fmt.Errorf("repaired consensus basis/value mismatch")
 	}
 
 	return reply, nil

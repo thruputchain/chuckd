@@ -43,11 +43,11 @@ type externalizedBasis struct {
 }
 
 func newExternalized(
-	cue *proto.ConsensusValue,
+	value *proto.ConsensusValue,
 	basis *proto.ConsensusBasis,
 ) externalizedBasis {
 	return externalizedBasis{
-		value: cue,
+		value: value,
 		basis: basis,
 	}
 }

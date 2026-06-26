@@ -17,7 +17,7 @@ func (b *Baton) validateExternalizedValue(
 	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
-	liblog.Debugf(ctx, "validating cue for already externalized slot %d", slot)
+	liblog.Debugf(ctx, "validating value for already externalized slot %d", slot)
 
 	basis, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
 	if errors.Is(err, context.Canceled) {

@@ -61,13 +61,13 @@ func (b *Baton) validateValue(
 	ctx = context.WithoutCancel(ctx)
 
 	if slot != scpkit.Slot(value.Block_height) {
-		liblog.Errorf(ctx, "scp slot disagrees with cv height: value %s; slot %d; cue_height %d",
+		liblog.Errorf(ctx, "scp slot disagrees with cv height: value %s; slot %d; height %d",
 			protoutil.ValueDisplay(value), slot, proto.BlockHeight(value.Block_height))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	liblog.Debugf(ctx, "validating cue: height %d; block_hash %s; value %s; proposer %s",
+	liblog.Debugf(ctx, "validating value: height %d; block_hash %s; value %s; proposer %s",
 		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
 		protoutil.VPublicDisplay(value.Proposer))
 
@@ -88,22 +88,22 @@ func (b *Baton) validateValue(
 	//
 	// XXX(SECURITY): adversary can force all honest nodes to declare maybe valid to a future slot.
 	if value.Block_height > committedHeight+1 {
-		liblog.Errorf(ctx, "cv in the future: value %s", protoutil.ValueDisplay(value))
+		liblog.Errorf(ctx, "value in the future: value %s", protoutil.ValueDisplay(value))
 		reply <- scpkit.MaybeValidValue
 		return
 	}
 
 	if alreadyInvalidated {
-		liblog.Errorf(ctx, "cv already invalidated: value %s", protoutil.ValueDisplay(value))
+		liblog.Errorf(ctx, "value already invalidated: value %s", protoutil.ValueDisplay(value))
 		reply <- scpkit.InvalidValue
 		return
 	}
 	if alreadyValidated != nil {
 		if protoutil.BasisAgreesWithValue(alreadyValidated, value) {
-			liblog.Debugf(ctx, "cv already validated: value %s", protoutil.ValueDisplay(value))
+			liblog.Debugf(ctx, "basis already validated: value %s", protoutil.ValueDisplay(value))
 			reply <- scpkit.FullyValidValue
 		} else {
-			liblog.Errorf(ctx, "cv already validated, but disagrees with cue: value %s",
+			liblog.Errorf(ctx, "basis already validated, but disagrees with value: value %s",
 				protoutil.ValueDisplay(value))
 			reply <- scpkit.InvalidValue
 		}
@@ -117,7 +117,7 @@ func (b *Baton) validateValue(
 	go func() {
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
-		liblog.Debugf(ctx, "cancelling validating cue: height %d; block_hash %s; value %s",
+		liblog.Debugf(ctx, "cancelling validating value: height %d; block_hash %s; value %s",
 			slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value))
 		vCtxCancel()
 	}()
@@ -133,9 +133,9 @@ func (b *Baton) validateValue(
 	}
 	must.NoError(ctx, err)
 
-	// XXX(DoS): if basis disagrees with cue, take action regarding the source of the basis
+	// XXX(DoS): if basis disagrees with value, take action regarding the source of the basis
 	if !protoutil.BasisAgreesWithValue(basis, value) {
-		liblog.Infof(ctx, "cannot validate, basis disagrees with cue")
+		liblog.Infof(ctx, "cannot validate, basis disagrees with value")
 		reply <- scpkit.InvalidValue
 		return
 	}

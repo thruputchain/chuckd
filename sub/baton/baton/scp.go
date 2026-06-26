@@ -118,7 +118,7 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 	lastExt := b.externalized[len(b.externalized)-1]
 	if ext.Height() <= lastExt.Height() {
 		// if the externalization is within the range of already seen externalizations,
-		// only place it if it upgrades an externalized cue to an externalized consensus basis
+		// only place it if it upgrades an externalized value to an externalized basis
 		if extConsensus, ok := ext.(externalizedBasis); ok {
 			for i, priorExt := range b.externalized {
 				if priorExt.Height() == extConsensus.Height() {

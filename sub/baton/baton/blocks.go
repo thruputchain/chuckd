@@ -154,7 +154,7 @@ func (x ViewExtConsensusBlock) Icon() string {
 	return fmt.Sprintf("X:%d", x.Ext.Height())
 }
 
-// externalized cue block
+// externalized value block
 
 type ViewExtCueBlock struct {
 	Ext     externalizedValue
