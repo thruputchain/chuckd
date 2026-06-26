@@ -79,8 +79,8 @@ func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.B
 }
 
 func (cvp *ConsensusValuePool) purge() {
-	for h, cv := range cvp.basis {
-		if cv.Nomination.Block_height <= cvp.bottom {
+	for h, basis := range cvp.basis {
+		if basis.Nomination.Block_height <= cvp.bottom {
 			delete(cvp.basis, h)
 		}
 	}
@@ -135,12 +135,12 @@ func (cvp *ConsensusValuePool) CVPoolFind(
 	cue proto.ConsensusValueCue,
 ) (*proto.ConsensusBasis, error) {
 	cvch := protoutil.HashCVC(&cue)
-	cv, err := cvp.persist.FindCV(ctx, cue.Block_height, cvch)
+	basis, err := cvp.persist.FindCV(ctx, cue.Block_height, cvch)
 	if err != nil {
 		return nil, err
 	}
-	if cv != nil && protoutil.BasisAgreesWithCue(cv, &cue) {
-		return cv, nil
+	if basis != nil && protoutil.BasisAgreesWithCue(basis, &cue) {
+		return basis, nil
 	}
 	return nil, nil
 }

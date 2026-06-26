@@ -15,7 +15,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// RepairMissingBasis ensures that the returned cv match the desired hash.
+// RepairMissingBasis ensures that the returned basis matches the desired hash.
 func (x *RepairAgent) RepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
@@ -26,9 +26,9 @@ func (x *RepairAgent) RepairMissingBasis(
 
 attempting:
 	for {
-		cv, err := x.attemptRepairMissingCV(ctx, from, &missing)
+		basis, err := x.attemptRepairMissingBasis(ctx, from, &missing)
 		if err != nil {
-			liblog.Errorf(ctx, "failed attempt to repair missing cv at height %d from %s: %v",
+			liblog.Errorf(ctx, "failed attempt to repair missing basis at height %d from %s: %v",
 				missing.Block_height, protoutil.VPublicShortString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
@@ -40,12 +40,12 @@ attempting:
 				continue attempting
 			}
 		}
-		x.cvpool.CVPoolAdd(ctx, *cv, missing) // repaired cvs should go in the cvpool to be accessible later
-		return cv, nil
+		x.cvpool.CVPoolAdd(ctx, *basis, missing) // repaired cvs should go in the cvpool to be accessible later
+		return basis, nil
 	}
 }
 
-func (x *RepairAgent) attemptRepairMissingCV(
+func (x *RepairAgent) attemptRepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing *proto.ConsensusValueCue,
@@ -67,7 +67,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 			libxdr.HashString(missing.Cv_hash), protoutil.VIDString(protoutil.PublicVID(from)))
 	}
 
-	// verify returned cv matches hash
+	// verify returned basis matches hash
 	if !protoutil.IsSaneConsensusBasis(reply) {
 		return nil, fmt.Errorf("repaired consensus value is not sane")
 	}

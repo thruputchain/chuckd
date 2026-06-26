@@ -23,12 +23,12 @@ type CommittableNomination struct {
 }
 
 func NewCommittableNomination(
-	cv *proto.ConsensusBasis,
+	basis *proto.ConsensusBasis,
 	cvc *proto.ConsensusValueCue,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
-		basis:     cv,
+		basis:     basis,
 		cvc:       cvc,
 		validated: validated,
 	}

@@ -9,14 +9,14 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashBasisSlow(cv *proto.ConsensusBasis) proto.ConsensusBasisHash {
+func HashBasisSlow(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	h := sha256.New()
-	libxdr.MarshalXdrWriter(h, cv)
+	libxdr.MarshalXdrWriter(h, basis)
 	return proto.ConsensusBasisHash(h.Sum(nil))
 }
 
-func HashBasisFast(cv *proto.ConsensusBasis) proto.ConsensusBasisHash {
-	cvBase := *cv
+func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
+	cvBase := *basis
 	cvBase.Nomination.Transactions_hash = proto.ParallelBatch{}
 	cvBase.Nomination.Transactions_nondeterministic_data = proto.ParallelBatch{}
 
@@ -32,11 +32,11 @@ func HashBasisFast(cv *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsHash = xdrutil.HashParallelBatch(cv.Nomination.Transactions_hash)
+		hashTxsHash = xdrutil.HashParallelBatch(basis.Nomination.Transactions_hash)
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsND = xdrutil.HashParallelBatch(cv.Nomination.Transactions_nondeterministic_data)
+		hashTxsND = xdrutil.HashParallelBatch(basis.Nomination.Transactions_nondeterministic_data)
 	}()
 	wg.Wait()
 	for i := range hashBase {
@@ -45,15 +45,15 @@ func HashBasisFast(cv *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	return hashBase
 }
 
-func IsSaneConsensusBasis(cv *proto.ConsensusBasis) bool {
-	if err := xdrutil.ValidateBatch(cv.Nomination.Transactions_hash); err != nil {
+func IsSaneConsensusBasis(basis *proto.ConsensusBasis) bool {
+	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_hash); err != nil {
 		return false
 	}
-	if err := xdrutil.ValidateBatch(cv.Nomination.Transactions_nondeterministic_data); err != nil {
+	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_nondeterministic_data); err != nil {
 		return false
 	}
-	if xdrutil.TokenSizeOfBatch(cv.Nomination.Transactions_hash) !=
-		xdrutil.TokenSizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_hash) !=
+		xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_nondeterministic_data) {
 		return false
 	}
 	return true

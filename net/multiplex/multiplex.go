@@ -134,15 +134,15 @@ func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.Sub
 	}
 }
 
-func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusBasis) error {
-	liblog.Debugf(ctx, "%v multiplex sending consensus value, for slot %v",
-		protoutil.VIDString(x.self), cv.Nomination.Block_height)
+func (x *Multiplex) SendConsensusBasis(ctx context.Context, basis proto.ConsensusBasis) error {
+	liblog.Debugf(ctx, "%v multiplex sending consensus basis, for slot %v",
+		protoutil.VIDString(x.self), basis.Nomination.Block_height)
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageConsensusBasis
-	*xmsg.Consensus_basis() = cv
+	*xmsg.Consensus_basis() = basis
 	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
-		liblog.Errorf(ctx, "multiplex send consensus value: %v", err)
+		liblog.Errorf(ctx, "multiplex send consensus basis: %v", err)
 	}
 	return nil
 }

@@ -61,7 +61,7 @@ func (b *Baton) validateCue(
 	ctx = context.WithoutCancel(ctx)
 
 	if slot != scpkit.Slot(cvc.Block_height) {
-		liblog.Errorf(ctx, "scp slot disagrees with cv cue: cvc %s; slot %d; cue_height %d",
+		liblog.Errorf(ctx, "scp slot disagrees with cv height: cvc %s; slot %d; cue_height %d",
 			protoutil.CVCDisplay(cvc), slot, proto.BlockHeight(cvc.Block_height))
 		reply <- scpkit.InvalidValue
 		return
@@ -123,9 +123,9 @@ func (b *Baton) validateCue(
 	}()
 	defer vCtxCancel()
 
-	// fetchCV will be aborted if externalization or commits beyond the nominated block height occur
+	// fetchBasis will be aborted if externalization or commits beyond the nominated block height occur
 	// BLOCKING
-	cv, err := b.fetchCV(vCtx, slot, cvc)
+	basis, err := b.fetchBasis(vCtx, slot, cvc)
 	if errors.Is(err, context.Canceled) {
 		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
 		reply <- scpkit.MaybeValidValue
@@ -133,17 +133,17 @@ func (b *Baton) validateCue(
 	}
 	must.NoError(ctx, err)
 
-	// XXX(DoS): if cv disagrees with cue, take action regarding the source of the cv
-	if !protoutil.BasisAgreesWithCue(cv, cvc) {
+	// XXX(DoS): if basis disagrees with cue, take action regarding the source of the basis
+	if !protoutil.BasisAgreesWithCue(basis, cvc) {
 		liblog.Infof(ctx, "cannot validate, consensus value disagrees with cue")
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	b.validateConsensus(vCtx, slot, cv, cvc, reply)
+	b.validateConsensus(vCtx, slot, basis, cvc, reply)
 }
 
-func (b *Baton) fetchCV(
+func (b *Baton) fetchBasis(
 	ctx context.Context,
 	slot scpkit.Slot,
 	cvc *proto.ConsensusValueCue,
@@ -153,15 +153,15 @@ func (b *Baton) fetchCV(
 		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
 
 	// lookup in cvpool
-	cv, err := b.handler.CVPoolLookup(ctx, *cvc)
+	basis, err := b.handler.CVPoolLookup(ctx, *cvc)
 	if errors.Is(err, context.Canceled) {
 		return nil, ctx.Err()
 	}
 	must.NoError(ctx, err)
-	if cv != nil {
+	if basis != nil {
 		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cvc %s, proposer=%s",
 			slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
-		return cv, nil
+		return basis, nil
 	}
 
 	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cvc %s, proposer=%s",
@@ -170,7 +170,7 @@ func (b *Baton) fetchCV(
 	fetchCtx, fetchCancel := context.WithCancel(ctx)
 	basisReturn := make(chan *proto.ConsensusBasis, 2)
 
-	// try repairing the missing cv
+	// try repairing the missing basis
 	// this goroutine keeps on trying unless cancelled
 	go func() {
 		basis, err := b.handler.RepairMissingBasis(fetchCtx, cvc.Proposer, *cvc)
@@ -181,7 +181,7 @@ func (b *Baton) fetchCV(
 		basisReturn <- basis
 	}()
 
-	// try getting the cv from the pool, if it arrives before the repair
+	// try getting the basis from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
 		basis, err := b.handler.CVPoolWaitFor(fetchCtx, *cvc)
@@ -199,14 +199,14 @@ func (b *Baton) fetchCV(
 			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 			protoutil.VPublicShortString(cvc.Proposer))
 		return nil, ctx.Err()
-	case cv, ok := <-basisReturn:
+	case basis, ok := <-basisReturn:
 		if ok {
 			fetchCancel()
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cvc=%s; proposer=%s",
 				slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 				protoutil.VPublicShortString(cvc.Proposer))
-			b.handler.CVPoolAdd(ctx, *cv, *cvc)
-			return cv, nil
+			b.handler.CVPoolAdd(ctx, *basis, *cvc)
+			return basis, nil
 		} else {
 			panic("unreachable")
 		}

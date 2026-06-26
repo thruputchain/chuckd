@@ -19,7 +19,7 @@ func (b *Baton) validateExternalizedCue(
 ) {
 	liblog.Debugf(ctx, "validating cue for already externalized slot %d", slot)
 
-	cv, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
+	basis, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
 	if errors.Is(err, context.Canceled) {
 		// context cancellation is expected only if validation is being aborted due to externalizations ahead.
 		// cancellation on this condition is triggered in validateCue.
@@ -28,9 +28,9 @@ func (b *Baton) validateExternalizedCue(
 		return
 	}
 	must.NoError(ctx, err)
-	must.Assert(ctx, cv != nil)
+	must.Assert(ctx, basis != nil)
 
-	if protoutil.BasisAgreesWithCue(cv, cvc) {
+	if protoutil.BasisAgreesWithCue(basis, cvc) {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue

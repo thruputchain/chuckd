@@ -15,7 +15,7 @@ type CBPool interface {
 	// CBPoolAdd initiates the pre-persisting of a block.
 	CBPoolAdd(
 		ctx context.Context,
-		cv proto.CatchupBlock,
+		cb proto.CatchupBlock,
 		cue proto.ConsensusValueCue,
 	) error
 

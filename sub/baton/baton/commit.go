@@ -31,8 +31,8 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// validate, if not already validated
 	if validatedBlockID == nil {
 
-		cv := cb.AsConsensusBasis()
-		proposer := protoutil.PublicVID(cv.Nomination.Proposer)
+		basis := cb.AsConsensusBasis()
+		proposer := protoutil.PublicVID(basis.Nomination.Proposer)
 
 		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
 			// submit catchup transactions
@@ -41,7 +41,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 			must.NoError(ctx, err)
 		}
 
-		validatedTip, err := b.validateProposal(ctx, cb.Onto, cv, cb.ConsensusValueCue())
+		validatedTip, err := b.validateProposal(ctx, cb.Onto, basis, cb.ConsensusValueCue())
 		// an error cannot arise here:
 		// - context cancellation or deadlines do not apply on the commit path
 		// - ErrNotValid is not expected on the commit path,

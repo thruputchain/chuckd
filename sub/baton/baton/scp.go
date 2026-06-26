@@ -81,9 +81,9 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	liblog.Debugf(ctx, "notified scp broker of lowest non-externalized slot %d", slot+1)
 
-	// if we participated in this round, the cv shold be in our cv pool,
-	// otherwise it is too late to repair a missing cv value.
-	cv, err := x.baton.handler.CVPoolLookup(ctx, cvc)
+	// if we participated in this round, the basis shold be in our basis pool,
+	// otherwise it is too late to repair a missing basis.
+	basis, err := x.baton.handler.CVPoolLookup(ctx, cvc)
 	must.NoError(ctx, err)
 
 	x.baton.lock()
@@ -91,16 +91,16 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	x.baton.noteExternalized(slot)
 
-	if cv == nil {
+	if basis == nil {
 
 		extCue := externalizedCue{height: proto.BlockHeight(slot), cvc: &cvc}
 		x.baton.placeExternalization(ctx, extCue)
 
 	} else {
 
-		must.Assert(ctx, slot == proto.SCPSlotIndex(cv.Nomination.Block_height))
+		must.Assert(ctx, slot == proto.SCPSlotIndex(basis.Nomination.Block_height))
 
-		extConsensus := newExternalized(&cvc, cv)
+		extConsensus := newExternalized(&cvc, basis)
 		x.baton.placeExternalization(ctx, extConsensus)
 	}
 }

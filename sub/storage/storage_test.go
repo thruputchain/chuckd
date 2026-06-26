@@ -201,13 +201,13 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 	st := NewStorage(ctx, cfg)
 	st.Start(ctx, dir)
 
-	consensusValues := []proto.ConsensusBasis{
+	consensusBases := []proto.ConsensusBasis{
 		newConsensusBasis(time.Unix(1700002000, 0).UTC(), 5),
 		newConsensusBasis(time.Unix(1700003000, 0).UTC(), 6),
 		newConsensusBasis(time.Unix(1700004000, 0).UTC(), 8),
 	}
-	for _, cv := range consensusValues {
-		st.PersistCV(ctx, cv, protoutil.CVCHashFromBasis(&cv))
+	for _, basis := range consensusBases {
+		st.PersistCV(ctx, basis, protoutil.CVCHashFromBasis(&basis))
 	}
 
 	got, err := FindCommittedConsensusValuesAbove(ctx, st, 4)
@@ -215,11 +215,11 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		t.Fatalf("FindCommittedConsensusValuesAbove returned error: %v", err)
 	}
 
-	if len(got) != len(consensusValues) {
-		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusValues), len(got))
+	if len(got) != len(consensusBases) {
+		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusBases), len(got))
 	}
 
-	for i, want := range consensusValues {
+	for i, want := range consensusBases {
 		if !reflect.DeepEqual(got[i], want) {
 			t.Fatalf("consensus value mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
 		}

@@ -203,11 +203,11 @@ func (h *TestRig) AnnounceNomination(cue *proto.ConsensusValueCue) {
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
-func (h *TestRig) DisseminateBasis(ctx context.Context, cv proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
+func (h *TestRig) DisseminateBasis(ctx context.Context, basis proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
 }
 
-func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
-	h.ConsensusValuePool.CVPoolAdd(ctx, cv, cvc)
+func (h *TestRig) PlaceConsensusValue(ctx context.Context, basis proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
+	h.ConsensusValuePool.CVPoolAdd(ctx, basis, cvc)
 }
 
 func (h *TestRig) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {

@@ -94,43 +94,43 @@ func NewTestCVPersistence() *TestCVPersistence {
 	}
 }
 
-func (x *TestCVPersistence) PersistCV(ctx context.Context, cv proto.ConsensusBasis, cvch protoutil.CVCHash) error {
+func (x *TestCVPersistence) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if !x.hasHighest || cv.Nomination.Block_height > x.highest {
-		x.highest = cv.Nomination.Block_height
+	if !x.hasHighest || basis.Nomination.Block_height > x.highest {
+		x.highest = basis.Nomination.Block_height
 		x.hasHighest = true
 	}
-	x.committed[cv.Nomination.Block_height] = cv
-	x.uncommitted[cvch] = cv
+	x.committed[basis.Nomination.Block_height] = basis
+	x.uncommitted[cvch] = basis
 	return nil
 }
 
-func (x *TestCVPersistence) PrePersistCV(ctx context.Context, cv proto.ConsensusBasis, cvch protoutil.CVCHash) error {
+func (x *TestCVPersistence) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	x.uncommitted[cvch] = cv
+	x.uncommitted[cvch] = basis
 	return nil
 }
 
 func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusBasis, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
-	cv, ok := x.uncommitted[cvch]
+	basis, ok := x.uncommitted[cvch]
 	if !ok {
 		return nil, nil
 	}
-	return &cv, nil
+	return &basis, nil
 }
 
 func (x *TestCVPersistence) FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusBasis, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
-	cv, ok := x.committed[height]
+	basis, ok := x.committed[height]
 	if !ok {
 		return nil, nil
 	}
-	return &cv, nil
+	return &basis, nil
 }
 
 func (x *TestCVPersistence) FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusBasis, error) {

@@ -131,7 +131,7 @@ func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction)
 	}
 	var blockHash proto.BlockHash
 	copy(blockHash[:], bytes.Repeat([]byte{0x88}, len(blockHash)))
-	cv := &proto.ConsensusBasis{
+	basis := &proto.ConsensusBasis{
 		Nomination: proto.Nomination{
 			Block_height:      1,
 			Block_hash:        blockHash,
@@ -140,7 +140,7 @@ func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction)
 	}
 	blockID := proto.BlockID(1)
 	return &batonkit.CommittableBlock{
-		Committable: batonkit.NewCommittableNomination(cv, protoutil.CVC(cv), &blockID),
+		Committable: batonkit.NewCommittableNomination(basis, protoutil.CVC(basis), &blockID),
 		Onto:        proto.DbTip{Height: 0},
 	}
 }

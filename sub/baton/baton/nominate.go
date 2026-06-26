@@ -94,7 +94,7 @@ func (b *Baton) nominate(
 
 	q0 := b.handler.Now()
 	cvc := protoutil.CVC(basis)
-	liblog.Debugf(ctx, "hashing cv for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
+	liblog.Debugf(ctx, "hashing basis for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
 
 	evNominating := batonkit.EventNominating{
 		Onto:              ontoDb,
@@ -108,9 +108,9 @@ func (b *Baton) nominate(
 	b.handler.Emit(ctx, evNominating)
 
 	// in a single-node setup, the externalization resulting from calling scp.nominate (handler.Nominate below)
-	// may come before the dissemination of the cv (DisseminateCV below), in which case the local node will
+	// may come before the dissemination of the basis (DisseminateBasis below), in which case the local node will
 	// not be able to externalize the value (and look for catchup when no other nodes exist).
-	// to fix this, we populate the cv in the local pool optimistically.
+	// to fix this, we populate the basis in the local pool optimistically.
 	b.handler.CVPoolAdd(ctx, *basis, *cvc)
 
 	// kick-off an optimistic pre-persist of the catchup block;

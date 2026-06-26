@@ -49,16 +49,16 @@ func (b *Baton) start(ctx context.Context) {
 	}
 
 	// load known externalizations above db tip
-	higherCV, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
+	higherBasis, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
 	must.NoError(ctx, err)
 	highestExternalized := b.tipDb.Height
-	for _, cv := range higherCV {
-		b.externalized = append(b.externalized, newExternalized(protoutil.CVC(&cv), &cv))
-		if cv.Nomination.Block_height > highestExternalized {
-			highestExternalized = cv.Nomination.Block_height
+	for _, basis := range higherBasis {
+		b.externalized = append(b.externalized, newExternalized(protoutil.CVC(&basis), &basis))
+		if basis.Nomination.Block_height > highestExternalized {
+			highestExternalized = basis.Nomination.Block_height
 		}
 	}
 

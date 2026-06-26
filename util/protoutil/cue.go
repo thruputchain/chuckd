@@ -37,7 +37,7 @@ func CVCHashFromBasis(basis *proto.ConsensusBasis) CVCHash {
 	return HashCVC(CVC(basis))
 }
 
-// cv must be pre-validated with IsSaneConsensusValue, otherwise panic.
+// basis must be pre-validated with IsSaneConsensusBasis, otherwise panic.
 func CVC(basis *proto.ConsensusBasis) *proto.ConsensusValueCue {
 	return CVCGivenCVHash(basis, HashBasisFast(basis))
 }

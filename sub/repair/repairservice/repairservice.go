@@ -214,7 +214,7 @@ func (x *RepairService) Repair_missing_basis(
 	cvc proto.ConsensusValueCue,
 ) (proto.OptConsensusBasis, error) {
 
-	liblog.Debugf(ctx, "repair_missing_cv request: height=%d; cvc=%s", cvc.Block_height, protoutil.CVCDisplay(&cvc))
+	liblog.Debugf(ctx, "repair_missing_basis request: height=%d; cvc=%s", cvc.Block_height, protoutil.CVCDisplay(&cvc))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.
@@ -234,29 +234,29 @@ func (x *RepairService) Repair_missing_basis(
 	// requests for missing cvs will block the repair attempts forever,
 	// and they need to be aborted at the caller when they discover newer externalization have happened.
 
-	cvx, err := x.cvpool.CVPoolLookup(ctx, cvc)
+	basisX, err := x.cvpool.CVPoolLookup(ctx, cvc)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_cv failed to lookup cv in pool: %v", err)
+		liblog.Errorf(ctx, "repair_missing_basis failed to lookup cv in pool: %v", err)
 	}
-	if cvx != nil {
-		liblog.Infof(ctx, "repair_missing_cv serving from pool: height=%d; cvc=%s",
+	if basisX != nil {
+		liblog.Infof(ctx, "repair_missing_basis serving from pool: height=%d; cvc=%s",
 			cvc.Block_height, protoutil.CVCDisplay(&cvc))
-		return cvx, nil
+		return basisX, nil
 	}
 
-	cv, err := x.cvpool.CVPoolFind(ctx, cvc)
+	basis, err := x.cvpool.CVPoolFind(ctx, cvc)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_cv failed to find cv in pool: %v", err)
+		liblog.Errorf(ctx, "repair_missing_basis failed to find cv in pool: %v", err)
 		return nil, err
 	}
-	if cv != nil {
-		liblog.Infof(ctx, "repair_missing_cv serving from storage: height=%d; cvc=%s",
+	if basis != nil {
+		liblog.Infof(ctx, "repair_missing_basis serving from storage: height=%d; cvc=%s",
 			cvc.Block_height, protoutil.CVCDisplay(&cvc))
 	} else {
-		liblog.Errorf(ctx, "repair_missing_cv not found: height=%d; cvc=%s",
+		liblog.Errorf(ctx, "repair_missing_basis not found: height=%d; cvc=%s",
 			cvc.Block_height, protoutil.CVCDisplay(&cvc))
 	}
-	return cv, nil
+	return basis, nil
 }
 
 // XXX: dos protection

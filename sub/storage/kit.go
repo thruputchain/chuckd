@@ -52,14 +52,14 @@ func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePers
 		return nil, nil
 	}
 	for height := above + 1; height <= highest.Nomination.Block_height; height++ {
-		cv, err := x.FindCommittedCV(ctx, height)
+		basis, err := x.FindCommittedCV(ctx, height)
 		if err != nil {
 			return nil, err
 		}
-		if cv == nil {
+		if basis == nil {
 			continue
 		}
-		found = append(found, *cv)
+		found = append(found, *basis)
 	}
 	return found, nil
 }

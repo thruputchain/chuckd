@@ -48,7 +48,7 @@ func (b *Baton) validateConsensus(
 			highestExternalized := b.HighestCommittedOrExternalized()
 			liblog.Infof(ctx, "skipping validation due to externalizations ahead: height: %d; highest_externalized: %d",
 				basis.Nomination.Block_height, highestExternalized)
-			// assert highest externalized is at cv.Nomination.Block_height or above
+			// assert highest externalized is at basis.Nomination.Block_height or above
 			must.Assert(ctx, highestExternalized >= basis.Nomination.Block_height)
 			reply <- scpkit.MaybeValidValue
 			return
