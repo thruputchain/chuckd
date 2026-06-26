@@ -48,10 +48,10 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 ) (txs []proto.SignedTransaction, err error) {
 
 	ctx = liblog.Enterf(ctx, "RepairMissingTxs", "proposer=%s; height=%d; cvc=%s",
-		protoutil.VPublicShortString(proposer), missing.Cue.Block_height, protoutil.CVCDisplay(&missing.Cue))
+		protoutil.VPublicDisplay(proposer), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value))
 	defer func() {
 		liblog.Leavef(ctx, "proposer=%s; height=%d; cvc=%s; error=%v; found=%d",
-			protoutil.VPublicShortString(proposer), missing.Cue.Block_height, protoutil.CVCDisplay(&missing.Cue),
+			protoutil.VPublicDisplay(proposer), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value),
 			err, len(txs))
 	}()
 

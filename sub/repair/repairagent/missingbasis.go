@@ -19,7 +19,7 @@ import (
 func (x *RepairAgent) RepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing proto.ConsensusValueCue,
+	missing proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 
 	backoff := netutil.NewBackoff(x.backoffCfg, librand.NewRand())
@@ -29,7 +29,7 @@ attempting:
 		basis, err := x.attemptRepairMissingBasis(ctx, from, &missing)
 		if err != nil {
 			liblog.Errorf(ctx, "failed attempt to repair missing basis at height %d from %s: %v",
-				missing.Block_height, protoutil.VPublicShortString(from), err)
+				missing.Block_height, protoutil.VPublicDisplay(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)
@@ -48,7 +48,7 @@ attempting:
 func (x *RepairAgent) attemptRepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing *proto.ConsensusValueCue,
+	missing *proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
@@ -64,14 +64,14 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 
 	if reply == nil {
 		return nil, fmt.Errorf("no repaired consensus basis returned, cvh %s, vid %s",
-			libxdr.HashString(missing.Cv_hash), protoutil.VIDString(protoutil.PublicVID(from)))
+			libxdr.HashString(missing.Basis_hash), protoutil.VIDString(protoutil.PublicVID(from)))
 	}
 
 	// verify returned basis matches hash
 	if !protoutil.IsSaneConsensusBasis(reply) {
 		return nil, fmt.Errorf("repaired consensus basis is not sane")
 	}
-	if !protoutil.CVCEquals(missing, protoutil.CVC(reply)) {
+	if !protoutil.ValueEquals(missing, protoutil.BasisValue(reply)) {
 		return nil, fmt.Errorf("repaired consensus basis cue mismatch")
 	}
 

@@ -11,25 +11,25 @@ type Committable interface {
 	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
 	AsConsensusBasis() *proto.ConsensusBasis
-	ConsensusValueCue() *proto.ConsensusValueCue
+	ConsensusValue() *proto.ConsensusValue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	NumTransactions() int
 }
 
 type CommittableNomination struct {
 	basis     *proto.ConsensusBasis // always present
-	cvc       *proto.ConsensusValueCue
+	value     *proto.ConsensusValue
 	validated *proto.BlockID // always present
 }
 
 func NewCommittableNomination(
 	basis *proto.ConsensusBasis,
-	cvc *proto.ConsensusValueCue,
+	cvc *proto.ConsensusValue,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
 		basis:     basis,
-		cvc:       cvc,
+		value:     cvc,
 		validated: validated,
 	}
 }
@@ -53,8 +53,8 @@ func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
 	return cb.validated
 }
 
-func (cb *CommittableNomination) ConsensusValueCue() *proto.ConsensusValueCue {
-	return cb.cvc
+func (cb *CommittableNomination) ConsensusValue() *proto.ConsensusValue {
+	return cb.value
 }
 
 func (cb *CommittableNomination) AsConsensusBasis() *proto.ConsensusBasis {
@@ -71,20 +71,20 @@ func (cb *CommittableNomination) NumTransactions() int {
 
 type CommittableCatchup struct {
 	catchup   *proto.CatchupBlock // always present
-	cvc       *proto.ConsensusValueCue
+	value     *proto.ConsensusValue
 	txs       []proto.SignedTransaction
 	validated *proto.BlockID // optional
 }
 
 func NewCommittableCatchup(
 	catchup *proto.CatchupBlock,
-	cvc *proto.ConsensusValueCue,
+	cvc *proto.ConsensusValue,
 	txs []proto.SignedTransaction,
 	validated *proto.BlockID,
 ) *CommittableCatchup {
 	return &CommittableCatchup{
 		catchup:   catchup,
-		cvc:       cvc,
+		value:     cvc,
 		txs:       txs,
 		validated: validated,
 	}
@@ -106,8 +106,8 @@ func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {
 	return cb.validated
 }
 
-func (cb *CommittableCatchup) ConsensusValueCue() *proto.ConsensusValueCue {
-	return cb.cvc
+func (cb *CommittableCatchup) ConsensusValue() *proto.ConsensusValue {
+	return cb.value
 }
 
 func (cb *CommittableCatchup) AsConsensusBasis() *proto.ConsensusBasis {

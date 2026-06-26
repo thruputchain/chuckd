@@ -1,14 +1,6 @@
 RENAME
 
-- [ ] Prev_cv_hash
-- [ ] PersistCV
-- [ ] ConsensusValueCue.Cv_hash -> Basis_hash
-
-
-
-
-
-
+============================================================================================
 
 - [ ] bug: in churner experiment one node gets stuck at block 1150 (needs reproduction)
 

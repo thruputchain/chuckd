@@ -78,7 +78,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	}
 	if scpTopHeight == dbBlock.TipDb.Height {
 		if scpTopExt.BlockHash() == dbBlock.BlockHash() &&
-			scpTopExt.ConsensusBasisHash() == dbBlock.ConsensusBasisHash() {
+			scpTopExt.ConsensusBasisHash() == dbBlock.BasisHash() {
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -107,7 +107,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		if extConsensus, ok := ext.(externalizedBasis); ok {
 			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtConsensusBlock{
 				Ext:       extConsensus,
-				Validated: b.getValidatedBlockID(ext.ConsensusValueCue()),
+				Validated: b.getValidatedBlockID(ext.ConsensusValue()),
 			}
 		} else {
 			extCue := ext.(externalizedValue)
@@ -151,7 +151,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 				v.Blocks[i] = ViewCatchupBlock{
 					Candidate: ca,
 					Linked:    false, // linked will be computed later
-					Validated: b.getValidatedBlockID(ca.ConsensusValueCue()),
+					Validated: b.getValidatedBlockID(ca.ConsensusValue()),
 				}
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}
@@ -161,7 +161,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if u.Validated == nil {
 				if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-					if protoutil.CVCEquals(ca.ConsensusValueCue(), BlockCue(u)) {
+					if protoutil.ValueEquals(ca.ConsensusValue(), BlockValue(u)) {
 						u.Catchup = &ca
 						v.Blocks[i] = u
 					} else {
@@ -172,7 +172,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 		case ViewExtCueBlock:
 			if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 				// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-				if protoutil.CVCEquals(ca.ConsensusValueCue(), BlockCue(u)) {
+				if protoutil.ValueEquals(ca.ConsensusValue(), BlockValue(u)) {
 					u.Catchup = &ca
 					v.Blocks[i] = u
 				} else {
@@ -195,22 +195,22 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 		case ViewCatchupBlock:
 			if !prev.IsMissing() &&
 				(prev.BlockHash() != u.PrevBlockHash() ||
-					prev.ConsensusBasisHash() != u.PrevConsensusBasisHash()) {
+					prev.BasisHash() != u.PrevBasisHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
 		case ViewExtConsensusBlock, ViewExtCueBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusBasisHash() != prev.ConsensusBasisHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
 					return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 				}
 			case prev.IsDb():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusBasisHash() != prev.ConsensusBasisHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
 			case prev.IsExtConsensus() || prev.IsExtCue():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusBasisHash() != prev.ConsensusBasisHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
 			default:

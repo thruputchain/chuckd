@@ -39,9 +39,9 @@ type Baton struct {
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupArrivals catchupArrivals                  // received catchup blocks
 	externalized    []externalized                   // known externalizations
-	validating      *liblock.KeyedMutex[protoutil.CVCHash]
-	validated       map[protoutil.CVCHash]validated
-	invalidated     map[protoutil.CVCHash]invalidated
+	validating      *liblock.KeyedMutex[protoutil.ValueHash]
+	validated       map[protoutil.ValueHash]validated
+	invalidated     map[protoutil.ValueHash]invalidated
 	liveness        liveness
 
 	// metrics (no lock necessary)
@@ -70,9 +70,9 @@ func NewBaton(
 		maxCatchupHeight: int(cfg.Max_catchup_height),
 		ready:            make(chan struct{}),
 		catchupWaiting:   map[batonkit.ID64]catchupRequest{},
-		validating:       liblock.NewKeyedMutex[protoutil.CVCHash](),
-		validated:        map[protoutil.CVCHash]validated{},
-		invalidated:      map[protoutil.CVCHash]invalidated{},
+		validating:       liblock.NewKeyedMutex[protoutil.ValueHash](),
+		validated:        map[protoutil.ValueHash]validated{},
+		invalidated:      map[protoutil.ValueHash]invalidated{},
 		cvM:              libxdr.NewXdrMarshaler(),
 		nomM:             libxdr.NewXdrMarshaler(),
 		catchupReqM:      libxdr.NewXdrMarshaler(),

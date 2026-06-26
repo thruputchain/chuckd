@@ -17,11 +17,11 @@ import (
 // XXX: commit currently does not handle the upgrades in the consensus value
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
-	cvc := cb.ConsensusValueCue()
+	cvc := cb.ConsensusValue()
 	liblog.Infof(ctx, "committing: height %d; block_hash %s; cvc %s; proposer %s",
 		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()),
-		protoutil.CVCDisplay(cvc),
-		protoutil.VPublicShortString(cb.AsConsensusBasis().Nomination.Proposer))
+		protoutil.ValueDisplay(cvc),
+		protoutil.VPublicDisplay(cb.AsConsensusBasis().Nomination.Proposer))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
 	defer b.stampCommitEnd(cb.BlockHeight())
@@ -41,7 +41,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 			must.NoError(ctx, err)
 		}
 
-		validatedTip, err := b.validateProposal(ctx, cb.Onto, basis, cb.ConsensusValueCue())
+		validatedTip, err := b.validateProposal(ctx, cb.Onto, basis, cb.ConsensusValue())
 		// an error cannot arise here:
 		// - context cancellation or deadlines do not apply on the commit path
 		// - ErrNotValid is not expected on the commit path,
@@ -57,10 +57,10 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	}
 
 	// CV must be guaranteed persisted before the db commits.
-	b.handler.CVPoolCommit(ctx, *cb.AsConsensusBasis(), *cb.ConsensusValueCue())
+	b.handler.CVPoolCommit(ctx, *cb.AsConsensusBasis(), *cb.ConsensusValue())
 
 	// catchup block must be guaranteed persisted before the db commits.
-	b.handler.CBPoolWaitPersist(ctx, *cb.ConsensusValueCue())
+	b.handler.CBPoolWaitPersist(ctx, *cb.ConsensusValue())
 
 	// commit to db
 	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)

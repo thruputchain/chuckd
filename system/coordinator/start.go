@@ -191,7 +191,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", basis.Nomination.Block_height)
 					continue
 				}
-				s.CVPool.CVPoolAdd(s.ctx, *basis, *protoutil.CVC(basis))
+				s.CVPool.CVPoolAdd(s.ctx, *basis, *protoutil.BasisValue(basis))
 			}
 		}()
 	}()

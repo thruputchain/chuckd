@@ -16,6 +16,6 @@ type RepairAgent interface {
 	RepairMissingBasis(
 		ctx context.Context,
 		from proto.ValidatorPublicInfo,
-		missing proto.ConsensusValueCue,
+		missing proto.ConsensusValue,
 	) (*proto.ConsensusBasis, error)
 }

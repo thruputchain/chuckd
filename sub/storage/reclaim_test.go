@@ -35,7 +35,7 @@ func TestReclaimCatchupBlocksRemovesOldest(t *testing.T) {
 			Consensus_basis:     basis,
 			Signed_transactions: proto.ParallelSignedTransactionBatch{},
 		}
-		st.PersistCatchupBlock(ctx, cb, protoutil.CVCHashFromBasis(&basis))
+		st.PersistCatchupBlock(ctx, cb, protoutil.ValueHashFromBasis(&basis))
 	}
 
 	files, err := ListCatchupFiles(st.CatchupBlocksDirpath())

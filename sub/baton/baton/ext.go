@@ -11,7 +11,7 @@ type externalized interface {
 	Proposer() proto.ValidatorPublicInfo
 	Height() proto.BlockHeight
 	ConsensusBasisHash() proto.ConsensusBasisHash
-	ConsensusValueCue() *proto.ConsensusValueCue
+	ConsensusValue() *proto.ConsensusValue
 	PrevConsensusBasisHash() proto.ConsensusBasisHash
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
@@ -38,16 +38,16 @@ func ExternalizedString(ext externalized) string {
 }
 
 type externalizedBasis struct {
-	cue   *proto.ConsensusValueCue
+	value *proto.ConsensusValue
 	basis *proto.ConsensusBasis
 }
 
 func newExternalized(
-	cue *proto.ConsensusValueCue,
+	cue *proto.ConsensusValue,
 	basis *proto.ConsensusBasis,
 ) externalizedBasis {
 	return externalizedBasis{
-		cue:   cue,
+		value: cue,
 		basis: basis,
 	}
 }
@@ -60,16 +60,16 @@ func (x externalizedBasis) ConsensusBasis() *proto.ConsensusBasis {
 	return x.basis
 }
 
-func (x externalizedBasis) ConsensusValueCue() *proto.ConsensusValueCue {
-	return x.cue
+func (x externalizedBasis) ConsensusValue() *proto.ConsensusValue {
+	return x.value
 }
 
 func (x externalizedBasis) ConsensusBasisHash() proto.ConsensusBasisHash {
-	return x.cue.Cv_hash
+	return x.value.Basis_hash
 }
 
 func (x externalizedBasis) PrevConsensusBasisHash() proto.ConsensusBasisHash {
-	return x.basis.Prev_cv_hash
+	return x.basis.Prev_basis_hash
 }
 
 func (x externalizedBasis) Height() proto.BlockHeight {
@@ -86,23 +86,23 @@ func (x externalizedBasis) PrevBlockHash() proto.BlockHash {
 
 type externalizedValue struct {
 	height proto.BlockHeight
-	cvc    *proto.ConsensusValueCue
+	value  *proto.ConsensusValue
 }
 
-func (x externalizedValue) ConsensusValueCue() *proto.ConsensusValueCue {
-	return x.cvc
+func (x externalizedValue) ConsensusValue() *proto.ConsensusValue {
+	return x.value
 }
 
 func (x externalizedValue) Proposer() proto.ValidatorPublicInfo {
-	return x.cvc.Proposer
+	return x.value.Proposer
 }
 
 func (x externalizedValue) ConsensusBasisHash() proto.ConsensusBasisHash {
-	return x.cvc.Cv_hash
+	return x.value.Basis_hash
 }
 
 func (x externalizedValue) PrevConsensusBasisHash() proto.ConsensusBasisHash {
-	return x.cvc.Prev_cv_hash
+	return x.value.Prev_basis_hash
 }
 
 func (x externalizedValue) Height() proto.BlockHeight {
@@ -110,9 +110,9 @@ func (x externalizedValue) Height() proto.BlockHeight {
 }
 
 func (x externalizedValue) BlockHash() proto.BlockHash {
-	return x.cvc.Block_hash
+	return x.value.Block_hash
 }
 
 func (x externalizedValue) PrevBlockHash() proto.BlockHash {
-	return x.cvc.Prev_block_hash
+	return x.value.Prev_block_hash
 }

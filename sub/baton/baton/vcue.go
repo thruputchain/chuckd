@@ -12,17 +12,17 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (x scpHandler) ValidateCue(
+func (x scpHandler) ValidateValue(
 	ctx context.Context,
 	slot scpkit.Slot,
-	value scpkit.Value,
+	scpValue scpkit.Value,
 	nomination bool,
 ) (level scpkit.ValidationLevel) {
 
 	<-x.baton.ready
 
-	var cvc proto.ConsensusValueCue
-	err := libxdr.UnmarshalXdrEOF(&cvc, value)
+	var value proto.ConsensusValue
+	err := libxdr.UnmarshalXdrEOF(&value, scpValue)
 	if err != nil {
 		return scpkit.InvalidValue
 	}
@@ -32,49 +32,49 @@ func (x scpHandler) ValidateCue(
 		kind = "nomination"
 	}
 	liblog.Infof(ctx, "validate value (%s) requested: slot %d; cvc %s; block_hash %s; proposer %s",
-		kind, slot, protoutil.CVCDisplay(&cvc), libxdr.HashString(cvc.Block_hash),
-		protoutil.VPublicShortString(cvc.Proposer))
+		kind, slot, protoutil.ValueDisplay(&value), libxdr.HashString(value.Block_hash),
+		protoutil.VPublicDisplay(value.Proposer))
 	defer func() {
 		liblog.Infof(ctx, "validate value (%s) completed: slot %d; cvc %s; block_hash %s; proposer %s; result %v",
-			kind, slot, protoutil.CVCDisplay(&cvc), libxdr.HashString(cvc.Block_hash),
-			protoutil.VPublicShortString(cvc.Proposer), scpkit.ValidationLevelString(level))
+			kind, slot, protoutil.ValueDisplay(&value), libxdr.HashString(value.Block_hash),
+			protoutil.VPublicDisplay(value.Proposer), scpkit.ValidationLevelString(level))
 	}()
 
-	x.baton.validating.Lock(protoutil.HashCVC(&cvc))
-	defer x.baton.validating.Unlock(protoutil.HashCVC(&cvc))
+	x.baton.validating.Lock(protoutil.HashValue(&value))
+	defer x.baton.validating.Unlock(protoutil.HashValue(&value))
 
 	reply := make(chan scpkit.ValidationLevel, 1)
-	go x.baton.validateCue(context.WithoutCancel(ctx), slot, &cvc, reply)
+	go x.baton.validateValue(context.WithoutCancel(ctx), slot, &value, reply)
 	level = <-reply
 	return
 }
 
-func (b *Baton) validateCue(
+func (b *Baton) validateValue(
 	ctx context.Context,
 	slot scpkit.Slot,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
-	// validateCue reserves cancellation as a signal of externalization ahead.
+	// validateValue reserves cancellation as a signal of externalization ahead.
 	// so we make sure no other source of cancellation can be injected.
 	// TODO: in a future design, context cancellation should be separate from externalization signals.
 	ctx = context.WithoutCancel(ctx)
 
-	if slot != scpkit.Slot(cvc.Block_height) {
+	if slot != scpkit.Slot(value.Block_height) {
 		liblog.Errorf(ctx, "scp slot disagrees with cv height: cvc %s; slot %d; cue_height %d",
-			protoutil.CVCDisplay(cvc), slot, proto.BlockHeight(cvc.Block_height))
+			protoutil.ValueDisplay(value), slot, proto.BlockHeight(value.Block_height))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
 	liblog.Debugf(ctx, "validating cue: height %d; block_hash %s; cvc %s; proposer %s",
-		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
-		protoutil.VPublicShortString(cvc.Proposer))
+		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
+		protoutil.VPublicDisplay(value.Proposer))
 
 	// check if the value was already validated
 	b.lk.Lock()
-	alreadyValidated := b.getValidatedBasis(cvc)
-	alreadyInvalidated := b.isInvalidated(cvc)
+	alreadyValidated := b.getValidatedBasis(value)
+	alreadyInvalidated := b.isInvalidated(value)
 	committedHeight := b.tipDb.Height
 	b.lk.Unlock()
 
@@ -87,24 +87,24 @@ func (b *Baton) validateCue(
 	// scp/protocol-level logic.
 	//
 	// XXX(SECURITY): adversary can force all honest nodes to declare maybe valid to a future slot.
-	if cvc.Block_height > committedHeight+1 {
-		liblog.Errorf(ctx, "cv in the future: cvc %s", protoutil.CVCDisplay(cvc))
+	if value.Block_height > committedHeight+1 {
+		liblog.Errorf(ctx, "cv in the future: cvc %s", protoutil.ValueDisplay(value))
 		reply <- scpkit.MaybeValidValue
 		return
 	}
 
 	if alreadyInvalidated {
-		liblog.Errorf(ctx, "cv already invalidated: cvc %s", protoutil.CVCDisplay(cvc))
+		liblog.Errorf(ctx, "cv already invalidated: cvc %s", protoutil.ValueDisplay(value))
 		reply <- scpkit.InvalidValue
 		return
 	}
 	if alreadyValidated != nil {
-		if protoutil.BasisAgreesWithCue(alreadyValidated, cvc) {
-			liblog.Debugf(ctx, "cv already validated: cvc %s", protoutil.CVCDisplay(cvc))
+		if protoutil.BasisAgreesWithValue(alreadyValidated, value) {
+			liblog.Debugf(ctx, "cv already validated: cvc %s", protoutil.ValueDisplay(value))
 			reply <- scpkit.FullyValidValue
 		} else {
 			liblog.Errorf(ctx, "cv already validated, but disagrees with cue: cvc %s",
-				protoutil.CVCDisplay(cvc))
+				protoutil.ValueDisplay(value))
 			reply <- scpkit.InvalidValue
 		}
 		return
@@ -118,14 +118,14 @@ func (b *Baton) validateCue(
 		// waiter is cancelled whenever validation completes or externalization occurs
 		b.WaitExternalizedBeyond(vCtx, proto.BlockHeight(slot)) // cancel ctx if tip or ext moves
 		liblog.Debugf(ctx, "cancelling validating cue: height %d; block_hash %s; cvc %s",
-			slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc))
+			slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value))
 		vCtxCancel()
 	}()
 	defer vCtxCancel()
 
 	// fetchBasis will be aborted if externalization or commits beyond the nominated block height occur
 	// BLOCKING
-	basis, err := b.fetchBasis(vCtx, slot, cvc)
+	basis, err := b.fetchBasis(vCtx, slot, value)
 	if errors.Is(err, context.Canceled) {
 		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
 		reply <- scpkit.MaybeValidValue
@@ -134,38 +134,38 @@ func (b *Baton) validateCue(
 	must.NoError(ctx, err)
 
 	// XXX(DoS): if basis disagrees with cue, take action regarding the source of the basis
-	if !protoutil.BasisAgreesWithCue(basis, cvc) {
+	if !protoutil.BasisAgreesWithValue(basis, value) {
 		liblog.Infof(ctx, "cannot validate, basis disagrees with cue")
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	b.validateConsensus(vCtx, slot, basis, cvc, reply)
+	b.validateBasis(vCtx, slot, basis, value, reply)
 }
 
 func (b *Baton) fetchBasis(
 	ctx context.Context,
 	slot scpkit.Slot,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 
 	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cvc %s; proposer=%s",
-		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
+		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VPublicDisplay(value.Proposer))
 
 	// lookup in cvpool
-	basis, err := b.handler.CVPoolLookup(ctx, *cvc)
+	basis, err := b.handler.CVPoolLookup(ctx, *value)
 	if errors.Is(err, context.Canceled) {
 		return nil, ctx.Err()
 	}
 	must.NoError(ctx, err)
 	if basis != nil {
 		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; cvc %s, proposer=%s",
-			slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
+			slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VPublicDisplay(value.Proposer))
 		return basis, nil
 	}
 
 	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; cvc %s, proposer=%s",
-		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
+		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VPublicDisplay(value.Proposer))
 
 	fetchCtx, fetchCancel := context.WithCancel(ctx)
 	basisReturn := make(chan *proto.ConsensusBasis, 2)
@@ -173,7 +173,7 @@ func (b *Baton) fetchBasis(
 	// try repairing the missing basis
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		basis, err := b.handler.RepairMissingBasis(fetchCtx, cvc.Proposer, *cvc)
+		basis, err := b.handler.RepairMissingBasis(fetchCtx, value.Proposer, *value)
 		if err != nil {
 			must.Assert(fetchCtx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
@@ -184,7 +184,7 @@ func (b *Baton) fetchBasis(
 	// try getting the basis from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		basis, err := b.handler.CVPoolWaitFor(fetchCtx, *cvc)
+		basis, err := b.handler.CVPoolWaitFor(fetchCtx, *value)
 		if err != nil {
 			must.Assert(fetchCtx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
@@ -196,16 +196,16 @@ func (b *Baton) fetchBasis(
 	case <-ctx.Done():
 		fetchCancel()
 		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; cvc=%s; proposer=%s",
-			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
-			protoutil.VPublicShortString(cvc.Proposer))
+			ctx.Err(), slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
+			protoutil.VPublicDisplay(value.Proposer))
 		return nil, ctx.Err()
 	case basis, ok := <-basisReturn:
 		if ok {
 			fetchCancel()
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cvc=%s; proposer=%s",
-				slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
-				protoutil.VPublicShortString(cvc.Proposer))
-			b.handler.CVPoolAdd(ctx, *basis, *cvc)
+				slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
+				protoutil.VPublicDisplay(value.Proposer))
+			b.handler.CVPoolAdd(ctx, *basis, *value)
 			return basis, nil
 		} else {
 			panic("unreachable")

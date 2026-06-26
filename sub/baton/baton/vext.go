@@ -11,10 +11,10 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) validateExternalizedCue(
+func (b *Baton) validateExternalizedValue(
 	ctx context.Context,
 	slot scpkit.Slot,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
 	liblog.Debugf(ctx, "validating cue for already externalized slot %d", slot)
@@ -30,7 +30,7 @@ func (b *Baton) validateExternalizedCue(
 	must.NoError(ctx, err)
 	must.Assert(ctx, basis != nil)
 
-	if protoutil.BasisAgreesWithCue(basis, cvc) {
+	if protoutil.BasisAgreesWithValue(basis, value) {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue
@@ -42,12 +42,12 @@ func (b *Baton) validateCommittedConsensus(
 	ctx context.Context,
 	slot scpkit.Slot,
 	_ *proto.ConsensusBasis,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
 	liblog.Debugf(ctx, "validating consensus value for already externalized slot %d", slot)
 
-	cvx, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
+	basisX, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
 	if errors.Is(err, context.Canceled) {
 		// context cancellation is expected only if validation is being aborted due to externalizations ahead.
 		// cancellation on this condition is triggered in validateCue.
@@ -56,9 +56,9 @@ func (b *Baton) validateCommittedConsensus(
 		return
 	}
 	must.NoError(ctx, err)
-	must.Assert(ctx, cvx != nil)
+	must.Assert(ctx, basisX != nil)
 
-	if protoutil.HashBasisFast(cvx) == cvc.Cv_hash {
+	if protoutil.HashBasisFast(basisX) == value.Basis_hash {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue

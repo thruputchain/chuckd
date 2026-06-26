@@ -22,7 +22,7 @@ func (x *RepairAgent) RepairMissingSCP(
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, ps[0].Address)
 	if err != nil {
-		return nil, fmt.Errorf("failed to dial repair client %v: %w", protoutil.VPublicShortString(ps[0]), err)
+		return nil, fmt.Errorf("failed to dial repair client %v: %w", protoutil.VPublicDisplay(ps[0]), err)
 	}
 	defer c.Close()
 

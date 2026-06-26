@@ -36,14 +36,14 @@ func (x scpHandler) SCPValidateBallotValue(ctx context.Context, slot scpkit.Slot
 	ctx = liblog.Enterf(ctx, "SCPHandler.SCPValidateBallotValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
 
-	return x.ValidateCue(ctx, slot, value, false)
+	return x.ValidateValue(ctx, slot, value, false)
 }
 
 func (x scpHandler) SCPValidateNominationValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) (level scpkit.ValidationLevel) {
 	ctx = liblog.Enterf(ctx, "SCPHandler.SCPValidateNominationValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d; validation=%v", slot, level) }()
 
-	return x.ValidateCue(ctx, slot, value, true)
+	return x.ValidateValue(ctx, slot, value, true)
 }
 
 // During nomination, if a value is considered invalid (by ValidateNominationValue), scp calls SCPExtractValidValue to
@@ -62,28 +62,28 @@ func (x scpHandler) SCPExtractValidValue(ctx context.Context, slot scpkit.Slot, 
 	return nil
 }
 
-func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, value scpkit.Value) {
+func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, extValue scpkit.Value) {
 	ctx = liblog.Enterf(ctx, "SCPHandler.SCPExternalizedValue", "slot=%d", slot)
 	defer func() { liblog.Leavef(ctx, "slot=%d", slot) }()
 
 	<-x.baton.ready
 
-	var cvc proto.ConsensusValueCue
-	if err := libxdr.UnmarshalXdrEOF(&cvc, value); err != nil {
+	var value proto.ConsensusValue
+	if err := libxdr.UnmarshalXdrEOF(&value, extValue); err != nil {
 		liblog.Fatalf(ctx, "scp externalized value for slot %d which cannot be decoded", slot)
 		return
 	}
 
 	liblog.Infof(ctx, "received externalization for slot %d with block hash %s and consensus basis hash %s",
 		slot,
-		libxdr.HashString(cvc.Block_hash),
-		libxdr.HashString(cvc.Cv_hash))
+		libxdr.HashString(value.Block_hash),
+		libxdr.HashString(value.Basis_hash))
 
 	liblog.Debugf(ctx, "notified scp broker of lowest non-externalized slot %d", slot+1)
 
 	// if we participated in this round, the basis shold be in our basis pool,
 	// otherwise it is too late to repair a missing basis.
-	basis, err := x.baton.handler.CVPoolLookup(ctx, cvc)
+	basis, err := x.baton.handler.CVPoolLookup(ctx, value)
 	must.NoError(ctx, err)
 
 	x.baton.lock()
@@ -93,14 +93,14 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	if basis == nil {
 
-		extCue := externalizedValue{height: proto.BlockHeight(slot), cvc: &cvc}
+		extCue := externalizedValue{height: proto.BlockHeight(slot), value: &value}
 		x.baton.placeExternalization(ctx, extCue)
 
 	} else {
 
 		must.Assert(ctx, slot == proto.SCPSlotIndex(basis.Nomination.Block_height))
 
-		extConsensus := newExternalized(&cvc, basis)
+		extConsensus := newExternalized(&value, basis)
 		x.baton.placeExternalization(ctx, extConsensus)
 	}
 }

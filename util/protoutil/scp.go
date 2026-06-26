@@ -10,11 +10,11 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func SCPValueDisplay(cvc *proto.ConsensusValueCue) string {
+func SCPValueDisplay(value *proto.ConsensusValue) string {
 	h := sha256.New()
-	libxdr.MarshalXdrWriter(h, cvc)
-	cvcHash := h.Sum(nil)
-	return fmt.Sprintf("%x", cvcHash[:3])
+	libxdr.MarshalXdrWriter(h, value)
+	vhash := h.Sum(nil)
+	return fmt.Sprintf("%x", vhash[:3])
 }
 
 func scpHexAbbrev(bytes []byte) string {

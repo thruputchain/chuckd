@@ -140,7 +140,7 @@ func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction)
 	}
 	blockID := proto.BlockID(1)
 	return &batonkit.CommittableBlock{
-		Committable: batonkit.NewCommittableNomination(basis, protoutil.CVC(basis), &blockID),
+		Committable: batonkit.NewCommittableNomination(basis, protoutil.BasisValue(basis), &blockID),
 		Onto:        proto.DbTip{Height: 0},
 	}
 }

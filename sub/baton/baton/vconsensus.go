@@ -15,19 +15,19 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func (b *Baton) validateConsensus(
+func (b *Baton) validateBasis(
 	ctx context.Context,
 	slot scpkit.Slot,
 	basis *proto.ConsensusBasis,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
 	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; cvc %s; proposer %s",
-		slot, libxdr.HashString(basis.Nomination.Block_hash), protoutil.CVCDisplay(cvc),
-		protoutil.VPublicShortString(cvc.Proposer))
+		slot, libxdr.HashString(basis.Nomination.Block_hash), protoutil.ValueDisplay(value),
+		protoutil.VPublicDisplay(value.Proposer))
 
-	if b.tryValidateConsensusFast(ctx, slot, basis, cvc, reply) {
+	if b.tryValidateBasisFast(ctx, slot, basis, value, reply) {
 		return
 	}
 
@@ -42,7 +42,7 @@ func (b *Baton) validateConsensus(
 		switch {
 		case errors.Is(err, ErrTipAlreadyAhead): // from WaitCommittedAt
 			must.Assert(ctx, b.HighestCommitted() >= basis.Nomination.Block_height)
-			b.validateCommittedConsensus(ctx, slot, basis, cvc, reply)
+			b.validateCommittedConsensus(ctx, slot, basis, value, reply)
 			return
 		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded): // from WaitExternalizedBeyond
 			highestExternalized := b.HighestCommittedOrExternalized()
@@ -68,9 +68,9 @@ func (b *Baton) validateConsensus(
 		return
 	}
 
-	if basis.Prev_cv_hash != extTip.ConsensusBasisHash() {
+	if basis.Prev_basis_hash != extTip.ConsensusBasisHash() {
 		liblog.Errorf(ctx, "cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
-			libxdr.HashString(basis.Prev_cv_hash),
+			libxdr.HashString(basis.Prev_basis_hash),
 			libxdr.HashString(extTip.ConsensusBasisHash()))
 		reply <- scpkit.InvalidValue
 		return
@@ -97,18 +97,18 @@ func (b *Baton) validateConsensus(
 
 	// check if block previous invalidated to prevent expensive validation
 	b.lk.Lock()
-	alreadyInvalidated := b.isInvalidated(cvc)
+	alreadyInvalidated := b.isInvalidated(value)
 	b.lk.Unlock()
 	if alreadyInvalidated {
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	validatedTip, err := b.validateProposal(ctx, *dbTip, basis, cvc)
+	validatedTip, err := b.validateProposal(ctx, *dbTip, basis, value)
 	if errors.Is(err, batonkit.ErrNotValid) {
 		// cache invalidation to prevent dos
 		b.lk.Lock()
-		b.setInvalidated(basis, cvc)
+		b.setInvalidated(basis, value)
 		b.lk.Unlock()
 
 		reply <- scpkit.InvalidValue
@@ -126,20 +126,20 @@ func (b *Baton) validateConsensus(
 	// cache validated blocks
 	liblog.Debugf(ctx, "caching validation for block %s and consensus %s",
 		libxdr.HashString(basis.Nomination.Block_hash),
-		libxdr.HashString(cvc.Cv_hash))
+		libxdr.HashString(value.Basis_hash))
 	b.lk.Lock()
-	b.setValidated(basis, cvc, validatedTip.Id)
+	b.setValidated(basis, value, validatedTip.Id)
 	b.lk.Unlock()
 
 	reply <- scpkit.FullyValidValue
 }
 
-// tryValidateConsensusFast returns true if it was able to make a judgement and send a reply.
-func (b *Baton) tryValidateConsensusFast(
+// tryValidateBasisFast returns true if it was able to make a judgement and send a reply.
+func (b *Baton) tryValidateBasisFast(
 	ctx context.Context,
 	slot scpkit.Slot,
 	basis *proto.ConsensusBasis,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) bool {
 
@@ -155,7 +155,7 @@ func (b *Baton) tryValidateConsensusFast(
 
 	b.lk.Lock()
 	dbTipOnRequest := b.tipDb
-	alreadyValidated := b.getValidatedBlockID(cvc)
+	alreadyValidated := b.getValidatedBlockID(value)
 	b.lk.Unlock()
 
 	if !protoutil.IsSaneConsensusBasis(basis) {
@@ -165,7 +165,7 @@ func (b *Baton) tryValidateConsensusFast(
 	}
 
 	if basis.Nomination.Block_height <= dbTipOnRequest.Height {
-		b.validateCommittedConsensus(ctx, slot, basis, cvc, reply)
+		b.validateCommittedConsensus(ctx, slot, basis, value, reply)
 		return true
 	}
 

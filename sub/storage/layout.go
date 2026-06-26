@@ -34,7 +34,7 @@ func SlotToParts(h int64) [3]string {
 	}
 }
 
-func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, cvch protoutil.CVCHash) string {
+func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, cvch protoutil.ValueHash) string {
 	parts := SlotToParts(slot)
 	return path.Join(
 		x.ConsensusValuesDirpath(),
@@ -191,7 +191,7 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, cvch protoutil.CVCHash) string {
+func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, cvch protoutil.ValueHash) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
 		fmt.Sprintf("catchup-%012d-%x.xdr", height, cvch.Bytes()),
@@ -249,7 +249,7 @@ func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, e
 	return filtered, nil
 }
 
-func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
+func FindCatchupFileByHash(dir string, cvch protoutil.ValueHash) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

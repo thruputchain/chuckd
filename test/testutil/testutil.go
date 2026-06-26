@@ -63,10 +63,10 @@ var TestNondeterministicData = proto.NondeterministicProposalData{
 }
 
 type TestBlock struct {
-	ConsensusBasis    proto.ConsensusBasis
-	ConsensusValueCue proto.ConsensusValueCue
-	Txs               []proto.SignedTransaction
-	Catchup           proto.CatchupBlock
+	ConsensusBasis proto.ConsensusBasis
+	ConsensusValue proto.ConsensusValue
+	Txs            []proto.SignedTransaction
+	Catchup        proto.CatchupBlock
 }
 
 type BlockHandle struct {
@@ -137,13 +137,13 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
 				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
-		Upgrades:     nil, // XXX: upgrades not yet supported in test
-		Prev_cv_hash: protoutil.HashBasisFast(&onto.Basis),
+		Upgrades:        nil, // XXX: upgrades not yet supported in test
+		Prev_basis_hash: protoutil.HashBasisFast(&onto.Basis),
 	}
 	return &TestBlock{
-		ConsensusBasis:    basis,
-		ConsensusValueCue: *protoutil.CVC(&basis),
-		Txs:               txs,
+		ConsensusBasis: basis,
+		ConsensusValue: *protoutil.BasisValue(&basis),
+		Txs:            txs,
 		Catchup: proto.CatchupBlock{
 			Consensus_basis: basis,
 			Signed_transactions: xdrutil.ParallelizeSignedTransactionBatch(

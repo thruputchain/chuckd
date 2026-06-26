@@ -92,7 +92,7 @@ func (x *DiskStorage) WaitReady(ctx context.Context) error {
 func (x *DiskStorage) PrePersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
@@ -115,7 +115,7 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 func (x *DiskStorage) PersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
@@ -141,7 +141,7 @@ func (x *DiskStorage) PersistCatchupBlock(
 // Blocks we have nominated but are not committed will be found in pre-persist.
 func (x *DiskStorage) LookupCatchupBlock(
 	ctx context.Context,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) (*proto.CatchupBlock, error) {
 	if err := x.WaitReady(ctx); err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (x *DiskStorage) LookupCatchupBlock(
 func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
@@ -210,7 +210,7 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
-func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
+func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.ValueHash) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis,
 	return nil
 }
 
-func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
+func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.ValueHash) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBas
 	return nil
 }
 
-func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusBasis, error) {
+func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.ValueHash) (*proto.ConsensusBasis, error) {
 	if err := x.WaitReady(ctx); err != nil {
 		return nil, err
 	}

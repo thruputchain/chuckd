@@ -89,7 +89,7 @@ func NewTestRig(
 	)
 	// place a consensus value for the db tip
 	basis0 := assumedConsensusBasisAtHeight(0)
-	h.TestCVPersistence.PersistCV(ctx, basis0, protoutil.CVCHashFromBasis(&basis0))
+	h.TestCVPersistence.PersistCV(ctx, basis0, protoutil.ValueHashFromBasis(&basis0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
@@ -192,22 +192,22 @@ func (h *TestRig) RepairMissingTxs(
 func (h *TestRig) RepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
-	missing proto.ConsensusValueCue,
+	missing proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 	panic("not used")
 }
 
-func (h *TestRig) AnnounceNomination(cue *proto.ConsensusValueCue) {
+func (h *TestRig) AnnounceNomination(value *proto.ConsensusValue) {
 }
 
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
-func (h *TestRig) DisseminateBasis(ctx context.Context, basis proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
+func (h *TestRig) DisseminateBasis(ctx context.Context, basis proto.ConsensusBasis, value proto.ConsensusValue) {
 }
 
-func (h *TestRig) PlaceConsensusValue(ctx context.Context, basis proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
-	h.ConsensusValuePool.CVPoolAdd(ctx, basis, cvc)
+func (h *TestRig) PlaceConsensusValue(ctx context.Context, basis proto.ConsensusBasis, value proto.ConsensusValue) {
+	h.ConsensusValuePool.CVPoolAdd(ctx, basis, value)
 }
 
 func (h *TestRig) SCPSetLowestNonExternalized(ctx context.Context, slot scpkit.Slot) {

@@ -11,13 +11,13 @@ import (
 
 type TestCatchupBlockPersistence struct {
 	mu        sync.RWMutex
-	pre       map[protoutil.CVCHash]proto.CatchupBlock
+	pre       map[protoutil.ValueHash]proto.CatchupBlock
 	persisted map[proto.BlockHeight]proto.CatchupBlock
 }
 
 func NewTestCatchupBlockPersistence() *TestCatchupBlockPersistence {
 	return &TestCatchupBlockPersistence{
-		pre:       make(map[protoutil.CVCHash]proto.CatchupBlock),
+		pre:       make(map[protoutil.ValueHash]proto.CatchupBlock),
 		persisted: make(map[proto.BlockHeight]proto.CatchupBlock),
 	}
 }
@@ -25,7 +25,7 @@ func NewTestCatchupBlockPersistence() *TestCatchupBlockPersistence {
 func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
@@ -37,7 +37,7 @@ func (x *TestCatchupBlockPersistence) PrePersistCatchupBlock(
 func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
@@ -53,7 +53,7 @@ func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 
 func (x *TestCatchupBlockPersistence) LookupCatchupBlock(
 	ctx context.Context,
-	cvch protoutil.CVCHash,
+	cvch protoutil.ValueHash,
 ) (*proto.CatchupBlock, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
@@ -84,17 +84,17 @@ type TestCVPersistence struct {
 	highest     proto.BlockHeight
 	hasHighest  bool
 	committed   map[proto.BlockHeight]proto.ConsensusBasis
-	uncommitted map[protoutil.CVCHash]proto.ConsensusBasis
+	uncommitted map[protoutil.ValueHash]proto.ConsensusBasis
 }
 
 func NewTestCVPersistence() *TestCVPersistence {
 	return &TestCVPersistence{
 		committed:   make(map[proto.BlockHeight]proto.ConsensusBasis),
-		uncommitted: make(map[protoutil.CVCHash]proto.ConsensusBasis),
+		uncommitted: make(map[protoutil.ValueHash]proto.ConsensusBasis),
 	}
 }
 
-func (x *TestCVPersistence) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
+func (x *TestCVPersistence) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.ValueHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 	if !x.hasHighest || basis.Nomination.Block_height > x.highest {
@@ -106,14 +106,14 @@ func (x *TestCVPersistence) PersistCV(ctx context.Context, basis proto.Consensus
 	return nil
 }
 
-func (x *TestCVPersistence) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
+func (x *TestCVPersistence) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.ValueHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 	x.uncommitted[cvch] = basis
 	return nil
 }
 
-func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusBasis, error) {
+func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.ValueHash) (*proto.ConsensusBasis, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 	basis, ok := x.uncommitted[cvch]

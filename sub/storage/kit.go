@@ -14,18 +14,18 @@ type CatchupBlockPersistence interface {
 	PrePersistCatchupBlock(
 		ctx context.Context,
 		cb proto.CatchupBlock,
-		cvch protoutil.CVCHash,
+		cvch protoutil.ValueHash,
 	) error
 
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
-		cvch protoutil.CVCHash,
+		cvch protoutil.ValueHash,
 	) error
 
 	LookupCatchupBlock(
 		ctx context.Context,
-		cvch protoutil.CVCHash,
+		cvch protoutil.ValueHash,
 	) (*proto.CatchupBlock, error)
 
 	FindCatchupBlock(
@@ -35,9 +35,9 @@ type CatchupBlockPersistence interface {
 }
 
 type ConsensusValuePersistence interface {
-	PersistCV(ctx context.Context, basis proto.ConsensusBasis, hash protoutil.CVCHash) error
-	PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, hash protoutil.CVCHash) error
-	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.CVCHash) (*proto.ConsensusBasis, error)
+	PersistCV(ctx context.Context, basis proto.ConsensusBasis, hash protoutil.ValueHash) error
+	PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, hash protoutil.ValueHash) error
+	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.ValueHash) (*proto.ConsensusBasis, error)
 	FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusBasis, error)
 	FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusBasis, error)
 }

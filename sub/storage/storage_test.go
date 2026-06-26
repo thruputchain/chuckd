@@ -30,7 +30,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		Signed_transactions: proto.ParallelSignedTransactionBatch{},
 	}
 
-	st.PersistCatchupBlock(ctx, cb, protoutil.CVCHashFromBasis(&basis))
+	st.PersistCatchupBlock(ctx, cb, protoutil.ValueHashFromBasis(&basis))
 
 	got, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height)
 	if err != nil {
@@ -163,7 +163,7 @@ func TestFindConsensusValue(t *testing.T) {
 	st.Start(ctx, dir)
 
 	basis := newConsensusBasis(time.Unix(1700001000, 0).UTC(), 10)
-	st.PersistCV(ctx, basis, protoutil.CVCHashFromBasis(&basis))
+	st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
 
 	got, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height)
 	if err != nil {
@@ -207,7 +207,7 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		newConsensusBasis(time.Unix(1700004000, 0).UTC(), 8),
 	}
 	for _, basis := range consensusBases {
-		st.PersistCV(ctx, basis, protoutil.CVCHashFromBasis(&basis))
+		st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
 	}
 
 	got, err := FindCommittedConsensusValuesAbove(ctx, st, 4)

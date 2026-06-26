@@ -7,6 +7,6 @@ import (
 
 // XXX(PERF): if HashCVC is too inefficient, memoize HashCVC hash computation.
 // XXX: to make memoizing *CVC to hash effective, all CVCs must be passed as pointers.
-func CVCDisplay(cvc *proto.ConsensusValueCue) string {
-	return libxdr.HashString(HashCVC(cvc).Bytes())
+func ValueDisplay(value *proto.ConsensusValue) string {
+	return libxdr.HashString(HashValue(value).Bytes())
 }

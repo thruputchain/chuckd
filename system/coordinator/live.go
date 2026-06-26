@@ -136,7 +136,7 @@ func (x *LiveHandler) Committed(ctx context.Context, cb *batonkit.CommittableBlo
 	x.notify.Committed(ctx, cb)
 }
 
-func (x *LiveHandler) DisseminateBasis(ctx context.Context, basis proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
-	x.ConsensusValuePool.CVPoolAdd(ctx, basis, cvc)
+func (x *LiveHandler) DisseminateBasis(ctx context.Context, basis proto.ConsensusBasis, value proto.ConsensusValue) {
+	x.ConsensusValuePool.CVPoolAdd(ctx, basis, value)
 	x.multiplex.SendConsensusBasis(ctx, basis)
 }
