@@ -24,12 +24,12 @@ type CommittableNomination struct {
 
 func NewCommittableNomination(
 	basis *proto.ConsensusBasis,
-	cvc *proto.ConsensusValue,
+	value *proto.ConsensusValue,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
 		basis:     basis,
-		value:     cvc,
+		value:     value,
 		validated: validated,
 	}
 }
@@ -78,13 +78,13 @@ type CommittableCatchup struct {
 
 func NewCommittableCatchup(
 	catchup *proto.CatchupBlock,
-	cvc *proto.ConsensusValue,
+	value *proto.ConsensusValue,
 	txs []proto.SignedTransaction,
 	validated *proto.BlockID,
 ) *CommittableCatchup {
 	return &CommittableCatchup{
 		catchup:   catchup,
-		value:     cvc,
+		value:     value,
 		txs:       txs,
 		validated: validated,
 	}

@@ -23,7 +23,7 @@ func (b *Baton) validateBasis(
 	reply chan<- scpkit.ValidationLevel,
 ) {
 
-	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; cvc %s; proposer %s",
+	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; value %s; proposer %s",
 		slot, libxdr.HashString(basis.Nomination.Block_hash), protoutil.ValueDisplay(value),
 		protoutil.VPublicDisplay(value.Proposer))
 

@@ -186,8 +186,8 @@ func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
 	if validated.Outcome != proto.SchedulerValidationOK {
 		t.Fatalf("validate block outcome: %v", validated.Outcome)
 	}
-	cvc := protoutil.BasisValue(&block.ConsensusBasis)
-	if err := rig.CVPoolCommit(ctx, block.ConsensusBasis, *cvc); err != nil {
+	value := protoutil.BasisValue(&block.ConsensusBasis)
+	if err := rig.CVPoolCommit(ctx, block.ConsensusBasis, *value); err != nil {
 		t.Fatalf("commit cv: %v", err)
 	}
 	if outcome, err := rig.Schedulercoord_commit_block(ctx, validated.Block().Db_tip.Id); err != nil || outcome != proto.SchedulerCommitOK {

@@ -53,11 +53,11 @@ func CVCGivenCVHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusBasisH
 	}
 }
 
-func BasisAgreesWithValue(basis *proto.ConsensusBasis, cvc *proto.ConsensusValue) bool {
-	return ValidatorInfoEquals(&cvc.Proposer, &basis.Nomination.Proposer) &&
-		cvc.Block_hash == basis.Nomination.Block_hash &&
-		cvc.Prev_block_hash == basis.Nomination.Prev_block_hash &&
-		cvc.Prev_basis_hash == basis.Prev_basis_hash
+func BasisAgreesWithValue(basis *proto.ConsensusBasis, value *proto.ConsensusValue) bool {
+	return ValidatorInfoEquals(&value.Proposer, &basis.Nomination.Proposer) &&
+		value.Block_hash == basis.Nomination.Block_hash &&
+		value.Prev_block_hash == basis.Nomination.Prev_block_hash &&
+		value.Prev_basis_hash == basis.Prev_basis_hash
 }
 
 func ValueEquals(v1, v2 *proto.ConsensusValue) bool {

@@ -17,10 +17,10 @@ import (
 // XXX: commit currently does not handle the upgrades in the consensus value
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
-	cvc := cb.ConsensusValue()
-	liblog.Infof(ctx, "committing: height %d; block_hash %s; cvc %s; proposer %s",
+	value := cb.ConsensusValue()
+	liblog.Infof(ctx, "committing: height %d; block_hash %s; value %s; proposer %s",
 		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()),
-		protoutil.ValueDisplay(cvc),
+		protoutil.ValueDisplay(value),
 		protoutil.VPublicDisplay(cb.AsConsensusBasis().Nomination.Proposer))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())

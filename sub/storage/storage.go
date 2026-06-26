@@ -92,18 +92,18 @@ func (x *DiskStorage) WaitReady(ctx context.Context) error {
 func (x *DiskStorage) PrePersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
-	cvch protoutil.ValueHash,
+	vhash protoutil.ValueHash,
 ) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
-	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; cvc %s",
-		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
-	defer liblog.Debugf(ctx, "pre-persisted catchup block: height %d; cvc %s",
-		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
+	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; value %s",
+		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
+	defer liblog.Debugf(ctx, "pre-persisted catchup block: height %d; value %s",
+		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
 
-	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, cvch)
+	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, vhash)
 	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
@@ -115,18 +115,18 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 func (x *DiskStorage) PersistCatchupBlock(
 	ctx context.Context,
 	cb proto.CatchupBlock,
-	cvch protoutil.ValueHash,
+	vhash protoutil.ValueHash,
 ) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
-	liblog.Debugf(ctx, "persisting catchup block: height %d; cvc %s",
-		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
-	defer liblog.Debugf(ctx, "persisted catchup block: height %d; cvc %s",
-		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
+	liblog.Debugf(ctx, "persisting catchup block: height %d; value %s",
+		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
+	defer liblog.Debugf(ctx, "persisted catchup block: height %d; value %s",
+		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
 
-	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, cvch)
+	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, vhash)
 	x.catchupPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cb)
@@ -141,13 +141,13 @@ func (x *DiskStorage) PersistCatchupBlock(
 // Blocks we have nominated but are not committed will be found in pre-persist.
 func (x *DiskStorage) LookupCatchupBlock(
 	ctx context.Context,
-	cvch protoutil.ValueHash,
+	vhash protoutil.ValueHash,
 ) (*proto.CatchupBlock, error) {
 	if err := x.WaitReady(ctx); err != nil {
 		return nil, err
 	}
 
-	full, err := FindCatchupFileByHash(x.CatchupBlocksDirpath(), cvch)
+	full, err := FindCatchupFileByHash(x.CatchupBlocksDirpath(), vhash)
 	must.NoError(ctx, err)
 	if full == "" {
 		return nil, nil
@@ -168,18 +168,18 @@ func (x *DiskStorage) LookupCatchupBlock(
 func (x *DiskStorage) PersistAlreadyPrePersistedCatchupBlock(
 	ctx context.Context,
 	height proto.BlockHeight,
-	cvch protoutil.ValueHash,
+	vhash protoutil.ValueHash,
 ) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
-	liblog.Debugf(ctx, "persisting already pre-persisted catchup block: height %d; cvc %s",
-		height, cvch.Display())
-	defer liblog.Debugf(ctx, "persisted already pre-persisted catchup block: height %d; cvc %s",
-		height, cvch.Display())
+	liblog.Debugf(ctx, "persisting already pre-persisted catchup block: height %d; value %s",
+		height, vhash.Display())
+	defer liblog.Debugf(ctx, "persisted already pre-persisted catchup block: height %d; value %s",
+		height, vhash.Display())
 
-	full := x.CatchupBlockFilepath(height, cvch)
+	full := x.CatchupBlockFilepath(height, vhash)
 	x.catchupPP.PersistAlreadyPrePersisted(ctx, full)
 
 	return nil
@@ -210,17 +210,17 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
-func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.ValueHash) error {
+func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis, vhash protoutil.ValueHash) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
-	liblog.Debugf(ctx, "persisting cv: height %d; cvc %s",
-		basis.Nomination.Block_height, cvch.Display())
-	defer liblog.Debugf(ctx, "persisted cv: height %d; cvc %s",
-		basis.Nomination.Block_height, cvch.Display())
+	liblog.Debugf(ctx, "persisting cv: height %d; value %s",
+		basis.Nomination.Block_height, vhash.Display())
+	defer liblog.Debugf(ctx, "persisted cv: height %d; value %s",
+		basis.Nomination.Block_height, vhash.Display())
 
-	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, cvch)
+	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, vhash)
 	x.consensusPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &basis)
@@ -231,17 +231,17 @@ func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis,
 	return nil
 }
 
-func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.ValueHash) error {
+func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, vhash protoutil.ValueHash) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
-	liblog.Debugf(ctx, "pre-persisting cv: height %d; cvc %s",
-		basis.Nomination.Block_height, cvch.Display())
-	defer liblog.Debugf(ctx, "pre-persisted cv: height %d; cvc %s",
-		basis.Nomination.Block_height, cvch.Display())
+	liblog.Debugf(ctx, "pre-persisting cv: height %d; value %s",
+		basis.Nomination.Block_height, vhash.Display())
+	defer liblog.Debugf(ctx, "pre-persisted cv: height %d; value %s",
+		basis.Nomination.Block_height, vhash.Display())
 
-	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, cvch)
+	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, vhash)
 	x.consensusPP.PrePersist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &basis)
@@ -252,12 +252,12 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBas
 	return nil
 }
 
-func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.ValueHash) (*proto.ConsensusBasis, error) {
+func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, vhash protoutil.ValueHash) (*proto.ConsensusBasis, error) {
 	if err := x.WaitReady(ctx); err != nil {
 		return nil, err
 	}
 
-	full := x.ConsensusValueFilepath(height, cvch)
+	full := x.ConsensusValueFilepath(height, vhash)
 
 	basis := &proto.ConsensusBasis{}
 	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {

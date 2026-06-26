@@ -111,7 +111,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	liblog.Infof(ctx, "PREPARING: height %d", ontoDb.Height+1)
 
 	go func() {
-		basis, cvc, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
+		basis, value, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
 		current.Cancel()
 
 		b.lock()
@@ -130,7 +130,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		}
 
 		if !currentWasReplaced {
-			b.setValidated(basis, cvc, blockID)
+			b.setValidated(basis, value, blockID)
 			liblog.Infof(ctx, "nominated block at height %d with block hash %s",
 				basis.Nomination.Block_height,
 				libxdr.HashString(basis.Nomination.Block_hash),

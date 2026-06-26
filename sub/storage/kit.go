@@ -14,18 +14,18 @@ type CatchupBlockPersistence interface {
 	PrePersistCatchupBlock(
 		ctx context.Context,
 		cb proto.CatchupBlock,
-		cvch protoutil.ValueHash,
+		vhash protoutil.ValueHash,
 	) error
 
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
-		cvch protoutil.ValueHash,
+		vhash protoutil.ValueHash,
 	) error
 
 	LookupCatchupBlock(
 		ctx context.Context,
-		cvch protoutil.ValueHash,
+		vhash protoutil.ValueHash,
 	) (*proto.CatchupBlock, error)
 
 	FindCatchupBlock(
