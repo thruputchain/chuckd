@@ -33,31 +33,31 @@ func HashCVC(cvc *proto.ConsensusValueCue) CVCHash {
 	return NewCVCHash(h.Sum(nil))
 }
 
-func CVCHashFromCV(cv *proto.ConsensusValue) CVCHash {
-	return HashCVC(CVC(cv))
+func CVCHashFromBasis(basis *proto.ConsensusBasis) CVCHash {
+	return HashCVC(CVC(basis))
 }
 
 // cv must be pre-validated with IsSaneConsensusValue, otherwise panic.
-func CVC(cv *proto.ConsensusValue) *proto.ConsensusValueCue {
-	return CVCGivenCVHash(cv, HashCVFast(cv))
+func CVC(basis *proto.ConsensusBasis) *proto.ConsensusValueCue {
+	return CVCGivenCVHash(basis, HashBasisFast(basis))
 }
 
-func CVCGivenCVHash(cv *proto.ConsensusValue, cvhash proto.ConsensusValueHash) *proto.ConsensusValueCue {
+func CVCGivenCVHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusBasisHash) *proto.ConsensusValueCue {
 	return &proto.ConsensusValueCue{
-		Proposer:        cv.Nomination.Proposer,
-		Cv_hash:         cvhash,
-		Prev_cv_hash:    cv.Prev_cv_hash,
-		Block_height:    cv.Nomination.Block_height,
-		Block_hash:      cv.Nomination.Block_hash,
-		Prev_block_hash: cv.Nomination.Prev_block_hash,
+		Proposer:        basis.Nomination.Proposer,
+		Cv_hash:         basisHash,
+		Prev_cv_hash:    basis.Prev_cv_hash,
+		Block_height:    basis.Nomination.Block_height,
+		Block_hash:      basis.Nomination.Block_hash,
+		Prev_block_hash: basis.Nomination.Prev_block_hash,
 	}
 }
 
-func CVAgreesWithCue(cv *proto.ConsensusValue, cvc *proto.ConsensusValueCue) bool {
-	return ValidatorPublicInfoEquals(&cvc.Proposer, &cv.Nomination.Proposer) &&
-		cvc.Block_hash == cv.Nomination.Block_hash &&
-		cvc.Prev_block_hash == cv.Nomination.Prev_block_hash &&
-		cvc.Prev_cv_hash == cv.Prev_cv_hash
+func BasisAgreesWithCue(basis *proto.ConsensusBasis, cvc *proto.ConsensusValueCue) bool {
+	return ValidatorPublicInfoEquals(&cvc.Proposer, &basis.Nomination.Proposer) &&
+		cvc.Block_hash == basis.Nomination.Block_hash &&
+		cvc.Prev_block_hash == basis.Nomination.Prev_block_hash &&
+		cvc.Prev_cv_hash == basis.Prev_cv_hash
 }
 
 func CVCEquals(cvc1, cvc2 *proto.ConsensusValueCue) bool {

@@ -9,13 +9,13 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashCVSlow(cv *proto.ConsensusValue) proto.ConsensusValueHash {
+func HashBasisSlow(cv *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	h := sha256.New()
 	libxdr.MarshalXdrWriter(h, cv)
-	return proto.ConsensusValueHash(h.Sum(nil))
+	return proto.ConsensusBasisHash(h.Sum(nil))
 }
 
-func HashCVFast(cv *proto.ConsensusValue) proto.ConsensusValueHash {
+func HashBasisFast(cv *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	cvBase := *cv
 	cvBase.Nomination.Transactions_hash = proto.ParallelBatch{}
 	cvBase.Nomination.Transactions_nondeterministic_data = proto.ParallelBatch{}
@@ -28,7 +28,7 @@ func HashCVFast(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		hashBase = HashCVSlow(&cvBase)
+		hashBase = HashBasisSlow(&cvBase)
 	}()
 	go func() {
 		defer wg.Done()
@@ -45,7 +45,7 @@ func HashCVFast(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	return hashBase
 }
 
-func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
+func IsSaneConsensusBasis(cv *proto.ConsensusBasis) bool {
 	if err := xdrutil.ValidateBatch(cv.Nomination.Transactions_hash); err != nil {
 		return false
 	}

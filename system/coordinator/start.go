@@ -182,16 +182,16 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		go func() {
 			defer s.wg.Done()
 			for {
-				sender, cv, ok := s.Multiplex.ReceiveConsensusValue(s.ctx)
+				sender, basis, ok := s.Multiplex.ReceiveConsensusBasis(s.ctx)
 				if !ok {
 					return
 				}
 				_ = sender
-				if !protoutil.IsSaneConsensusValue(cv) {
-					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", cv.Nomination.Block_height)
+				if !protoutil.IsSaneConsensusBasis(basis) {
+					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", basis.Nomination.Block_height)
 					continue
 				}
-				s.CVPool.CVPoolAdd(s.ctx, *cv, *protoutil.CVC(cv))
+				s.CVPool.CVPoolAdd(s.ctx, *basis, *protoutil.CVC(basis))
 			}
 		}()
 	}()

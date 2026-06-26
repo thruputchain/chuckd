@@ -88,8 +88,8 @@ func NewTestRig(
 		dbDir,
 	)
 	// place a consensus value for the db tip
-	cv0 := assumedConsensusValueAtHeight(0)
-	h.TestCVPersistence.PersistCV(ctx, cv0, protoutil.CVCHashFromCV(&cv0))
+	basis0 := assumedConsensusBasisAtHeight(0)
+	h.TestCVPersistence.PersistCV(ctx, basis0, protoutil.CVCHashFromBasis(&basis0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
@@ -107,7 +107,7 @@ func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 	return *r.Db_tip()
 }
 
-func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusValue) {
+func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusBasis) {
 	dbTip := h.GetTip(ctx)
 	cvTip, err := h.FindCommittedCV(ctx, dbTip.Height) // cvTip must be non-nil
 	must.NoError(ctx, err)
@@ -189,11 +189,11 @@ func (h *TestRig) RepairMissingTxs(
 	panic("not used")
 }
 
-func (h *TestRig) RepairMissingCV(
+func (h *TestRig) RepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 	panic("not used")
 }
 
@@ -203,10 +203,10 @@ func (h *TestRig) AnnounceNomination(cue *proto.ConsensusValueCue) {
 func (h *TestRig) Committed(ctx context.Context, cb *batonkit.CommittableBlock) {}
 
 // unit tests focus on a single node, so dissemination is not necessary
-func (h *TestRig) DisseminateCV(ctx context.Context, cv proto.ConsensusValue, cvc proto.ConsensusValueCue) {
+func (h *TestRig) DisseminateBasis(ctx context.Context, cv proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
 }
 
-func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusValue, cvc proto.ConsensusValueCue) {
+func (h *TestRig) PlaceConsensusValue(ctx context.Context, cv proto.ConsensusBasis, cvc proto.ConsensusValueCue) {
 	h.ConsensusValuePool.CVPoolAdd(ctx, cv, cvc)
 }
 

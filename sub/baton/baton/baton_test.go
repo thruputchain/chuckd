@@ -58,7 +58,7 @@ func TestNominateCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue, *nominating_1.DbgConsensusValueCue)
+	rig.PlaceConsensusValue(ctx, *nominating_1.ConsensusBasis, *nominating_1.ConsensusValueCue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -66,8 +66,8 @@ func TestNominateCommit(t *testing.T) {
 	rig.WaitBackfeed(ctx)
 
 	// stage 2: commit already validated [1]
-	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                                                      // txs for stage 3
-	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.DbgConsensusValueCue).Bytes()) // trigger commit, trigger stage 3
+	rig.AddTxs(ctx, rig.GenSignedTx(ctx))                                                                                   // txs for stage 3
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.ConsensusValueCue).Bytes()) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -93,7 +93,7 @@ func TestValidateExternalized(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.PlaceConsensusValue(ctx, *nominating_1.DbgConsensusValue, *nominating_1.DbgConsensusValueCue)
+	rig.PlaceConsensusValue(ctx, *nominating_1.ConsensusBasis, *nominating_1.ConsensusValueCue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -101,7 +101,7 @@ func TestValidateExternalized(t *testing.T) {
 	rig.WaitBackfeed(ctx)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.DbgConsensusValueCue).Bytes()) // trigger commit, trigger stage 3
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nominating_1.ConsensusValueCue).Bytes()) // trigger commit, trigger stage 3
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -119,7 +119,7 @@ func TestValidateExternalized(t *testing.T) {
 	vlevel := rig.ValidateNominationValue(
 		ctx,
 		proto.SCPSlotIndex(nominating_1.Height),
-		testMarshaler.MarshalXdr(nominating_1.DbgConsensusValueCue).Bytes(),
+		testMarshaler.MarshalXdr(nominating_1.ConsensusValueCue).Bytes(),
 	)
 	// validation is skipped, as the nomination is already cached
 	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -145,7 +145,7 @@ func TestValidateCommit(t *testing.T) {
 
 	// consume nomination
 	nomination := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
-	rig.PlaceConsensusValue(ctx, *nomination.DbgConsensusValue, *nomination.DbgConsensusValueCue)
+	rig.PlaceConsensusValue(ctx, *nomination.ConsensusBasis, *nomination.ConsensusValueCue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
@@ -153,8 +153,8 @@ func TestValidateCommit(t *testing.T) {
 
 	vlevel := rig.ValidateNominationValue(
 		ctx,
-		proto.SCPSlotIndex(block.ConsensusValue.Nomination.Block_height),
-		testMarshaler.MarshalXdr(nomination.DbgConsensusValueCue).Bytes(),
+		proto.SCPSlotIndex(block.ConsensusBasis.Nomination.Block_height),
+		testMarshaler.MarshalXdr(nomination.ConsensusValueCue).Bytes(),
 	)
 	// validation is skipped, as the nomination is already cached
 	// _ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -167,7 +167,7 @@ func TestValidateCommit(t *testing.T) {
 	rig.WaitBackfeed(ctx)
 
 	// stage 2: commit already validated [1]
-	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nomination.DbgConsensusValueCue).Bytes())
+	rig.ExternalizedValue(ctx, scpkit.Slot(baseHeight+1), testMarshaler.MarshalXdr(nomination.ConsensusValueCue).Bytes())
 	committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 	if committed.DbgValidatable.AlreadyValidated() == nil {
 		t.Fatalf("expecting commit of already validated block")
@@ -179,15 +179,15 @@ func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
 
 	block := rig.GenNomination(ctx, 1)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
-	validated, err := rig.Schedulercoord_validate(ctx, rig.GetTip(ctx), block.ConsensusValue.Nomination)
+	validated, err := rig.Schedulercoord_validate(ctx, rig.GetTip(ctx), block.ConsensusBasis.Nomination)
 	if err != nil {
 		t.Fatalf("validate block: %v", err)
 	}
 	if validated.Outcome != proto.SchedulerValidationOK {
 		t.Fatalf("validate block outcome: %v", validated.Outcome)
 	}
-	cvc := protoutil.CVC(&block.ConsensusValue)
-	if err := rig.CVPoolCommit(ctx, block.ConsensusValue, *cvc); err != nil {
+	cvc := protoutil.CVC(&block.ConsensusBasis)
+	if err := rig.CVPoolCommit(ctx, block.ConsensusBasis, *cvc); err != nil {
 		t.Fatalf("commit cv: %v", err)
 	}
 	if outcome, err := rig.Schedulercoord_commit_block(ctx, validated.Block().Db_tip.Id); err != nil || outcome != proto.SchedulerCommitOK {
@@ -296,10 +296,10 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.PassTime(tick)
 		rig.WaitBackfeed(ctx)
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
-		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusValue, theirBlock.ConsensusValueCue)
+		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusBasis, theirBlock.ConsensusValueCue)
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
-			proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
+			proto.SCPSlotIndex(theirBlock.ConsensusBasis.Nomination.Block_height),
 			testMarshaler.MarshalXdr(&theirBlock.ConsensusValueCue).Bytes(),
 		)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -310,17 +310,17 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.WaitBackfeed(ctx)
 		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
-			rig.PlaceConsensusValue(ctx, *nominated.DbgConsensusValue, *nominated.DbgConsensusValueCue)
+			rig.PlaceConsensusValue(ctx, *nominated.ConsensusBasis, *nominated.ConsensusValueCue)
 			rig.ExternalizedValue(
 				ctx,
-				proto.SCPSlotIndex(nominated.DbgConsensusValue.Nomination.Block_height),
-				testMarshaler.MarshalXdr(nominated.DbgConsensusValueCue).Bytes(),
+				proto.SCPSlotIndex(nominated.ConsensusBasis.Nomination.Block_height),
+				testMarshaler.MarshalXdr(nominated.ConsensusValueCue).Bytes(),
 			)
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
 			rig.ExternalizedValue(
 				ctx,
-				proto.SCPSlotIndex(theirBlock.ConsensusValue.Nomination.Block_height),
+				proto.SCPSlotIndex(theirBlock.ConsensusBasis.Nomination.Block_height),
 				testMarshaler.MarshalXdr(&theirBlock.ConsensusValueCue).Bytes(),
 			)
 		}

@@ -10,40 +10,40 @@ type Committable interface {
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
-	AsConsensusValue() *proto.ConsensusValue
+	AsConsensusBasis() *proto.ConsensusBasis
 	ConsensusValueCue() *proto.ConsensusValueCue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	NumTransactions() int
 }
 
 type CommittableNomination struct {
-	cv        *proto.ConsensusValue // always present
+	basis     *proto.ConsensusBasis // always present
 	cvc       *proto.ConsensusValueCue
 	validated *proto.BlockID // always present
 }
 
 func NewCommittableNomination(
-	cv *proto.ConsensusValue,
+	cv *proto.ConsensusBasis,
 	cvc *proto.ConsensusValueCue,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
-		cv:        cv,
+		basis:     cv,
 		cvc:       cvc,
 		validated: validated,
 	}
 }
 
 func (cb *CommittableNomination) BlockHeight() proto.BlockHeight {
-	return cb.cv.Nomination.Block_height
+	return cb.basis.Nomination.Block_height
 }
 
 func (cb *CommittableNomination) BlockHash() proto.BlockHash {
-	return cb.cv.Nomination.Block_hash
+	return cb.basis.Nomination.Block_hash
 }
 
 func (cb *CommittableNomination) PrevBlockHash() proto.BlockHash {
-	return cb.cv.Nomination.Prev_block_hash
+	return cb.basis.Nomination.Prev_block_hash
 }
 
 func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
@@ -57,8 +57,8 @@ func (cb *CommittableNomination) ConsensusValueCue() *proto.ConsensusValueCue {
 	return cb.cvc
 }
 
-func (cb *CommittableNomination) AsConsensusValue() *proto.ConsensusValue {
-	return cb.cv
+func (cb *CommittableNomination) AsConsensusBasis() *proto.ConsensusBasis {
+	return cb.basis
 }
 
 func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedTransaction {
@@ -66,7 +66,7 @@ func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedT
 }
 
 func (cb *CommittableNomination) NumTransactions() int {
-	return xdrutil.TokenSizeOfBatch(cb.cv.Nomination.Transactions_hash)
+	return xdrutil.TokenSizeOfBatch(cb.basis.Nomination.Transactions_hash)
 }
 
 type CommittableCatchup struct {
@@ -91,15 +91,15 @@ func NewCommittableCatchup(
 }
 
 func (cb *CommittableCatchup) BlockHeight() proto.BlockHeight {
-	return cb.catchup.Consensus_value.Nomination.Block_height
+	return cb.catchup.Consensus_basis.Nomination.Block_height
 }
 
 func (cb *CommittableCatchup) BlockHash() proto.BlockHash {
-	return cb.catchup.Consensus_value.Nomination.Block_hash
+	return cb.catchup.Consensus_basis.Nomination.Block_hash
 }
 
 func (cb *CommittableCatchup) PrevBlockHash() proto.BlockHash {
-	return cb.catchup.Consensus_value.Nomination.Prev_block_hash
+	return cb.catchup.Consensus_basis.Nomination.Prev_block_hash
 }
 
 func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {
@@ -110,8 +110,8 @@ func (cb *CommittableCatchup) ConsensusValueCue() *proto.ConsensusValueCue {
 	return cb.cvc
 }
 
-func (cb *CommittableCatchup) AsConsensusValue() *proto.ConsensusValue {
-	return &cb.catchup.Consensus_value
+func (cb *CommittableCatchup) AsConsensusBasis() *proto.ConsensusBasis {
+	return &cb.catchup.Consensus_basis
 }
 
 func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTransaction {

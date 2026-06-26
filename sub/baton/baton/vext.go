@@ -30,7 +30,7 @@ func (b *Baton) validateExternalizedCue(
 	must.NoError(ctx, err)
 	must.Assert(ctx, cv != nil)
 
-	if protoutil.CVAgreesWithCue(cv, cvc) {
+	if protoutil.BasisAgreesWithCue(cv, cvc) {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue
@@ -41,7 +41,7 @@ func (b *Baton) validateExternalizedCue(
 func (b *Baton) validateCommittedConsensus(
 	ctx context.Context,
 	slot scpkit.Slot,
-	_ *proto.ConsensusValue,
+	_ *proto.ConsensusBasis,
 	cvc *proto.ConsensusValueCue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
@@ -58,7 +58,7 @@ func (b *Baton) validateCommittedConsensus(
 	must.NoError(ctx, err)
 	must.Assert(ctx, cvx != nil)
 
-	if protoutil.HashCVFast(cvx) == cvc.Cv_hash {
+	if protoutil.HashBasisFast(cvx) == cvc.Cv_hash {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue

@@ -29,13 +29,13 @@ type CatchupArrival struct {
 	source proto.ValidatorID
 	stamp  time.Time
 	block  *proto.CatchupBlock
-	cvhash proto.ConsensusValueHash
+	basis  proto.ConsensusBasisHash
 	ns     protoutil.NominationSerialized
 	txs    []proto.SignedTransaction
 }
 
 func (a CatchupArrival) Proposer() proto.ValidatorPublicInfo {
-	return a.block.Consensus_value.Nomination.Proposer
+	return a.block.Consensus_basis.Nomination.Proposer
 }
 
 func (a CatchupArrival) Provider() proto.ValidatorID {
@@ -47,27 +47,27 @@ func (a CatchupArrival) Block() *proto.CatchupBlock {
 }
 
 func (a CatchupArrival) BlockHeight() proto.BlockHeight {
-	return a.block.Consensus_value.Nomination.Block_height
+	return a.block.Consensus_basis.Nomination.Block_height
 }
 
 func (a CatchupArrival) BlockHash() proto.BlockHash {
-	return a.block.Consensus_value.Nomination.Block_hash
+	return a.block.Consensus_basis.Nomination.Block_hash
 }
 
 func (a CatchupArrival) PrevBlockHash() proto.BlockHash {
-	return a.block.Consensus_value.Nomination.Prev_block_hash
+	return a.block.Consensus_basis.Nomination.Prev_block_hash
 }
 
-func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
-	return &a.block.Consensus_value
+func (a CatchupArrival) ConsensusBasis() *proto.ConsensusBasis {
+	return &a.block.Consensus_basis
 }
 
-func (a CatchupArrival) ConsensusValueHash() proto.ConsensusValueHash {
-	return a.cvhash
+func (a CatchupArrival) ConsensusBasisHash() proto.ConsensusBasisHash {
+	return a.basis
 }
 
 func (a CatchupArrival) ConsensusValueCue() *proto.ConsensusValueCue {
-	return protoutil.CVCGivenCVHash(a.ConsensusValue(), a.cvhash)
+	return protoutil.CVCGivenCVHash(a.ConsensusBasis(), a.basis)
 }
 
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {
@@ -178,7 +178,7 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 						source: protoutil.PublicVID(src),
 						stamp:  now,
 						block:  &block,
-						cvhash: protoutil.HashCVFast(&block.Consensus_value),
+						basis:  protoutil.HashBasisFast(&block.Consensus_basis),
 						ns:     ns,
 						txs:    txs,
 					})

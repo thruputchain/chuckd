@@ -39,7 +39,7 @@ type envelopeFrom struct {
 
 type consensusValueFrom struct {
 	From proto.ValidatorID
-	*proto.ConsensusValue
+	*proto.ConsensusBasis
 }
 
 func NewMultiplex(
@@ -91,13 +91,13 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 
 			x.receivedSubmittedTxs <- submittedTxsFrom{From: fromID, SubmittedTransactions: xmsg.Submitted()}
 
-		case proto.MultiplexMessageConsensusValue:
+		case proto.MultiplexMessageConsensusBasis:
 			if len(payload) > systemfixed.MaxBytesConsensusValueMessage {
 				liblog.Errorf(ctx, "consensus value message too large: %d bytes", len(payload))
 				continue
 			}
 
-			x.receivedConsensusValue <- consensusValueFrom{From: fromID, ConsensusValue: xmsg.Consensus_value()}
+			x.receivedConsensusValue <- consensusValueFrom{From: fromID, ConsensusBasis: xmsg.Consensus_basis()}
 
 		case proto.MultiplexMessageSCP:
 			if len(payload) > systemfixed.MaxBytesSCPEnvelopeMessage {
@@ -134,12 +134,12 @@ func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.Sub
 	}
 }
 
-func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusValue) error {
+func (x *Multiplex) SendConsensusValue(ctx context.Context, cv proto.ConsensusBasis) error {
 	liblog.Debugf(ctx, "%v multiplex sending consensus value, for slot %v",
 		protoutil.VIDString(x.self), cv.Nomination.Block_height)
 	var xmsg proto.MultiplexMessage
-	xmsg.Type = proto.MultiplexMessageConsensusValue
-	*xmsg.Consensus_value() = cv
+	xmsg.Type = proto.MultiplexMessageConsensusBasis
+	*xmsg.Consensus_basis() = cv
 	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
 		liblog.Errorf(ctx, "multiplex send consensus value: %v", err)
@@ -182,7 +182,7 @@ func (x *Multiplex) ReceiveSubmittedTxs(ctx context.Context) (proto.ValidatorID,
 	}
 }
 
-func (x *Multiplex) ReceiveConsensusValue(ctx context.Context) (proto.ValidatorID, *proto.ConsensusValue, bool) {
+func (x *Multiplex) ReceiveConsensusBasis(ctx context.Context) (proto.ValidatorID, *proto.ConsensusBasis, bool) {
 	select {
 	case <-ctx.Done():
 		return proto.ValidatorID{}, nil, false
@@ -190,8 +190,8 @@ func (x *Multiplex) ReceiveConsensusValue(ctx context.Context) (proto.ValidatorI
 		liblog.Debugf(ctx, "%v multiplex received consensus value from %v, for slot %v",
 			protoutil.VIDString(x.self),
 			protoutil.VIDString(cvFrom.From),
-			cvFrom.ConsensusValue.Nomination.Block_height)
-		return cvFrom.From, cvFrom.ConsensusValue, true
+			cvFrom.ConsensusBasis.Nomination.Block_height)
+		return cvFrom.From, cvFrom.ConsensusBasis, true
 	}
 }
 

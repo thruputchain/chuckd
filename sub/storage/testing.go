@@ -45,7 +45,7 @@ func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 	p, ok := x.pre[cvch]
 	// dont delete p from pre, so it can be found by LookupCatchupBlock
 	must.Assert(ctx, ok)
-	must.Assert(ctx, p.Consensus_value.Nomination.Block_height == height)
+	must.Assert(ctx, p.Consensus_basis.Nomination.Block_height == height)
 
 	x.persisted[height] = p
 	return nil
@@ -83,18 +83,18 @@ type TestCVPersistence struct {
 	mu          sync.RWMutex
 	highest     proto.BlockHeight
 	hasHighest  bool
-	committed   map[proto.BlockHeight]proto.ConsensusValue
-	uncommitted map[protoutil.CVCHash]proto.ConsensusValue
+	committed   map[proto.BlockHeight]proto.ConsensusBasis
+	uncommitted map[protoutil.CVCHash]proto.ConsensusBasis
 }
 
 func NewTestCVPersistence() *TestCVPersistence {
 	return &TestCVPersistence{
-		committed:   make(map[proto.BlockHeight]proto.ConsensusValue),
-		uncommitted: make(map[protoutil.CVCHash]proto.ConsensusValue),
+		committed:   make(map[proto.BlockHeight]proto.ConsensusBasis),
+		uncommitted: make(map[protoutil.CVCHash]proto.ConsensusBasis),
 	}
 }
 
-func (x *TestCVPersistence) PersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) error {
+func (x *TestCVPersistence) PersistCV(ctx context.Context, cv proto.ConsensusBasis, cvch protoutil.CVCHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 	if !x.hasHighest || cv.Nomination.Block_height > x.highest {
@@ -106,14 +106,14 @@ func (x *TestCVPersistence) PersistCV(ctx context.Context, cv proto.ConsensusVal
 	return nil
 }
 
-func (x *TestCVPersistence) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) error {
+func (x *TestCVPersistence) PrePersistCV(ctx context.Context, cv proto.ConsensusBasis, cvch protoutil.CVCHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
 	x.uncommitted[cvch] = cv
 	return nil
 }
 
-func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusValue, error) {
+func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusBasis, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 	cv, ok := x.uncommitted[cvch]
@@ -123,7 +123,7 @@ func (x *TestCVPersistence) FindCV(ctx context.Context, height proto.BlockHeight
 	return &cv, nil
 }
 
-func (x *TestCVPersistence) FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusValue, error) {
+func (x *TestCVPersistence) FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusBasis, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 	cv, ok := x.committed[height]
@@ -133,7 +133,7 @@ func (x *TestCVPersistence) FindCommittedCV(ctx context.Context, height proto.Bl
 	return &cv, nil
 }
 
-func (x *TestCVPersistence) FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusValue, error) {
+func (x *TestCVPersistence) FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusBasis, error) {
 	x.mu.RLock()
 	highest := x.highest
 	hasHighest := x.hasHighest

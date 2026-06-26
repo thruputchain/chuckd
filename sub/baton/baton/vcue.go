@@ -73,7 +73,7 @@ func (b *Baton) validateCue(
 
 	// check if the value was already validated
 	b.lk.Lock()
-	alreadyValidated := b.getValidatedCV(cvc)
+	alreadyValidated := b.getValidatedBasis(cvc)
 	alreadyInvalidated := b.isInvalidated(cvc)
 	committedHeight := b.tipDb.Height
 	b.lk.Unlock()
@@ -99,7 +99,7 @@ func (b *Baton) validateCue(
 		return
 	}
 	if alreadyValidated != nil {
-		if protoutil.CVAgreesWithCue(alreadyValidated, cvc) {
+		if protoutil.BasisAgreesWithCue(alreadyValidated, cvc) {
 			liblog.Debugf(ctx, "cv already validated: cvc %s", protoutil.CVCDisplay(cvc))
 			reply <- scpkit.FullyValidValue
 		} else {
@@ -134,7 +134,7 @@ func (b *Baton) validateCue(
 	must.NoError(ctx, err)
 
 	// XXX(DoS): if cv disagrees with cue, take action regarding the source of the cv
-	if !protoutil.CVAgreesWithCue(cv, cvc) {
+	if !protoutil.BasisAgreesWithCue(cv, cvc) {
 		liblog.Infof(ctx, "cannot validate, consensus value disagrees with cue")
 		reply <- scpkit.InvalidValue
 		return
@@ -147,7 +147,7 @@ func (b *Baton) fetchCV(
 	ctx context.Context,
 	slot scpkit.Slot,
 	cvc *proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 
 	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; cvc %s; proposer=%s",
 		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
@@ -168,28 +168,28 @@ func (b *Baton) fetchCV(
 		slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc), protoutil.VPublicShortString(cvc.Proposer))
 
 	fetchCtx, fetchCancel := context.WithCancel(ctx)
-	cvReturn := make(chan *proto.ConsensusValue, 2)
+	basisReturn := make(chan *proto.ConsensusBasis, 2)
 
 	// try repairing the missing cv
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.RepairMissingCV(fetchCtx, cvc.Proposer, *cvc)
+		basis, err := b.handler.RepairMissingBasis(fetchCtx, cvc.Proposer, *cvc)
 		if err != nil {
 			must.Assert(fetchCtx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
 		}
-		cvReturn <- cv
+		basisReturn <- basis
 	}()
 
 	// try getting the cv from the pool, if it arrives before the repair
 	// this goroutine keeps on trying unless cancelled
 	go func() {
-		cv, err := b.handler.CVPoolWaitFor(fetchCtx, *cvc)
+		basis, err := b.handler.CVPoolWaitFor(fetchCtx, *cvc)
 		if err != nil {
 			must.Assert(fetchCtx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			return
 		}
-		cvReturn <- cv
+		basisReturn <- basis
 	}()
 
 	select {
@@ -199,7 +199,7 @@ func (b *Baton) fetchCV(
 			ctx.Err(), slot, libxdr.HashString(cvc.Block_hash), protoutil.CVCDisplay(cvc),
 			protoutil.VPublicShortString(cvc.Proposer))
 		return nil, ctx.Err()
-	case cv, ok := <-cvReturn:
+	case cv, ok := <-basisReturn:
 		if ok {
 			fetchCancel()
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; cvc=%s; proposer=%s",

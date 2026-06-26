@@ -78,7 +78,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	}
 	if scpTopHeight == dbBlock.TipDb.Height {
 		if scpTopExt.BlockHash() == dbBlock.BlockHash() &&
-			scpTopExt.ConsensusValueHash() == dbBlock.ConsensusValueHash() {
+			scpTopExt.ConsensusBasisHash() == dbBlock.ConsensusBasisHash() {
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -195,22 +195,22 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 		case ViewCatchupBlock:
 			if !prev.IsMissing() &&
 				(prev.BlockHash() != u.PrevBlockHash() ||
-					prev.ConsensusValueHash() != u.PrevConsensusValueHash()) {
+					prev.ConsensusBasisHash() != u.PrevConsensusBasisHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
 		case ViewExtConsensusBlock, ViewExtCueBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusBasisHash() != prev.ConsensusBasisHash() {
 					return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 				}
 			case prev.IsDb():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusBasisHash() != prev.ConsensusBasisHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
 			case prev.IsExtConsensus() || prev.IsExtCue():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusValueHash() != prev.ConsensusValueHash() {
+				if u.PrevBlockHash() != prev.BlockHash() || u.PrevConsensusBasisHash() != prev.ConsensusBasisHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
 			default:

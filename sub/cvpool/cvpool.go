@@ -15,13 +15,13 @@ type ConsensusValuePool struct {
 	cond    *sync.Cond
 	lk      sync.Mutex
 	bottom  proto.BlockHeight // heights at or below bottom are purged; set to last committed height
-	cv      map[protoutil.CVCHash]*proto.ConsensusValue
+	basis   map[protoutil.CVCHash]*proto.ConsensusBasis
 }
 
 func NewCVPool(ctx context.Context, persist storage.ConsensusValuePersistence) *ConsensusValuePool {
 	cvp := &ConsensusValuePool{
 		persist: persist,
-		cv:      map[protoutil.CVCHash]*proto.ConsensusValue{},
+		basis:   map[protoutil.CVCHash]*proto.ConsensusBasis{},
 		bottom:  0,
 	}
 	cvp.cond = sync.NewCond(&cvp.lk)
@@ -31,20 +31,20 @@ func NewCVPool(ctx context.Context, persist storage.ConsensusValuePersistence) *
 
 func (cvp *ConsensusValuePool) CVPoolAdd(
 	ctx context.Context,
-	cv proto.ConsensusValue,
+	basis proto.ConsensusBasis,
 	cue proto.ConsensusValueCue,
 ) error {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
-	if cv.Nomination.Block_height <= cvp.bottom {
+	if basis.Nomination.Block_height <= cvp.bottom {
 		return nil
 	}
 	cvch := protoutil.HashCVC(&cue)
-	cvp.cv[cvch] = &cv
+	cvp.basis[cvch] = &basis
 	cvp.cond.Broadcast()
 	go func() {
-		err := cvp.persist.PrePersistCV(context.WithoutCancel(ctx), cv, cvch)
+		err := cvp.persist.PrePersistCV(context.WithoutCancel(ctx), basis, cvch)
 		must.NoError(ctx, err)
 	}()
 	return nil
@@ -52,20 +52,20 @@ func (cvp *ConsensusValuePool) CVPoolAdd(
 
 func (cvp *ConsensusValuePool) CVPoolCommit(
 	ctx context.Context,
-	cv proto.ConsensusValue,
+	basis proto.ConsensusBasis,
 	cue proto.ConsensusValueCue,
 ) error {
 	cvch := protoutil.HashCVC(&cue)
-	err := cvp.persist.PersistCV(context.WithoutCancel(ctx), cv, cvch)
+	err := cvp.persist.PersistCV(context.WithoutCancel(ctx), basis, cvch)
 	must.NoError(ctx, err)
 
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
-	if cv.Nomination.Block_height <= cvp.bottom {
+	if basis.Nomination.Block_height <= cvp.bottom {
 		return nil
 	}
-	cvp.cv[cvch] = &cv
+	cvp.basis[cvch] = &basis
 	cvp.cond.Broadcast()
 	return nil
 }
@@ -79,9 +79,9 @@ func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.B
 }
 
 func (cvp *ConsensusValuePool) purge() {
-	for h, cv := range cvp.cv {
+	for h, cv := range cvp.basis {
 		if cv.Nomination.Block_height <= cvp.bottom {
-			delete(cvp.cv, h)
+			delete(cvp.basis, h)
 		}
 	}
 }
@@ -89,13 +89,13 @@ func (cvp *ConsensusValuePool) purge() {
 func (cvp *ConsensusValuePool) CVPoolLookup(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 	cvch := protoutil.HashCVC(&cue)
-	cv, ok := cvp.cv[cvch]
-	if ok && protoutil.CVAgreesWithCue(cv, &cue) {
-		return cv, nil
+	basis, ok := cvp.basis[cvch]
+	if ok && protoutil.BasisAgreesWithCue(basis, &cue) {
+		return basis, nil
 	}
 	return nil, nil
 }
@@ -103,7 +103,7 @@ func (cvp *ConsensusValuePool) CVPoolLookup(
 func (cvp *ConsensusValuePool) CVPoolWaitFor(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 	cvch := protoutil.HashCVC(&cue)
 
 	stop := context.AfterFunc(ctx, func() {
@@ -120,8 +120,8 @@ func (cvp *ConsensusValuePool) CVPoolWaitFor(
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			if cv, ok := cvp.cv[cvch]; ok && protoutil.CVAgreesWithCue(cv, &cue) {
-				return cv, nil
+			if basis, ok := cvp.basis[cvch]; ok && protoutil.BasisAgreesWithCue(basis, &cue) {
+				return basis, nil
 			}
 			cvp.cond.Wait()
 		}
@@ -133,13 +133,13 @@ func (cvp *ConsensusValuePool) CVPoolWaitFor(
 func (cvp *ConsensusValuePool) CVPoolFind(
 	ctx context.Context,
 	cue proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 	cvch := protoutil.HashCVC(&cue)
 	cv, err := cvp.persist.FindCV(ctx, cue.Block_height, cvch)
 	if err != nil {
 		return nil, err
 	}
-	if cv != nil && protoutil.CVAgreesWithCue(cv, &cue) {
+	if cv != nil && protoutil.BasisAgreesWithCue(cv, &cue) {
 		return cv, nil
 	}
 	return nil, nil
@@ -148,19 +148,19 @@ func (cvp *ConsensusValuePool) CVPoolFind(
 func (cvp *ConsensusValuePool) CVPoolFindCommitted(
 	ctx context.Context,
 	height proto.BlockHeight,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 	return cvp.persist.FindCommittedCV(ctx, height)
 }
 
 func (cvp *ConsensusValuePool) CVPoolFindHighestCommitted(
 	ctx context.Context,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 	return cvp.persist.FindHighestCommittedCV(ctx)
 }
 
 func (cvp *ConsensusValuePool) CVPoolFindCommittedAbove(
 	ctx context.Context,
 	above proto.BlockHeight,
-) ([]proto.ConsensusValue, error) {
+) ([]proto.ConsensusBasis, error) {
 	return storage.FindCommittedConsensusValuesAbove(ctx, cvp.persist, above)
 }

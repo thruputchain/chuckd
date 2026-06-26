@@ -43,7 +43,7 @@ func (b *Baton) start(ctx context.Context) {
 		b.tipExt = newExternalized(protoutil.CVC(tipCV), tipCV)
 		liblog.Infof(ctx, "externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
 	} else {
-		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
+		assumedCV := assumedConsensusBasisAtHeight(b.tipDb.Height)
 		b.tipExt = newExternalized(protoutil.CVC(&assumedCV), &assumedCV)
 		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
@@ -93,6 +93,6 @@ func (b *Baton) start(ctx context.Context) {
 	}
 }
 
-func assumedConsensusValueAtHeight(height proto.BlockHeight) proto.ConsensusValue {
-	return proto.ConsensusValue{Nomination: proto.Nomination{Block_height: height}}
+func assumedConsensusBasisAtHeight(height proto.BlockHeight) proto.ConsensusBasis {
+	return proto.ConsensusBasis{Nomination: proto.Nomination{Block_height: height}}
 }

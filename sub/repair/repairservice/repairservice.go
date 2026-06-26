@@ -147,7 +147,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 			fmt.Errorf("failed to serialize transaction batch (%w)", err)
 	}
 
-	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_value.Nomination.Transactions_hash)
+	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_basis.Nomination.Transactions_hash)
 	if err != nil {
 		liblog.Errorf(ctx, "failed to serialize transaction hash batch: cvc=%s",
 			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
@@ -209,10 +209,10 @@ func (x *RepairService) repairMissingTxsFromMempool(
 }
 
 // XXX: needs dos protection
-func (x *RepairService) Repair_missing_cv(
+func (x *RepairService) Repair_missing_basis(
 	ctx context.Context,
 	cvc proto.ConsensusValueCue,
-) (proto.OptConsensusValue, error) {
+) (proto.OptConsensusBasis, error) {
 
 	liblog.Debugf(ctx, "repair_missing_cv request: height=%d; cvc=%s", cvc.Block_height, protoutil.CVCDisplay(&cvc))
 

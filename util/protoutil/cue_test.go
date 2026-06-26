@@ -181,8 +181,8 @@ func filledPublicKey(seed byte) proto.ValidatorPublicKey {
 	return out
 }
 
-func filledConsensusValueHash(seed byte) proto.ConsensusValueHash {
-	var out proto.ConsensusValueHash
+func filledConsensusValueHash(seed byte) proto.ConsensusBasisHash {
+	var out proto.ConsensusBasisHash
 	for i := range out {
 		out[i] = seed + byte(i)
 	}

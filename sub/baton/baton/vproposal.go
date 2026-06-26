@@ -18,33 +18,33 @@ import (
 func (b *Baton) validateProposal(
 	ctx context.Context,
 	onto proto.DbTip,
-	cv *proto.ConsensusValue,
+	basis *proto.ConsensusBasis,
 	cvc *proto.ConsensusValueCue,
 ) (proto.DbTip, error) {
 
-	nomination := cv.Nomination
+	nomination := basis.Nomination
 
 	numTxs := xdrutil.TokenSizeOfBatch(nomination.Transactions_hash)
 
 	eventValidating := batonkit.EventValidating{
-		Onto:                 onto,
-		NumTx:                numTxs,
-		Height:               nomination.Block_height,
-		BlockHash:            nomination.Block_hash,
-		DbgConsensusValueCue: cvc,
-		DbgConsensusValue:    cv,
+		Onto:              onto,
+		NumTx:             numTxs,
+		Height:            nomination.Block_height,
+		BlockHash:         nomination.Block_hash,
+		ConsensusValueCue: cvc,
+		ConsensusBasis:    basis,
 	}
 	liblog.Infof(ctx, "%v", eventValidating)
 	b.handler.Emit(ctx, eventValidating)
 
 	defer func() {
 		eventValidated := batonkit.EventValidated{
-			Onto:                 onto,
-			NumTx:                numTxs,
-			Height:               nomination.Block_height,
-			BlockHash:            nomination.Block_hash,
-			DbgConsensusValueCue: cvc,
-			DbgConsensusValue:    cv,
+			Onto:              onto,
+			NumTx:             numTxs,
+			Height:            nomination.Block_height,
+			BlockHash:         nomination.Block_hash,
+			ConsensusValueCue: cvc,
+			ConsensusBasis:    basis,
 		}
 		liblog.Infof(ctx, "%v", eventValidated)
 		b.handler.Emit(ctx, eventValidated)
@@ -77,7 +77,7 @@ func (b *Baton) validateProposal(
 			}
 
 			cb := &proto.CatchupBlock{
-				Consensus_value:     *cv,
+				Consensus_basis:     *basis,
 				Signed_transactions: vblock.Signed_transactions,
 			}
 

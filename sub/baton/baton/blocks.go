@@ -12,8 +12,8 @@ type ViewBlock interface {
 	BlockHeight() proto.BlockHeight
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
-	ConsensusValueHash() proto.ConsensusValueHash
-	PrevConsensusValueHash() proto.ConsensusValueHash
+	ConsensusBasisHash() proto.ConsensusBasisHash
+	PrevConsensusBasisHash() proto.ConsensusBasisHash
 	//
 	IsMissing() bool
 	IsExtConsensus() bool
@@ -29,8 +29,8 @@ func BlockCue(b ViewBlock) *proto.ConsensusValueCue {
 	return &proto.ConsensusValueCue{
 		Proposer:        b.Proposer(),
 		Block_height:    b.BlockHeight(),
-		Cv_hash:         b.ConsensusValueHash(),
-		Prev_cv_hash:    b.PrevConsensusValueHash(),
+		Cv_hash:         b.ConsensusBasisHash(),
+		Prev_cv_hash:    b.PrevConsensusBasisHash(),
 		Block_hash:      b.BlockHash(),
 		Prev_block_hash: b.PrevBlockHash(),
 	}
@@ -47,11 +47,11 @@ func (x ViewDbBlock) Proposer() proto.ValidatorPublicInfo { return x.TipExt.Prop
 func (x ViewDbBlock) BlockHash() proto.BlockHash          { return x.TipDb.Block_hash }
 func (x ViewDbBlock) BlockHeight() proto.BlockHeight      { return x.TipDb.Height }
 func (x ViewDbBlock) PrevBlockHash() proto.BlockHash      { panic("should not be called") }
-func (x ViewDbBlock) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.TipExt.ConsensusValueHash()
+func (x ViewDbBlock) ConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.TipExt.ConsensusBasisHash()
 }
-func (x ViewDbBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
-	return x.TipExt.ConsensusValue().Prev_cv_hash
+func (x ViewDbBlock) PrevConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.TipExt.ConsensusBasis().Prev_cv_hash
 }
 func (x ViewDbBlock) IsMissing() bool                   { return false }
 func (x ViewDbBlock) IsExtConsensus() bool              { return false }
@@ -73,11 +73,11 @@ func (x ViewCatchupBlock) Proposer() proto.ValidatorPublicInfo { return x.Candid
 func (x ViewCatchupBlock) BlockHash() proto.BlockHash          { return x.Candidate.BlockHash() }
 func (x ViewCatchupBlock) BlockHeight() proto.BlockHeight      { return x.Candidate.BlockHeight() }
 func (x ViewCatchupBlock) PrevBlockHash() proto.BlockHash      { return x.Candidate.PrevBlockHash() }
-func (x ViewCatchupBlock) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.Candidate.ConsensusValueHash()
+func (x ViewCatchupBlock) ConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.Candidate.ConsensusBasisHash()
 }
-func (x ViewCatchupBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
-	return x.Candidate.ConsensusValue().Prev_cv_hash
+func (x ViewCatchupBlock) PrevConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.Candidate.ConsensusBasis().Prev_cv_hash
 }
 func (x ViewCatchupBlock) IsMissing() bool      { return false }
 func (x ViewCatchupBlock) IsExtConsensus() bool { return false }
@@ -121,11 +121,11 @@ func (x ViewExtConsensusBlock) BlockHeight() proto.BlockHeight {
 func (x ViewExtConsensusBlock) PrevBlockHash() proto.BlockHash {
 	return x.Ext.PrevBlockHash()
 }
-func (x ViewExtConsensusBlock) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.Ext.ConsensusValueHash()
+func (x ViewExtConsensusBlock) ConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.Ext.ConsensusBasisHash()
 }
-func (x ViewExtConsensusBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
-	return x.Ext.PrevConsensusValueHash()
+func (x ViewExtConsensusBlock) PrevConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.Ext.PrevConsensusBasisHash()
 }
 func (x ViewExtConsensusBlock) IsMissing() bool      { return false }
 func (x ViewExtConsensusBlock) IsExtConsensus() bool { return true }
@@ -136,7 +136,7 @@ func (x ViewExtConsensusBlock) Committable() batonkit.Committable {
 	switch {
 	case x.Validated != nil:
 		return batonkit.NewCommittableNomination(
-			x.Ext.ConsensusValue(),
+			x.Ext.ConsensusBasis(),
 			x.Ext.ConsensusValueCue(),
 			x.Validated,
 		)
@@ -171,11 +171,11 @@ func (x ViewExtCueBlock) BlockHeight() proto.BlockHeight {
 func (x ViewExtCueBlock) PrevBlockHash() proto.BlockHash {
 	return x.Ext.PrevBlockHash()
 }
-func (x ViewExtCueBlock) ConsensusValueHash() proto.ConsensusValueHash {
-	return x.Ext.ConsensusValueHash()
+func (x ViewExtCueBlock) ConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.Ext.ConsensusBasisHash()
 }
-func (x ViewExtCueBlock) PrevConsensusValueHash() proto.ConsensusValueHash {
-	return x.Ext.PrevConsensusValueHash()
+func (x ViewExtCueBlock) PrevConsensusBasisHash() proto.ConsensusBasisHash {
+	return x.Ext.PrevConsensusBasisHash()
 }
 func (x ViewExtCueBlock) IsMissing() bool      { return false }
 func (x ViewExtCueBlock) IsExtConsensus() bool { return false }
@@ -207,8 +207,8 @@ func (x ViewMissing) Proposer() proto.ValidatorPublicInfo              { panic("
 func (x ViewMissing) BlockHash() proto.BlockHash                       { panic("must not call") }
 func (x ViewMissing) BlockHeight() proto.BlockHeight                   { return x.Height }
 func (x ViewMissing) PrevBlockHash() proto.BlockHash                   { panic("must not call") }
-func (x ViewMissing) ConsensusValueHash() proto.ConsensusValueHash     { panic("must not call") }
-func (x ViewMissing) PrevConsensusValueHash() proto.ConsensusValueHash { panic("must not call") }
+func (x ViewMissing) ConsensusBasisHash() proto.ConsensusBasisHash     { panic("must not call") }
+func (x ViewMissing) PrevConsensusBasisHash() proto.ConsensusBasisHash { panic("must not call") }
 func (x ViewMissing) IsMissing() bool                                  { return true }
 func (x ViewMissing) IsExtConsensus() bool                             { return false }
 func (x ViewMissing) IsExtCue() bool                                   { return false }

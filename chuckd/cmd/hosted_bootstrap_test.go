@@ -131,7 +131,7 @@ func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction)
 	}
 	var blockHash proto.BlockHash
 	copy(blockHash[:], bytes.Repeat([]byte{0x88}, len(blockHash)))
-	cv := &proto.ConsensusValue{
+	cv := &proto.ConsensusBasis{
 		Nomination: proto.Nomination{
 			Block_height:      1,
 			Block_hash:        blockHash,

@@ -13,9 +13,9 @@ type RepairAgent interface {
 		missing proto.MissingTransactions,
 	) ([]proto.SignedTransaction, error)
 
-	RepairMissingCV(
+	RepairMissingBasis(
 		ctx context.Context,
 		from proto.ValidatorPublicInfo,
 		missing proto.ConsensusValueCue,
-	) (*proto.ConsensusValue, error)
+	) (*proto.ConsensusBasis, error)
 }

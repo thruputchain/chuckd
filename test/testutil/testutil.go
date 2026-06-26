@@ -63,7 +63,7 @@ var TestNondeterministicData = proto.NondeterministicProposalData{
 }
 
 type TestBlock struct {
-	ConsensusValue    proto.ConsensusValue
+	ConsensusBasis    proto.ConsensusBasis
 	ConsensusValueCue proto.ConsensusValueCue
 	Txs               []proto.SignedTransaction
 	Catchup           proto.CatchupBlock
@@ -72,18 +72,18 @@ type TestBlock struct {
 type BlockHandle struct {
 	BlockHash proto.BlockHash
 	Height    proto.BlockHeight
-	CV        proto.ConsensusValue
+	Basis     proto.ConsensusBasis
 }
 
-func BlockHandleFromTip(tipDb proto.DbTip, tipCV proto.ConsensusValue) *BlockHandle {
-	return &BlockHandle{BlockHash: tipDb.Block_hash, Height: tipDb.Height, CV: tipCV}
+func BlockHandleFromTip(tipDb proto.DbTip, tipCV proto.ConsensusBasis) *BlockHandle {
+	return &BlockHandle{BlockHash: tipDb.Block_hash, Height: tipDb.Height, Basis: tipCV}
 }
 
 func BlockHandleFromCommittableBlock(cb *batonkit.CommittableBlock) *BlockHandle {
 	return &BlockHandle{
 		BlockHash: cb.BlockHash(),
 		Height:    cb.BlockHeight(),
-		CV:        *cb.AsConsensusValue(),
+		Basis:     *cb.AsConsensusBasis(),
 	}
 }
 
@@ -91,9 +91,9 @@ func (h *TestGen) GenNominationOntoTip(
 	ctx context.Context,
 	ntxs int,
 	ontoDb proto.DbTip,
-	ontoCV proto.ConsensusValue,
+	ontoBasis proto.ConsensusBasis,
 ) *TestBlock {
-	return h.GenNominationOnto(ctx, ntxs, BlockHandleFromTip(ontoDb, ontoCV))
+	return h.GenNominationOnto(ctx, ntxs, BlockHandleFromTip(ontoDb, ontoBasis))
 }
 
 func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
@@ -101,9 +101,9 @@ func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *Te
 		ctx,
 		ntxs,
 		&BlockHandle{
-			Height:    onto.ConsensusValue.Nomination.Block_height,
-			BlockHash: onto.ConsensusValue.Nomination.Block_hash,
-			CV:        onto.ConsensusValue,
+			Height:    onto.ConsensusBasis.Nomination.Block_height,
+			BlockHash: onto.ConsensusBasis.Nomination.Block_hash,
+			Basis:     onto.ConsensusBasis,
 		},
 	)
 }
@@ -125,7 +125,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 		hash = BlendPropopsedTx(hash, &ptxs[i])
 	}
 	hash = UniqueBlockHash(onto.Height+1, hash)
-	cv := proto.ConsensusValue{
+	basis := proto.ConsensusBasis{
 		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
 		Nomination: proto.Nomination{
 			Proposer:        h.validator.Public_info,
@@ -138,14 +138,14 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
 		Upgrades:     nil, // XXX: upgrades not yet supported in test
-		Prev_cv_hash: protoutil.HashCVFast(&onto.CV),
+		Prev_cv_hash: protoutil.HashBasisFast(&onto.Basis),
 	}
 	return &TestBlock{
-		ConsensusValue:    cv,
-		ConsensusValueCue: *protoutil.CVC(&cv),
+		ConsensusBasis:    basis,
+		ConsensusValueCue: *protoutil.CVC(&basis),
 		Txs:               txs,
 		Catchup: proto.CatchupBlock{
-			Consensus_value: cv,
+			Consensus_basis: basis,
 			Signed_transactions: xdrutil.ParallelizeSignedTransactionBatch(
 				h.m, systemfixed.CatchupTxBatchMaxSegments, txs),
 		},

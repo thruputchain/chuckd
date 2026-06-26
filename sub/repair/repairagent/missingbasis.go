@@ -15,12 +15,12 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// RepairMissingCV ensures that the returned cv match the desired hash.
-func (x *RepairAgent) RepairMissingCV(
+// RepairMissingBasis ensures that the returned cv match the desired hash.
+func (x *RepairAgent) RepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 
 	backoff := netutil.NewBackoff(x.backoffCfg, librand.NewRand())
 
@@ -49,7 +49,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	ctx context.Context,
 	from proto.ValidatorPublicInfo,
 	missing *proto.ConsensusValueCue,
-) (*proto.ConsensusValue, error) {
+) (*proto.ConsensusBasis, error) {
 
 	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
 	if err != nil {
@@ -57,9 +57,9 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_cv(ctx, *missing)
+	reply, err := c.Repair_missing_basis(ctx, *missing)
 	if err != nil {
-		return nil, fmt.Errorf("calling Repair_missing_cv: %w", err)
+		return nil, fmt.Errorf("calling Repair_missing_basis: %w", err)
 	}
 
 	if reply == nil {
@@ -68,7 +68,7 @@ func (x *RepairAgent) attemptRepairMissingCV(
 	}
 
 	// verify returned cv matches hash
-	if !protoutil.IsSaneConsensusValue(reply) {
+	if !protoutil.IsSaneConsensusBasis(reply) {
 		return nil, fmt.Errorf("repaired consensus value is not sane")
 	}
 	if !protoutil.CVCEquals(missing, protoutil.CVC(reply)) {

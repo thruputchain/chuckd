@@ -21,7 +21,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	liblog.Infof(ctx, "committing: height %d; block_hash %s; cvc %s; proposer %s",
 		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()),
 		protoutil.CVCDisplay(cvc),
-		protoutil.VPublicShortString(cb.AsConsensusValue().Nomination.Proposer))
+		protoutil.VPublicShortString(cb.AsConsensusBasis().Nomination.Proposer))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
 	defer b.stampCommitEnd(cb.BlockHeight())
@@ -31,7 +31,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	// validate, if not already validated
 	if validatedBlockID == nil {
 
-		cv := cb.AsConsensusValue()
+		cv := cb.AsConsensusBasis()
 		proposer := protoutil.PublicVID(cv.Nomination.Proposer)
 
 		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
@@ -57,7 +57,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	}
 
 	// CV must be guaranteed persisted before the db commits.
-	b.handler.CVPoolCommit(ctx, *cb.AsConsensusValue(), *cb.ConsensusValueCue())
+	b.handler.CVPoolCommit(ctx, *cb.AsConsensusBasis(), *cb.ConsensusValueCue())
 
 	// catchup block must be guaranteed persisted before the db commits.
 	b.handler.CBPoolWaitPersist(ctx, *cb.ConsensusValueCue())

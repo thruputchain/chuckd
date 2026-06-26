@@ -12,11 +12,11 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func mkCV() *proto.ConsensusValue {
+func mkBasis() *proto.ConsensusBasis {
 	txh := make([]proto.SignedTransactionHash, 1e6) // 1M
 	txn := make([]proto.NondeterministicProposalData, 1e6)
 	m := libxdr.NewXdrMarshaler()
-	return &proto.ConsensusValue{
+	return &proto.ConsensusBasis{
 		Nomination: proto.Nomination{
 			Transactions_hash:                  xdrutil.ParallelizeSignedTransactionHashBatch(m, 20, txh),
 			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(m, 20, txn),
@@ -26,53 +26,53 @@ func mkCV() *proto.ConsensusValue {
 
 func Benchmark_HashCVSlow_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
-	cv := mkCV()
+	basis := mkBasis()
 	for b.Loop() {
-		protoutil.HashCVSlow(cv)
+		protoutil.HashBasisSlow(basis)
 	}
 }
 
 func Benchmark_HashCVFast_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
-	cv := mkCV()
+	basis := mkBasis()
 	for b.Loop() {
-		protoutil.HashCVFast(cv)
+		protoutil.HashBasisFast(basis)
 	}
 }
 
 func Benchmark_Marshal_Nop_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
-	cv := mkCV()
+	basis := mkBasis()
 	for b.Loop() {
-		libxdr.MarshalXdrWriter(io.Discard, cv)
+		libxdr.MarshalXdrWriter(io.Discard, basis)
 	}
 }
 
 func Benchmark_Marshal_NoAlloc_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
-	cv := mkCV()
+	basis := mkBasis()
 	buf := make([]byte, 1e6*100)
 	w := bytes.NewBuffer(buf)
 	for b.Loop() {
-		libxdr.MarshalXdrWriter(w, cv)
+		libxdr.MarshalXdrWriter(w, basis)
 		w.Reset()
 	}
 }
 
 func Benchmark_Marshal_PoolAlloc_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
-	cv := mkCV()
+	basis := mkBasis()
 	m := libxdr.NewXdrMarshaler()
 	for b.Loop() {
-		b := m.MarshalXdr(cv)
+		b := m.MarshalXdr(basis)
 		b.Recycle()
 	}
 }
 
 func Benchmark_Marshal_Sha256_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
-	cv := mkCV()
+	basis := mkBasis()
 	for b.Loop() {
-		libxdr.MarshalXdrWriter(sha256.New(), cv)
+		libxdr.MarshalXdrWriter(sha256.New(), basis)
 	}
 }

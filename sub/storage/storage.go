@@ -99,11 +99,11 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height, cvch.Display())
+		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "pre-persisted catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height, cvch.Display())
+		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
 
-	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvch)
+	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, cvch)
 	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
@@ -122,11 +122,11 @@ func (x *DiskStorage) PersistCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "persisting catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height, cvch.Display())
+		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "persisted catchup block: height %d; cvc %s",
-		cb.Consensus_value.Nomination.Block_height, cvch.Display())
+		cb.Consensus_basis.Nomination.Block_height, cvch.Display())
 
-	full := x.CatchupBlockFilepath(cb.Consensus_value.Nomination.Block_height, cvch)
+	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, cvch)
 	x.catchupPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cb)
@@ -210,20 +210,20 @@ func (x *DiskStorage) FindCatchupBlock(ctx context.Context, height proto.BlockHe
 
 // consensus values
 
-func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) error {
+func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
 	liblog.Debugf(ctx, "persisting cv: height %d; cvc %s",
-		cv.Nomination.Block_height, cvch.Display())
+		basis.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "persisted cv: height %d; cvc %s",
-		cv.Nomination.Block_height, cvch.Display())
+		basis.Nomination.Block_height, cvch.Display())
 
-	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvch)
+	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, cvch)
 	x.consensusPP.Persist(ctx, full,
 		func(w io.Writer) error {
-			libxdr.MarshalXdrWriter(w, &cv)
+			libxdr.MarshalXdrWriter(w, &basis)
 			return nil
 		},
 	)
@@ -231,20 +231,20 @@ func (x *DiskStorage) PersistCV(ctx context.Context, cv proto.ConsensusValue, cv
 	return nil
 }
 
-func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue, cvch protoutil.CVCHash) error {
+func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, cvch protoutil.CVCHash) error {
 	if err := x.WaitReady(ctx); err != nil {
 		return err
 	}
 
 	liblog.Debugf(ctx, "pre-persisting cv: height %d; cvc %s",
-		cv.Nomination.Block_height, cvch.Display())
+		basis.Nomination.Block_height, cvch.Display())
 	defer liblog.Debugf(ctx, "pre-persisted cv: height %d; cvc %s",
-		cv.Nomination.Block_height, cvch.Display())
+		basis.Nomination.Block_height, cvch.Display())
 
-	full := x.ConsensusValueFilepath(cv.Nomination.Block_height, cvch)
+	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, cvch)
 	x.consensusPP.PrePersist(ctx, full,
 		func(w io.Writer) error {
-			libxdr.MarshalXdrWriter(w, &cv)
+			libxdr.MarshalXdrWriter(w, &basis)
 			return nil
 		},
 	)
@@ -252,26 +252,26 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, cv proto.ConsensusValue,
 	return nil
 }
 
-func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusValue, error) {
+func (x *DiskStorage) FindCV(ctx context.Context, height proto.BlockHeight, cvch protoutil.CVCHash) (*proto.ConsensusBasis, error) {
 	if err := x.WaitReady(ctx); err != nil {
 		return nil, err
 	}
 
 	full := x.ConsensusValueFilepath(height, cvch)
 
-	cv := &proto.ConsensusValue{}
+	basis := &proto.ConsensusBasis{}
 	err := x.consensusPP.Load(ctx, full, func(r io.Reader) error {
-		return libxdr.UnmarshalXdrReader(cv, r)
+		return libxdr.UnmarshalXdrReader(basis, r)
 	})
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
 	must.NoError(ctx, err)
 
-	return cv, nil
+	return basis, nil
 }
 
-func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusValue, error) {
+func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusBasis, error) {
 	if err := x.WaitReady(ctx); err != nil {
 		return nil, err
 	}
@@ -289,17 +289,17 @@ func (x *DiskStorage) FindCommittedCV(ctx context.Context, height proto.BlockHei
 	must.Assertf(ctx, len(files) == 1, "expected exactly one committed consensus value file at height %d, got %d", height, len(files))
 	full := files[len(files)-1]
 
-	cv := &proto.ConsensusValue{}
+	basis := &proto.ConsensusBasis{}
 	err = x.consensusPP.Load(ctx, full, func(r io.Reader) error {
-		return libxdr.UnmarshalXdrReader(cv, r)
+		return libxdr.UnmarshalXdrReader(basis, r)
 	})
 	// os.ErrNotExist can only occur if the disk is corrupted.
 	must.NoError(ctx, err)
 
-	return cv, nil
+	return basis, nil
 }
 
-func (x *DiskStorage) FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusValue, error) {
+func (x *DiskStorage) FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusBasis, error) {
 	return x.FindCommittedCV(ctx, x.findConsensusValueMaxHeight(ctx))
 }
 
