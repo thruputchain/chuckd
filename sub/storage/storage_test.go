@@ -221,7 +221,7 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 
 	for i, want := range consensusBases {
 		if !reflect.DeepEqual(got[i], want) {
-			t.Fatalf("consensus value mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
+			t.Fatalf("consensus bases mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
 		}
 	}
 }

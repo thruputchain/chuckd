@@ -104,13 +104,13 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		must.Assertf(ctx, ext.Height() > scpPrevHeight, "externalization heights not increasing")
 		scpPrevHeight = ext.Height()
 		//
-		if extConsensus, ok := ext.(externalizedConsensus); ok {
+		if extConsensus, ok := ext.(externalizedBasis); ok {
 			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtConsensusBlock{
 				Ext:       extConsensus,
 				Validated: b.getValidatedBlockID(ext.ConsensusValueCue()),
 			}
 		} else {
-			extCue := ext.(externalizedCue)
+			extCue := ext.(externalizedValue)
 			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtCueBlock{
 				Ext: extCue,
 			}

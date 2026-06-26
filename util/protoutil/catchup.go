@@ -6,7 +6,7 @@ import (
 )
 
 // VerifyCatchupBlock verifies the integrity of the catchup block:
-// the included signed transactions match the signed transaction hashes in the consensus value
+// the included signed transactions match the signed transaction hashes in the consensus basis
 func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 	NominationSerialized,
 	[]proto.SignedTransaction,

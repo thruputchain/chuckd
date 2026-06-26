@@ -19,7 +19,7 @@ func (v *View) HighestExternalizedOrCommitted() proto.BlockHeight {
 	return v.Blocks[len(v.Blocks)-1].BlockHeight()
 }
 
-func (v *View) NominateOnto() (*proto.DbTip, *externalizedConsensus) {
+func (v *View) NominateOnto() (*proto.DbTip, *externalizedBasis) {
 	if len(v.Blocks) != 1 {
 		return nil, nil
 	}

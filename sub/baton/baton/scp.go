@@ -74,7 +74,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 		return
 	}
 
-	liblog.Infof(ctx, "received externalization for slot %d with block hash %s and consensus value hash %s",
+	liblog.Infof(ctx, "received externalization for slot %d with block hash %s and consensus basis hash %s",
 		slot,
 		libxdr.HashString(cvc.Block_hash),
 		libxdr.HashString(cvc.Cv_hash))
@@ -93,7 +93,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	if basis == nil {
 
-		extCue := externalizedCue{height: proto.BlockHeight(slot), cvc: &cvc}
+		extCue := externalizedValue{height: proto.BlockHeight(slot), cvc: &cvc}
 		x.baton.placeExternalization(ctx, extCue)
 
 	} else {
@@ -118,11 +118,11 @@ func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool
 	lastExt := b.externalized[len(b.externalized)-1]
 	if ext.Height() <= lastExt.Height() {
 		// if the externalization is within the range of already seen externalizations,
-		// only place it if it upgrades an externalized cue to an externalized consensus value
-		if extConsensus, ok := ext.(externalizedConsensus); ok {
+		// only place it if it upgrades an externalized cue to an externalized consensus basis
+		if extConsensus, ok := ext.(externalizedBasis); ok {
 			for i, priorExt := range b.externalized {
 				if priorExt.Height() == extConsensus.Height() {
-					if _, priorIsCue := priorExt.(externalizedCue); priorIsCue {
+					if _, priorIsCue := priorExt.(externalizedValue); priorIsCue {
 						if externalizedAgree(extConsensus, priorExt) {
 							b.externalized[i] = extConsensus
 							return true

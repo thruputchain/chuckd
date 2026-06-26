@@ -37,7 +37,7 @@ func ExternalizedString(ext externalized) string {
 		libxdr.HashString(ext.ConsensusBasisHash()), libxdr.HashString(ext.PrevConsensusBasisHash()))
 }
 
-type externalizedConsensus struct {
+type externalizedBasis struct {
 	cue   *proto.ConsensusValueCue
 	basis *proto.ConsensusBasis
 }
@@ -45,74 +45,74 @@ type externalizedConsensus struct {
 func newExternalized(
 	cue *proto.ConsensusValueCue,
 	basis *proto.ConsensusBasis,
-) externalizedConsensus {
-	return externalizedConsensus{
+) externalizedBasis {
+	return externalizedBasis{
 		cue:   cue,
 		basis: basis,
 	}
 }
 
-func (x externalizedConsensus) Proposer() proto.ValidatorPublicInfo {
+func (x externalizedBasis) Proposer() proto.ValidatorPublicInfo {
 	return x.basis.Nomination.Proposer
 }
 
-func (x externalizedConsensus) ConsensusBasis() *proto.ConsensusBasis {
+func (x externalizedBasis) ConsensusBasis() *proto.ConsensusBasis {
 	return x.basis
 }
 
-func (x externalizedConsensus) ConsensusValueCue() *proto.ConsensusValueCue {
+func (x externalizedBasis) ConsensusValueCue() *proto.ConsensusValueCue {
 	return x.cue
 }
 
-func (x externalizedConsensus) ConsensusBasisHash() proto.ConsensusBasisHash {
+func (x externalizedBasis) ConsensusBasisHash() proto.ConsensusBasisHash {
 	return x.cue.Cv_hash
 }
 
-func (x externalizedConsensus) PrevConsensusBasisHash() proto.ConsensusBasisHash {
+func (x externalizedBasis) PrevConsensusBasisHash() proto.ConsensusBasisHash {
 	return x.basis.Prev_cv_hash
 }
 
-func (x externalizedConsensus) Height() proto.BlockHeight {
+func (x externalizedBasis) Height() proto.BlockHeight {
 	return x.basis.Nomination.Block_height
 }
 
-func (x externalizedConsensus) BlockHash() proto.BlockHash {
+func (x externalizedBasis) BlockHash() proto.BlockHash {
 	return x.basis.Nomination.Block_hash
 }
 
-func (x externalizedConsensus) PrevBlockHash() proto.BlockHash {
+func (x externalizedBasis) PrevBlockHash() proto.BlockHash {
 	return x.basis.Nomination.Prev_block_hash
 }
 
-type externalizedCue struct {
+type externalizedValue struct {
 	height proto.BlockHeight
 	cvc    *proto.ConsensusValueCue
 }
 
-func (x externalizedCue) ConsensusValueCue() *proto.ConsensusValueCue {
+func (x externalizedValue) ConsensusValueCue() *proto.ConsensusValueCue {
 	return x.cvc
 }
 
-func (x externalizedCue) Proposer() proto.ValidatorPublicInfo {
+func (x externalizedValue) Proposer() proto.ValidatorPublicInfo {
 	return x.cvc.Proposer
 }
 
-func (x externalizedCue) ConsensusBasisHash() proto.ConsensusBasisHash {
+func (x externalizedValue) ConsensusBasisHash() proto.ConsensusBasisHash {
 	return x.cvc.Cv_hash
 }
 
-func (x externalizedCue) PrevConsensusBasisHash() proto.ConsensusBasisHash {
+func (x externalizedValue) PrevConsensusBasisHash() proto.ConsensusBasisHash {
 	return x.cvc.Prev_cv_hash
 }
 
-func (x externalizedCue) Height() proto.BlockHeight {
+func (x externalizedValue) Height() proto.BlockHeight {
 	return x.height
 }
 
-func (x externalizedCue) BlockHash() proto.BlockHash {
+func (x externalizedValue) BlockHash() proto.BlockHash {
 	return x.cvc.Block_hash
 }
 
-func (x externalizedCue) PrevBlockHash() proto.BlockHash {
+func (x externalizedValue) PrevBlockHash() proto.BlockHash {
 	return x.cvc.Prev_block_hash
 }

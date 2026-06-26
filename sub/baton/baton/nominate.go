@@ -18,7 +18,7 @@ import (
 
 type nominating struct {
 	OntoDb  proto.DbTip
-	OntoExt externalizedConsensus
+	OntoExt externalizedBasis
 	Cancel  context.CancelFunc
 }
 
@@ -38,7 +38,7 @@ var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")
 func (b *Baton) nominate(
 	ctx context.Context,
 	ontoDb proto.DbTip,
-	ontoExt externalizedConsensus,
+	ontoExt externalizedBasis,
 ) (*proto.ConsensusBasis, *proto.ConsensusValueCue, proto.BlockID, error) {
 
 	b.stampNominateStart(ctx, ontoDb.Height+1)
@@ -140,8 +140,8 @@ func (b *Baton) nominate(
 
 	if accepted {
 
-		// if nomination accepted, broadcast consensus value
-		liblog.Debugf(ctx, "disseminating consensus value for slot %d with hash %s",
+		// if nomination accepted, broadcast consensus basis
+		liblog.Debugf(ctx, "disseminating consensus basis for slot %d with hash %s",
 			nomination.Block_height,
 			libxdr.HashString(cvc.Cv_hash))
 		b.handler.DisseminateBasis(ctx, *basis, *cvc)

@@ -40,7 +40,7 @@ func BlockCue(b ViewBlock) *proto.ConsensusValueCue {
 
 type ViewDbBlock struct {
 	TipDb  proto.DbTip
-	TipExt externalizedConsensus
+	TipExt externalizedBasis
 }
 
 func (x ViewDbBlock) Proposer() proto.ValidatorPublicInfo { return x.TipExt.Proposer() }
@@ -106,7 +106,7 @@ func (x ViewCatchupBlock) Icon() string {
 // externalized consensus block
 
 type ViewExtConsensusBlock struct {
-	Ext       externalizedConsensus
+	Ext       externalizedBasis
 	Validated *proto.BlockID
 	Catchup   *CatchupArrival
 }
@@ -157,7 +157,7 @@ func (x ViewExtConsensusBlock) Icon() string {
 // externalized cue block
 
 type ViewExtCueBlock struct {
-	Ext     externalizedCue
+	Ext     externalizedValue
 	Catchup *CatchupArrival
 }
 

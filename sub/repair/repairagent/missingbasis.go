@@ -63,16 +63,16 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 	}
 
 	if reply == nil {
-		return nil, fmt.Errorf("no repaired consensus value returned, cvh %s, vid %s",
+		return nil, fmt.Errorf("no repaired consensus basis returned, cvh %s, vid %s",
 			libxdr.HashString(missing.Cv_hash), protoutil.VIDString(protoutil.PublicVID(from)))
 	}
 
 	// verify returned basis matches hash
 	if !protoutil.IsSaneConsensusBasis(reply) {
-		return nil, fmt.Errorf("repaired consensus value is not sane")
+		return nil, fmt.Errorf("repaired consensus basis is not sane")
 	}
 	if !protoutil.CVCEquals(missing, protoutil.CVC(reply)) {
-		return nil, fmt.Errorf("repaired consensus value cue mismatch")
+		return nil, fmt.Errorf("repaired consensus basis cue mismatch")
 	}
 
 	return reply, nil

@@ -92,8 +92,8 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 			x.receivedSubmittedTxs <- submittedTxsFrom{From: fromID, SubmittedTransactions: xmsg.Submitted()}
 
 		case proto.MultiplexMessageConsensusBasis:
-			if len(payload) > systemfixed.MaxBytesConsensusValueMessage {
-				liblog.Errorf(ctx, "consensus value message too large: %d bytes", len(payload))
+			if len(payload) > systemfixed.MaxBytesConsensusBasisMessage {
+				liblog.Errorf(ctx, "consensus basis message too large: %d bytes", len(payload))
 				continue
 			}
 
@@ -187,7 +187,7 @@ func (x *Multiplex) ReceiveConsensusBasis(ctx context.Context) (proto.ValidatorI
 	case <-ctx.Done():
 		return proto.ValidatorID{}, nil, false
 	case cvFrom := <-x.receivedConsensusValue:
-		liblog.Debugf(ctx, "%v multiplex received consensus value from %v, for slot %v",
+		liblog.Debugf(ctx, "%v multiplex received consensus basis from %v, for slot %v",
 			protoutil.VIDString(x.self),
 			protoutil.VIDString(cvFrom.From),
 			cvFrom.ConsensusBasis.Nomination.Block_height)
