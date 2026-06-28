@@ -21,7 +21,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	liblog.Infof(ctx, "committing: height %d; block_hash %s; value %s; proposer %s",
 		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()),
 		protoutil.ValueDisplay(value),
-		protoutil.VPublicDisplay(cb.AsConsensusBasis().Nomination.Proposer))
+		protoutil.VIDString(cb.AsConsensusBasis().Proposer))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
 	defer b.stampCommitEnd(cb.BlockHeight())
@@ -32,7 +32,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	if validatedBlockID == nil {
 
 		basis := cb.AsConsensusBasis()
-		proposer := protoutil.PublicVID(basis.Nomination.Proposer)
+		proposer := basis.Proposer
 
 		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
 			// submit catchup transactions

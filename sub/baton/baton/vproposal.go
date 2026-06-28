@@ -109,7 +109,7 @@ func (b *Baton) validateProposal(
 				Consensus_value:    *value,
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
 			}
-			err := b.repairMissingTxs(ctx, nomination.Proposer, missing)
+			err := b.repairMissingTxs(ctx, basis.Proposer, missing)
 			if err != nil { // err can only be context cancelled
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					return proto.DbTip{}, err
@@ -134,7 +134,7 @@ func (b *Baton) validateProposal(
 
 func (b *Baton) repairMissingTxs(
 	ctx context.Context,
-	proposer proto.ValidatorPublicInfo,
+	proposer proto.ValidatorID,
 	missing proto.MissingTransactions,
 ) (err error) {
 
@@ -156,7 +156,7 @@ func (b *Baton) repairMissingTxs(
 	}
 
 	batch := xdrutil.ParallelizeSignedTransactionBatch(b.batchRepairM, systemfixed.RepairTxBatchMaxSegments, stxs)
-	err = b.handler.Schedulercoord_submit_vetted(ctx, protoutil.PublicVID(proposer), batch)
+	err = b.handler.Schedulercoord_submit_vetted(ctx, proposer, batch)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return err

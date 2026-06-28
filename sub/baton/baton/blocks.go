@@ -8,7 +8,7 @@ import (
 )
 
 type ViewBlock interface {
-	Proposer() proto.ValidatorPublicInfo
+	Proposer() proto.ValidatorID
 	BlockHeight() proto.BlockHeight
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
@@ -43,10 +43,10 @@ type ViewDbBlock struct {
 	TipExt externalizedBasis
 }
 
-func (x ViewDbBlock) Proposer() proto.ValidatorPublicInfo { return x.TipExt.Proposer() }
-func (x ViewDbBlock) BlockHash() proto.BlockHash          { return x.TipDb.Block_hash }
-func (x ViewDbBlock) BlockHeight() proto.BlockHeight      { return x.TipDb.Height }
-func (x ViewDbBlock) PrevBlockHash() proto.BlockHash      { panic("should not be called") }
+func (x ViewDbBlock) Proposer() proto.ValidatorID    { return x.TipExt.Proposer() }
+func (x ViewDbBlock) BlockHash() proto.BlockHash     { return x.TipDb.Block_hash }
+func (x ViewDbBlock) BlockHeight() proto.BlockHeight { return x.TipDb.Height }
+func (x ViewDbBlock) PrevBlockHash() proto.BlockHash { panic("should not be called") }
 func (x ViewDbBlock) BasisHash() proto.ConsensusBasisHash {
 	return x.TipExt.ConsensusBasisHash()
 }
@@ -69,10 +69,10 @@ type ViewCatchupBlock struct {
 	Validated *proto.BlockID
 }
 
-func (x ViewCatchupBlock) Proposer() proto.ValidatorPublicInfo { return x.Candidate.Proposer() }
-func (x ViewCatchupBlock) BlockHash() proto.BlockHash          { return x.Candidate.BlockHash() }
-func (x ViewCatchupBlock) BlockHeight() proto.BlockHeight      { return x.Candidate.BlockHeight() }
-func (x ViewCatchupBlock) PrevBlockHash() proto.BlockHash      { return x.Candidate.PrevBlockHash() }
+func (x ViewCatchupBlock) Proposer() proto.ValidatorID    { return x.Candidate.Proposer() }
+func (x ViewCatchupBlock) BlockHash() proto.BlockHash     { return x.Candidate.BlockHash() }
+func (x ViewCatchupBlock) BlockHeight() proto.BlockHeight { return x.Candidate.BlockHeight() }
+func (x ViewCatchupBlock) PrevBlockHash() proto.BlockHash { return x.Candidate.PrevBlockHash() }
 func (x ViewCatchupBlock) BasisHash() proto.ConsensusBasisHash {
 	return x.Candidate.ConsensusBasisHash()
 }
@@ -111,7 +111,7 @@ type ViewExtConsensusBlock struct {
 	Catchup   *CatchupArrival
 }
 
-func (x ViewExtConsensusBlock) Proposer() proto.ValidatorPublicInfo { return x.Ext.Proposer() }
+func (x ViewExtConsensusBlock) Proposer() proto.ValidatorID { return x.Ext.Proposer() }
 func (x ViewExtConsensusBlock) BlockHash() proto.BlockHash {
 	return x.Ext.BlockHash()
 }
@@ -161,7 +161,7 @@ type ViewExtValueBlock struct {
 	Catchup *CatchupArrival
 }
 
-func (x ViewExtValueBlock) Proposer() proto.ValidatorPublicInfo { return x.Ext.Proposer() }
+func (x ViewExtValueBlock) Proposer() proto.ValidatorID { return x.Ext.Proposer() }
 func (x ViewExtValueBlock) BlockHash() proto.BlockHash {
 	return x.Ext.BlockHash()
 }
@@ -203,7 +203,7 @@ type ViewMissing struct {
 	Height proto.BlockHeight
 }
 
-func (x ViewMissing) Proposer() proto.ValidatorPublicInfo     { panic("must not call") }
+func (x ViewMissing) Proposer() proto.ValidatorID             { panic("must not call") }
 func (x ViewMissing) BlockHash() proto.BlockHash              { panic("must not call") }
 func (x ViewMissing) BlockHeight() proto.BlockHeight          { return x.Height }
 func (x ViewMissing) PrevBlockHash() proto.BlockHash          { panic("must not call") }

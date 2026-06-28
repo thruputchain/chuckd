@@ -18,7 +18,7 @@ import (
 // RepairMissingBasis ensures that the returned basis matches the desired hash.
 func (x *RepairAgent) RepairMissingBasis(
 	ctx context.Context,
-	from proto.ValidatorPublicInfo,
+	from proto.ValidatorID,
 	missing proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 
@@ -29,7 +29,7 @@ attempting:
 		basis, err := x.attemptRepairMissingBasis(ctx, from, &missing)
 		if err != nil {
 			liblog.Errorf(ctx, "failed attempt to repair missing basis at height %d from %s: %v",
-				missing.Block_height, protoutil.VPublicDisplay(from), err)
+				missing.Block_height, protoutil.VIDString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)
@@ -47,11 +47,16 @@ attempting:
 
 func (x *RepairAgent) attemptRepairMissingBasis(
 	ctx context.Context,
-	from proto.ValidatorPublicInfo,
+	from proto.ValidatorID,
 	missing *proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 
-	c, err := repairkit.DialRepairClient(ctx, x.net, from.Address)
+	address, err := x.router.ResolveAddress(from)
+	if err != nil {
+		return nil, fmt.Errorf("resolving address for %s: %w", protoutil.VIDString(from), err)
+	}
+
+	c, err := repairkit.DialRepairClient(ctx, x.net, address)
 	if err != nil {
 		return nil, fmt.Errorf("dialing repair endpoint: %w", err)
 	}
@@ -64,7 +69,7 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 
 	if reply == nil {
 		return nil, fmt.Errorf("no repaired consensus basis returned, cvh %s, vid %s",
-			libxdr.HashString(missing.Basis_hash), protoutil.VIDString(protoutil.PublicVID(from)))
+			libxdr.HashString(missing.Basis_hash), protoutil.VIDString(from))
 	}
 
 	// verify returned basis matches hash

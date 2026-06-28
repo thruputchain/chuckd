@@ -38,12 +38,12 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 
 	liblog.Infof(ctx, "adding catchup block to pool: height %d; value %s; proposer %s",
 		cb.Consensus_basis.Nomination.Block_height, vhash.Display(),
-		protoutil.VPublicDisplay(cb.Consensus_basis.Nomination.Proposer))
+		protoutil.VIDString(cb.Consensus_basis.Proposer))
 
 	if _, alreadyPersisting := cbp.persisting[vhash]; alreadyPersisting {
 		liblog.Infof(ctx, "catchup block already persisting: height %d; value %s; proposer %s",
 			cb.Consensus_basis.Nomination.Block_height, vhash.Display(),
-			protoutil.VPublicDisplay(cb.Consensus_basis.Nomination.Proposer))
+			protoutil.VIDString(cb.Consensus_basis.Proposer))
 		return nil
 	}
 
@@ -58,7 +58,7 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 
 		liblog.Debugf(ctx, "finished pre-persisting catchup block: height %d; value %s; proposer %s",
 			cb.Consensus_basis.Nomination.Block_height, vhash.Display(),
-			protoutil.VPublicDisplay(cb.Consensus_basis.Nomination.Proposer))
+			protoutil.VIDString(cb.Consensus_basis.Proposer))
 
 		cbp.lk.Lock()
 		defer cbp.lk.Unlock()

@@ -9,13 +9,13 @@ import (
 type RepairAgent interface {
 	RepairMissingTxs(
 		ctx context.Context,
-		from proto.ValidatorPublicInfo,
+		from proto.ValidatorID,
 		missing proto.MissingTransactions,
 	) ([]proto.SignedTransaction, error)
 
 	RepairMissingBasis(
 		ctx context.Context,
-		from proto.ValidatorPublicInfo,
+		from proto.ValidatorID,
 		missing proto.ConsensusValue,
 	) (*proto.ConsensusBasis, error)
 }

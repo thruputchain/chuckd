@@ -25,7 +25,7 @@ func (b *Baton) validateBasis(
 
 	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; value %s; proposer %s",
 		slot, libxdr.HashString(basis.Nomination.Block_hash), protoutil.ValueDisplay(value),
-		protoutil.VPublicDisplay(value.Proposer))
+		protoutil.VIDString(value.Proposer))
 
 	if b.tryValidateBasisFast(ctx, slot, basis, value, reply) {
 		return

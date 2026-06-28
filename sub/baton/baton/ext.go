@@ -8,7 +8,7 @@ import (
 )
 
 type externalized interface {
-	Proposer() proto.ValidatorPublicInfo
+	Proposer() proto.ValidatorID
 	Height() proto.BlockHeight
 	ConsensusBasisHash() proto.ConsensusBasisHash
 	ConsensusValue() *proto.ConsensusValue
@@ -52,8 +52,8 @@ func newExternalized(
 	}
 }
 
-func (x externalizedBasis) Proposer() proto.ValidatorPublicInfo {
-	return x.basis.Nomination.Proposer
+func (x externalizedBasis) Proposer() proto.ValidatorID {
+	return x.basis.Proposer
 }
 
 func (x externalizedBasis) ConsensusBasis() *proto.ConsensusBasis {
@@ -93,7 +93,7 @@ func (x externalizedValue) ConsensusValue() *proto.ConsensusValue {
 	return x.value
 }
 
-func (x externalizedValue) Proposer() proto.ValidatorPublicInfo {
+func (x externalizedValue) Proposer() proto.ValidatorID {
 	return x.value.Proposer
 }
 

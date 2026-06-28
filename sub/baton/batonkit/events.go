@@ -59,7 +59,7 @@ func (x EventCommitted) String() string {
 		x.Height, x.DbgValidatable.NumTransactions(),
 		protoutil.ValueDisplay(value),
 		libxdr.HashString(x.BlockHash),
-		protoutil.VPublicDisplay(x.DbgValidatable.AsConsensusBasis().Nomination.Proposer))
+		protoutil.VIDString(x.DbgValidatable.AsConsensusBasis().Proposer))
 }
 
 type EventValidating struct {
@@ -78,7 +78,7 @@ func (x EventValidating) String() string {
 		x.Height, x.NumTx,
 		protoutil.ValueDisplay(x.ConsensusValue),
 		libxdr.HashString(x.BlockHash),
-		protoutil.VPublicDisplay(x.ConsensusBasis.Nomination.Proposer))
+		protoutil.VIDString(x.ConsensusBasis.Proposer))
 }
 
 type EventValidated struct {
@@ -97,5 +97,5 @@ func (x EventValidated) String() string {
 		x.Height, x.NumTx,
 		protoutil.ValueDisplay(x.ConsensusValue),
 		libxdr.HashString(x.BlockHash),
-		protoutil.VPublicDisplay(x.ConsensusBasis.Nomination.Proposer))
+		protoutil.VIDString(x.ConsensusBasis.Proposer))
 }

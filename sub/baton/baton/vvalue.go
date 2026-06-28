@@ -33,11 +33,11 @@ func (x scpHandler) ValidateValue(
 	}
 	liblog.Infof(ctx, "validate value (%s) requested: slot %d; value %s; block_hash %s; proposer %s",
 		kind, slot, protoutil.ValueDisplay(&value), libxdr.HashString(value.Block_hash),
-		protoutil.VPublicDisplay(value.Proposer))
+		protoutil.VIDString(value.Proposer))
 	defer func() {
 		liblog.Infof(ctx, "validate value (%s) completed: slot %d; value %s; block_hash %s; proposer %s; result %v",
 			kind, slot, protoutil.ValueDisplay(&value), libxdr.HashString(value.Block_hash),
-			protoutil.VPublicDisplay(value.Proposer), scpkit.ValidationLevelString(level))
+			protoutil.VIDString(value.Proposer), scpkit.ValidationLevelString(level))
 	}()
 
 	x.baton.validating.Lock(protoutil.HashValue(&value))
@@ -69,7 +69,7 @@ func (b *Baton) validateValue(
 
 	liblog.Debugf(ctx, "validating value: height %d; block_hash %s; value %s; proposer %s",
 		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
-		protoutil.VPublicDisplay(value.Proposer))
+		protoutil.VIDString(value.Proposer))
 
 	// check if the value was already validated
 	b.lk.Lock()
@@ -150,7 +150,7 @@ func (b *Baton) fetchBasis(
 ) (*proto.ConsensusBasis, error) {
 
 	liblog.Infof(ctx, "fetchCV starting: height=%d; block_hash=%s; value %s; proposer=%s",
-		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VPublicDisplay(value.Proposer))
+		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VIDString(value.Proposer))
 
 	// lookup in cvpool
 	basis, err := b.handler.CVPoolLookup(ctx, *value)
@@ -160,12 +160,12 @@ func (b *Baton) fetchBasis(
 	must.NoError(ctx, err)
 	if basis != nil {
 		liblog.Debugf(ctx, "fetchCV found in pool: height=%d; block_hash=%s; value %s, proposer=%s",
-			slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VPublicDisplay(value.Proposer))
+			slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VIDString(value.Proposer))
 		return basis, nil
 	}
 
 	liblog.Debugf(ctx, "fetchCV repairing missing: height=%d; block_hash=%s; value %s, proposer=%s",
-		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VPublicDisplay(value.Proposer))
+		slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value), protoutil.VIDString(value.Proposer))
 
 	fetchCtx, fetchCancel := context.WithCancel(ctx)
 	basisReturn := make(chan *proto.ConsensusBasis, 2)
@@ -197,14 +197,14 @@ func (b *Baton) fetchBasis(
 		fetchCancel()
 		liblog.Errorf(ctx, "fetchCV cancelled (%v): height=%d; block_hash=%s; value=%s; proposer=%s",
 			ctx.Err(), slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
-			protoutil.VPublicDisplay(value.Proposer))
+			protoutil.VIDString(value.Proposer))
 		return nil, ctx.Err()
 	case basis, ok := <-basisReturn:
 		if ok {
 			fetchCancel()
 			liblog.Debugf(ctx, "fetchCV found: height=%d; block_hash=%s; value=%s; proposer=%s",
 				slot, libxdr.HashString(value.Block_hash), protoutil.ValueDisplay(value),
-				protoutil.VPublicDisplay(value.Proposer))
+				protoutil.VIDString(value.Proposer))
 			b.handler.CVPoolAdd(ctx, *basis, *value)
 			return basis, nil
 		} else {

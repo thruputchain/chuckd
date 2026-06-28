@@ -128,7 +128,6 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	basis := proto.ConsensusBasis{
 		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
 		Nomination: proto.Nomination{
-			Proposer:        h.validator.Public_info,
 			Block_height:    onto.Height + 1,
 			Block_hash:      hash,
 			Prev_block_hash: onto.BlockHash,

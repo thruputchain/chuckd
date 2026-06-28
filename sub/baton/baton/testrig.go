@@ -183,7 +183,7 @@ func (h *TestRig) DialCatchup(context.Context, proto.ValidatorPublicInfo) (catch
 
 func (h *TestRig) RepairMissingTxs(
 	ctx context.Context,
-	from proto.ValidatorPublicInfo,
+	from proto.ValidatorID,
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 	panic("not used")
@@ -191,7 +191,7 @@ func (h *TestRig) RepairMissingTxs(
 
 func (h *TestRig) RepairMissingBasis(
 	ctx context.Context,
-	from proto.ValidatorPublicInfo,
+	from proto.ValidatorID,
 	missing proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 	panic("not used")

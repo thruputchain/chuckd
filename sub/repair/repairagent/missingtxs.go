@@ -17,7 +17,7 @@ import (
 // RepairMissingTxs ensures that the returned transactions match the desired hashes.
 func (x *RepairAgent) RepairMissingTxs(
 	ctx context.Context,
-	proposer proto.ValidatorPublicInfo,
+	proposer proto.ValidatorID,
 	missing proto.MissingTransactions,
 ) ([]proto.SignedTransaction, error) {
 
@@ -43,19 +43,24 @@ attempting:
 
 func (x *RepairAgent) attemptRepairMissingTxs(
 	ctx context.Context,
-	proposer proto.ValidatorPublicInfo,
+	proposer proto.ValidatorID,
 	missing proto.MissingTransactions,
 ) (txs []proto.SignedTransaction, err error) {
 
 	ctx = liblog.Enterf(ctx, "RepairMissingTxs", "proposer=%s; height=%d; value=%s",
-		protoutil.VPublicDisplay(proposer), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value))
+		protoutil.VIDString(proposer), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value))
 	defer func() {
 		liblog.Leavef(ctx, "proposer=%s; height=%d; value=%s; error=%v; found=%d",
-			protoutil.VPublicDisplay(proposer), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value),
+			protoutil.VIDString(proposer), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value),
 			err, len(txs))
 	}()
 
-	c, err := repairkit.DialRepairClient(ctx, x.net, proposer.Address)
+	address, err := x.router.ResolveAddress(proposer)
+	if err != nil {
+		return nil, fmt.Errorf("resolving address for %s: %w", protoutil.VIDString(proposer), err)
+	}
+
+	c, err := repairkit.DialRepairClient(ctx, x.net, address)
 	if err != nil {
 		return nil, err
 	}

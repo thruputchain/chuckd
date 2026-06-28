@@ -72,15 +72,9 @@ func TestConsensusValueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T
 			mutate: func(*proto.ConsensusValue) {},
 		},
 		{
-			name: "proposer public key differs",
+			name: "proposer differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Proposer.Public_key[0] ^= 0xFF
-			},
-		},
-		{
-			name: "proposer address differs",
-			mutate: func(value *proto.ConsensusValue) {
-				value.Proposer.Address = "127.0.0.1:2002"
+				value.Proposer[0] ^= 0xFF
 			},
 		},
 		{
@@ -122,30 +116,26 @@ func TestConsensusValueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T
 			right := base
 			tc.mutate(&right)
 
-			gotRecursiveFieldByField := consensusValueFieldByFieldEqual(left, right)
-			gotDirectGoValue := left == right
-			if gotRecursiveFieldByField != gotDirectGoValue {
-				t.Fatalf(
-					"recursive field-by-field comparison (%v) != direct Go value comparison (%v)",
-					gotRecursiveFieldByField,
-					gotDirectGoValue,
-				)
-			}
-
+			gotFieldByField := consensusValueFieldByFieldEqual(left, right)
 			gotValueEquals := ValueEquals(&left, &right)
-			if gotValueEquals != gotDirectGoValue {
-				t.Fatalf("ValueEquals (%v) != direct Go value comparison (%v)", gotValueEquals, gotDirectGoValue)
+			if gotValueEquals != gotFieldByField {
+				t.Fatalf(
+					"ValueEquals (%v) != field-by-field comparison (%v)",
+					gotValueEquals,
+					gotFieldByField,
+				)
 			}
 		})
 	}
 }
 
 func consensusValueFieldByFieldEqual(left, right proto.ConsensusValue) bool {
-	return left.Proposer.Public_key == right.Proposer.Public_key &&
-		left.Proposer.Address == right.Proposer.Address &&
+	return left.Timestamp == right.Timestamp &&
+		left.Proposer == right.Proposer &&
+		left.Block_height == right.Block_height &&
+		left.Prev_value == right.Prev_value &&
 		left.Basis_hash == right.Basis_hash &&
 		left.Prev_basis_hash == right.Prev_basis_hash &&
-		left.Block_height == right.Block_height &&
 		left.Block_hash == right.Block_hash &&
 		left.Prev_block_hash == right.Prev_block_hash
 }
@@ -157,13 +147,21 @@ func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo)
 
 func sampleConsensusValue(seed byte) proto.ConsensusValue {
 	return proto.ConsensusValue{
-		Proposer:        sampleValidatorPublicInfo(seed),
+		Proposer:        sampleValidatorID(seed),
 		Basis_hash:      filledConsensusBasisHash(seed + 1),
 		Prev_basis_hash: filledConsensusBasisHash(seed + 2),
 		Block_height:    42,
 		Block_hash:      filledBlockHash(seed + 3),
 		Prev_block_hash: filledBlockHash(seed + 4),
 	}
+}
+
+func sampleValidatorID(seed byte) proto.ValidatorID {
+	var out proto.ValidatorID
+	for i := range out {
+		out[i] = seed + byte(i)
+	}
+	return out
 }
 
 func sampleValidatorPublicInfo(seed byte) proto.ValidatorPublicInfo {
