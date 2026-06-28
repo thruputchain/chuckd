@@ -105,7 +105,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		scpPrevHeight = ext.Height()
 		//
 		if extConsensus, ok := ext.(externalizedBasis); ok {
-			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtConsensusBlock{
+			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtBasisBlock{
 				Ext:       extConsensus,
 				Validated: b.getValidatedBlockID(ext.ConsensusValue()),
 			}
@@ -156,7 +156,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			} else {
 				v.Blocks[i] = ViewMissing{Height: height}
 			}
-		case ViewExtConsensusBlock:
+		case ViewExtBasisBlock:
 			// if the block has not been validated already, catchup can help
 			if u.Validated == nil {
 				if ca, ok := b.findCatchupBlockAtHeight(height); ok {
@@ -198,7 +198,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 					prev.BasisHash() != u.PrevBasisHash()) {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
-		case ViewExtConsensusBlock, ViewExtValueBlock:
+		case ViewExtBasisBlock, ViewExtValueBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
@@ -209,7 +209,7 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
-			case prev.IsExtConsensus() || prev.IsExtValue():
+			case prev.IsExtBasis() || prev.IsExtValue():
 				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
@@ -237,7 +237,7 @@ func (b *Baton) linkBlocks(ctx context.Context, v *View) error {
 				j := i // don't take a pointer to i, it changes
 				start = &j
 			}
-		case ViewExtConsensusBlock, ViewExtValueBlock:
+		case ViewExtBasisBlock, ViewExtValueBlock:
 			if start != nil { // this scp block tops a contiguous sequence of catchup blocks; mark them linked
 				for k := *start; k < i; k++ {
 					cb := v.Blocks[k].(ViewCatchupBlock)
