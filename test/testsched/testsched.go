@@ -126,7 +126,6 @@ func (x *TestScheduler) Schedulercoord_nominate(
 	BlockHash := x.db.CloseSnapshot(ctx, blockID)
 
 	nomination := proto.Nomination{
-		Proposer:        x.signer,
 		Block_height:    onto.Height + 1,
 		Block_hash:      BlockHash,
 		Prev_block_hash: onto.Block_hash,

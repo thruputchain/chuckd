@@ -10,40 +10,40 @@ type Committable interface {
 	BlockHash() proto.BlockHash
 	PrevBlockHash() proto.BlockHash
 	AlreadyValidated() *proto.BlockID
-	AsConsensusValue() *proto.ConsensusValue
-	ConsensusValueCue() *proto.ConsensusValueCue
+	AsConsensusBasis() *proto.ConsensusBasis
+	ConsensusValue() *proto.ConsensusValue
 	UnsubmittedSignedTransactions() []proto.SignedTransaction
 	NumTransactions() int
 }
 
 type CommittableNomination struct {
-	cv        *proto.ConsensusValue // always present
-	cvc       *proto.ConsensusValueCue
+	basis     *proto.ConsensusBasis // always present
+	value     *proto.ConsensusValue
 	validated *proto.BlockID // always present
 }
 
 func NewCommittableNomination(
-	cv *proto.ConsensusValue,
-	cvc *proto.ConsensusValueCue,
+	basis *proto.ConsensusBasis,
+	value *proto.ConsensusValue,
 	validated *proto.BlockID,
 ) *CommittableNomination {
 	return &CommittableNomination{
-		cv:        cv,
-		cvc:       cvc,
+		basis:     basis,
+		value:     value,
 		validated: validated,
 	}
 }
 
 func (cb *CommittableNomination) BlockHeight() proto.BlockHeight {
-	return cb.cv.Nomination.Block_height
+	return cb.basis.Nomination.Block_height
 }
 
 func (cb *CommittableNomination) BlockHash() proto.BlockHash {
-	return cb.cv.Nomination.Block_hash
+	return cb.basis.Nomination.Block_hash
 }
 
 func (cb *CommittableNomination) PrevBlockHash() proto.BlockHash {
-	return cb.cv.Nomination.Prev_block_hash
+	return cb.basis.Nomination.Prev_block_hash
 }
 
 func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
@@ -53,12 +53,12 @@ func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
 	return cb.validated
 }
 
-func (cb *CommittableNomination) ConsensusValueCue() *proto.ConsensusValueCue {
-	return cb.cvc
+func (cb *CommittableNomination) ConsensusValue() *proto.ConsensusValue {
+	return cb.value
 }
 
-func (cb *CommittableNomination) AsConsensusValue() *proto.ConsensusValue {
-	return cb.cv
+func (cb *CommittableNomination) AsConsensusBasis() *proto.ConsensusBasis {
+	return cb.basis
 }
 
 func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedTransaction {
@@ -66,52 +66,52 @@ func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedT
 }
 
 func (cb *CommittableNomination) NumTransactions() int {
-	return xdrutil.TokenSizeOfBatch(cb.cv.Nomination.Transactions_hash)
+	return xdrutil.TokenSizeOfBatch(cb.basis.Nomination.Transactions_hash)
 }
 
 type CommittableCatchup struct {
 	catchup   *proto.CatchupBlock // always present
-	cvc       *proto.ConsensusValueCue
+	value     *proto.ConsensusValue
 	txs       []proto.SignedTransaction
 	validated *proto.BlockID // optional
 }
 
 func NewCommittableCatchup(
 	catchup *proto.CatchupBlock,
-	cvc *proto.ConsensusValueCue,
+	value *proto.ConsensusValue,
 	txs []proto.SignedTransaction,
 	validated *proto.BlockID,
 ) *CommittableCatchup {
 	return &CommittableCatchup{
 		catchup:   catchup,
-		cvc:       cvc,
+		value:     value,
 		txs:       txs,
 		validated: validated,
 	}
 }
 
 func (cb *CommittableCatchup) BlockHeight() proto.BlockHeight {
-	return cb.catchup.Consensus_value.Nomination.Block_height
+	return cb.catchup.Consensus_basis.Nomination.Block_height
 }
 
 func (cb *CommittableCatchup) BlockHash() proto.BlockHash {
-	return cb.catchup.Consensus_value.Nomination.Block_hash
+	return cb.catchup.Consensus_basis.Nomination.Block_hash
 }
 
 func (cb *CommittableCatchup) PrevBlockHash() proto.BlockHash {
-	return cb.catchup.Consensus_value.Nomination.Prev_block_hash
+	return cb.catchup.Consensus_basis.Nomination.Prev_block_hash
 }
 
 func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {
 	return cb.validated
 }
 
-func (cb *CommittableCatchup) ConsensusValueCue() *proto.ConsensusValueCue {
-	return cb.cvc
+func (cb *CommittableCatchup) ConsensusValue() *proto.ConsensusValue {
+	return cb.value
 }
 
-func (cb *CommittableCatchup) AsConsensusValue() *proto.ConsensusValue {
-	return &cb.catchup.Consensus_value
+func (cb *CommittableCatchup) AsConsensusBasis() *proto.ConsensusBasis {
+	return &cb.catchup.Consensus_basis
 }
 
 func (cb *CommittableCatchup) UnsubmittedSignedTransactions() []proto.SignedTransaction {

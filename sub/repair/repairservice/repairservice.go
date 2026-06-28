@@ -26,7 +26,7 @@ type RepairService struct {
 	brokerReady chan struct{}
 	//
 	lk        sync.Mutex
-	nominated map[protoutil.CVCHash]proto.BlockHeight
+	nominated map[protoutil.ValueHash]proto.BlockHeight
 }
 
 func NewRepairService(
@@ -38,7 +38,7 @@ func NewRepairService(
 		cbpool:      cbpool,
 		schedReady:  make(chan struct{}),
 		brokerReady: make(chan struct{}),
-		nominated:   map[protoutil.CVCHash]proto.BlockHeight{},
+		nominated:   map[protoutil.ValueHash]proto.BlockHeight{},
 	}
 }
 
@@ -58,18 +58,18 @@ func (x *RepairService) Repair_null(ctx context.Context) error {
 	return nil
 }
 
-func (x *RepairService) AnnounceNomination(cue *proto.ConsensusValueCue) {
+func (x *RepairService) AnnounceNomination(value *proto.ConsensusValue) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 
 	// clear older nominations
 	for mHash, mHeight := range x.nominated {
-		if mHeight < cue.Block_height {
+		if mHeight < value.Block_height {
 			delete(x.nominated, mHash)
 		}
 	}
 
-	x.nominated[protoutil.HashCVC(cue)] = cue.Block_height
+	x.nominated[protoutil.HashValue(value)] = value.Block_height
 }
 
 func (x *RepairService) Repair_missing_txs(
@@ -77,14 +77,14 @@ func (x *RepairService) Repair_missing_txs(
 	env proto.MissingTransactionsEnvelope,
 ) (rtx proto.RepairedTransactions, err error) {
 
-	ctx = liblog.Enterf(ctx, "Repair_missing_txs", "by=%s; height=%d; cvc=%s; count=%d",
-		libxdr.HashString(env.Signer), env.Missing_transactions.Cue.Block_height,
-		protoutil.CVCDisplay(&env.Missing_transactions.Cue),
+	ctx = liblog.Enterf(ctx, "Repair_missing_txs", "by=%s; height=%d; value=%s; count=%d",
+		libxdr.HashString(env.Signer), env.Missing_transactions.Consensus_value.Block_height,
+		protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 		len(env.Missing_transactions.Transaction_hashes))
 	defer func() {
-		liblog.Leavef(ctx, "by=%s; height=%d; cvc=%s; count=%d; error=%v; found=%d",
-			libxdr.HashString(env.Signer), env.Missing_transactions.Cue.Block_height,
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue),
+		liblog.Leavef(ctx, "by=%s; height=%d; value=%s; count=%d; error=%v; found=%d",
+			libxdr.HashString(env.Signer), env.Missing_transactions.Consensus_value.Block_height,
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 			len(env.Missing_transactions.Transaction_hashes),
 			err, len(rtx.Transactions))
 	}()
@@ -93,18 +93,18 @@ func (x *RepairService) Repair_missing_txs(
 
 	txs, err := x.repairMissingTxsFromMempool(ctx, env.Missing_transactions.Transaction_hashes)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_txs not found in mempool (%v): height=%d; cvc=%s",
-			err, env.Missing_transactions.Cue.Block_height,
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
+		liblog.Errorf(ctx, "repair_missing_txs not found in mempool (%v): height=%d; value=%s",
+			err, env.Missing_transactions.Consensus_value.Block_height,
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 	} else {
 		return txs, nil
 	}
 
 	txs, err = x.repairMissingTxsFromStorage(ctx, env)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_txs not found in storage (%v): height=%d; cvc=%s",
-			err, env.Missing_transactions.Cue.Block_height,
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
+		liblog.Errorf(ctx, "repair_missing_txs not found in storage (%v): height=%d; value=%s",
+			err, env.Missing_transactions.Consensus_value.Block_height,
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 		return proto.RepairedTransactions{}, err
 	}
 
@@ -116,48 +116,48 @@ func (x *RepairService) repairMissingTxsFromStorage(
 	env proto.MissingTransactionsEnvelope,
 ) (rtx proto.RepairedTransactions, err error) {
 
-	ctx = liblog.Enterf(ctx, "repairMissingTxsFromStorage", "height=%d; cvc=%s; count=%d",
-		env.Missing_transactions.Cue.Block_height,
-		protoutil.CVCDisplay(&env.Missing_transactions.Cue),
+	ctx = liblog.Enterf(ctx, "repairMissingTxsFromStorage", "height=%d; value=%s; count=%d",
+		env.Missing_transactions.Consensus_value.Block_height,
+		protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 		len(env.Missing_transactions.Transaction_hashes))
 	defer func() {
-		liblog.Leavef(ctx, "height=%d; cvc=%s; count=%d; error=%v; found=%d",
-			env.Missing_transactions.Cue.Block_height,
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue),
+		liblog.Leavef(ctx, "height=%d; value=%s; count=%d; error=%v; found=%d",
+			env.Missing_transactions.Consensus_value.Block_height,
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 			len(env.Missing_transactions.Transaction_hashes),
 			err, len(rtx.Transactions))
 	}()
 
-	cb, err := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Cue)
+	cb, err := x.cbpool.CBPoolLookup(ctx, env.Missing_transactions.Consensus_value)
 	if err != nil {
 		liblog.Errorf(ctx, "repair_missing_txs failed to lookup catchup block: %v", err)
 		return proto.RepairedTransactions{}, err
 	}
 	if cb == nil {
-		liblog.Errorf(ctx, "catchup block not found in storage: cvc=%s",
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
+		liblog.Errorf(ctx, "catchup block not found in storage: value=%s",
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 		return proto.RepairedTransactions{}, fmt.Errorf("catchup block not found")
 	}
 
 	txs, err := xdrutil.SerializeSignedTransactionBatch(cb.Signed_transactions)
 	if err != nil {
-		liblog.Errorf(ctx, "failed to serialize transaction batch: cvc=%s",
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
+		liblog.Errorf(ctx, "failed to serialize transaction batch: value=%s",
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 		return proto.RepairedTransactions{},
 			fmt.Errorf("failed to serialize transaction batch (%w)", err)
 	}
 
-	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_value.Nomination.Transactions_hash)
+	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_basis.Nomination.Transactions_hash)
 	if err != nil {
-		liblog.Errorf(ctx, "failed to serialize transaction hash batch: cvc=%s",
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
+		liblog.Errorf(ctx, "failed to serialize transaction hash batch: value=%s",
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 		return proto.RepairedTransactions{},
 			fmt.Errorf("failed to serialize transaction hash batch (%w)", err)
 	}
 
 	if len(txs) != len(txhs) {
-		liblog.Errorf(ctx, "transaction and hash count mismatch: cvc=%s",
-			protoutil.CVCDisplay(&env.Missing_transactions.Cue))
+		liblog.Errorf(ctx, "transaction and hash count mismatch: value=%s",
+			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 		return proto.RepairedTransactions{},
 			fmt.Errorf("transaction and hash count mismatch: %d != %d",
 				len(txs), len(txhs))
@@ -209,12 +209,12 @@ func (x *RepairService) repairMissingTxsFromMempool(
 }
 
 // XXX: needs dos protection
-func (x *RepairService) Repair_missing_cv(
+func (x *RepairService) Repair_missing_basis(
 	ctx context.Context,
-	cvc proto.ConsensusValueCue,
-) (proto.OptConsensusValue, error) {
+	value proto.ConsensusValue,
+) (proto.OptConsensusBasis, error) {
 
-	liblog.Debugf(ctx, "repair_missing_cv request: height=%d; cvc=%s", cvc.Block_height, protoutil.CVCDisplay(&cvc))
+	liblog.Debugf(ctx, "repair_missing_basis request: height=%d; value=%s", value.Block_height, protoutil.ValueDisplay(&value))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.
@@ -234,29 +234,29 @@ func (x *RepairService) Repair_missing_cv(
 	// requests for missing cvs will block the repair attempts forever,
 	// and they need to be aborted at the caller when they discover newer externalization have happened.
 
-	cvx, err := x.cvpool.CVPoolLookup(ctx, cvc)
+	basisX, err := x.cvpool.CVPoolLookup(ctx, value)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_cv failed to lookup cv in pool: %v", err)
+		liblog.Errorf(ctx, "repair_missing_basis failed to lookup cv in pool: %v", err)
 	}
-	if cvx != nil {
-		liblog.Infof(ctx, "repair_missing_cv serving from pool: height=%d; cvc=%s",
-			cvc.Block_height, protoutil.CVCDisplay(&cvc))
-		return cvx, nil
+	if basisX != nil {
+		liblog.Infof(ctx, "repair_missing_basis serving from pool: height=%d; value=%s",
+			value.Block_height, protoutil.ValueDisplay(&value))
+		return basisX, nil
 	}
 
-	cv, err := x.cvpool.CVPoolFind(ctx, cvc)
+	basis, err := x.cvpool.CVPoolFind(ctx, value)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_cv failed to find cv in pool: %v", err)
+		liblog.Errorf(ctx, "repair_missing_basis failed to find cv in pool: %v", err)
 		return nil, err
 	}
-	if cv != nil {
-		liblog.Infof(ctx, "repair_missing_cv serving from storage: height=%d; cvc=%s",
-			cvc.Block_height, protoutil.CVCDisplay(&cvc))
+	if basis != nil {
+		liblog.Infof(ctx, "repair_missing_basis serving from storage: height=%d; value=%s",
+			value.Block_height, protoutil.ValueDisplay(&value))
 	} else {
-		liblog.Errorf(ctx, "repair_missing_cv not found: height=%d; cvc=%s",
-			cvc.Block_height, protoutil.CVCDisplay(&cvc))
+		liblog.Errorf(ctx, "repair_missing_basis not found: height=%d; value=%s",
+			value.Block_height, protoutil.ValueDisplay(&value))
 	}
-	return cv, nil
+	return basis, nil
 }
 
 // XXX: dos protection

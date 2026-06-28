@@ -140,7 +140,7 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 		batonkit.JustCommitHook(
 			// hook pauses nominations iff uncommitted is empty
 			func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
-				ns, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusValue().Nomination.Transactions_hash)
+				ns, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Nomination.Transactions_hash)
 				must.NoError(ctx, err)
 				for _, h := range ns {
 					delete(uncommitted, h)

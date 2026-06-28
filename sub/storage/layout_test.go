@@ -18,8 +18,8 @@ func touch(t *testing.T, full string) {
 	}
 }
 
-func mustHash(fill byte) protoutil.CVCHash {
-	var h protoutil.CVCHash
+func mustHash(fill byte) protoutil.ValueHash {
+	var h protoutil.ValueHash
 	for i := range h.Slice() {
 		h.Slice()[i] = fill
 		fill++
@@ -103,7 +103,7 @@ func TestFindCatchupFilesByHash_MissingDirReturnsEmpty(t *testing.T) {
 	}
 }
 
-func toHex(h protoutil.CVCHash) string {
+func toHex(h protoutil.ValueHash) string {
 	return stringLowerHex(h.Slice())
 }
 

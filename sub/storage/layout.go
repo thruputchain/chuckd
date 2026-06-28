@@ -34,12 +34,12 @@ func SlotToParts(h int64) [3]string {
 	}
 }
 
-func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, cvch protoutil.CVCHash) string {
+func (x *DiskStorage) ConsensusValueFilepath(slot proto.BlockHeight, vhash protoutil.ValueHash) string {
 	parts := SlotToParts(slot)
 	return path.Join(
 		x.ConsensusValuesDirpath(),
 		parts[0], parts[1], parts[2],
-		fmt.Sprintf("consensus-%012d-%x.xdr", slot, cvch),
+		fmt.Sprintf("consensus-%012d-%x.xdr", slot, vhash),
 	)
 }
 
@@ -191,10 +191,10 @@ func (x *DiskStorage) CatchupBlocksDirpath() string {
 	)
 }
 
-func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, cvch protoutil.CVCHash) string {
+func (x *DiskStorage) CatchupBlockFilepath(height proto.BlockHeight, vhash protoutil.ValueHash) string {
 	return path.Join(
 		x.CatchupBlocksDirpath(),
-		fmt.Sprintf("catchup-%012d-%x.xdr", height, cvch.Bytes()),
+		fmt.Sprintf("catchup-%012d-%x.xdr", height, vhash.Bytes()),
 	)
 }
 
@@ -249,7 +249,7 @@ func ListCatchupFilesAtHeight(dir string, height proto.BlockHeight) ([]string, e
 	return filtered, nil
 }
 
-func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
+func FindCatchupFileByHash(dir string, vhash protoutil.ValueHash) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -258,7 +258,7 @@ func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
 		return "", err
 	}
 
-	persistSuffix := fmt.Sprintf("-%x.xdr", cvch.Bytes())
+	persistSuffix := fmt.Sprintf("-%x.xdr", vhash.Bytes())
 	prePersistSuffix := persistSuffix + ".prepersist"
 
 	var matches []string
@@ -284,7 +284,7 @@ func FindCatchupFileByHash(dir string, cvch protoutil.CVCHash) (string, error) {
 		// for the same catchup block.
 		// it should not be possible that multiple files have the same hash, but
 		// different heights.
-		return "", fmt.Errorf("multiple catchup files found for hash %v: %v", cvch.Display(), matches)
+		return "", fmt.Errorf("multiple catchup files found for hash %v: %v", vhash.Display(), matches)
 	}
 }
 

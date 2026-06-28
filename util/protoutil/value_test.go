@@ -48,7 +48,7 @@ func TestValidatorPublicInfoRecursiveFieldEqualityMatchesGoValueEquality(t *test
 				)
 			}
 
-			gotValidatorPublicInfoEquals := ValidatorPublicInfoEquals(&left, &right)
+			gotValidatorPublicInfoEquals := ValidatorInfoEquals(&left, &right)
 			if gotValidatorPublicInfoEquals != gotDirectGoValue {
 				t.Fatalf(
 					"ValidatorPublicInfoEquals (%v) != direct Go value comparison (%v)",
@@ -60,57 +60,65 @@ func TestValidatorPublicInfoRecursiveFieldEqualityMatchesGoValueEquality(t *test
 	}
 }
 
-func TestConsensusValueCueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T) {
-	base := sampleConsensusValueCue(11)
+func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
+	base := sampleConsensusValue(11)
 
 	testCases := []struct {
-		name   string
-		mutate func(*proto.ConsensusValueCue)
+		name      string
+		mutate    func(*proto.ConsensusValue)
+		wantEqual bool
 	}{
 		{
-			name:   "identical",
-			mutate: func(*proto.ConsensusValueCue) {},
+			name:      "identical",
+			mutate:    func(*proto.ConsensusValue) {},
+			wantEqual: true,
 		},
 		{
-			name: "proposer public key differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Proposer.Public_key[0] ^= 0xFF
+			name: "timestamp differs",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Timestamp++
 			},
 		},
 		{
-			name: "proposer address differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Proposer.Address = "127.0.0.1:2002"
+			name: "proposer differs",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Proposer[0] ^= 0xFF
+			},
+		},
+		{
+			name: "upgrades differ",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Upgrades = []proto.Upgrade{{0xFF}}
 			},
 		},
 		{
 			name: "cv hash differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Cv_hash[1] ^= 0xFF
+			mutate: func(value *proto.ConsensusValue) {
+				value.Basis_hash[1] ^= 0xFF
 			},
 		},
 		{
 			name: "prev cv hash differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Prev_cv_hash[2] ^= 0xFF
+			mutate: func(value *proto.ConsensusValue) {
+				value.Prev_basis_hash[2] ^= 0xFF
 			},
 		},
 		{
 			name: "block height differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Block_height++
+			mutate: func(value *proto.ConsensusValue) {
+				value.Block_height++
 			},
 		},
 		{
 			name: "block hash differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Block_hash[3] ^= 0xFF
+			mutate: func(value *proto.ConsensusValue) {
+				value.Block_hash[3] ^= 0xFF
 			},
 		},
 		{
 			name: "prev block hash differs",
-			mutate: func(cue *proto.ConsensusValueCue) {
-				cue.Prev_block_hash[4] ^= 0xFF
+			mutate: func(value *proto.ConsensusValue) {
+				value.Prev_block_hash[4] ^= 0xFF
 			},
 		},
 	}
@@ -122,32 +130,11 @@ func TestConsensusValueCueRecursiveFieldEqualityMatchesGoValueEquality(t *testin
 			right := base
 			tc.mutate(&right)
 
-			gotRecursiveFieldByField := consensusValueCueFieldByFieldEqual(left, right)
-			gotDirectGoValue := left == right
-			if gotRecursiveFieldByField != gotDirectGoValue {
-				t.Fatalf(
-					"recursive field-by-field comparison (%v) != direct Go value comparison (%v)",
-					gotRecursiveFieldByField,
-					gotDirectGoValue,
-				)
-			}
-
-			gotCVCEquals := CVCEquals(&left, &right)
-			if gotCVCEquals != gotDirectGoValue {
-				t.Fatalf("CVCEquals (%v) != direct Go value comparison (%v)", gotCVCEquals, gotDirectGoValue)
+			if got := ValueEquals(&left, &right); got != tc.wantEqual {
+				t.Fatalf("ValueEquals = %v, want %v", got, tc.wantEqual)
 			}
 		})
 	}
-}
-
-func consensusValueCueFieldByFieldEqual(left, right proto.ConsensusValueCue) bool {
-	return left.Proposer.Public_key == right.Proposer.Public_key &&
-		left.Proposer.Address == right.Proposer.Address &&
-		left.Cv_hash == right.Cv_hash &&
-		left.Prev_cv_hash == right.Prev_cv_hash &&
-		left.Block_height == right.Block_height &&
-		left.Block_hash == right.Block_hash &&
-		left.Prev_block_hash == right.Prev_block_hash
 }
 
 func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo) bool {
@@ -155,15 +142,32 @@ func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo)
 		left.Address == right.Address
 }
 
-func sampleConsensusValueCue(seed byte) proto.ConsensusValueCue {
-	return proto.ConsensusValueCue{
-		Proposer:        sampleValidatorPublicInfo(seed),
-		Cv_hash:         filledConsensusValueHash(seed + 1),
-		Prev_cv_hash:    filledConsensusValueHash(seed + 2),
+func sampleConsensusValue(seed byte) proto.ConsensusValue {
+	return proto.ConsensusValue{
+		Timestamp:       proto.TimePoint(seed) + 100,
+		Proposer:        sampleValidatorID(seed),
+		Upgrades:        sampleUpgrades(seed),
+		Basis_hash:      filledConsensusBasisHash(seed + 1),
+		Prev_basis_hash: filledConsensusBasisHash(seed + 2),
 		Block_height:    42,
 		Block_hash:      filledBlockHash(seed + 3),
 		Prev_block_hash: filledBlockHash(seed + 4),
 	}
+}
+
+func sampleUpgrades(seed byte) []proto.Upgrade {
+	return []proto.Upgrade{
+		{seed, seed + 1, seed + 2},
+		{seed + 3, seed + 4},
+	}
+}
+
+func sampleValidatorID(seed byte) proto.ValidatorID {
+	var out proto.ValidatorID
+	for i := range out {
+		out[i] = seed + byte(i)
+	}
+	return out
 }
 
 func sampleValidatorPublicInfo(seed byte) proto.ValidatorPublicInfo {
@@ -181,8 +185,8 @@ func filledPublicKey(seed byte) proto.ValidatorPublicKey {
 	return out
 }
 
-func filledConsensusValueHash(seed byte) proto.ConsensusValueHash {
-	var out proto.ConsensusValueHash
+func filledConsensusBasisHash(seed byte) proto.ConsensusBasisHash {
+	var out proto.ConsensusBasisHash
 	for i := range out {
 		out[i] = seed + byte(i)
 	}

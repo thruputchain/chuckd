@@ -14,18 +14,18 @@ type CatchupBlockPersistence interface {
 	PrePersistCatchupBlock(
 		ctx context.Context,
 		cb proto.CatchupBlock,
-		cvch protoutil.CVCHash,
+		vhash protoutil.ValueHash,
 	) error
 
 	PersistAlreadyPrePersistedCatchupBlock(
 		ctx context.Context,
 		height proto.BlockHeight,
-		cvch protoutil.CVCHash,
+		vhash protoutil.ValueHash,
 	) error
 
 	LookupCatchupBlock(
 		ctx context.Context,
-		cvch protoutil.CVCHash,
+		vhash protoutil.ValueHash,
 	) (*proto.CatchupBlock, error)
 
 	FindCatchupBlock(
@@ -35,15 +35,15 @@ type CatchupBlockPersistence interface {
 }
 
 type ConsensusValuePersistence interface {
-	PersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash) error
-	PrePersistCV(ctx context.Context, cv proto.ConsensusValue, hash protoutil.CVCHash) error
-	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.CVCHash) (*proto.ConsensusValue, error)
-	FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusValue, error)
-	FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusValue, error)
+	PersistCV(ctx context.Context, basis proto.ConsensusBasis, hash protoutil.ValueHash) error
+	PrePersistCV(ctx context.Context, basis proto.ConsensusBasis, hash protoutil.ValueHash) error
+	FindCV(ctx context.Context, height proto.BlockHeight, hash protoutil.ValueHash) (*proto.ConsensusBasis, error)
+	FindCommittedCV(ctx context.Context, height proto.BlockHeight) (*proto.ConsensusBasis, error)
+	FindHighestCommittedCV(ctx context.Context) (*proto.ConsensusBasis, error)
 }
 
-func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) ([]proto.ConsensusValue, error) {
-	found := []proto.ConsensusValue{}
+func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePersistence, above proto.BlockHeight) ([]proto.ConsensusBasis, error) {
+	found := []proto.ConsensusBasis{}
 	highest, err := x.FindHighestCommittedCV(ctx)
 	if err != nil {
 		return nil, err
@@ -52,14 +52,14 @@ func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePers
 		return nil, nil
 	}
 	for height := above + 1; height <= highest.Nomination.Block_height; height++ {
-		cv, err := x.FindCommittedCV(ctx, height)
+		basis, err := x.FindCommittedCV(ctx, height)
 		if err != nil {
 			return nil, err
 		}
-		if cv == nil {
+		if basis == nil {
 			continue
 		}
-		found = append(found, *cv)
+		found = append(found, *basis)
 	}
 	return found, nil
 }

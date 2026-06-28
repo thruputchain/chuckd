@@ -6,7 +6,7 @@ import (
 )
 
 // VerifyCatchupBlock verifies the integrity of the catchup block:
-// the included signed transactions match the signed transaction hashes in the consensus value
+// the included signed transactions match the signed transaction hashes in the consensus basis
 func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 	NominationSerialized,
 	[]proto.SignedTransaction,
@@ -14,13 +14,13 @@ func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 ) {
 
 	txh, err := xdrutil.SerializeSignedTransactionHashBatch(
-		cb.Consensus_value.Nomination.Transactions_hash)
+		cb.Consensus_basis.Nomination.Transactions_hash)
 	if err != nil {
 		return NominationSerialized{}, nil, false
 	}
 
 	txd, err := xdrutil.SerializeNondeterministicProposalDataBatch(
-		cb.Consensus_value.Nomination.Transactions_nondeterministic_data)
+		cb.Consensus_basis.Nomination.Transactions_nondeterministic_data)
 	if err != nil {
 		return NominationSerialized{}, nil, false
 	}
@@ -40,7 +40,7 @@ func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 		}
 	}
 	return NominationSerialized{
-		Nomination:       &cb.Consensus_value.Nomination,
+		Nomination:       &cb.Consensus_basis.Nomination,
 		Transaction_hash: txh,
 		Transaction_data: txd,
 	}, txs, true

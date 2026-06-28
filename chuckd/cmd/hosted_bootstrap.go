@@ -404,7 +404,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		mu.Lock()
 		defer mu.Unlock()
 
-		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusValue().Nomination.Transactions_hash)
+		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Nomination.Transactions_hash)
 		if err != nil {
 			hookErr = err
 			return batonkit.BatonLevers{PauseNominating: true}

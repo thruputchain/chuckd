@@ -24,15 +24,15 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 	st := NewStorage(ctx, cfg)
 	st.Start(ctx, dir)
 
-	cv := newConsensusValue(time.Unix(1700000000, 0).UTC(), 42)
+	basis := newConsensusBasis(time.Unix(1700000000, 0).UTC(), 42)
 	cb := proto.CatchupBlock{
-		Consensus_value:     cv,
+		Consensus_basis:     basis,
 		Signed_transactions: proto.ParallelSignedTransactionBatch{},
 	}
 
-	st.PersistCatchupBlock(ctx, cb, protoutil.CVCHashFromCV(&cv))
+	st.PersistCatchupBlock(ctx, cb, protoutil.ValueHashFromBasis(&basis))
 
-	got, err := st.FindCatchupBlock(ctx, cv.Nomination.Block_height)
+	got, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height)
 	if err != nil {
 		t.Fatalf("FindCatchupBlock returned error: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		t.Fatalf("FindCatchupBlock mismatch:\n got: %#v\nwant: %#v", *got, cb)
 	}
 
-	found, err := st.FindCatchupBlock(ctx, cv.Nomination.Block_height+1)
+	found, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height+1)
 	if err != nil {
 		t.Fatalf("FindCatchupBlock returned error: %v", err)
 	}
@@ -162,22 +162,22 @@ func TestFindConsensusValue(t *testing.T) {
 	st := NewStorage(ctx, cfg)
 	st.Start(ctx, dir)
 
-	cv := newConsensusValue(time.Unix(1700001000, 0).UTC(), 10)
-	st.PersistCV(ctx, cv, protoutil.CVCHashFromCV(&cv))
+	basis := newConsensusBasis(time.Unix(1700001000, 0).UTC(), 10)
+	st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
 
-	got, err := st.FindCommittedCV(ctx, cv.Nomination.Block_height)
+	got, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height)
 	if err != nil {
 		t.Fatalf("FindCommittedCV returned error: %v", err)
 	}
 	if got == nil {
-		t.Fatalf("FindConsensusValue returned nil for persisted height %d", cv.Nomination.Block_height)
+		t.Fatalf("FindConsensusValue returned nil for persisted height %d", basis.Nomination.Block_height)
 	}
 
-	if !reflect.DeepEqual(*got, cv) {
-		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, cv)
+	if !reflect.DeepEqual(*got, basis) {
+		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, basis)
 	}
 
-	missing, err := st.FindCommittedCV(ctx, cv.Nomination.Block_height+1)
+	missing, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height+1)
 	if err != nil {
 		t.Fatalf("FindCommittedCV returned error: %v", err)
 	}
@@ -201,13 +201,13 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 	st := NewStorage(ctx, cfg)
 	st.Start(ctx, dir)
 
-	consensusValues := []proto.ConsensusValue{
-		newConsensusValue(time.Unix(1700002000, 0).UTC(), 5),
-		newConsensusValue(time.Unix(1700003000, 0).UTC(), 6),
-		newConsensusValue(time.Unix(1700004000, 0).UTC(), 8),
+	consensusBases := []proto.ConsensusBasis{
+		newConsensusBasis(time.Unix(1700002000, 0).UTC(), 5),
+		newConsensusBasis(time.Unix(1700003000, 0).UTC(), 6),
+		newConsensusBasis(time.Unix(1700004000, 0).UTC(), 8),
 	}
-	for _, cv := range consensusValues {
-		st.PersistCV(ctx, cv, protoutil.CVCHashFromCV(&cv))
+	for _, basis := range consensusBases {
+		st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
 	}
 
 	got, err := FindCommittedConsensusValuesAbove(ctx, st, 4)
@@ -215,19 +215,19 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		t.Fatalf("FindCommittedConsensusValuesAbove returned error: %v", err)
 	}
 
-	if len(got) != len(consensusValues) {
-		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusValues), len(got))
+	if len(got) != len(consensusBases) {
+		t.Fatalf("expected %d consensus values above height 4, got %d", len(consensusBases), len(got))
 	}
 
-	for i, want := range consensusValues {
+	for i, want := range consensusBases {
 		if !reflect.DeepEqual(got[i], want) {
-			t.Fatalf("consensus value mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
+			t.Fatalf("consensus bases mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
 		}
 	}
 }
 
-func newConsensusValue(ts time.Time, height int64) proto.ConsensusValue {
-	return proto.ConsensusValue{
+func newConsensusBasis(ts time.Time, height int64) proto.ConsensusBasis {
+	return proto.ConsensusBasis{
 		Timestamp: protoutil.TimepointFromTime(ts),
 		Nomination: proto.Nomination{
 			Block_height:    proto.BlockHeight(height),

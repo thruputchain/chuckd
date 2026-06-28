@@ -9,14 +9,14 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashCVSlow(cv *proto.ConsensusValue) proto.ConsensusValueHash {
+func HashBasisSlow(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	h := sha256.New()
-	libxdr.MarshalXdrWriter(h, cv)
-	return proto.ConsensusValueHash(h.Sum(nil))
+	libxdr.MarshalXdrWriter(h, basis)
+	return proto.ConsensusBasisHash(h.Sum(nil))
 }
 
-func HashCVFast(cv *proto.ConsensusValue) proto.ConsensusValueHash {
-	cvBase := *cv
+func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
+	cvBase := *basis
 	cvBase.Nomination.Transactions_hash = proto.ParallelBatch{}
 	cvBase.Nomination.Transactions_nondeterministic_data = proto.ParallelBatch{}
 
@@ -28,15 +28,15 @@ func HashCVFast(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		hashBase = HashCVSlow(&cvBase)
+		hashBase = HashBasisSlow(&cvBase)
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsHash = xdrutil.HashParallelBatch(cv.Nomination.Transactions_hash)
+		hashTxsHash = xdrutil.HashParallelBatch(basis.Nomination.Transactions_hash)
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsND = xdrutil.HashParallelBatch(cv.Nomination.Transactions_nondeterministic_data)
+		hashTxsND = xdrutil.HashParallelBatch(basis.Nomination.Transactions_nondeterministic_data)
 	}()
 	wg.Wait()
 	for i := range hashBase {
@@ -45,15 +45,15 @@ func HashCVFast(cv *proto.ConsensusValue) proto.ConsensusValueHash {
 	return hashBase
 }
 
-func IsSaneConsensusValue(cv *proto.ConsensusValue) bool {
-	if err := xdrutil.ValidateBatch(cv.Nomination.Transactions_hash); err != nil {
+func IsSaneBasis(basis *proto.ConsensusBasis) bool {
+	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_hash); err != nil {
 		return false
 	}
-	if err := xdrutil.ValidateBatch(cv.Nomination.Transactions_nondeterministic_data); err != nil {
+	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_nondeterministic_data); err != nil {
 		return false
 	}
-	if xdrutil.TokenSizeOfBatch(cv.Nomination.Transactions_hash) !=
-		xdrutil.TokenSizeOfBatch(cv.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_hash) !=
+		xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_nondeterministic_data) {
 		return false
 	}
 	return true

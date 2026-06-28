@@ -33,32 +33,32 @@ func (b *Baton) start(ctx context.Context) {
 
 	// genesis block has height 0, and no corresponding consensus value
 	if b.tipDb.Height > 0 {
-		tipCV, err := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
+		tipBasis, err := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
 		if errors.Is(err, context.Canceled) {
 			return
 		}
 		must.NoError(ctx, err)
-		must.Assert(ctx, tipCV != nil)
-		must.Assert(ctx, tipCV.Nomination.Block_height == b.tipDb.Height)
-		b.tipExt = newExternalized(protoutil.CVC(tipCV), tipCV)
+		must.Assert(ctx, tipBasis != nil)
+		must.Assert(ctx, tipBasis.Nomination.Block_height == b.tipDb.Height)
+		b.tipExt = newExternalized(protoutil.BasisValue(tipBasis), tipBasis)
 		liblog.Infof(ctx, "externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
 	} else {
-		assumedCV := assumedConsensusValueAtHeight(b.tipDb.Height)
-		b.tipExt = newExternalized(protoutil.CVC(&assumedCV), &assumedCV)
+		assumedCV := assumedConsensusBasisAtHeight(b.tipDb.Height)
+		b.tipExt = newExternalized(protoutil.BasisValue(&assumedCV), &assumedCV)
 		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
 	}
 
 	// load known externalizations above db tip
-	higherCV, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
+	higherBasis, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
 	must.NoError(ctx, err)
 	highestExternalized := b.tipDb.Height
-	for _, cv := range higherCV {
-		b.externalized = append(b.externalized, newExternalized(protoutil.CVC(&cv), &cv))
-		if cv.Nomination.Block_height > highestExternalized {
-			highestExternalized = cv.Nomination.Block_height
+	for _, basis := range higherBasis {
+		b.externalized = append(b.externalized, newExternalized(protoutil.BasisValue(&basis), &basis))
+		if basis.Nomination.Block_height > highestExternalized {
+			highestExternalized = basis.Nomination.Block_height
 		}
 	}
 
@@ -93,6 +93,6 @@ func (b *Baton) start(ctx context.Context) {
 	}
 }
 
-func assumedConsensusValueAtHeight(height proto.BlockHeight) proto.ConsensusValue {
-	return proto.ConsensusValue{Nomination: proto.Nomination{Block_height: height}}
+func assumedConsensusBasisAtHeight(height proto.BlockHeight) proto.ConsensusBasis {
+	return proto.ConsensusBasis{Nomination: proto.Nomination{Block_height: height}}
 }
