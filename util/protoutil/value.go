@@ -45,20 +45,26 @@ func BasisValue(basis *proto.ConsensusBasis) *proto.ConsensusValue {
 
 func ValueGivenBasisHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusBasisHash) *proto.ConsensusValue {
 	return &proto.ConsensusValue{
+		Timestamp:       basis.Timestamp,
 		Proposer:        basis.Proposer,
+		Upgrades:        basis.Upgrades,
 		Basis_hash:      basisHash,
 		Prev_basis_hash: basis.Prev_basis_hash,
 		Block_height:    basis.Nomination.Block_height,
 		Block_hash:      basis.Nomination.Block_hash,
 		Prev_block_hash: basis.Nomination.Prev_block_hash,
+		Prev_value:      basis.Prev_value,
 	}
 }
 
 func BasisAgreesWithValue(basis *proto.ConsensusBasis, value *proto.ConsensusValue) bool {
-	return ValidatorIDEqual(value.Proposer, basis.Proposer) &&
+	return value.Timestamp == basis.Timestamp &&
+		ValidatorIDEqual(value.Proposer, basis.Proposer) &&
+		upgradesEqual(value.Upgrades, basis.Upgrades) &&
 		value.Block_hash == basis.Nomination.Block_hash &&
 		value.Prev_block_hash == basis.Nomination.Prev_block_hash &&
-		value.Prev_basis_hash == basis.Prev_basis_hash
+		value.Prev_basis_hash == basis.Prev_basis_hash &&
+		value.Prev_value == basis.Prev_value
 }
 
 // ValueEquals reports whether two ConsensusValues are equal. It compares

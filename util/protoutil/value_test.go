@@ -60,21 +60,35 @@ func TestValidatorPublicInfoRecursiveFieldEqualityMatchesGoValueEquality(t *test
 	}
 }
 
-func TestConsensusValueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T) {
+func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
 	base := sampleConsensusValue(11)
 
 	testCases := []struct {
-		name   string
-		mutate func(*proto.ConsensusValue)
+		name      string
+		mutate    func(*proto.ConsensusValue)
+		wantEqual bool
 	}{
 		{
-			name:   "identical",
-			mutate: func(*proto.ConsensusValue) {},
+			name:      "identical",
+			mutate:    func(*proto.ConsensusValue) {},
+			wantEqual: true,
+		},
+		{
+			name: "timestamp differs",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Timestamp++
+			},
 		},
 		{
 			name: "proposer differs",
 			mutate: func(value *proto.ConsensusValue) {
 				value.Proposer[0] ^= 0xFF
+			},
+		},
+		{
+			name: "upgrades differ",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Upgrades = []proto.Upgrade{{0xFF}}
 			},
 		},
 		{
@@ -116,28 +130,11 @@ func TestConsensusValueRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T
 			right := base
 			tc.mutate(&right)
 
-			gotFieldByField := consensusValueFieldByFieldEqual(left, right)
-			gotValueEquals := ValueEquals(&left, &right)
-			if gotValueEquals != gotFieldByField {
-				t.Fatalf(
-					"ValueEquals (%v) != field-by-field comparison (%v)",
-					gotValueEquals,
-					gotFieldByField,
-				)
+			if got := ValueEquals(&left, &right); got != tc.wantEqual {
+				t.Fatalf("ValueEquals = %v, want %v", got, tc.wantEqual)
 			}
 		})
 	}
-}
-
-func consensusValueFieldByFieldEqual(left, right proto.ConsensusValue) bool {
-	return left.Timestamp == right.Timestamp &&
-		left.Proposer == right.Proposer &&
-		left.Block_height == right.Block_height &&
-		left.Prev_value == right.Prev_value &&
-		left.Basis_hash == right.Basis_hash &&
-		left.Prev_basis_hash == right.Prev_basis_hash &&
-		left.Block_hash == right.Block_hash &&
-		left.Prev_block_hash == right.Prev_block_hash
 }
 
 func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo) bool {
@@ -147,12 +144,21 @@ func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo)
 
 func sampleConsensusValue(seed byte) proto.ConsensusValue {
 	return proto.ConsensusValue{
+		Timestamp:       proto.TimePoint(seed) + 100,
 		Proposer:        sampleValidatorID(seed),
+		Upgrades:        sampleUpgrades(seed),
 		Basis_hash:      filledConsensusBasisHash(seed + 1),
 		Prev_basis_hash: filledConsensusBasisHash(seed + 2),
 		Block_height:    42,
 		Block_hash:      filledBlockHash(seed + 3),
 		Prev_block_hash: filledBlockHash(seed + 4),
+	}
+}
+
+func sampleUpgrades(seed byte) []proto.Upgrade {
+	return []proto.Upgrade{
+		{seed, seed + 1, seed + 2},
+		{seed + 3, seed + 4},
 	}
 }
 
