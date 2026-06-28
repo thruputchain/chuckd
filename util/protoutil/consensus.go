@@ -45,7 +45,7 @@ func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	return hashBase
 }
 
-func IsSaneConsensusBasis(basis *proto.ConsensusBasis) bool {
+func IsSaneBasis(basis *proto.ConsensusBasis) bool {
 	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_hash); err != nil {
 		return false
 	}

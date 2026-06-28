@@ -73,7 +73,7 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 	}
 
 	// verify returned basis matches hash
-	if !protoutil.IsSaneConsensusBasis(reply) {
+	if !protoutil.IsSaneBasis(reply) {
 		return nil, fmt.Errorf("repaired consensus basis is not sane")
 	}
 	if !protoutil.ValueEquals(missing, protoutil.BasisValue(reply)) {

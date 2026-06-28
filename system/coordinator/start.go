@@ -187,7 +187,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 					return
 				}
 				_ = sender
-				if !protoutil.IsSaneConsensusBasis(basis) {
+				if !protoutil.IsSaneBasis(basis) {
 					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", basis.Nomination.Block_height)
 					continue
 				}

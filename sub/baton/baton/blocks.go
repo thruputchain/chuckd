@@ -34,7 +34,7 @@ func BlockValue(b ViewBlock) *proto.ConsensusValue {
 		Proposer:        b.Proposer(),
 		Upgrades:        b.Upgrades(),
 		Block_height:    b.BlockHeight(),
-		Prev_value:      b.PrevValue(),
+		Prev_value_hash: b.PrevValue(),
 		Basis_hash:      b.BasisHash(),
 		Prev_basis_hash: b.PrevBasisHash(),
 		Block_hash:      b.BlockHash(),
@@ -62,7 +62,7 @@ func (x ViewDbBlock) PrevBasisHash() proto.ConsensusBasisHash {
 func (x ViewDbBlock) Timestamp() proto.TimePoint { return x.TipExt.ConsensusValue().Timestamp }
 func (x ViewDbBlock) Upgrades() []proto.Upgrade  { return x.TipExt.ConsensusValue().Upgrades }
 func (x ViewDbBlock) PrevValue() proto.ConsensusValueHash {
-	return x.TipExt.ConsensusValue().Prev_value
+	return x.TipExt.ConsensusValue().Prev_value_hash
 }
 func (x ViewDbBlock) IsMissing() bool                   { return false }
 func (x ViewDbBlock) IsExtBasis() bool                  { return false }
@@ -93,7 +93,7 @@ func (x ViewCatchupBlock) PrevBasisHash() proto.ConsensusBasisHash {
 func (x ViewCatchupBlock) Timestamp() proto.TimePoint { return x.Candidate.ConsensusValue().Timestamp }
 func (x ViewCatchupBlock) Upgrades() []proto.Upgrade  { return x.Candidate.ConsensusValue().Upgrades }
 func (x ViewCatchupBlock) PrevValue() proto.ConsensusValueHash {
-	return x.Candidate.ConsensusValue().Prev_value
+	return x.Candidate.ConsensusValue().Prev_value_hash
 }
 func (x ViewCatchupBlock) IsMissing() bool  { return false }
 func (x ViewCatchupBlock) IsExtBasis() bool { return false }
@@ -146,7 +146,7 @@ func (x ViewExtBasisBlock) PrevBasisHash() proto.ConsensusBasisHash {
 func (x ViewExtBasisBlock) Timestamp() proto.TimePoint { return x.Ext.ConsensusValue().Timestamp }
 func (x ViewExtBasisBlock) Upgrades() []proto.Upgrade  { return x.Ext.ConsensusValue().Upgrades }
 func (x ViewExtBasisBlock) PrevValue() proto.ConsensusValueHash {
-	return x.Ext.ConsensusValue().Prev_value
+	return x.Ext.ConsensusValue().Prev_value_hash
 }
 func (x ViewExtBasisBlock) IsMissing() bool  { return false }
 func (x ViewExtBasisBlock) IsExtBasis() bool { return true }
@@ -201,7 +201,7 @@ func (x ViewExtValueBlock) PrevBasisHash() proto.ConsensusBasisHash {
 func (x ViewExtValueBlock) Timestamp() proto.TimePoint { return x.Ext.ConsensusValue().Timestamp }
 func (x ViewExtValueBlock) Upgrades() []proto.Upgrade  { return x.Ext.ConsensusValue().Upgrades }
 func (x ViewExtValueBlock) PrevValue() proto.ConsensusValueHash {
-	return x.Ext.ConsensusValue().Prev_value
+	return x.Ext.ConsensusValue().Prev_value_hash
 }
 func (x ViewExtValueBlock) IsMissing() bool  { return false }
 func (x ViewExtValueBlock) IsExtBasis() bool { return false }

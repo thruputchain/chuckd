@@ -42,7 +42,7 @@ func (b *Baton) validateBasis(
 		switch {
 		case errors.Is(err, ErrTipAlreadyAhead): // from WaitCommittedAt
 			must.Assert(ctx, b.HighestCommitted() >= basis.Nomination.Block_height)
-			b.validateCommittedConsensus(ctx, slot, basis, value, reply)
+			b.validateCommittedValue(ctx, slot, basis, value, reply)
 			return
 		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded): // from WaitExternalizedBeyond
 			highestExternalized := b.HighestCommittedOrExternalized()
@@ -68,8 +68,17 @@ func (b *Baton) validateBasis(
 		return
 	}
 
+	extValueHash := protoutil.HashValueToProto(extTip.ConsensusValue())
+	if value.Prev_value_hash != extValueHash {
+		liblog.Errorf(ctx, "cannot validate, previous value hash mismatch, nomination %v vs ours %v",
+			libxdr.HashString(value.Prev_value_hash),
+			libxdr.HashString(extValueHash))
+		reply <- scpkit.InvalidValue
+		return
+	}
+
 	if basis.Prev_basis_hash != extTip.ConsensusBasisHash() {
-		liblog.Errorf(ctx, "cannot validate, previous consensus hash mismatch, nomination %v vs ours %v",
+		liblog.Errorf(ctx, "cannot validate, previous basis hash mismatch, nomination %v vs ours %v",
 			libxdr.HashString(basis.Prev_basis_hash),
 			libxdr.HashString(extTip.ConsensusBasisHash()))
 		reply <- scpkit.InvalidValue
@@ -158,14 +167,14 @@ func (b *Baton) tryValidateBasisFast(
 	alreadyValidated := b.getValidatedBlockID(value)
 	b.lk.Unlock()
 
-	if !protoutil.IsSaneConsensusBasis(basis) {
+	if !protoutil.IsSaneBasis(basis) {
 		liblog.Infof(ctx, "cannot validate, nomination not sane")
 		reply <- scpkit.InvalidValue
 		return true
 	}
 
 	if basis.Nomination.Block_height <= dbTipOnRequest.Height {
-		b.validateCommittedConsensus(ctx, slot, basis, value, reply)
+		b.validateCommittedValue(ctx, slot, basis, value, reply)
 		return true
 	}
 

@@ -28,6 +28,10 @@ func (x ValueHash) Display() string {
 	return libxdr.HashString(x.Bytes())
 }
 
+func HashValueToProto(value *proto.ConsensusValue) proto.ConsensusValueHash {
+	return HashValue(value).Bytes()
+}
+
 func HashValue(value *proto.ConsensusValue) ValueHash {
 	h := sha256.New()
 	libxdr.MarshalXdrWriter(h, value)
@@ -53,7 +57,7 @@ func ValueGivenBasisHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusB
 		Block_height:    basis.Nomination.Block_height,
 		Block_hash:      basis.Nomination.Block_hash,
 		Prev_block_hash: basis.Nomination.Prev_block_hash,
-		Prev_value:      basis.Prev_value_hash,
+		Prev_value_hash: basis.Prev_value_hash,
 	}
 }
 
@@ -64,7 +68,7 @@ func BasisAgreesWithValue(basis *proto.ConsensusBasis, value *proto.ConsensusVal
 		value.Block_hash == basis.Nomination.Block_hash &&
 		value.Prev_block_hash == basis.Nomination.Prev_block_hash &&
 		value.Prev_basis_hash == basis.Prev_basis_hash &&
-		value.Prev_value == basis.Prev_value_hash
+		value.Prev_value_hash == basis.Prev_value_hash
 }
 
 // ValueEquals reports whether two ConsensusValues are equal. It compares
@@ -74,7 +78,7 @@ func ValueEquals(v1, v2 *proto.ConsensusValue) bool {
 	return v1.Timestamp == v2.Timestamp &&
 		v1.Proposer == v2.Proposer &&
 		v1.Block_height == v2.Block_height &&
-		v1.Prev_value == v2.Prev_value &&
+		v1.Prev_value_hash == v2.Prev_value_hash &&
 		v1.Basis_hash == v2.Basis_hash &&
 		v1.Prev_basis_hash == v2.Prev_basis_hash &&
 		v1.Block_hash == v2.Block_hash &&
