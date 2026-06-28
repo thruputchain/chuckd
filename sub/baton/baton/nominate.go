@@ -84,6 +84,7 @@ func (b *Baton) nominate(
 		Proposer:        protoutil.PublicVID(b.handler.Signer()),
 		Nomination:      nomination,
 		Upgrades:        nil, // XXX: placeholder for upgrades
+		Prev_value_hash: protoutil.HashValue(ontoExt.ConsensusValue()).Bytes(),
 		Prev_basis_hash: ontoExt.ConsensusBasisHash(),
 	}
 	cb := &proto.CatchupBlock{

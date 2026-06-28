@@ -127,6 +127,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	hash = UniqueBlockHash(onto.Height+1, hash)
 	basis := proto.ConsensusBasis{
 		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
+		Proposer:  onto.Basis.Proposer,
 		Nomination: proto.Nomination{
 			Block_height:    onto.Height + 1,
 			Block_hash:      hash,
@@ -137,6 +138,7 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
 		Upgrades:        nil, // XXX: upgrades not yet supported in test
+		Prev_value_hash: protoutil.HashValue(protoutil.BasisValue(&onto.Basis)).Bytes(),
 		Prev_basis_hash: protoutil.HashBasisFast(&onto.Basis),
 	}
 	return &TestBlock{

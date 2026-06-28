@@ -53,7 +53,7 @@ func ValueGivenBasisHash(basis *proto.ConsensusBasis, basisHash proto.ConsensusB
 		Block_height:    basis.Nomination.Block_height,
 		Block_hash:      basis.Nomination.Block_hash,
 		Prev_block_hash: basis.Nomination.Prev_block_hash,
-		Prev_value:      basis.Prev_value,
+		Prev_value:      basis.Prev_value_hash,
 	}
 }
 
@@ -64,7 +64,7 @@ func BasisAgreesWithValue(basis *proto.ConsensusBasis, value *proto.ConsensusVal
 		value.Block_hash == basis.Nomination.Block_hash &&
 		value.Prev_block_hash == basis.Nomination.Prev_block_hash &&
 		value.Prev_basis_hash == basis.Prev_basis_hash &&
-		value.Prev_value == basis.Prev_value
+		value.Prev_value == basis.Prev_value_hash
 }
 
 // ValueEquals reports whether two ConsensusValues are equal. It compares
