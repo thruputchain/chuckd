@@ -174,9 +174,8 @@ func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) err
 func syncDir(ctx context.Context, dir string) {
 	d, err := os.Open(dir)
 	must.NoError(ctx, err)
+	defer d.Close()
 	err = d.Sync()
-	must.NoError(ctx, err)
-	err = d.Close()
 	must.NoError(ctx, err)
 }
 
