@@ -108,6 +108,7 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 		liblog.Debugf(ctx, "persisting %s: using pre-persist copy", full)
 		err := os.Rename(prepersist, full)
 		must.NoError(ctx, err)
+		syncDir(ctx, filepath.Dir(full))
 		return
 	}
 
@@ -131,6 +132,7 @@ func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string
 
 	err := os.Rename(prepersist, full)
 	must.NoError(ctx, err)
+	syncDir(ctx, filepath.Dir(full))
 }
 
 // writeFileAtomically is idempotent. If the file already exists, it does nothing.
@@ -151,11 +153,30 @@ func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) err
 	err = w(file)
 	must.NoError(ctx, err)
 
+	// fsync the file's contents to disk before closing, so that the rename
+	// below cannot expose a file with missing or partial data after a crash.
+	err = file.Sync()
+	must.NoError(ctx, err)
+
 	err = file.Close()
 	must.NoError(ctx, err)
 
 	// atomicly move staging to permanent
 	err = os.Rename(staging, full)
+	must.NoError(ctx, err)
+
+	syncDir(ctx, filepath.Dir(full))
+}
+
+// syncDir fsyncs a directory so that a preceding rename into (or out of) it is
+// durable. Without this, a crash could leave the directory entry in an
+// undefined state even though the file's contents were already on disk.
+func syncDir(ctx context.Context, dir string) {
+	d, err := os.Open(dir)
+	must.NoError(ctx, err)
+	err = d.Sync()
+	must.NoError(ctx, err)
+	err = d.Close()
 	must.NoError(ctx, err)
 }
 
