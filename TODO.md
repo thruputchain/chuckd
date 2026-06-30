@@ -1,4 +1,6 @@
-RENAME
+ADJUST
+
+- [ ] put block header in consensus basis and value
 
 ============================================================================================
 
