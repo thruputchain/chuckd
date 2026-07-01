@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -48,7 +49,7 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 
 	prepersist := prepersist(ctx, full)
 
-	if isPresent(prepersist) {
+	if isPresentNonEmpty(ctx, prepersist) {
 		liblog.Debugf(ctx, "loading pre-persisted %s", prepersist)
 		file, err := os.Open(prepersist)
 		must.NoError(ctx, err)
@@ -61,6 +62,7 @@ func (x *PrePersist) Load(ctx context.Context, full string, r func(io.Reader) er
 		return err
 	}
 	must.NoError(ctx, err)
+	ensureNonEmpty(ctx, full)
 	defer file.Close()
 
 	return r(file)
@@ -76,12 +78,12 @@ func (x *PrePersist) PrePersist(ctx context.Context, full string, w func(io.Writ
 	liblog.Debugf(ctx, "pre-persisting %s to %s", full, prepersist)
 
 	// if the target persist file already exists, do nothing
-	if isPresent(full) {
+	if isPresentNonEmpty(ctx, full) {
 		liblog.Debugf(ctx, "pre-persisting %s: persisted already", full)
 		return
 	}
 
-	if isPresent(prepersist) { // if pre-persist copy exists, use it
+	if isPresentNonEmpty(ctx, prepersist) { // if pre-persist copy exists, use it
 		liblog.Debugf(ctx, "pre-persisting %s: pre-persisted already", prepersist)
 		return
 	}
@@ -99,12 +101,12 @@ func (x *PrePersist) Persist(ctx context.Context, full string, w func(io.Writer)
 
 	liblog.Debugf(ctx, "persisting %s to %s", full, prepersist)
 
-	if isPresent(full) {
+	if isPresentNonEmpty(ctx, full) {
 		liblog.Debugf(ctx, "persisting %s: persisted already", full)
 		return
 	}
 
-	if isPresent(prepersist) { // if pre-persist copy exists, use it
+	if isPresentNonEmpty(ctx, prepersist) { // if pre-persist copy exists, use it
 		liblog.Debugf(ctx, "persisting %s: using pre-persist copy", full)
 		err := os.Rename(prepersist, full)
 		must.NoError(ctx, err)
@@ -123,12 +125,12 @@ func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string
 
 	liblog.Debugf(ctx, "persisting already pre-persisted %s to %s", full, prepersist)
 
-	if isPresent(full) {
+	if isPresentNonEmpty(ctx, full) {
 		liblog.Debugf(ctx, "persisting already pre-persisted %s: persisted already", full)
 		return
 	}
 
-	must.Assert(ctx, isPresent(prepersist))
+	must.Assert(ctx, isPresentNonEmpty(ctx, prepersist))
 
 	err := os.Rename(prepersist, full)
 	must.NoError(ctx, err)
@@ -138,7 +140,7 @@ func (x *PrePersist) PersistAlreadyPrePersisted(ctx context.Context, full string
 // writeFileAtomically is idempotent. If the file already exists, it does nothing.
 func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) error) {
 
-	if isPresent(full) { // if file exists, already done
+	if isPresentNonEmpty(ctx, full) { // if file exists, already done
 		return
 	}
 
@@ -160,6 +162,7 @@ func writeFileAtomically(ctx context.Context, full string, w func(io.Writer) err
 
 	err = file.Close()
 	must.NoError(ctx, err)
+	ensureNonEmpty(ctx, staging)
 
 	// atomicly move staging to permanent
 	err = os.Rename(staging, full)
@@ -193,4 +196,22 @@ func isPresent(full string) bool {
 		return true
 	}
 	return false
+}
+
+func isPresentNonEmpty(ctx context.Context, full string) bool {
+	info, err := os.Stat(full)
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	must.NoError(ctx, err)
+	if info.Size() == 0 {
+		must.Panic(ctx, fmt.Errorf("persisted storage file is empty: %s", full))
+	}
+	return true
+}
+
+func ensureNonEmpty(ctx context.Context, full string) {
+	if !isPresentNonEmpty(ctx, full) {
+		must.Panic(ctx, fmt.Errorf("persisted storage file does not exist: %s", full))
+	}
 }
