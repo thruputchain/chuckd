@@ -2,11 +2,16 @@ package storage
 
 import (
 	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -223,6 +228,60 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		if !reflect.DeepEqual(got[i], want) {
 			t.Fatalf("consensus value mismatch at index %d:\n got: %+v\nwant: %+v", i, got[i], want)
 		}
+	}
+}
+
+func TestPersistAlreadyPrePersistedRejectsZeroByteFile(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	dir := t.TempDir()
+	full := filepath.Join(dir, "value.xdr")
+	prepersisted := prepersist(ctx, full)
+	if err := os.WriteFile(prepersisted, nil, 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	gotErr := must.Try(func() {
+		NewPrePersist().PersistAlreadyPrePersisted(ctx, full)
+	})
+	if gotErr == nil || !strings.Contains(gotErr.Error(), "persisted storage file is empty") {
+		t.Fatalf("expected zero-byte file error, got %v", gotErr)
+	}
+	if _, err := os.Stat(full); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected no final file, got stat error %v", err)
+	}
+}
+
+func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	dir := t.TempDir()
+	cfg := Config{
+		Freq:             time.Hour,
+		MaxCatchupBlocks: 10,
+		MaxSCPSlots:      10,
+	}
+
+	st := NewStorage(ctx, cfg)
+	st.Start(ctx, dir)
+	defer st.Stop()
+
+	cv := newConsensusValue(time.Unix(1700006000, 0).UTC(), 12)
+	full := st.ConsensusValueFilepath(cv.Nomination.Block_height, protoutil.CVCHashFromCV(&cv))
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(full, nil, 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	gotErr := must.Try(func() {
+		_, _ = st.FindCommittedCV(ctx, cv.Nomination.Block_height)
+	})
+	if gotErr == nil || !strings.Contains(gotErr.Error(), "persisted storage file is empty") {
+		t.Fatalf("expected zero-byte file error, got %v", gotErr)
 	}
 }
 
