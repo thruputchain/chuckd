@@ -280,15 +280,24 @@ func TestWriteHostedRuntimeManifestAllowsHostnameEndpoint(t *testing.T) {
 }
 
 func TestWriteHostedRuntimeManifestRejectsMalformedEndpoint(t *testing.T) {
-	_, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
-		schedulerAddress:   "localhost:not-a-port",
-		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
-	}, hostedBootstrapCommit{})
-	if err == nil {
-		t.Fatal("expected malformed scheduler endpoint to fail")
-	}
-	if !strings.Contains(err.Error(), "port must be numeric") {
-		t.Fatalf("unexpected error: %v", err)
+	for _, tc := range []struct {
+		address string
+		wantErr string
+	}{
+		{address: "localhost:not-a-port", wantErr: "port must be numeric"},
+		{address: "bad host:8070", wantErr: "host must be an IP literal or DNS hostname"},
+		{address: "host_with_underscore:8070", wantErr: "host must be an IP literal or DNS hostname"},
+	} {
+		_, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
+			schedulerAddress:   tc.address,
+			runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
+		}, hostedBootstrapCommit{})
+		if err == nil {
+			t.Fatalf("expected %s to fail", tc.address)
+		}
+		if !strings.Contains(err.Error(), tc.wantErr) {
+			t.Fatalf("unexpected error for %s: %v", tc.address, err)
+		}
 	}
 }
 
