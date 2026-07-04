@@ -235,6 +235,8 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	hash, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
 		schedulerAddress:   "127.0.0.1:8070",
 		indexerAddress:     "127.0.0.1:8061",
+		dbGatewayAddress:   "127.0.0.1:8084",
+		viewGatewayAddress: "127.0.0.1:8042",
 		publicRPCURL:       "http://203.0.113.10:8545",
 		runtimeManifestOut: path,
 	}, hostedBootstrapCommit{Height: 1, BlockHash: "0x" + strings.Repeat("88", 32)})
@@ -256,7 +258,10 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 		t.Fatalf("kind = %v", manifest["kind"])
 	}
 	endpoints := manifest["endpoints"].(map[string]any)
-	if endpoints["scheduler"] != "127.0.0.1:8070" || endpoints["indexer"] != "127.0.0.1:8061" {
+	if endpoints["scheduler"] != "127.0.0.1:8070" ||
+		endpoints["indexer"] != "127.0.0.1:8061" ||
+		endpoints["dbGateway"] != "127.0.0.1:8084" ||
+		endpoints["viewGateway"] != "127.0.0.1:8042" {
 		t.Fatalf("unexpected endpoints: %+v", endpoints)
 	}
 	hosted := manifest["hostedBootstrap"].(map[string]any)
