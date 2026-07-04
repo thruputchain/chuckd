@@ -235,8 +235,8 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	hash, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
 		schedulerAddress:   "127.0.0.1:8070",
 		indexerAddress:     "127.0.0.1:8061",
-		dbGatewayAddress:   "127.0.0.1:8084",
-		viewGatewayAddress: "127.0.0.1:8042",
+		dbGatewayAddress:   "hog-db.internal:8084",
+		viewGatewayAddress: "hog-exec.internal:8042",
 		publicRPCURL:       "http://203.0.113.10:8545",
 		runtimeManifestOut: path,
 	}, hostedBootstrapCommit{Height: 1, BlockHash: "0x" + strings.Repeat("88", 32)})
@@ -260,8 +260,8 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	endpoints := manifest["endpoints"].(map[string]any)
 	if endpoints["scheduler"] != "127.0.0.1:8070" ||
 		endpoints["indexer"] != "127.0.0.1:8061" ||
-		endpoints["dbGateway"] != "127.0.0.1:8084" ||
-		endpoints["viewGateway"] != "127.0.0.1:8042" {
+		endpoints["dbGateway"] != "hog-db.internal:8084" ||
+		endpoints["viewGateway"] != "hog-exec.internal:8042" {
 		t.Fatalf("unexpected endpoints: %+v", endpoints)
 	}
 	hosted := manifest["hostedBootstrap"].(map[string]any)
@@ -270,26 +270,38 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	}
 }
 
-func TestWriteHostedRuntimeManifestRejectsHostnameEndpoint(t *testing.T) {
-	_, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
+func TestWriteHostedRuntimeManifestAllowsHostnameEndpoint(t *testing.T) {
+	if _, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
 		schedulerAddress:   "localhost:8070",
+		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
+	}, hostedBootstrapCommit{}); err != nil {
+		t.Fatalf("expected hostname scheduler endpoint to pass: %v", err)
+	}
+}
+
+func TestWriteHostedRuntimeManifestRejectsMalformedEndpoint(t *testing.T) {
+	_, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
+		schedulerAddress:   "localhost:not-a-port",
 		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
 	}, hostedBootstrapCommit{})
 	if err == nil {
-		t.Fatal("expected hostname scheduler endpoint to fail")
+		t.Fatal("expected malformed scheduler endpoint to fail")
+	}
+	if !strings.Contains(err.Error(), "port must be numeric") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestInitializeHostedBootstrapValidatesManifestConfigBeforeMetadata(t *testing.T) {
 	err := initializeHostedBootstrap(context.Background(), hostedBootstrapConfig{
 		metadataPath:       filepath.Join(t.TempDir(), "missing-metadata.json"),
-		schedulerAddress:   "localhost:8070",
+		schedulerAddress:   "localhost:not-a-port",
 		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
 	})
 	if err == nil {
-		t.Fatal("expected hostname scheduler endpoint to fail")
+		t.Fatal("expected malformed scheduler endpoint to fail")
 	}
-	if !strings.Contains(err.Error(), "host must be an IP literal") {
+	if !strings.Contains(err.Error(), "port must be numeric") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
