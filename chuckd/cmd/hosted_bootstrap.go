@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -212,12 +213,15 @@ func validateSocketAddress(name string, address string) error {
 	if address == "" {
 		return nil
 	}
-	host, _, err := net.SplitHostPort(address)
+	host, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return fmt.Errorf("invalid %s address %q: %w", name, address, err)
 	}
-	if net.ParseIP(host) == nil {
-		return fmt.Errorf("invalid %s address %q: host must be an IP literal", name, address)
+	if host == "" {
+		return fmt.Errorf("invalid %s address %q: host is required", name, address)
+	}
+	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+		return fmt.Errorf("invalid %s address %q: port must be numeric", name, address)
 	}
 	return nil
 }
