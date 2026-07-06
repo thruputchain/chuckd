@@ -136,6 +136,10 @@ func (b *Baton) Kick() {
 	defer b.unlock()
 }
 
+func (b *Baton) tipHeight() proto.BlockHeight {
+	return protoutil.TipHeight(b.tipDb)
+}
+
 func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHeight) {
 	stop := context.AfterFunc(ctx, func() {
 		b.lk.Lock()
@@ -159,7 +163,7 @@ func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHe
 }
 
 func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
-	if b.tipDb.Height >= height {
+	if b.tipHeight() >= height {
 		return true
 	}
 	if len(b.externalized) == 0 {
@@ -172,7 +176,7 @@ func (b *Baton) HighestCommitted() proto.BlockHeight {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 
-	return b.tipDb.Height
+	return b.tipHeight()
 }
 
 func (b *Baton) HighestCommittedOrExternalized() proto.BlockHeight {
@@ -180,7 +184,7 @@ func (b *Baton) HighestCommittedOrExternalized() proto.BlockHeight {
 	defer b.lk.Unlock()
 
 	if len(b.externalized) == 0 {
-		return b.tipDb.Height
+		return b.tipHeight()
 	}
 	return b.externalized[len(b.externalized)-1].Height()
 }
@@ -206,10 +210,10 @@ func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (
 			return nil, nil, ctx.Err()
 		default:
 			switch {
-			case b.tipDb.Height > height:
+			case b.tipHeight() > height:
 				liblog.Errorf(ctx, "waiting for commit at height %d: tip already ahead", height)
 				return nil, nil, ErrTipAlreadyAhead
-			case b.tipDb.Height == height:
+			case b.tipHeight() == height:
 				liblog.Infof(ctx, "waiting for commit at height %d: tip reached", height)
 				copyTipDb, copyTipExt := b.tipDb, b.tipExt
 				return &copyTipDb, &copyTipExt, nil

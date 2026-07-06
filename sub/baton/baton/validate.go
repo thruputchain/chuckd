@@ -53,5 +53,5 @@ func (b *Baton) setInvalidated(basis *proto.ConsensusBasis, value *proto.Consens
 
 func (b *Baton) isInvalidated(value *proto.ConsensusValue) bool {
 	cv, ok := b.invalidated[protoutil.HashValue(value)]
-	return ok && cv.ConsensusBasis.Nomination.Block_height == value.Block_height
+	return ok && cv.ConsensusBasis.Value.Proposal_header.Block_height == value.Proposal_header.Block_height
 }

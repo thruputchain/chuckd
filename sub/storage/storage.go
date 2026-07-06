@@ -99,11 +99,11 @@ func (x *DiskStorage) PrePersistCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "pre-persisting catchup block: height %d; value %s",
-		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
+		cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display())
 	defer liblog.Debugf(ctx, "pre-persisted catchup block: height %d; value %s",
-		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
+		cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display())
 
-	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, vhash)
+	full := x.CatchupBlockFilepath(cb.Consensus_basis.Value.Proposal_header.Block_height, vhash)
 	x.catchupPP.PrePersist(ctx, full, func(w io.Writer) error {
 		libxdr.MarshalXdrWriter(w, &cb)
 		return nil
@@ -122,11 +122,11 @@ func (x *DiskStorage) PersistCatchupBlock(
 	}
 
 	liblog.Debugf(ctx, "persisting catchup block: height %d; value %s",
-		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
+		cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display())
 	defer liblog.Debugf(ctx, "persisted catchup block: height %d; value %s",
-		cb.Consensus_basis.Nomination.Block_height, vhash.Display())
+		cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display())
 
-	full := x.CatchupBlockFilepath(cb.Consensus_basis.Nomination.Block_height, vhash)
+	full := x.CatchupBlockFilepath(cb.Consensus_basis.Value.Proposal_header.Block_height, vhash)
 	x.catchupPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &cb)
@@ -216,11 +216,11 @@ func (x *DiskStorage) PersistCV(ctx context.Context, basis proto.ConsensusBasis,
 	}
 
 	liblog.Debugf(ctx, "persisting cv: height %d; value %s",
-		basis.Nomination.Block_height, vhash.Display())
+		basis.Value.Proposal_header.Block_height, vhash.Display())
 	defer liblog.Debugf(ctx, "persisted cv: height %d; value %s",
-		basis.Nomination.Block_height, vhash.Display())
+		basis.Value.Proposal_header.Block_height, vhash.Display())
 
-	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, vhash)
+	full := x.ConsensusValueFilepath(basis.Value.Proposal_header.Block_height, vhash)
 	x.consensusPP.Persist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &basis)
@@ -237,11 +237,11 @@ func (x *DiskStorage) PrePersistCV(ctx context.Context, basis proto.ConsensusBas
 	}
 
 	liblog.Debugf(ctx, "pre-persisting cv: height %d; value %s",
-		basis.Nomination.Block_height, vhash.Display())
+		basis.Value.Proposal_header.Block_height, vhash.Display())
 	defer liblog.Debugf(ctx, "pre-persisted cv: height %d; value %s",
-		basis.Nomination.Block_height, vhash.Display())
+		basis.Value.Proposal_header.Block_height, vhash.Display())
 
-	full := x.ConsensusValueFilepath(basis.Nomination.Block_height, vhash)
+	full := x.ConsensusValueFilepath(basis.Value.Proposal_header.Block_height, vhash)
 	x.consensusPP.PrePersist(ctx, full,
 		func(w io.Writer) error {
 			libxdr.MarshalXdrWriter(w, &basis)

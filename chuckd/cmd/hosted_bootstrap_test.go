@@ -129,19 +129,29 @@ func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction)
 	for i := range txs {
 		hashes[i] = protoutil.HashSignedTx(&txs[i])
 	}
-	var blockHash proto.BlockHash
-	copy(blockHash[:], bytes.Repeat([]byte{0x88}, len(blockHash)))
-	basis := &proto.ConsensusBasis{
-		Nomination: proto.Nomination{
-			Block_height:      1,
-			Block_hash:        blockHash,
-			Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
+	header := proto.ProposalHeader{Block_height: 1}
+	proposal := proto.Proposal{
+		Header: header,
+		Transactions: proto.ProposalTxs{
+			Hash: xdrutil.ParallelizeSignedTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
 		},
+	}
+	value := proto.ConsensusValue{
+		Proposal_header: header,
+		Proposal_hash:   protoutil.HashProposalFast(&proposal),
+	}
+	basis := &proto.ConsensusBasis{
+		Value:        value,
+		Proposal_txs: proposal.Transactions,
 	}
 	blockID := proto.BlockID(1)
 	return &batonkit.CommittableBlock{
-		Committable: batonkit.NewCommittableNomination(basis, protoutil.BasisValue(basis), &blockID),
-		Onto:        proto.DbTip{Height: 0},
+		Committable: batonkit.NewCommittableNomination(basis, &value, &blockID),
+		Onto: proto.DbTip{
+			Value: proto.ConsensusValue{
+				Proposal_header: proto.ProposalHeader{Block_height: 0},
+			},
+		},
 	}
 }
 
@@ -334,7 +344,11 @@ func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.
 	manifestPath := filepath.Join(t.TempDir(), "runtime-manifest.json")
 	notify := coordinator.NewNotifyReceive()
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
-	*tip.Db_tip() = proto.DbTip{Height: 0}
+	*tip.Db_tip() = proto.DbTip{
+		Value: proto.ConsensusValue{
+			Proposal_header: proto.ProposalHeader{Block_height: 0},
+		},
+	}
 	ctl := &fakeHostedBootstrapCoordinator{
 		tip:    tip,
 		commit: testHostedBootstrapCommitBlock(t, []proto.SignedTransaction{tx}),

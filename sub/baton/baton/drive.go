@@ -7,9 +7,10 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/system/systemfixed"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
+	proto "github.com/groundhogchain/protocol-go"
 )
 
 func (b *Baton) drive(ctx context.Context) {
@@ -20,20 +21,12 @@ func (b *Baton) drive(ctx context.Context) {
 	liblog.Debugf(ctx, "view: %s", v.ShortString())
 	liblog.Debugf(ctx, "resource usage: %s", runtime.ResourceUsage())
 
-	// commit next block, if one is available and no commit is in progress
 	b.driveCommit(ctx, v)
-
-	// start nomination, if there are no externalizations above the db tip and no nomination has started
 	b.driveNominate(ctx, v)
-
-	// send catchup requests
 	b.driveCatchup(ctx, v)
-
-	// send repair requests for scp envelopes if necessary
 	b.driveLiveness(ctx, v)
 }
 
-// driveCommit commits the next block, if one is available and no commit is in progress
 func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	cb := v.NextBlockToCommit()
 	if cb == nil || b.committing != nil {
@@ -42,11 +35,10 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 
 	committingHeight := cb.BlockHeight()
 	b.committing = &committingHeight
-	// cancel ongoing nominations trumped by this commit to save compute
 	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
-	liblog.Debugf(ctx, "COMMITTING: height %v; tx_count %d; hash %s",
-		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.BlockHash()))
+	liblog.Debugf(ctx, "COMMITTING: height %v; tx_count %d; value %s",
+		cb.BlockHeight(), cb.NumTransactions(), protoutil.ValueDisplay(cb.ConsensusValue()))
 
 	go func() {
 		blockID := b.commit(ctx, cb)
@@ -56,19 +48,13 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			must.Assertf(ctx, b.committing != nil, "race committing")
 			b.committing = nil
 
-			if b.tipDb.Height+1 != cb.BlockHeight() {
+			if protoutil.TipHeight(b.tipDb)+1 != cb.BlockHeight() {
 				panic("bug")
 			}
 
-			b.tipDb.Block_hash = cb.BlockHash()
-			b.tipDb.Height = cb.BlockHeight()
-			b.tipDb.Id = blockID
-
+			b.tipDb = proto.DbTip{Id: blockID, Value: *cb.ConsensusValue()}
 			b.tipExt = newExternalized(cb.ConsensusValue(), cb.AsConsensusBasis())
-
-			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)
-
 			b.noteCommitted(cb.BlockHeight())
 
 			if b.hooks != nil {
@@ -77,11 +63,10 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 
 			b.unlock()
 		}
-		b.handler.Committed(ctx, cb) // must be outside of the baton lock
+		b.handler.Committed(ctx, cb)
 	}()
 }
 
-// driveNominate starts a nomination, if there are no externalizations above the db tip and no nomination has started
 func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	if b.levers.PauseNominating {
 		return
@@ -92,7 +77,6 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		return
 	}
 
-	// cancel prior finished or unfinished nominations
 	if b.nominating != nil {
 		b.nominating.Cancel()
 		b.nominating = nil
@@ -101,14 +85,11 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	current := &nominating{
 		OntoDb:  *ontoDb,
 		OntoExt: *ontoExt,
-		Cancel: func() {
-			// liblog.Debugf("cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
-			nomCancel()
-		},
+		Cancel:  nomCancel,
 	}
 	b.nominating = current
 
-	liblog.Infof(ctx, "PREPARING: height %d", ontoDb.Height+1)
+	liblog.Infof(ctx, "PREPARING: height %d", protoutil.TipHeight(*ontoDb)+1)
 
 	go func() {
 		basis, value, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
@@ -117,12 +98,9 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		b.lock()
 		defer b.unlock()
 
-		// if nomination was superceded, b.nominating may point at a different nomination
 		currentWasReplaced := b.nominating != current
 
 		if err != nil {
-			// scp rejects nominations when it is not our turn to nominate, or
-			// when an externalization happens during nomination (usually only in a single-node network)
 			if !errors.Is(err, ErrNominationRejected) {
 				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			}
@@ -131,20 +109,19 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 
 		if !currentWasReplaced {
 			b.setValidated(basis, value, blockID)
-			liblog.Infof(ctx, "nominated block at height %d with block hash %s",
-				basis.Nomination.Block_height,
-				libxdr.HashString(basis.Nomination.Block_hash),
+			liblog.Infof(ctx, "nominated block at height %d with value %s",
+				basis.Value.Proposal_header.Block_height,
+				protoutil.ValueDisplay(value),
 			)
 		} else {
-			liblog.Infof(ctx, "superceded nomination for block at height %d with block hash %s",
-				basis.Nomination.Block_height,
-				libxdr.HashString(basis.Nomination.Block_hash),
+			liblog.Infof(ctx, "superceded nomination for block at height %d with value %s",
+				basis.Value.Proposal_header.Block_height,
+				protoutil.ValueDisplay(value),
 			)
 		}
 	}()
 }
 
-// driveCatchup sends catchup requests, if needed
 func (b *Baton) driveCatchup(ctx context.Context, v *View) {
 	if needed := v.NeededUnrequestedSpans(); needed.IsNotEmpty() {
 		liblog.Debugf(ctx, "requesting catchup: %v", needed)

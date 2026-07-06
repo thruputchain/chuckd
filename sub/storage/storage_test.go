@@ -35,9 +35,9 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		Signed_transactions: proto.ParallelSignedTransactionBatch{},
 	}
 
-	st.PersistCatchupBlock(ctx, cb, protoutil.ValueHashFromBasis(&basis))
+	st.PersistCatchupBlock(ctx, cb, protoutil.HashValue(&basis.Value))
 
-	got, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height)
+	got, err := st.FindCatchupBlock(ctx, basisHeight(basis))
 	if err != nil {
 		t.Fatalf("FindCatchupBlock returned error: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		t.Fatalf("FindCatchupBlock mismatch:\n got: %#v\nwant: %#v", *got, cb)
 	}
 
-	found, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height+1)
+	found, err := st.FindCatchupBlock(ctx, basisHeight(basis)+1)
 	if err != nil {
 		t.Fatalf("FindCatchupBlock returned error: %v", err)
 	}
@@ -168,21 +168,21 @@ func TestFindConsensusValue(t *testing.T) {
 	st.Start(ctx, dir)
 
 	basis := newConsensusBasis(time.Unix(1700001000, 0).UTC(), 10)
-	st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
+	st.PersistCV(ctx, basis, protoutil.HashValue(&basis.Value))
 
-	got, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height)
+	got, err := st.FindCommittedCV(ctx, basisHeight(basis))
 	if err != nil {
 		t.Fatalf("FindCommittedCV returned error: %v", err)
 	}
 	if got == nil {
-		t.Fatalf("FindConsensusValue returned nil for persisted height %d", basis.Nomination.Block_height)
+		t.Fatalf("FindConsensusValue returned nil for persisted height %d", basisHeight(basis))
 	}
 
 	if !reflect.DeepEqual(*got, basis) {
 		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, basis)
 	}
 
-	missing, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height+1)
+	missing, err := st.FindCommittedCV(ctx, basisHeight(basis)+1)
 	if err != nil {
 		t.Fatalf("FindCommittedCV returned error: %v", err)
 	}
@@ -212,7 +212,7 @@ func TestFindConsensusValuesAbove(t *testing.T) {
 		newConsensusBasis(time.Unix(1700004000, 0).UTC(), 8),
 	}
 	for _, basis := range consensusBases {
-		st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
+		st.PersistCV(ctx, basis, protoutil.HashValue(&basis.Value))
 	}
 
 	got, err := FindCommittedConsensusValuesAbove(ctx, st, 4)
@@ -269,7 +269,7 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 	defer st.Stop()
 
 	basis := newConsensusBasis(time.Unix(1700006000, 0).UTC(), 12)
-	full := st.ConsensusValueFilepath(basis.Nomination.Block_height, protoutil.ValueHashFromBasis(&basis))
+	full := st.ConsensusValueFilepath(basisHeight(basis), protoutil.HashValue(&basis.Value))
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		t.Fatalf("MkdirAll returned error: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 	}
 
 	gotErr := must.Try(func() {
-		_, _ = st.FindCommittedCV(ctx, basis.Nomination.Block_height)
+		_, _ = st.FindCommittedCV(ctx, basisHeight(basis))
 	})
 	if gotErr == nil || !strings.Contains(gotErr.Error(), "persisted storage file is empty") {
 		t.Fatalf("expected zero-byte file error, got %v", gotErr)
@@ -286,14 +286,26 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 }
 
 func newConsensusBasis(ts time.Time, height int64) proto.ConsensusBasis {
-	return proto.ConsensusBasis{
-		Timestamp: protoutil.TimepointFromTime(ts),
-		Nomination: proto.Nomination{
-			Block_height:    proto.BlockHeight(height),
-			Block_hash:      newBlockHash(byte(height)),
-			Prev_block_hash: newBlockHash(byte(height - 1)),
-		},
+	header := proto.ProposalHeader{
+		Timestamp:    protoutil.TimepointFromTime(ts),
+		Block_height: proto.BlockHeight(height),
 	}
+	proposal := proto.Proposal{
+		Header:       header,
+		Transactions: proto.ProposalTxs{},
+	}
+	value := proto.ConsensusValue{
+		Proposal_header: header,
+		Proposal_hash:   protoutil.HashProposalFast(&proposal),
+	}
+	return proto.ConsensusBasis{
+		Value:        value,
+		Proposal_txs: proposal.Transactions,
+	}
+}
+
+func basisHeight(basis proto.ConsensusBasis) proto.BlockHeight {
+	return basis.Value.Proposal_header.Block_height
 }
 
 func newEnvelope(slot int64, marker byte) proto.SCPEnvelope {
@@ -312,13 +324,4 @@ func newEnvelope(slot int64, marker byte) proto.SCPEnvelope {
 	sig := env.Signature.Ed25519()
 	sig[0] = marker
 	return env
-}
-
-func newBlockHash(fill byte) proto.BlockHash {
-	var h proto.BlockHash
-	for i := range h {
-		h[i] = fill
-		fill++
-	}
-	return h
 }

@@ -37,7 +37,7 @@ func (cvp *ConsensusValuePool) CVPoolAdd(
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
-	if basis.Nomination.Block_height <= cvp.bottom {
+	if basis.Value.Proposal_header.Block_height <= cvp.bottom {
 		return nil
 	}
 	vhash := protoutil.HashValue(&value)
@@ -62,7 +62,7 @@ func (cvp *ConsensusValuePool) CVPoolCommit(
 	cvp.lk.Lock()
 	defer cvp.lk.Unlock()
 
-	if basis.Nomination.Block_height <= cvp.bottom {
+	if basis.Value.Proposal_header.Block_height <= cvp.bottom {
 		return nil
 	}
 	cvp.basis[vhash] = &basis
@@ -80,7 +80,7 @@ func (cvp *ConsensusValuePool) PurgeNotAbove(ctx context.Context, height proto.B
 
 func (cvp *ConsensusValuePool) purge() {
 	for h, basis := range cvp.basis {
-		if basis.Nomination.Block_height <= cvp.bottom {
+		if basis.Value.Proposal_header.Block_height <= cvp.bottom {
 			delete(cvp.basis, h)
 		}
 	}
@@ -135,7 +135,7 @@ func (cvp *ConsensusValuePool) CVPoolFind(
 	value proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 	vhash := protoutil.HashValue(&value)
-	basis, err := cvp.persist.FindCV(ctx, value.Block_height, vhash)
+	basis, err := cvp.persist.FindCV(ctx, value.Proposal_header.Block_height, vhash)
 	if err != nil {
 		return nil, err
 	}

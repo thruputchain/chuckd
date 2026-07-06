@@ -9,16 +9,19 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashBasisSlow(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
+func HashProposalSlow(p *proto.Proposal) proto.ProposalHash {
 	h := sha256.New()
-	libxdr.MarshalXdrWriter(h, basis)
-	return proto.ConsensusBasisHash(h.Sum(nil))
+	libxdr.MarshalXdrWriter(h, p)
+	return proto.ProposalHash(h.Sum(nil))
 }
 
-func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
-	cvBase := *basis
-	cvBase.Nomination.Transactions_hash = proto.ParallelBatch{}
-	cvBase.Nomination.Transactions_nondeterministic_data = proto.ParallelBatch{}
+// HashProposalFast computes the same combined hash as hashing the proposal
+// with its transaction batches zeroed, XOR'd with the parallel hashes of the
+// two batches. This allows the large batches to be hashed in parallel.
+func HashProposalFast(p *proto.Proposal) proto.ProposalHash {
+	pBase := *p
+	pBase.Transactions.Hash = proto.ParallelBatch{}
+	pBase.Transactions.Nondeterministic_data = proto.ParallelBatch{}
 
 	var hashBase proto.SHA256Hash
 	var hashTxsHash proto.SHA256Hash
@@ -28,15 +31,15 @@ func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		hashBase = HashBasisSlow(&cvBase)
+		hashBase = HashProposalSlow(&pBase)
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsHash = xdrutil.HashParallelBatch(basis.Nomination.Transactions_hash)
+		hashTxsHash = xdrutil.HashParallelBatch(p.Transactions.Hash)
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsND = xdrutil.HashParallelBatch(basis.Nomination.Transactions_nondeterministic_data)
+		hashTxsND = xdrutil.HashParallelBatch(p.Transactions.Nondeterministic_data)
 	}()
 	wg.Wait()
 	for i := range hashBase {
@@ -45,16 +48,24 @@ func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
 	return hashBase
 }
 
-func IsSaneBasis(basis *proto.ConsensusBasis) bool {
-	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_hash); err != nil {
+func IsSaneProposalTxs(txs *proto.ProposalTxs) bool {
+	if err := xdrutil.ValidateBatch(txs.Hash); err != nil {
 		return false
 	}
-	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_nondeterministic_data); err != nil {
+	if err := xdrutil.ValidateBatch(txs.Nondeterministic_data); err != nil {
 		return false
 	}
-	if xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_hash) !=
-		xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.TokenSizeOfBatch(txs.Hash) !=
+		xdrutil.TokenSizeOfBatch(txs.Nondeterministic_data) {
 		return false
 	}
 	return true
+}
+
+func IsSaneProposal(p *proto.Proposal) bool {
+	return IsSaneProposalTxs(&p.Transactions)
+}
+
+func IsSaneBasis(basis *proto.ConsensusBasis) bool {
+	return IsSaneProposalTxs(&basis.Proposal_txs)
 }

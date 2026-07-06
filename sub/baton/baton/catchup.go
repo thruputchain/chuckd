@@ -29,13 +29,12 @@ type CatchupArrival struct {
 	source proto.ValidatorID
 	stamp  time.Time
 	block  *proto.CatchupBlock
-	basis  proto.ConsensusBasisHash
-	ns     protoutil.NominationSerialized
+	ns     protoutil.ProposalTxsSerialized
 	txs    []proto.SignedTransaction
 }
 
 func (a CatchupArrival) Proposer() proto.ValidatorID {
-	return a.block.Consensus_basis.Proposer
+	return a.block.Consensus_basis.Value.Proposer
 }
 
 func (a CatchupArrival) Provider() proto.ValidatorID {
@@ -47,42 +46,28 @@ func (a CatchupArrival) Block() *proto.CatchupBlock {
 }
 
 func (a CatchupArrival) BlockHeight() proto.BlockHeight {
-	return a.block.Consensus_basis.Nomination.Block_height
-}
-
-func (a CatchupArrival) BlockHash() proto.BlockHash {
-	return a.block.Consensus_basis.Nomination.Block_hash
-}
-
-func (a CatchupArrival) PrevBlockHash() proto.BlockHash {
-	return a.block.Consensus_basis.Nomination.Prev_block_hash
+	return a.block.Consensus_basis.Value.Proposal_header.Block_height
 }
 
 func (a CatchupArrival) ConsensusBasis() *proto.ConsensusBasis {
 	return &a.block.Consensus_basis
 }
 
-func (a CatchupArrival) ConsensusBasisHash() proto.ConsensusBasisHash {
-	return a.basis
-}
-
 func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
-	return protoutil.ValueGivenBasisHash(a.ConsensusBasis(), a.basis)
+	return &a.block.Consensus_basis.Value
 }
 
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {
 	return a.txs
 }
 
-func (a CatchupArrival) NominationSerialized() protoutil.NominationSerialized {
+func (a CatchupArrival) ProposalTxsSerialized() protoutil.ProposalTxsSerialized {
 	return a.ns
 }
 
 type catchupRequest struct {
 	spans []Span
 }
-
-// baton
 
 func (b *Baton) findCatchupBlockAtHeight(h proto.BlockHeight) (CatchupArrival, bool) {
 	return b.catchupArrivals.Find(h)
@@ -105,31 +90,19 @@ func (b *Baton) purgeCatchup(_ context.Context) {
 }
 
 func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
-
 	id := b.handler.GenerateID64(ctx)
+	b.catchupWaiting[id] = catchupRequest{spans: spans}
 
-	// mark pending request
-	b.catchupWaiting[id] = catchupRequest{
-		spans: spans,
-	}
-
-	// XXX: move this into a catchup agent
-	// XXX: long catchup requests should be split into multiple requests
 	go func(id batonkit.ID64, spans []Span) {
-
 		var result catchupArrivals
 
 		defer func() {
 			b.lock()
 			defer b.unlock()
-
-			// unmark pending request
 			delete(b.catchupWaiting, id)
-			// update known catchup blocks
 			b.catchupArrivals = append(b.catchupArrivals, result...)
 		}()
 
-		// find sources
 		srcs := b.handler.GetCatchupSources(ctx, int64(id))
 		if len(srcs) == 0 {
 			liblog.Errorf(ctx, "no catchup sources found among known validators")
@@ -164,7 +137,6 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 			return
 		}
 
-		// verify the signature of the source
 		if !protoutil.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
 			liblog.Errorf(ctx, "catchup with invalid signature")
 			return
@@ -178,7 +150,6 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 						source: protoutil.PublicVID(src),
 						stamp:  now,
 						block:  &block,
-						basis:  protoutil.HashBasisFast(&block.Consensus_basis),
 						ns:     ns,
 						txs:    txs,
 					})
@@ -186,6 +157,5 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 				liblog.Infof(ctx, "invalid catchup block")
 			}
 		}
-
 	}(id, spans)
 }

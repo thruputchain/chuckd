@@ -97,7 +97,7 @@ func (x *Multiplex) multiplex(ctx context.Context) {
 				continue
 			}
 
-			x.receivedConsensusValue <- consensusValueFrom{From: fromID, ConsensusBasis: xmsg.Consensus_basis()}
+			x.receivedConsensusValue <- consensusValueFrom{From: fromID, ConsensusBasis: xmsg.Basis()}
 
 		case proto.MultiplexMessageSCP:
 			if len(payload) > systemfixed.MaxBytesSCPEnvelopeMessage {
@@ -136,10 +136,10 @@ func (x *Multiplex) doSendSubmittedTxs(ctx context.Context, submitted *proto.Sub
 
 func (x *Multiplex) SendConsensusBasis(ctx context.Context, basis proto.ConsensusBasis) error {
 	liblog.Debugf(ctx, "%v multiplex sending consensus basis, for slot %v",
-		protoutil.VIDString(x.self), basis.Nomination.Block_height)
+		protoutil.VIDString(x.self), basis.Value.Proposal_header.Block_height)
 	var xmsg proto.MultiplexMessage
 	xmsg.Type = proto.MultiplexMessageConsensusBasis
-	*xmsg.Consensus_basis() = basis
+	*xmsg.Basis() = basis
 	err := x.dogwood.Send(ctx, x.m.MarshalXdr(&xmsg))
 	if err != nil {
 		liblog.Errorf(ctx, "multiplex send consensus basis: %v", err)
@@ -161,9 +161,7 @@ func (x *Multiplex) SendSCPEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	return nil
 }
 
-// / SCPEmitEnvelope is called directly by SCPHandler to service requests from SCP.
 func (x *Multiplex) SCPEmitEnvelope(ctx context.Context, env proto.SCPEnvelope) error {
-	// persist the envelopes originating from our scp
 	x.storage.PersistSCPEnvelope(ctx, env)
 	x.storage.PersistSCPEnvelopeFromLocal(ctx, env)
 	return x.SendSCPEnvelope(ctx, env)
@@ -190,7 +188,7 @@ func (x *Multiplex) ReceiveConsensusBasis(ctx context.Context) (proto.ValidatorI
 		liblog.Debugf(ctx, "%v multiplex received consensus basis from %v, for slot %v",
 			protoutil.VIDString(x.self),
 			protoutil.VIDString(cvFrom.From),
-			cvFrom.ConsensusBasis.Nomination.Block_height)
+			cvFrom.ConsensusBasis.Value.Proposal_header.Block_height)
 		return cvFrom.From, cvFrom.ConsensusBasis, true
 	}
 }

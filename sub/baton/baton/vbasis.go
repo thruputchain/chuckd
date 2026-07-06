@@ -22,73 +22,62 @@ func (b *Baton) validateBasis(
 	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) {
+	header := &value.Proposal_header
 
-	liblog.Infof(ctx, "validating cv: height %d; block_hash %s; value %s; proposer %s",
-		slot, libxdr.HashString(basis.Nomination.Block_hash), protoutil.ValueDisplay(value),
-		protoutil.VIDString(value.Proposer))
+	liblog.Infof(ctx, "validating cv: height %d; value %s; proposer %s",
+		slot, protoutil.ValueDisplay(value), protoutil.VIDString(value.Proposer))
 
 	if b.tryValidateBasisFast(ctx, slot, basis, value, reply) {
 		return
 	}
 
-	// (commence condition) wait for the block below the validation request to be reached and committed
-
 	var dbTip *proto.DbTip
 	var extTip *externalizedBasis
 
-	var err error
-	dbTip, extTip, err = b.WaitCommittedAt(ctx, basis.Nomination.Block_height-1)
-	if err != nil { // context cancelled
+	dbTip, extTip, err := b.WaitCommittedAt(ctx, header.Block_height-1)
+	if err != nil {
 		switch {
-		case errors.Is(err, ErrTipAlreadyAhead): // from WaitCommittedAt
-			must.Assert(ctx, b.HighestCommitted() >= basis.Nomination.Block_height)
+		case errors.Is(err, ErrTipAlreadyAhead):
+			must.Assert(ctx, b.HighestCommitted() >= header.Block_height)
 			b.validateCommittedValue(ctx, slot, basis, value, reply)
 			return
-		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded): // from WaitExternalizedBeyond
+		case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
 			highestExternalized := b.HighestCommittedOrExternalized()
 			liblog.Infof(ctx, "skipping validation due to externalizations ahead: height: %d; highest_externalized: %d",
-				basis.Nomination.Block_height, highestExternalized)
-			// assert highest externalized is at basis.Nomination.Block_height or above
-			must.Assert(ctx, highestExternalized >= basis.Nomination.Block_height)
+				header.Block_height, highestExternalized)
+			must.Assert(ctx, highestExternalized >= header.Block_height)
 			reply <- scpkit.MaybeValidValue
 			return
 		}
 		panic("unreachable")
 	}
 
-	must.Assert(ctx, dbTip.Height+1 == basis.Nomination.Block_height)
-
-	// validate chaining with previous consensus
-
-	if basis.Nomination.Prev_block_hash != dbTip.Block_hash {
-		liblog.Errorf(ctx, "cannot validate, previous block mismatch, nomination %v vs ours %v",
-			libxdr.HashString(basis.Nomination.Prev_block_hash),
-			libxdr.HashString(dbTip.Block_hash))
-		reply <- scpkit.InvalidValue
-		return
-	}
+	tipHeight := protoutil.TipHeight(*dbTip)
+	must.Assert(ctx, tipHeight+1 == header.Block_height)
 
 	extValueHash := protoutil.HashValueToProto(extTip.ConsensusValue())
 	if value.Prev_value_hash != extValueHash {
 		liblog.Errorf(ctx, "cannot validate, previous value hash mismatch, nomination %v vs ours %v",
-			libxdr.HashString(value.Prev_value_hash),
-			libxdr.HashString(extValueHash))
+			libxdr.HashString(value.Prev_value_hash), libxdr.HashString(extValueHash))
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	if basis.Prev_basis_hash != extTip.ConsensusBasisHash() {
-		liblog.Errorf(ctx, "cannot validate, previous basis hash mismatch, nomination %v vs ours %v",
-			libxdr.HashString(basis.Prev_basis_hash),
-			libxdr.HashString(extTip.ConsensusBasisHash()))
+	if header.Block_height != tipHeight+1 {
+		liblog.Errorf(ctx, "cannot validate, block height mismatch, got %d want %d",
+			header.Block_height, tipHeight+1)
 		reply <- scpkit.InvalidValue
 		return
 	}
 
-	// validate timestamp
+	if header.Network_id != extTip.ConsensusValue().Proposal_header.Network_id {
+		liblog.Errorf(ctx, "cannot validate, network id mismatch")
+		reply <- scpkit.InvalidValue
+		return
+	}
 
-	prevStamp := protoutil.TimeFromTimepoint(extTip.ConsensusBasis().Timestamp)
-	newStamp := protoutil.TimeFromTimepoint(basis.Timestamp)
+	prevStamp := protoutil.TimeFromTimepoint(extTip.ConsensusValue().Proposal_header.Timestamp)
+	newStamp := protoutil.TimeFromTimepoint(header.Timestamp)
 	if !prevStamp.Before(newStamp) {
 		liblog.Errorf(ctx, "cannot validate, timestamp not increasing")
 		reply <- scpkit.InvalidValue
@@ -102,9 +91,6 @@ func (b *Baton) validateBasis(
 		return
 	}
 
-	// validate proposal
-
-	// check if block previous invalidated to prevent expensive validation
 	b.lk.Lock()
 	alreadyInvalidated := b.isInvalidated(value)
 	b.lk.Unlock()
@@ -115,27 +101,21 @@ func (b *Baton) validateBasis(
 
 	validatedTip, err := b.validateProposal(ctx, *dbTip, basis, value)
 	if errors.Is(err, batonkit.ErrNotValid) {
-		// cache invalidation to prevent dos
 		b.lk.Lock()
 		b.setInvalidated(basis, value)
 		b.lk.Unlock()
-
 		reply <- scpkit.InvalidValue
 		return
 	}
 	if err != nil {
-		// err can only ever be context cancelled or deadline exceeded.
-		// it occurs only if scp has externalized newer blocks
 		must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
-		must.Assert(ctx, b.HighestCommittedOrExternalized() >= basis.Nomination.Block_height)
+		must.Assert(ctx, b.HighestCommittedOrExternalized() >= header.Block_height)
 		reply <- scpkit.MaybeValidValue
 		return
 	}
 
-	// cache validated blocks
-	liblog.Debugf(ctx, "caching validation for block %s and consensus %s",
-		libxdr.HashString(basis.Nomination.Block_hash),
-		libxdr.HashString(value.Basis_hash))
+	liblog.Debugf(ctx, "caching validation for block %d and consensus %s",
+		header.Block_height, protoutil.ValueDisplay(value))
 	b.lk.Lock()
 	b.setValidated(basis, value, validatedTip.Id)
 	b.lk.Unlock()
@@ -143,7 +123,6 @@ func (b *Baton) validateBasis(
 	reply <- scpkit.FullyValidValue
 }
 
-// tryValidateBasisFast returns true if it was able to make a judgement and send a reply.
 func (b *Baton) tryValidateBasisFast(
 	ctx context.Context,
 	slot scpkit.Slot,
@@ -151,13 +130,14 @@ func (b *Baton) tryValidateBasisFast(
 	value *proto.ConsensusValue,
 	reply chan<- scpkit.ValidationLevel,
 ) bool {
+	header := &value.Proposal_header
 
-	if basis.Nomination.Block_height != proto.BlockHeight(slot) {
+	if header.Block_height != proto.BlockHeight(slot) {
 		reply <- scpkit.InvalidValue
 		return true
 	}
-	if xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_hash) !=
-		xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.TokenSizeOfBatch(basis.Proposal_txs.Hash) !=
+		xdrutil.TokenSizeOfBatch(basis.Proposal_txs.Nondeterministic_data) {
 		reply <- scpkit.InvalidValue
 		return true
 	}
@@ -168,12 +148,12 @@ func (b *Baton) tryValidateBasisFast(
 	b.lk.Unlock()
 
 	if !protoutil.IsSaneBasis(basis) {
-		liblog.Infof(ctx, "cannot validate, nomination not sane")
+		liblog.Infof(ctx, "cannot validate, proposal txs not sane")
 		reply <- scpkit.InvalidValue
 		return true
 	}
 
-	if basis.Nomination.Block_height <= dbTipOnRequest.Height {
+	if header.Block_height <= protoutil.TipHeight(dbTipOnRequest) {
 		b.validateCommittedValue(ctx, slot, basis, value, reply)
 		return true
 	}

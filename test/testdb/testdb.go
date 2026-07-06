@@ -21,6 +21,10 @@ type TestDb struct {
 }
 
 type testDbSnapshot struct {
+	// While the snapshot is being built, only Id and the header's
+	// Block_height and Storage_hash of tip.Value.Proposal_header are
+	// meaningful. On commit, tip.Value is replaced with the committed
+	// consensus value.
 	tip       proto.DbTip
 	hashes    []proto.SignedTransactionHash
 	open      int
@@ -28,7 +32,7 @@ type testDbSnapshot struct {
 }
 
 func NewTestDb(ctx context.Context, genesisTip proto.DbTip, dbDir string) *TestDb {
-	must.Assert(ctx, genesisTip.Height >= 0)
+	must.Assert(ctx, genesisTip.Value.Proposal_header.Block_height >= 0)
 	must.NoError(ctx, os.MkdirAll(dbDir, 0o755))
 	tip := loadTipFromDisk(dbDir, genesisTip)
 	db := &TestDb{
@@ -69,7 +73,8 @@ func (db *TestDb) AddProposedTx(ctx context.Context, id proto.BlockID, ptx *prot
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Block_hash = testutil.BlendPropopsedTx(snap.tip.Block_hash, ptx)
+	header := &snap.tip.Value.Proposal_header
+	header.Storage_hash = testutil.BlendPropopsedTx(header.Storage_hash, ptx)
 	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
@@ -78,7 +83,8 @@ func (db *TestDb) AddSignedTx(ctx context.Context, id proto.BlockID, stx *proto.
 	defer db.lk.Unlock()
 	snap, ok := db.id[id]
 	must.Assertf(ctx, ok && snap.open > 0, "block is not open")
-	snap.tip.Block_hash = testutil.BlendSignedTx(snap.tip.Block_hash, stx)
+	header := &snap.tip.Value.Proposal_header
+	header.Storage_hash = testutil.BlendSignedTx(header.Storage_hash, stx)
 	snap.hashes = append(snap.hashes, protoutil.HashSignedTx(stx))
 }
 
@@ -99,11 +105,17 @@ func (db *TestDb) CreateSnapshot(ctx context.Context, parentID proto.BlockID, id
 
 	parent, ok := db.id[parentID]
 	must.Assertf(ctx, ok, "missing parent block")
+	parentHeader := parent.tip.Value.Proposal_header
 	child := &testDbSnapshot{
 		tip: proto.DbTip{
-			Height:     parent.tip.Height + 1,
-			Block_hash: parent.tip.Block_hash,
-			Id:         id,
+			Id: id,
+			Value: proto.ConsensusValue{
+				Proposal_header: proto.ProposalHeader{
+					Network_id:   parentHeader.Network_id,
+					Block_height: parentHeader.Block_height + 1,
+					Storage_hash: parentHeader.Storage_hash,
+				},
+			},
 		},
 		open:      1,
 		committed: false,
@@ -112,7 +124,7 @@ func (db *TestDb) CreateSnapshot(ctx context.Context, parentID proto.BlockID, id
 	db.id[id] = child
 }
 
-func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.BlockHash, []proto.SignedTransactionHash) {
+func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID, value proto.ConsensusValue) []proto.SignedTransactionHash {
 	// liblog.Debugf("db commit %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -122,12 +134,16 @@ func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID) (proto.B
 	must.Assertf(ctx, !snap.committed, "block already committed")
 	snap.open -= 1
 	snap.committed = true
+	snap.tip.Value = value
 	db.top = snap
 	persistTipToDisk(ctx, db.dbDir, db.top.tip)
-	return snap.tip.Block_hash, snap.hashes
+	return snap.hashes
 }
 
-func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.BlockHash {
+// CloseSnapshot finalizes the snapshot's storage hash and returns the partial
+// proposal header (block height, storage hash, network id). The caller fills
+// in the remaining header fields (timestamp, txs hash, events hash).
+func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.ProposalHeader {
 	// liblog.Debugf("db close %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()
@@ -135,8 +151,9 @@ func (db *TestDb) CloseSnapshot(ctx context.Context, id proto.BlockID) proto.Blo
 	must.Assertf(ctx, ok, "unknown block")
 	must.Assertf(ctx, snap.open > 0, "block not open")
 	snap.open -= 1
-	snap.tip.Block_hash = testutil.UniqueBlockHash(snap.tip.Height, snap.tip.Block_hash)
-	return snap.tip.Block_hash
+	header := &snap.tip.Value.Proposal_header
+	header.Storage_hash = testutil.UniqueStorageHash(header.Block_height, header.Storage_hash)
+	return *header
 }
 
 func (db *TestDb) AbandonSnapshot(ctx context.Context, id proto.BlockID) {

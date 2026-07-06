@@ -108,7 +108,7 @@ func (svc *CatchupService) Catchup_solicit(
 	// log
 	var heights bytes.Buffer
 	for _, b := range blocks {
-		fmt.Fprintf(&heights, "%d ", b.Consensus_basis.Nomination.Block_height)
+		fmt.Fprintf(&heights, "%d ", b.Consensus_basis.Value.Proposal_header.Block_height)
 	}
 	liblog.Infof(ctx, "serving catchup heights: [%s]", heights.String())
 

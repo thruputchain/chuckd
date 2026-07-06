@@ -37,13 +37,13 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 	vhash := protoutil.HashValue(&value)
 
 	liblog.Infof(ctx, "adding catchup block to pool: height %d; value %s; proposer %s",
-		cb.Consensus_basis.Nomination.Block_height, vhash.Display(),
-		protoutil.VIDString(cb.Consensus_basis.Proposer))
+		cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display(),
+		protoutil.VIDString(cb.Consensus_basis.Value.Proposer))
 
 	if _, alreadyPersisting := cbp.persisting[vhash]; alreadyPersisting {
 		liblog.Infof(ctx, "catchup block already persisting: height %d; value %s; proposer %s",
-			cb.Consensus_basis.Nomination.Block_height, vhash.Display(),
-			protoutil.VIDString(cb.Consensus_basis.Proposer))
+			cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display(),
+			protoutil.VIDString(cb.Consensus_basis.Value.Proposer))
 		return nil
 	}
 
@@ -57,8 +57,8 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 		close(donePersisting)
 
 		liblog.Debugf(ctx, "finished pre-persisting catchup block: height %d; value %s; proposer %s",
-			cb.Consensus_basis.Nomination.Block_height, vhash.Display(),
-			protoutil.VIDString(cb.Consensus_basis.Proposer))
+			cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display(),
+			protoutil.VIDString(cb.Consensus_basis.Value.Proposer))
 
 		cbp.lk.Lock()
 		defer cbp.lk.Unlock()
@@ -94,7 +94,7 @@ func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(
 	value proto.ConsensusValue,
 ) error {
 	liblog.Infof(ctx, "waiting for pre-persisting of catchup block: height %d; value %s",
-		value.Block_height, protoutil.ValueDisplay(&value))
+		value.Proposal_header.Block_height, protoutil.ValueDisplay(&value))
 
 	// NOTE: we have no way of knowing currently if the block had initiated pre-persist at all.
 	err := cbp.waitFinishPrePersist(ctx, value)
@@ -110,14 +110,14 @@ func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 	value proto.ConsensusValue,
 ) error {
 	liblog.Infof(ctx, "waiting for persisting of catchup block: height %d; value %s",
-		value.Block_height, protoutil.ValueDisplay(&value))
+		value.Proposal_header.Block_height, protoutil.ValueDisplay(&value))
 
 	err := cbp.waitFinishPrePersist(ctx, value)
 	if err != nil {
 		return err
 	}
 
-	return cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, value.Block_height, protoutil.HashValue(&value))
+	return cbp.persist.PersistAlreadyPrePersistedCatchupBlock(ctx, value.Proposal_header.Block_height, protoutil.HashValue(&value))
 }
 
 // CBPoolLookup finds persisted or pre-persisted catchup blocks with given cv hash.
@@ -139,7 +139,7 @@ func (cbp *CatchupBlockPool) CBPoolLookup(
 		return nil, nil
 	}
 
-	if cb.Consensus_basis.Nomination.Block_height != value.Block_height {
+	if cb.Consensus_basis.Value.Proposal_header.Block_height != value.Proposal_header.Block_height {
 		return nil, nil
 	}
 	return cb, nil

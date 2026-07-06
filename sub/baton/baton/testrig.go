@@ -84,12 +84,19 @@ func NewTestRig(
 	h.TestScheduler = testsched.NewTestScheduler(
 		ctx,
 		signer.Public_info,
-		proto.DbTip{Height: 0},
+		proto.DbTip{
+			Value: proto.ConsensusValue{
+				Proposal_header: proto.ProposalHeader{Block_height: 0},
+			},
+		},
 		dbDir,
 	)
-	// place a consensus value for the db tip
-	basis0 := assumedConsensusBasisAtHeight(0)
-	h.TestCVPersistence.PersistCV(ctx, basis0, protoutil.ValueHashFromBasis(&basis0))
+	basis0 := proto.ConsensusBasis{
+		Value: proto.ConsensusValue{
+			Proposal_header: proto.ProposalHeader{Block_height: 0},
+		},
+	}
+	h.TestCVPersistence.PersistCV(ctx, basis0, protoutil.HashValue(&basis0.Value))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
@@ -109,7 +116,7 @@ func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 
 func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusBasis) {
 	dbTip := h.GetTip(ctx)
-	cvTip, err := h.FindCommittedCV(ctx, dbTip.Height) // cvTip must be non-nil
+	cvTip, err := h.FindCommittedCV(ctx, protoutil.TipHeight(dbTip))
 	must.NoError(ctx, err)
 	return dbTip, *cvTip
 }
@@ -119,8 +126,20 @@ func (h *TestRig) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResult, e
 }
 
 func (h *TestRig) GenNomination(ctx context.Context, ntxs int) *testutil.TestBlock {
-	dbTip, cvTip := h.GetTipCV(ctx)
-	return h.GenNominationOntoTip(ctx, ntxs, dbTip, cvTip)
+	dbTip := h.GetTip(ctx)
+	return h.GenProposalOntoTip(ctx, ntxs, dbTip)
+}
+
+func (h *TestRig) GenNominationOnto(ctx context.Context, ntxs int, onto *testutil.BlockHandle) *testutil.TestBlock {
+	return h.GenProposalOnto(ctx, ntxs, onto)
+}
+
+func (h *TestRig) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *testutil.TestBlock) *testutil.TestBlock {
+	return h.GenProposalOntoBlock(ctx, ntxs, onto)
+}
+
+func (h *TestRig) GenNominationOntoTip(ctx context.Context, ntxs int, dbTip proto.DbTip, _ proto.ConsensusBasis) *testutil.TestBlock {
+	return h.GenProposalOntoTip(ctx, ntxs, dbTip)
 }
 
 func (h *TestRig) Bind(b *Baton) {

@@ -386,12 +386,13 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 	if tip.Outcome != proto.SchedulerGetTipOK {
 		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
 	}
-	if tip.Db_tip().Height > 0 {
-		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", tip.Db_tip().Height)
+	if protoutil.TipHeight(*tip.Db_tip()) > 0 {
+		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.TipHeight(*tip.Db_tip()))
 	}
 	if len(txs) == 0 {
 		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
-		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: tip.Db_tip().Height, BlockHash: "0x" + hex.EncodeToString(tip.Db_tip().Block_hash[:])})
+		valueHash := protoutil.HashValue(&tip.Db_tip().Value)
+		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.TipHeight(*tip.Db_tip()), BlockHash: "0x" + hex.EncodeToString(valueHash.Slice())})
 		if err != nil {
 			return fmt.Errorf("writing hosted runtime manifest: %w", err)
 		}
@@ -424,12 +425,13 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 	if tip.Outcome != proto.SchedulerGetTipOK {
 		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
 	}
-	if tip.Db_tip().Height > 0 {
-		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", tip.Db_tip().Height)
+	if protoutil.TipHeight(*tip.Db_tip()) > 0 {
+		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.TipHeight(*tip.Db_tip()))
 	}
 	if len(txs) == 0 {
 		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
-		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: tip.Db_tip().Height, BlockHash: "0x" + hex.EncodeToString(tip.Db_tip().Block_hash[:])})
+		valueHash := protoutil.HashValue(&tip.Db_tip().Value)
+		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.TipHeight(*tip.Db_tip()), BlockHash: "0x" + hex.EncodeToString(valueHash.Slice())})
 		if err != nil {
 			return fmt.Errorf("writing hosted runtime manifest: %w", err)
 		}
@@ -454,7 +456,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		mu.Lock()
 		defer mu.Unlock()
 
-		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Nomination.Transactions_hash)
+		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
 		if err != nil {
 			hookErr = err
 			return batonkit.BatonLevers{PauseNominating: true}
@@ -464,10 +466,10 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		}
 		complete = len(uncommitted) == 0
 		if complete {
-			blockHash := cb.BlockHash()
+			valueHash := cb.ValueHash()
 			commit = hostedBootstrapCommit{
 				Height:    cb.BlockHeight(),
-				BlockHash: "0x" + hex.EncodeToString(blockHash[:]),
+				BlockHash: "0x" + hex.EncodeToString(valueHash[:]),
 			}
 		}
 		return batonkit.BatonLevers{PauseNominating: complete}

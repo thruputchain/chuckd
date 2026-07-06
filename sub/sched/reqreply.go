@@ -59,29 +59,30 @@ type Reply_Schedulercoord_submit_vetted struct {
 	Err error
 }
 
-type Request_Schedulercoord_nominate struct {
-	Reply chan<- Reply_Schedulercoord_nominate
-	Ctx   context.Context
-	Tip   proto.DbTip
+type Request_Schedulercoord_propose_block struct {
+	Reply     chan<- Reply_Schedulercoord_propose_block
+	Ctx       context.Context
+	OntoID    proto.BlockID
+	Timestamp proto.TimePoint
 }
 
-func (Request_Schedulercoord_nominate) IsSchedCoordRequest() {}
+func (Request_Schedulercoord_propose_block) IsSchedCoordRequest() {}
 
-type Reply_Schedulercoord_nominate struct {
-	Result proto.SchedulerNominationResult
+type Reply_Schedulercoord_propose_block struct {
+	Result proto.SchedulerProposalResult
 	Err    error
 }
 
-type Request_Schedulercoord_validate struct {
-	Reply chan<- Reply_Schedulercoord_validate
-	Ctx   context.Context
-	Tip   proto.DbTip
-	Nom   proto.Nomination
+type Request_Schedulercoord_validate_block struct {
+	Reply    chan<- Reply_Schedulercoord_validate_block
+	Ctx      context.Context
+	OntoID   proto.BlockID
+	Proposal proto.Proposal
 }
 
-func (Request_Schedulercoord_validate) IsSchedCoordRequest() {}
+func (Request_Schedulercoord_validate_block) IsSchedCoordRequest() {}
 
-type Reply_Schedulercoord_validate struct {
+type Reply_Schedulercoord_validate_block struct {
 	Result proto.SchedulerValidationResult
 	Err    error
 }
@@ -90,6 +91,7 @@ type Request_Schedulercoord_commit_block struct {
 	Reply chan<- Reply_Schedulercoord_commit_block
 	Ctx   context.Context
 	ID    proto.BlockID
+	Value proto.ConsensusValue
 }
 
 func (Request_Schedulercoord_commit_block) IsSchedCoordRequest() {}

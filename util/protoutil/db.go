@@ -3,11 +3,14 @@ package protoutil
 import (
 	"fmt"
 
-	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
+func TipHeight(tip proto.DbTip) proto.BlockHeight {
+	return tip.Value.Proposal_header.Block_height
+}
+
 func DbTipString(tip proto.DbTip) string {
-	return fmt.Sprintf("DbTip[height %d; block_hash %s]",
-		tip.Height, libxdr.HashString(tip.Block_hash))
+	return fmt.Sprintf("DbTip[height %d; value_hash %s]",
+		TipHeight(tip), HashValue(&tip.Value).Display())
 }

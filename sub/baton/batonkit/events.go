@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
@@ -13,15 +12,15 @@ type EventNominating struct {
 	Onto       proto.DbTip
 	NumTx      int
 	Height     proto.BlockHeight
-	BlockHash  proto.BlockHash
+	ValueHash  proto.ConsensusValueHash
 	//
 	ConsensusBasis *proto.ConsensusBasis
 	ConsensusValue *proto.ConsensusValue
 }
 
 func (x EventNominating) String() string {
-	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; block_hash %s; scp_value: %s",
-		x.Height, x.NumTx, libxdr.HashString(x.BlockHash),
+	return fmt.Sprintf("NOMINATING: height %d; tx_count %d; value_hash %s; scp_value: %s",
+		x.Height, x.NumTx, protoutil.ValueDisplay(x.ConsensusValue),
 		protoutil.SCPValueDisplay(x.ConsensusValue),
 	)
 }
@@ -31,35 +30,35 @@ type EventNominated struct {
 	Onto      proto.DbTip
 	NumTx     int
 	Height    proto.BlockHeight
-	BlockHash proto.BlockHash
+	ValueHash proto.ConsensusValueHash
 	//
 	ConsensusBasis *proto.ConsensusBasis
 	ConsensusValue *proto.ConsensusValue
 }
 
 func (x EventNominated) String() string {
-	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; value %s; block_hash %s",
+	return fmt.Sprintf("NOMINATED: height %d; tx_count %d; value %s; value_hash %s",
 		x.Height, x.NumTx,
 		protoutil.ValueDisplay(x.ConsensusValue),
-		libxdr.HashString(x.BlockHash))
+		protoutil.ValueDisplay(x.ConsensusValue))
 }
 
 type EventCommitted struct {
 	Committed any
 	Onto      proto.DbTip
 	Height    proto.BlockHeight
-	BlockHash proto.BlockHash
+	ValueHash proto.ConsensusValueHash
 	//
 	DbgValidatable *CommittableBlock
 }
 
 func (x EventCommitted) String() string {
 	value := x.DbgValidatable.ConsensusValue()
-	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; value %s; block_hash %s; proposer %s",
+	return fmt.Sprintf("COMMITTED: height %d; tx_count %d; value %s; value_hash %s; proposer %s",
 		x.Height, x.DbgValidatable.NumTransactions(),
 		protoutil.ValueDisplay(value),
-		libxdr.HashString(x.BlockHash),
-		protoutil.VIDString(x.DbgValidatable.AsConsensusBasis().Proposer))
+		protoutil.ValueDisplay(value),
+		protoutil.VIDString(x.DbgValidatable.AsConsensusBasis().Value.Proposer))
 }
 
 type EventValidating struct {
@@ -67,18 +66,18 @@ type EventValidating struct {
 	Onto       proto.DbTip
 	NumTx      int
 	Height     proto.BlockHeight
-	BlockHash  proto.BlockHash
+	ValueHash  proto.ConsensusValueHash
 	//
 	ConsensusBasis *proto.ConsensusBasis
 	ConsensusValue *proto.ConsensusValue
 }
 
 func (x EventValidating) String() string {
-	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; value %s; block_hash %s; proposer %s",
+	return fmt.Sprintf("VALIDATING: height %d; tx_count %d; value %s; value_hash %s; proposer %s",
 		x.Height, x.NumTx,
 		protoutil.ValueDisplay(x.ConsensusValue),
-		libxdr.HashString(x.BlockHash),
-		protoutil.VIDString(x.ConsensusBasis.Proposer))
+		protoutil.ValueDisplay(x.ConsensusValue),
+		protoutil.VIDString(x.ConsensusBasis.Value.Proposer))
 }
 
 type EventValidated struct {
@@ -86,16 +85,16 @@ type EventValidated struct {
 	Onto      proto.DbTip
 	NumTx     int
 	Height    proto.BlockHeight
-	BlockHash proto.BlockHash
+	ValueHash proto.ConsensusValueHash
 	//
 	ConsensusBasis *proto.ConsensusBasis
 	ConsensusValue *proto.ConsensusValue
 }
 
 func (x EventValidated) String() string {
-	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; value %s; block_hash %s; proposer %s",
+	return fmt.Sprintf("VALIDATED: height %d; tx_count %d; value %s; value_hash %s; proposer %s",
 		x.Height, x.NumTx,
 		protoutil.ValueDisplay(x.ConsensusValue),
-		libxdr.HashString(x.BlockHash),
-		protoutil.VIDString(x.ConsensusBasis.Proposer))
+		protoutil.ValueDisplay(x.ConsensusValue),
+		protoutil.VIDString(x.ConsensusBasis.Value.Proposer))
 }

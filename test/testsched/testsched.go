@@ -104,16 +104,17 @@ func (x *TestScheduler) Schedcoord_lookup_transactions(
 	return mixed, nil
 }
 
-func (x *TestScheduler) Schedulercoord_nominate(
+func (x *TestScheduler) Schedulercoord_propose_block(
 	ctx context.Context,
-	onto proto.DbTip,
-) (proto.SchedulerNominationResult, error) {
+	ontoID proto.BlockID,
+	timestamp proto.TimePoint,
+) (proto.SchedulerProposalResult, error) {
 
 	blockID := x.generateBlockID()
 
 	<-x.ready // wait for x.coord != nil
 
-	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeProposal)
+	x.db.CreateSnapshot(ctx, ontoID, blockID, proto.KBlockExecutionModeProposal)
 
 	txs := x.mempool.DrainTxs()
 
@@ -123,27 +124,29 @@ func (x *TestScheduler) Schedulercoord_nominate(
 		txnds[i] = testutil.TestNondeterministicData
 	}
 
-	BlockHash := x.db.CloseSnapshot(ctx, blockID)
+	header := x.db.CloseSnapshot(ctx, blockID)
+	header.Timestamp = timestamp
+	header.Txs_hash = testutil.TxsHashOf(protoutil.HashSignedTxs(protoutil.Pack(txs)))
 
-	nomination := proto.Nomination{
-		Block_height:    onto.Height + 1,
-		Block_hash:      BlockHash,
-		Prev_block_hash: onto.Block_hash,
-		Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
-			x.m,
-			systemfixed.NominationSignedTransactionHashBatchMaxSegments,
-			protoutil.HashSignedTxs(protoutil.Pack(txs))),
-		Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
-			x.m,
-			systemfixed.NominationNondeterministicDataBatchMaxSegments,
-			txnds),
+	proposal := proto.Proposal{
+		Header: header,
+		Transactions: proto.ProposalTxs{
+			Hash: xdrutil.ParallelizeSignedTransactionHashBatch(
+				x.m,
+				systemfixed.NominationSignedTransactionHashBatchMaxSegments,
+				protoutil.HashSignedTxs(protoutil.Pack(txs))),
+			Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
+				x.m,
+				systemfixed.NominationNondeterministicDataBatchMaxSegments,
+				txnds),
+		},
 	}
 
-	r := proto.SchedulerNominationResult{}
-	r.Outcome = proto.SchedulerNominationOK
-	*r.Nominated_block() = proto.SchedulerNominatedBlock{
-		Block_id:   blockID,
-		Nomination: nomination,
+	r := proto.SchedulerProposalResult{}
+	r.Outcome = proto.SchedulerProposalOK
+	*r.Nominated_block() = proto.SchedulerProposedBlock{
+		Block_id: blockID,
+		Proposal: proposal,
 		Txs: xdrutil.ParallelizeSignedTransactionBatch(x.m,
 			systemfixed.CatchupTxBatchMaxSegments, protoutil.Pack(txs)),
 	}
@@ -151,19 +154,19 @@ func (x *TestScheduler) Schedulercoord_nominate(
 	return r, nil
 }
 
-func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.DbTip, nomination proto.Nomination) (proto.SchedulerValidationResult, error) {
+func (x *TestScheduler) Schedulercoord_validate_block(ctx context.Context, ontoID proto.BlockID, proposal proto.Proposal) (proto.SchedulerValidationResult, error) {
 
-	nomTxhs, err := xdrutil.SerializeSignedTransactionHashBatch(nomination.Transactions_hash)
+	nomTxhs, err := xdrutil.SerializeSignedTransactionHashBatch(proposal.Transactions.Hash)
 	if err != nil {
 		return proto.SchedulerValidationResult{}, err
 	}
-	nomNDs, err := xdrutil.SerializeNondeterministicProposalDataBatch(nomination.Transactions_nondeterministic_data)
+	nomNDs, err := xdrutil.SerializeNondeterministicProposalDataBatch(proposal.Transactions.Nondeterministic_data)
 	if err != nil {
 		return proto.SchedulerValidationResult{}, err
 	}
 
 	blockID := x.generateBlockID()
-	x.db.CreateSnapshot(ctx, onto.Id, blockID, proto.KBlockExecutionModeValidation)
+	x.db.CreateSnapshot(ctx, ontoID, blockID, proto.KBlockExecutionModeValidation)
 
 	txs, missingTxHashes, _ := x.mempool.LookupTxs(nomTxhs)
 	if len(missingTxHashes) > 0 {
@@ -183,16 +186,22 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 		x.db.AddProposedTx(ctx, blockID, ptx)
 	}
 
-	blockHash := x.db.CloseSnapshot(ctx, blockID)
+	header := x.db.CloseSnapshot(ctx, blockID)
+	// The timestamp is dictated by the proposer; the remaining header
+	// fields are recomputed so the coordinator can cross-check them
+	// against the proposal.
+	header.Timestamp = proposal.Header.Timestamp
+	header.Txs_hash = testutil.TxsHashOf(nomTxhs)
 
 	r := proto.SchedulerValidationResult{
 		Outcome: proto.SchedulerValidationOK,
 	}
 	*r.Block() = proto.SchedulerValidationBlock{
 		Db_tip: proto.DbTip{
-			Height:     onto.Height + 1,
-			Block_hash: blockHash,
-			Id:         blockID,
+			Id: blockID,
+			Value: proto.ConsensusValue{
+				Proposal_header: header,
+			},
 		},
 		Signed_transactions: xdrutil.ParallelizeSignedTransactionBatch(
 			x.m,
@@ -202,9 +211,9 @@ func (x *TestScheduler) Schedulercoord_validate(ctx context.Context, onto proto.
 	return r, nil
 }
 
-func (x *TestScheduler) Schedulercoord_commit_block(ctx context.Context, blockID proto.BlockID) (proto.SchedulerCommitOutcome, error) {
+func (x *TestScheduler) Schedulercoord_commit_block(ctx context.Context, blockID proto.BlockID, value proto.ConsensusValue) (proto.SchedulerCommitOutcome, error) {
 	x.db.OpenSnapshot(ctx, blockID)
-	_, hashes := x.db.CommitSnapshot(ctx, blockID)
+	hashes := x.db.CommitSnapshot(ctx, blockID, value)
 	x.mempool.RemoveTxs(hashes)
 	return proto.SchedulerCommitOK, nil
 }

@@ -20,7 +20,6 @@ func (b *Baton) start(ctx context.Context) {
 
 	liblog.Infof(ctx, "baton starting")
 
-	// restore db
 	var err error
 	tipResult, err := b.handler.RestoreDb(ctx)
 	if errors.Is(err, context.Canceled) {
@@ -31,57 +30,38 @@ func (b *Baton) start(ctx context.Context) {
 	b.tipDb = *tipResult.Db_tip()
 	liblog.Infof(ctx, "db restored %v", protoutil.DbTipString(b.tipDb))
 
-	// genesis block has height 0, and no corresponding consensus value
-	if b.tipDb.Height > 0 {
-		tipBasis, err := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
-		if errors.Is(err, context.Canceled) {
-			return
-		}
-		must.NoError(ctx, err)
-		must.Assert(ctx, tipBasis != nil)
-		must.Assert(ctx, tipBasis.Nomination.Block_height == b.tipDb.Height)
-		b.tipExt = newExternalized(protoutil.BasisValue(tipBasis), tipBasis)
-		liblog.Infof(ctx, "externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
-	} else {
-		assumedCV := assumedConsensusBasisAtHeight(b.tipDb.Height)
-		b.tipExt = newExternalized(protoutil.BasisValue(&assumedCV), &assumedCV)
-		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
-	}
+	tipValue := b.tipDb.Value
+	tipBasis := proto.ConsensusBasis{Value: tipValue}
+	b.tipExt = newExternalized(&tipValue, &tipBasis)
+	liblog.Infof(ctx, "externalized restored %v", ExternalizedString(b.tipExt))
 
-	// load known externalizations above db tip
-	higherBasis, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
+	higherBasis, err := b.handler.CVPoolFindCommittedAbove(ctx, protoutil.TipHeight(b.tipDb))
 	if errors.Is(err, context.Canceled) {
 		return
 	}
 	must.NoError(ctx, err)
-	highestExternalized := b.tipDb.Height
+	highestExternalized := protoutil.TipHeight(b.tipDb)
 	for _, basis := range higherBasis {
-		b.externalized = append(b.externalized, newExternalized(protoutil.BasisValue(&basis), &basis))
-		if basis.Nomination.Block_height > highestExternalized {
-			highestExternalized = basis.Nomination.Block_height
+		b.externalized = append(b.externalized, newExternalized(&basis.Value, &basis))
+		if basis.Value.Proposal_header.Block_height > highestExternalized {
+			highestExternalized = basis.Value.Proposal_header.Block_height
 		}
 	}
 
-	// initialize scp
 	b.handler.SCPSetLowestNonExternalized(ctx, scpkit.Slot(highestExternalized+1))
 	err = b.handler.SCPReviveStateFromEnvelopes(ctx, scpkit.Slot(highestExternalized+1))
 	must.NoError(ctx, err)
 
-	// prevents scpd from processing envelopes before the initialization above completes.
 	b.handler.SCPAllowFeedingEnvelopes(ctx)
 
-	liblog.Infof(ctx, "baton db restored at height %d", b.tipDb.Height)
+	liblog.Infof(ctx, "baton db restored at height %d", protoutil.TipHeight(b.tipDb))
 
-	// release lock on scp events
 	close(b.ready)
 
 	b.lock()
 	b.noteStarted()
 	b.unlock()
 
-	// wake up every so often for the purpose of
-	// triggering nomination which would capture any new txs that have been submitted to the mempool.
-	// rationale: waking up the baton every time a tx is added to the mempool would be too expensive.
 	for {
 		select {
 		case <-ctx.Done():
@@ -91,8 +71,4 @@ func (b *Baton) start(ctx context.Context) {
 		b.handler.Sleep(b.heartbeat)
 		b.Kick()
 	}
-}
-
-func assumedConsensusBasisAtHeight(height proto.BlockHeight) proto.ConsensusBasis {
-	return proto.ConsensusBasis{Nomination: proto.Nomination{Block_height: height}}
 }

@@ -21,8 +21,6 @@ func (b *Baton) validateExternalizedValue(
 
 	basis, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
 	if errors.Is(err, context.Canceled) {
-		// context cancellation is expected only if validation is being aborted due to externalizations ahead.
-		// cancellation on this condition is triggered in validateValue.
 		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
 		reply <- scpkit.MaybeValidValue
 		return
@@ -37,7 +35,6 @@ func (b *Baton) validateExternalizedValue(
 	}
 }
 
-// validateCommittedValue validates a consensus value that has been committed to the database.
 func (b *Baton) validateCommittedValue(
 	ctx context.Context,
 	slot scpkit.Slot,
@@ -49,8 +46,6 @@ func (b *Baton) validateCommittedValue(
 
 	basisX, err := b.handler.CVPoolFindCommitted(ctx, proto.BlockHeight(slot))
 	if errors.Is(err, context.Canceled) {
-		// context cancellation is expected only if validation is being aborted due to externalizations ahead.
-		// cancellation on this condition is triggered in validateValue.
 		must.Assert(ctx, b.HighestCommittedOrExternalized() >= proto.BlockHeight(slot))
 		reply <- scpkit.MaybeValidValue
 		return
@@ -58,7 +53,7 @@ func (b *Baton) validateCommittedValue(
 	must.NoError(ctx, err)
 	must.Assert(ctx, basisX != nil)
 
-	if protoutil.HashBasisFast(basisX) == value.Basis_hash {
+	if protoutil.BasisAgreesWithValue(basisX, value) {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue

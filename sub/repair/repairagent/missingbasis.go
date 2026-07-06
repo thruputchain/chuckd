@@ -15,7 +15,8 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-// RepairMissingBasis ensures that the returned basis matches the desired hash.
+// RepairMissingBasis repairs the proposal committed to by the missing value
+// and assembles the corresponding consensus basis.
 func (x *RepairAgent) RepairMissingBasis(
 	ctx context.Context,
 	from proto.ValidatorID,
@@ -26,10 +27,10 @@ func (x *RepairAgent) RepairMissingBasis(
 
 attempting:
 	for {
-		basis, err := x.attemptRepairMissingBasis(ctx, from, &missing)
+		basis, err := x.attemptRepairMissingProposal(ctx, from, &missing)
 		if err != nil {
-			liblog.Errorf(ctx, "failed attempt to repair missing basis at height %d from %s: %v",
-				missing.Block_height, protoutil.VIDString(from), err)
+			liblog.Errorf(ctx, "failed attempt to repair missing proposal at height %d from %s: %v",
+				missing.Proposal_header.Block_height, protoutil.VIDString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)
@@ -45,7 +46,7 @@ attempting:
 	}
 }
 
-func (x *RepairAgent) attemptRepairMissingBasis(
+func (x *RepairAgent) attemptRepairMissingProposal(
 	ctx context.Context,
 	from proto.ValidatorID,
 	missing *proto.ConsensusValue,
@@ -62,23 +63,26 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_basis(ctx, *missing)
+	reply, err := c.Repair_missing_proposal(ctx, *missing)
 	if err != nil {
-		return nil, fmt.Errorf("calling Repair_missing_basis: %w", err)
+		return nil, fmt.Errorf("calling Repair_missing_proposal: %w", err)
 	}
 
 	if reply == nil {
-		return nil, fmt.Errorf("no repaired consensus basis returned, cvh %s, vid %s",
-			libxdr.HashString(missing.Basis_hash), protoutil.VIDString(from))
+		return nil, fmt.Errorf("no repaired proposal returned, proposal hash %s, vid %s",
+			libxdr.HashString(missing.Proposal_hash), protoutil.VIDString(from))
 	}
 
-	// verify returned basis matches hash
-	if !protoutil.IsSaneBasis(reply) {
-		return nil, fmt.Errorf("repaired consensus basis is not sane")
+	// verify the returned proposal is the one committed to by the value
+	if !protoutil.IsSaneProposal(reply) {
+		return nil, fmt.Errorf("repaired proposal is not sane")
 	}
-	if !protoutil.ValueEquals(missing, protoutil.BasisValue(reply)) {
-		return nil, fmt.Errorf("repaired consensus basis/value mismatch")
+	if !protoutil.ProposalMatchesValue(reply, missing) {
+		return nil, fmt.Errorf("repaired proposal/value mismatch")
 	}
 
-	return reply, nil
+	return &proto.ConsensusBasis{
+		Value:        *missing,
+		Proposal_txs: reply.Transactions,
+	}, nil
 }

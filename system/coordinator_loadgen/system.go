@@ -94,7 +94,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 	tipResult, err := s.coordinator.SchedConn.Schedcoord_get_tip(ctx)
 	must.NoError(ctx, err)
 	if tipResult.Outcome == proto.SchedulerGetTipOK {
-		hasGenesis = tipResult.Db_tip().Height >= 0
+		hasGenesis = protoutil.TipHeight(*tipResult.Db_tip()) >= 0
 	}
 
 	// process genesis
@@ -140,7 +140,7 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 		batonkit.JustCommitHook(
 			// hook pauses nominations iff uncommitted is empty
 			func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
-				ns, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Nomination.Transactions_hash)
+				ns, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
 				must.NoError(ctx, err)
 				for _, h := range ns {
 					delete(uncommitted, h)

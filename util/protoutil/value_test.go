@@ -76,7 +76,7 @@ func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
 		{
 			name: "timestamp differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Timestamp++
+				value.Proposal_header.Timestamp++
 			},
 		},
 		{
@@ -92,33 +92,45 @@ func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
 			},
 		},
 		{
-			name: "cv hash differs",
+			name: "proposal hash differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Basis_hash[1] ^= 0xFF
+				value.Proposal_hash[1] ^= 0xFF
 			},
 		},
 		{
-			name: "prev cv hash differs",
+			name: "prev value hash differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Prev_basis_hash[2] ^= 0xFF
+				value.Prev_value_hash[2] ^= 0xFF
 			},
 		},
 		{
 			name: "block height differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Block_height++
+				value.Proposal_header.Block_height++
 			},
 		},
 		{
-			name: "block hash differs",
+			name: "txs hash differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Block_hash[3] ^= 0xFF
+				value.Proposal_header.Txs_hash[3] ^= 0xFF
 			},
 		},
 		{
-			name: "prev block hash differs",
+			name: "storage hash differs",
 			mutate: func(value *proto.ConsensusValue) {
-				value.Prev_block_hash[4] ^= 0xFF
+				value.Proposal_header.Storage_hash[4] ^= 0xFF
+			},
+		},
+		{
+			name: "network id differs",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Proposal_header.Network_id++
+			},
+		},
+		{
+			name: "events hash differs",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Proposal_header.Events_hash[5] ^= 0xFF
 			},
 		},
 	}
@@ -144,14 +156,18 @@ func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo)
 
 func sampleConsensusValue(seed byte) proto.ConsensusValue {
 	return proto.ConsensusValue{
-		Timestamp:       proto.TimePoint(seed) + 100,
-		Proposer:        sampleValidatorID(seed),
-		Upgrades:        sampleUpgrades(seed),
-		Basis_hash:      filledConsensusBasisHash(seed + 1),
-		Prev_basis_hash: filledConsensusBasisHash(seed + 2),
-		Block_height:    42,
-		Block_hash:      filledBlockHash(seed + 3),
-		Prev_block_hash: filledBlockHash(seed + 4),
+		Proposer: sampleValidatorID(seed),
+		Upgrades: sampleUpgrades(seed),
+		Proposal_header: proto.ProposalHeader{
+			Network_id:   7,
+			Timestamp:    proto.TimePoint(seed) + 100,
+			Block_height: 42,
+			Txs_hash:     filledSHA256Hash(seed + 3),
+			Storage_hash: filledStorageHash(seed + 4),
+			Events_hash:  filledSHA256Hash(seed + 5),
+		},
+		Proposal_hash:   filledSHA256Hash(seed + 1),
+		Prev_value_hash: filledSHA256Hash(seed + 2),
 	}
 }
 
@@ -185,16 +201,16 @@ func filledPublicKey(seed byte) proto.ValidatorPublicKey {
 	return out
 }
 
-func filledConsensusBasisHash(seed byte) proto.ConsensusBasisHash {
-	var out proto.ConsensusBasisHash
+func filledSHA256Hash(seed byte) proto.SHA256Hash {
+	var out proto.SHA256Hash
 	for i := range out {
 		out[i] = seed + byte(i)
 	}
 	return out
 }
 
-func filledBlockHash(seed byte) proto.BlockHash {
-	var out proto.BlockHash
+func filledStorageHash(seed byte) proto.StorageHash {
+	var out proto.StorageHash
 	for i := range out {
 		out[i] = seed + byte(i)
 	}

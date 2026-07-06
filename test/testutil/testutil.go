@@ -69,51 +69,41 @@ type TestBlock struct {
 	Catchup        proto.CatchupBlock
 }
 
+// BlockHandle describes a committed block onto which a new proposal is built.
 type BlockHandle struct {
-	BlockHash proto.BlockHash
-	Height    proto.BlockHeight
-	Basis     proto.ConsensusBasis
+	Value proto.ConsensusValue
 }
 
-func BlockHandleFromTip(tipDb proto.DbTip, tipCV proto.ConsensusBasis) *BlockHandle {
-	return &BlockHandle{BlockHash: tipDb.Block_hash, Height: tipDb.Height, Basis: tipCV}
+func (h *BlockHandle) Height() proto.BlockHeight {
+	return h.Value.Proposal_header.Block_height
+}
+
+func BlockHandleFromTip(tipDb proto.DbTip) *BlockHandle {
+	return &BlockHandle{Value: tipDb.Value}
 }
 
 func BlockHandleFromCommittableBlock(cb *batonkit.CommittableBlock) *BlockHandle {
-	return &BlockHandle{
-		BlockHash: cb.BlockHash(),
-		Height:    cb.BlockHeight(),
-		Basis:     *cb.AsConsensusBasis(),
-	}
+	return &BlockHandle{Value: *cb.ConsensusValue()}
 }
 
-func (h *TestGen) GenNominationOntoTip(
+func (h *TestGen) GenProposalOntoTip(
 	ctx context.Context,
 	ntxs int,
 	ontoDb proto.DbTip,
-	ontoBasis proto.ConsensusBasis,
 ) *TestBlock {
-	return h.GenNominationOnto(ctx, ntxs, BlockHandleFromTip(ontoDb, ontoBasis))
+	return h.GenProposalOnto(ctx, ntxs, BlockHandleFromTip(ontoDb))
 }
 
-func (h *TestGen) GenNominationOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
-	return h.GenNominationOnto(
-		ctx,
-		ntxs,
-		&BlockHandle{
-			Height:    onto.ConsensusBasis.Nomination.Block_height,
-			BlockHash: onto.ConsensusBasis.Nomination.Block_hash,
-			Basis:     onto.ConsensusBasis,
-		},
-	)
+func (h *TestGen) GenProposalOntoBlock(ctx context.Context, ntxs int, onto *TestBlock) *TestBlock {
+	return h.GenProposalOnto(ctx, ntxs, &BlockHandle{Value: onto.ConsensusValue})
 }
 
-func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
+func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHandle) *TestBlock {
 	txs := make([]proto.SignedTransaction, numTxs)
 	ntxs := make([]proto.NondeterministicProposalData, numTxs)
 	ptxs := make([]proto.ProposedTransaction, numTxs)
 	hashes := make([]proto.SignedTransactionHash, numTxs)
-	hash := onto.BlockHash
+	storage := onto.Value.Proposal_header.Storage_hash
 	for i := range txs {
 		txs[i] = *h.GenSignedTx(ctx)
 		hashes[i] = protoutil.HashSignedTx(&txs[i])
@@ -122,28 +112,39 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 			Signed_tx:                      txs[i],
 			Nondeterministic_proposal_data: TestNondeterministicData,
 		}
-		hash = BlendPropopsedTx(hash, &ptxs[i])
+		storage = BlendPropopsedTx(storage, &ptxs[i])
 	}
-	hash = UniqueBlockHash(onto.Height+1, hash)
-	basis := proto.ConsensusBasis{
-		Timestamp: protoutil.TimepointFromTime(h.time.Now()),
-		Proposer:  onto.Basis.Proposer,
-		Nomination: proto.Nomination{
-			Block_height:    onto.Height + 1,
-			Block_hash:      hash,
-			Prev_block_hash: onto.BlockHash,
-			Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
+	storage = UniqueStorageHash(onto.Height()+1, storage)
+	header := proto.ProposalHeader{
+		Network_id:   onto.Value.Proposal_header.Network_id,
+		Timestamp:    protoutil.TimepointFromTime(h.time.Now()),
+		Block_height: onto.Height() + 1,
+		Txs_hash:     TxsHashOf(hashes),
+		Storage_hash: storage,
+	}
+	proposal := proto.Proposal{
+		Header: header,
+		Transactions: proto.ProposalTxs{
+			Hash: xdrutil.ParallelizeSignedTransactionHashBatch(
 				h.m, systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
-			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
+			Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
 				h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 		},
+	}
+	value := proto.ConsensusValue{
+		Proposer:        onto.Value.Proposer,
 		Upgrades:        nil, // XXX: upgrades not yet supported in test
-		Prev_value_hash: protoutil.HashValue(protoutil.BasisValue(&onto.Basis)).Bytes(),
-		Prev_basis_hash: protoutil.HashBasisFast(&onto.Basis),
+		Proposal_header: header,
+		Proposal_hash:   protoutil.HashProposalFast(&proposal),
+		Prev_value_hash: protoutil.HashValueToProto(&onto.Value),
+	}
+	basis := proto.ConsensusBasis{
+		Value:        value,
+		Proposal_txs: proposal.Transactions,
 	}
 	return &TestBlock{
 		ConsensusBasis: basis,
-		ConsensusValue: *protoutil.BasisValue(&basis),
+		ConsensusValue: value,
 		Txs:            txs,
 		Catchup: proto.CatchupBlock{
 			Consensus_basis: basis,
@@ -153,28 +154,34 @@ func (h *TestGen) GenNominationOnto(ctx context.Context, numTxs int, onto *Block
 	}
 }
 
-func BlendPropopsedTx(base proto.BlockHash, ptx *proto.ProposedTransaction) proto.BlockHash {
-	return xorHash(base, protoutil.HashSignedTx(&ptx.Signed_tx))
+// TxsHashOf stands in for the Merkle root of the transactions in test blocks.
+func TxsHashOf(hashes []proto.SignedTransactionHash) proto.TxsHash {
+	h := sha256.New()
+	for _, x := range hashes {
+		h.Write(x[:])
+	}
+	return proto.TxsHash(h.Sum(nil))
 }
 
-func BlendSignedTx(base proto.BlockHash, stx *proto.SignedTransaction) proto.BlockHash {
-	return xorHash(base, protoutil.HashSignedTx(stx))
+func BlendPropopsedTx(base proto.StorageHash, ptx *proto.ProposedTransaction) proto.StorageHash {
+	return xorStorageHash(base, protoutil.HashSignedTx(&ptx.Signed_tx))
 }
 
-func UniqueBlockHash(height proto.BlockHeight, hash proto.BlockHash) proto.BlockHash {
+func BlendSignedTx(base proto.StorageHash, stx *proto.SignedTransaction) proto.StorageHash {
+	return xorStorageHash(base, protoutil.HashSignedTx(stx))
+}
+
+func UniqueStorageHash(height proto.BlockHeight, hash proto.StorageHash) proto.StorageHash {
 	var heightBytes [8]byte
 	binary.BigEndian.PutUint64(heightBytes[:], uint64(height))
 	heightHash := sha256.Sum256(heightBytes[:])
-	for i := range hash {
-		hash[i] ^= heightHash[i]
-	}
-	return hash
+	return xorStorageHash(hash, heightHash)
 }
 
-func xorHash(p, q proto.SHA256Hash) proto.SHA256Hash {
-	var r proto.SHA256Hash
-	for i := range r {
-		r[i] = p[i] ^ q[i]
+// xorStorageHash XORs a 32-byte hash into the leading bytes of a storage hash.
+func xorStorageHash(p proto.StorageHash, q proto.SHA256Hash) proto.StorageHash {
+	for i := range q {
+		p[i] ^= q[i]
 	}
-	return r
+	return p
 }
