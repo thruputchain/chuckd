@@ -54,7 +54,7 @@ func NewCoordinatorBenchCluster(
 	sched := testsched.NewTestScheduler(
 		ctx,
 		validator.Public_info,
-		proto.DbTip{Height: 0},
+		proto.DbTip{},
 		dbDir,
 	)
 

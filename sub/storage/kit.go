@@ -51,7 +51,7 @@ func FindCommittedConsensusValuesAbove(ctx context.Context, x ConsensusValuePers
 	if highest == nil {
 		return nil, nil
 	}
-	for height := above + 1; height <= highest.Nomination.Block_height; height++ {
+	for height := above + 1; height <= protoutil.ValueHeight(&highest.Value); height++ {
 		basis, err := x.FindCommittedCV(ctx, height)
 		if err != nil {
 			return nil, err

@@ -19,12 +19,12 @@ func (v *View) HighestExternalizedOrCommitted() proto.BlockHeight {
 	return v.Blocks[len(v.Blocks)-1].BlockHeight()
 }
 
-func (v *View) NominateOnto() (*proto.DbTip, *externalizedBasis) {
+func (v *View) NominateOnto() *proto.DbTip {
 	if len(v.Blocks) != 1 {
-		return nil, nil
+		return nil
 	}
 	db := v.Blocks[0].(ViewDbBlock)
-	return &db.TipDb, &db.TipExt
+	return &db.TipDb
 }
 
 func (v *View) NextBlockToCommit() *batonkit.CommittableBlock {

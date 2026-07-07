@@ -58,7 +58,7 @@ func (b *Baton) validateCommittedValue(
 	must.NoError(ctx, err)
 	must.Assert(ctx, basisX != nil)
 
-	if protoutil.HashBasisFast(basisX) == value.Basis_hash {
+	if protoutil.BasisAgreesWithValue(basisX, value) {
 		reply <- scpkit.FullyValidValue
 	} else {
 		reply <- scpkit.InvalidValue

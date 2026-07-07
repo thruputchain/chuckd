@@ -37,7 +37,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 
 	st.PersistCatchupBlock(ctx, cb, protoutil.ValueHashFromBasis(&basis))
 
-	got, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height)
+	got, err := st.FindCatchupBlock(ctx, basis.Value.Proposal_header.Block_height)
 	if err != nil {
 		t.Fatalf("FindCatchupBlock returned error: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {
 		t.Fatalf("FindCatchupBlock mismatch:\n got: %#v\nwant: %#v", *got, cb)
 	}
 
-	found, err := st.FindCatchupBlock(ctx, basis.Nomination.Block_height+1)
+	found, err := st.FindCatchupBlock(ctx, basis.Value.Proposal_header.Block_height+1)
 	if err != nil {
 		t.Fatalf("FindCatchupBlock returned error: %v", err)
 	}
@@ -170,19 +170,19 @@ func TestFindConsensusValue(t *testing.T) {
 	basis := newConsensusBasis(time.Unix(1700001000, 0).UTC(), 10)
 	st.PersistCV(ctx, basis, protoutil.ValueHashFromBasis(&basis))
 
-	got, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height)
+	got, err := st.FindCommittedCV(ctx, basis.Value.Proposal_header.Block_height)
 	if err != nil {
 		t.Fatalf("FindCommittedCV returned error: %v", err)
 	}
 	if got == nil {
-		t.Fatalf("FindConsensusValue returned nil for persisted height %d", basis.Nomination.Block_height)
+		t.Fatalf("FindConsensusValue returned nil for persisted height %d", basis.Value.Proposal_header.Block_height)
 	}
 
 	if !reflect.DeepEqual(*got, basis) {
 		t.Fatalf("FindConsensusValue mismatch:\n got: %+v\nwant: %+v", *got, basis)
 	}
 
-	missing, err := st.FindCommittedCV(ctx, basis.Nomination.Block_height+1)
+	missing, err := st.FindCommittedCV(ctx, basis.Value.Proposal_header.Block_height+1)
 	if err != nil {
 		t.Fatalf("FindCommittedCV returned error: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 	defer st.Stop()
 
 	basis := newConsensusBasis(time.Unix(1700006000, 0).UTC(), 12)
-	full := st.ConsensusValueFilepath(basis.Nomination.Block_height, protoutil.ValueHashFromBasis(&basis))
+	full := st.ConsensusValueFilepath(basis.Value.Proposal_header.Block_height, protoutil.ValueHashFromBasis(&basis))
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 		t.Fatalf("MkdirAll returned error: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 	}
 
 	gotErr := must.Try(func() {
-		_, _ = st.FindCommittedCV(ctx, basis.Nomination.Block_height)
+		_, _ = st.FindCommittedCV(ctx, basis.Value.Proposal_header.Block_height)
 	})
 	if gotErr == nil || !strings.Contains(gotErr.Error(), "persisted storage file is empty") {
 		t.Fatalf("expected zero-byte file error, got %v", gotErr)
@@ -287,11 +287,13 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 
 func newConsensusBasis(ts time.Time, height int64) proto.ConsensusBasis {
 	return proto.ConsensusBasis{
-		Timestamp: protoutil.TimepointFromTime(ts),
-		Nomination: proto.Nomination{
-			Block_height:    proto.BlockHeight(height),
-			Block_hash:      newBlockHash(byte(height)),
-			Prev_block_hash: newBlockHash(byte(height - 1)),
+		Value: proto.ConsensusValue{
+			Prev_value_hash: newTestHash(byte(height - 1)),
+			Proposal_header: proto.ProposalHeader{
+				Block_timepoint: protoutil.TimepointFromTime(ts),
+				Block_height:    proto.BlockHeight(height),
+				Storage_hash:    newTestHash(byte(height)),
+			},
 		},
 	}
 }
@@ -314,8 +316,8 @@ func newEnvelope(slot int64, marker byte) proto.SCPEnvelope {
 	return env
 }
 
-func newBlockHash(fill byte) proto.BlockHash {
-	var h proto.BlockHash
+func newTestHash(fill byte) proto.SHA256Hash {
+	var h proto.SHA256Hash
 	for i := range h {
 		h[i] = fill
 		fill++

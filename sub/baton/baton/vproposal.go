@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -20,17 +19,17 @@ func (b *Baton) validateProposal(
 	onto proto.DbTip,
 	basis *proto.ConsensusBasis,
 	value *proto.ConsensusValue,
-) (proto.DbTip, error) {
+) (proto.BlockID, error) {
 
-	nomination := basis.Nomination
+	proposal := protoutil.ProposalFromBasis(basis)
+	height := proposal.Header.Block_height
 
-	numTxs := xdrutil.TokenSizeOfBatch(nomination.Transactions_hash)
+	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
 
 	eventValidating := batonkit.EventValidating{
 		Onto:           onto,
 		NumTx:          numTxs,
-		Height:         nomination.Block_height,
-		BlockHash:      nomination.Block_hash,
+		Height:         height,
 		ConsensusValue: value,
 		ConsensusBasis: basis,
 	}
@@ -41,8 +40,7 @@ func (b *Baton) validateProposal(
 		eventValidated := batonkit.EventValidated{
 			Onto:           onto,
 			NumTx:          numTxs,
-			Height:         nomination.Block_height,
-			BlockHash:      nomination.Block_hash,
+			Height:         height,
 			ConsensusValue: value,
 			ConsensusBasis: basis,
 		}
@@ -52,11 +50,11 @@ func (b *Baton) validateProposal(
 
 	for {
 		liblog.Infof(ctx, "scheduler validating: height=%d; value=%s",
-			nomination.Block_height, protoutil.ValueDisplay(value))
-		schedValidResult, err := b.handler.Schedulercoord_validate(ctx, onto, nomination)
+			height, protoutil.ValueDisplay(value))
+		schedValidResult, err := b.handler.Schedulercoord_validate_block(ctx, onto.Id, *proposal)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return proto.DbTip{}, err
+				return 0, err
 			}
 			liblog.Infof(ctx, "cannot validate, scheduler error (%v)", err)
 			panic("scheduler failed on validation")
@@ -65,16 +63,9 @@ func (b *Baton) validateProposal(
 
 		case proto.SchedulerValidationOK:
 			liblog.Debugf(ctx, "scheduler validated: height=%d; value=%s",
-				nomination.Block_height, protoutil.ValueDisplay(value))
+				height, protoutil.ValueDisplay(value))
 
 			vblock := schedValidResult.Block()
-
-			if vblock.Db_tip.Block_hash != nomination.Block_hash {
-				liblog.Fatalf(ctx, "block hash mismatch: scheduler computed %s, nomination claims %s",
-					libxdr.HashString(vblock.Db_tip.Block_hash),
-					libxdr.HashString(nomination.Block_hash))
-				panic("scheduler bug, block hash mismatch")
-			}
 
 			cb := &proto.CatchupBlock{
 				Consensus_basis:     *basis,
@@ -85,34 +76,34 @@ func (b *Baton) validateProposal(
 			// this will be committed/persisted by commit if the block is committed.
 			b.handler.CBPoolAdd(ctx, *cb, *value)
 
-			return vblock.Db_tip, nil
+			return vblock.Block_id, nil
 
 		case proto.SchedulerValidationInvalid:
 			liblog.Infof(ctx, "scheduler invalidated: height=%d; value=%s",
-				nomination.Block_height, protoutil.ValueDisplay(value))
-			return proto.DbTip{}, batonkit.ErrNotValid
+				height, protoutil.ValueDisplay(value))
+			return 0, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationTooLateToValidate:
 			liblog.Infof(ctx, "scheduler is too late to validate: height=%d; value=%s",
-				nomination.Block_height, protoutil.ValueDisplay(value))
-			return proto.DbTip{}, batonkit.ErrNotValid
+				height, protoutil.ValueDisplay(value))
+			return 0, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationUnknownParentBlock:
 			liblog.Infof(ctx, "scheduler cannot validate due to missing parent block: height=%d; value=%s",
-				nomination.Block_height, protoutil.ValueDisplay(value))
-			return proto.DbTip{}, batonkit.ErrNotValid
+				height, protoutil.ValueDisplay(value))
+			return 0, batonkit.ErrNotValid
 
 		case proto.SchedulerValidationMissingTxs:
 			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; value=%s",
-				nomination.Block_height, protoutil.ValueDisplay(value))
+				height, protoutil.ValueDisplay(value))
 			missing := proto.MissingTransactions{
 				Consensus_value:    *value,
 				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
 			}
-			err := b.repairMissingTxs(ctx, basis.Proposer, missing)
+			err := b.repairMissingTxs(ctx, protoutil.ValueProposer(value), missing)
 			if err != nil { // err can only be context cancelled
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-					return proto.DbTip{}, err
+					return 0, err
 				}
 				must.NoError(ctx, err)
 			}
@@ -138,13 +129,13 @@ func (b *Baton) repairMissingTxs(
 	missing proto.MissingTransactions,
 ) (err error) {
 
-	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; value=%s; block_hash=%s",
-		len(missing.Transaction_hashes), missing.Consensus_value.Block_height, protoutil.ValueDisplay(&missing.Consensus_value),
-		libxdr.HashString(missing.Consensus_value.Block_hash))
+	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; value=%s",
+		len(missing.Transaction_hashes), protoutil.ValueHeight(&missing.Consensus_value),
+		protoutil.ValueDisplay(&missing.Consensus_value))
 	defer func() {
-		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; value=%s; block_hash=%s; error=%v",
-			len(missing.Transaction_hashes), missing.Consensus_value.Block_height,
-			protoutil.ValueDisplay(&missing.Consensus_value), libxdr.HashString(missing.Consensus_value.Block_hash), err)
+		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; value=%s; error=%v",
+			len(missing.Transaction_hashes), protoutil.ValueHeight(&missing.Consensus_value),
+			protoutil.ValueDisplay(&missing.Consensus_value), err)
 
 	}()
 

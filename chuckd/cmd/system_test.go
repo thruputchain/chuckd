@@ -116,7 +116,7 @@ func (f *fakeGenesisControl) LoadGenesisConfiguration(_ context.Context, genesis
 
 func tipOK(height uint64) proto.SchedulerGetTipResult {
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
-	tip.Db_tip().Height = proto.BlockHeight(height)
+	tip.Db_tip().Value.Proposal_header.Block_height = proto.BlockHeight(height)
 	return tip
 }
 
