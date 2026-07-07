@@ -1,7 +1,3 @@
-ADJUST
-
-============================================================================================
-
 CORRECTNESS
 
 - [ ] stellar: are future nomination envelopes not given to scp?
