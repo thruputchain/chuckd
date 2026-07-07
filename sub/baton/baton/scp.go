@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -74,10 +75,9 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 		return
 	}
 
-	liblog.Infof(ctx, "received externalization for slot %d with block hash %s and consensus basis hash %s",
+	liblog.Infof(ctx, "received externalization for slot %d with value hash %s",
 		slot,
-		libxdr.HashString(value.Block_hash),
-		libxdr.HashString(value.Basis_hash))
+		protoutil.ValueDisplay(&value))
 
 	liblog.Debugf(ctx, "notified scp broker of lowest non-externalized slot %d", slot+1)
 
@@ -98,7 +98,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 
 	} else {
 
-		must.Assert(ctx, slot == proto.SCPSlotIndex(basis.Nomination.Block_height))
+		must.Assert(ctx, slot == proto.SCPSlotIndex(protoutil.ValueHeight(&basis.Value)))
 
 		extConsensus := newExternalized(&value, basis)
 		x.baton.placeExternalization(ctx, extConsensus)
@@ -108,7 +108,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 // placeExternalization returns true if ext has not been placed previously, and is not at or below db tip.
 // scp can produce duplicate externalizations, which will result in placeExternalization returning false.
 func (b *Baton) placeExternalization(ctx context.Context, ext externalized) bool {
-	if ext.Height() <= b.tipDb.Height {
+	if ext.Height() <= protoutil.ValueHeight(&b.tipDb.Value) {
 		return false
 	}
 	if len(b.externalized) == 0 { // no prior externalizations

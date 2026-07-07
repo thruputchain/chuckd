@@ -84,12 +84,9 @@ func NewTestRig(
 	h.TestScheduler = testsched.NewTestScheduler(
 		ctx,
 		signer.Public_info,
-		proto.DbTip{Height: 0},
+		proto.DbTip{}, // zero-valued genesis tip (height 0, zero consensus value)
 		dbDir,
 	)
-	// place a consensus value for the db tip
-	basis0 := assumedConsensusBasisAtHeight(0)
-	h.TestCVPersistence.PersistCV(ctx, basis0, protoutil.ValueHashFromBasis(&basis0))
 	h.TestScheduler.SetCoordScheduler(h.TestCoord)
 	catchupSigner, err := protoutil.GenerateIdentity(rand, "test")
 	must.NoError(ctx, err)
@@ -107,11 +104,9 @@ func (h *TestRig) GetTip(ctx context.Context) proto.DbTip {
 	return *r.Db_tip()
 }
 
-func (h *TestRig) GetTipCV(ctx context.Context) (proto.DbTip, proto.ConsensusBasis) {
-	dbTip := h.GetTip(ctx)
-	cvTip, err := h.FindCommittedCV(ctx, dbTip.Height) // cvTip must be non-nil
-	must.NoError(ctx, err)
-	return dbTip, *cvTip
+func (h *TestRig) GetTipHeight(ctx context.Context) proto.BlockHeight {
+	tip := h.GetTip(ctx)
+	return protoutil.ValueHeight(&tip.Value)
 }
 
 func (h *TestRig) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResult, error) {
@@ -119,8 +114,8 @@ func (h *TestRig) RestoreDb(ctx context.Context) (proto.SchedulerGetTipResult, e
 }
 
 func (h *TestRig) GenNomination(ctx context.Context, ntxs int) *testutil.TestBlock {
-	dbTip, cvTip := h.GetTipCV(ctx)
-	return h.GenNominationOntoTip(ctx, ntxs, dbTip, cvTip)
+	dbTip := h.GetTip(ctx)
+	return h.GenProposalOntoTip(ctx, ntxs, dbTip)
 }
 
 func (h *TestRig) Bind(b *Baton) {

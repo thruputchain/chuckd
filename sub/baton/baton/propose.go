@@ -11,96 +11,102 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type nominating struct {
-	OntoDb  proto.DbTip
-	OntoExt externalizedBasis
-	Cancel  context.CancelFunc
+type proposing struct {
+	OntoDb proto.DbTip
+	Cancel context.CancelFunc
 }
 
-func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating) bool {
-	if tipToNominateOn == nil {
+func (b *Baton) canPropose(tipToProposeOnto *proto.DbTip, proposing *proposing) bool {
+	if tipToProposeOnto == nil {
 		return false
 	}
-	if nominating == nil {
+	if proposing == nil {
 		return true
 	} else {
-		return tipToNominateOn.Height > nominating.OntoDb.Height
+		return protoutil.ValueHeight(&tipToProposeOnto.Value) > protoutil.ValueHeight(&proposing.OntoDb.Value)
 	}
 }
 
-var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")
+var ErrProposalRejected = fmt.Errorf("proposal rejected by scp")
 
-func (b *Baton) nominate(
+func (b *Baton) propose(
 	ctx context.Context,
 	ontoDb proto.DbTip,
-	ontoExt externalizedBasis,
 ) (*proto.ConsensusBasis, *proto.ConsensusValue, proto.BlockID, error) {
 
-	b.stampNominateStart(ctx, ontoDb.Height+1)
-	defer b.stampNominateEnd(ontoDb.Height + 1)
+	ontoHeight := protoutil.ValueHeight(&ontoDb.Value)
 
-	// --- prepare nomination ---
+	b.stampNominateStart(ctx, ontoHeight+1)
+	defer b.stampNominateEnd(ontoHeight + 1)
 
-	t0 := b.handler.Now()
-	result, err := b.handler.Schedulercoord_nominate(ctx, ontoDb)
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return nil, nil, 0, err
-	}
-	must.NoError(ctx, err)
-	must.Assert(ctx, result.Outcome == proto.SchedulerNominationOK)
-
-	nominatedBlock := result.Nominated_block()
-	nomination := nominatedBlock.Nomination
-	numTxs := xdrutil.TokenSizeOfBatch(nomination.Transactions_hash)
-
-	tMempoolNominateEnd := b.handler.Now()
-	b.stampMempoolNominateEnd(nominatedBlock.Nomination.Block_height, tMempoolNominateEnd)
-	liblog.Debugf(ctx, "mempool_nomination_delay=%v | height=%d, num_txs=%d",
-		tMempoolNominateEnd.Sub(t0),
-		nominatedBlock.Nomination.Block_height,
-		numTxs,
-	)
-
-	// --- fire nomination ---
-
-	t1 := b.handler.Now()
+	// --- pick the block timepoint ---
 
 	// wait until `now - prevStamp >= 2*clock skew`
-	prevStamp := protoutil.TimeFromTimepoint(ontoExt.basis.Timestamp)
+	prevStamp := protoutil.TimeFromTimepoint(protoutil.ValueTimepoint(&ontoDb.Value))
 	stamp := b.handler.Now()
 	for stamp.Sub(prevStamp) < 2*b.skew {
-		liblog.Debugf(ctx, "delaying block %d by %v to overcome clock skew", nomination.Block_height, b.skew)
+		liblog.Debugf(ctx, "delaying block %d by %v to overcome clock skew", ontoHeight+1, b.skew)
 		b.handler.Sleep(b.skew)
 		stamp = b.handler.Now()
 	}
 
-	basis := &proto.ConsensusBasis{
-		Timestamp:       protoutil.TimepointFromTime(stamp.Add(-b.skew)),
+	// --- prepare proposal ---
+
+	propCx := proto.ProposalContext{
 		Proposer:        protoutil.PublicVID(b.handler.Signer()),
-		Nomination:      nomination,
-		Upgrades:        nil, // XXX: placeholder for upgrades
-		Prev_value_hash: protoutil.HashValue(ontoExt.ConsensusValue()).Bytes(),
-		Prev_basis_hash: ontoExt.ConsensusBasisHash(),
+		Block_timepoint: protoutil.TimepointFromTime(stamp.Add(-b.skew)),
+	}
+
+	t0 := b.handler.Now()
+	result, err := b.handler.Schedulercoord_propose_block(ctx, ontoDb.Id, propCx)
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil, nil, 0, err
+	}
+	must.NoError(ctx, err)
+	must.Assert(ctx, result.Outcome == proto.SchedulerProposalOK)
+
+	proposedBlock := result.Proposed_block()
+	proposal := proposedBlock.Proposal
+	height := proposal.Header.Block_height
+	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
+
+	tMempoolProposeEnd := b.handler.Now()
+	b.stampMempoolNominateEnd(height, tMempoolProposeEnd)
+	liblog.Debugf(ctx, "mempool_proposal_delay=%v | height=%d, num_txs=%d",
+		tMempoolProposeEnd.Sub(t0),
+		height,
+		numTxs,
+	)
+
+	// --- fire proposal ---
+
+	t1 := b.handler.Now()
+
+	q0 := b.handler.Now()
+	value := &proto.ConsensusValue{
+		Prev_hash:   protoutil.HashValueToProto(&ontoDb.Value),
+		Proposal_header:   proposal.Header,
+		Proposal_txs_hash: protoutil.HashProposalTxsFast(&proposal.Transactions),
+		Upgrades:          nil, // XXX: placeholder for upgrades
+	}
+	basis := &proto.ConsensusBasis{
+		Value:        *value,
+		Proposal_txs: proposal.Transactions,
 	}
 	cb := &proto.CatchupBlock{
 		Consensus_basis:     *basis,
-		Signed_transactions: nominatedBlock.Txs,
+		Signed_transactions: proposedBlock.Txs,
 	}
-
-	q0 := b.handler.Now()
-	value := protoutil.BasisValue(basis)
-	liblog.Debugf(ctx, "hashing basis for block %d took %v", nomination.Block_height, b.handler.Now().Sub(q0))
+	liblog.Debugf(ctx, "hashing proposal txs for block %d took %v", height, b.handler.Now().Sub(q0))
 
 	evNominating := batonkit.EventNominating{
 		Onto:           ontoDb,
 		NumTx:          numTxs,
-		Height:         nomination.Block_height,
-		BlockHash:      nomination.Block_hash,
+		Height:         height,
 		ConsensusBasis: basis,
 		ConsensusValue: value,
 	}
@@ -125,7 +131,7 @@ func (b *Baton) nominate(
 	// similarly, save the validated nomination (needed for commit) in the event that
 	// an externalization occurs before the call to scp nominate returns.
 	b.lk.Lock()
-	b.setValidated(basis, value, nominatedBlock.Block_id)
+	b.setValidated(basis, value, proposedBlock.Block_id)
 	b.lk.Unlock()
 
 	// notify the repair service that we are making the nomination, so that it
@@ -133,24 +139,23 @@ func (b *Baton) nominate(
 	b.handler.AnnounceNomination(value)
 
 	// nominate to consensus
-	prevSummary := proto.PrevNominationSummary{Block_hash: nomination.Prev_block_hash}
+	prevSummary := proto.PrevProposalSummary{Value_hash: value.Prev_hash}
 	n0 := time.Now()
-	accepted := b.handler.SubmitNomination(ctx, scpkit.Slot(nomination.Block_height), value, &prevSummary)
-	b.reportSCPNominationDelay(ctx, nomination.Block_height, time.Since(n0))
+	accepted := b.handler.SubmitNomination(ctx, scpkit.Slot(height), value, &prevSummary)
+	b.reportSCPNominationDelay(ctx, height, time.Since(n0))
 
 	if accepted {
 
 		// if nomination accepted, broadcast consensus basis
-		liblog.Debugf(ctx, "disseminating consensus basis for slot %d with hash %s",
-			nomination.Block_height,
-			libxdr.HashString(value.Basis_hash))
+		liblog.Debugf(ctx, "disseminating consensus basis for slot %d with value hash %s",
+			height,
+			protoutil.ValueDisplay(value))
 		b.handler.DisseminateBasis(ctx, *basis, *value)
 
 		evNominated := batonkit.EventNominated{
 			Onto:           ontoDb,
 			NumTx:          numTxs,
-			Height:         nomination.Block_height,
-			BlockHash:      nomination.Block_hash,
+			Height:         height,
 			ConsensusBasis: basis,
 			ConsensusValue: value,
 		}
@@ -158,22 +163,22 @@ func (b *Baton) nominate(
 		b.handler.Emit(ctx, evNominated)
 
 		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
-			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
+			b.handler.Now().Sub(t1), height, numTxs)
 
-		return basis, value, nominatedBlock.Block_id, nil
+		return basis, value, proposedBlock.Block_id, nil
 	} else {
 		liblog.Errorf(ctx, "nomination rejected by scp, onto tip %v", protoutil.DbTipString(ontoDb))
 
 		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
-			b.handler.Now().Sub(t1), nomination.Block_height, numTxs)
+			b.handler.Now().Sub(t1), height, numTxs)
 
-		return nil, nil, 0, ErrNominationRejected
+		return nil, nil, 0, ErrProposalRejected
 	}
 }
 
 func (b *Baton) cancelNominatingNotAbove(_ context.Context, height proto.BlockHeight) {
 
-	if b.nominating == nil || b.nominating.OntoDb.Height+1 > height {
+	if b.nominating == nil || protoutil.ValueHeight(&b.nominating.OntoDb.Value)+1 > height {
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
 	"github.com/groundhogchain/chuckd/system/systemfixed"
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
@@ -45,8 +46,8 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 	// cancel ongoing nominations trumped by this commit to save compute
 	b.cancelNominatingNotAbove(ctx, cb.BlockHeight())
 
-	liblog.Debugf(ctx, "COMMITTING: height %v; tx_count %d; hash %s",
-		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.BlockHash()))
+	liblog.Debugf(ctx, "COMMITTING: height %v; tx_count %d; value %s",
+		cb.BlockHeight(), cb.NumTransactions(), libxdr.HashString(cb.ValueHash()))
 
 	go func() {
 		blockID := b.commit(ctx, cb)
@@ -56,15 +57,12 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			must.Assertf(ctx, b.committing != nil, "race committing")
 			b.committing = nil
 
-			if b.tipDb.Height+1 != cb.BlockHeight() {
+			if b.tipHeight()+1 != cb.BlockHeight() {
 				panic("bug")
 			}
 
-			b.tipDb.Block_hash = cb.BlockHash()
-			b.tipDb.Height = cb.BlockHeight()
 			b.tipDb.Id = blockID
-
-			b.tipExt = newExternalized(cb.ConsensusValue(), cb.AsConsensusBasis())
+			b.tipDb.Value = *cb.ConsensusValue()
 
 			// purge catchup or consensus blocks no higher than the newly committed one
 			b.purgeNotAboveTipHeight(ctx)
@@ -87,8 +85,8 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		return
 	}
 
-	ontoDb, ontoExt := v.NominateOnto()
-	if !b.canNominate(ontoDb, b.nominating) {
+	ontoDb := v.ProposeOnto()
+	if !b.canPropose(ontoDb, b.nominating) {
 		return
 	}
 
@@ -98,9 +96,8 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		b.nominating = nil
 	}
 	nomCtx, nomCancel := context.WithCancel(ctx)
-	current := &nominating{
-		OntoDb:  *ontoDb,
-		OntoExt: *ontoExt,
+	current := &proposing{
+		OntoDb: *ontoDb,
 		Cancel: func() {
 			// liblog.Debugf("cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
 			nomCancel()
@@ -108,10 +105,10 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	}
 	b.nominating = current
 
-	liblog.Infof(ctx, "PREPARING: height %d", ontoDb.Height+1)
+	liblog.Infof(ctx, "PREPARING: height %d", protoutil.ValueHeight(&ontoDb.Value)+1)
 
 	go func() {
-		basis, value, blockID, err := b.nominate(nomCtx, *ontoDb, *ontoExt)
+		basis, value, blockID, err := b.propose(nomCtx, *ontoDb)
 		current.Cancel()
 
 		b.lock()
@@ -123,7 +120,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		if err != nil {
 			// scp rejects nominations when it is not our turn to nominate, or
 			// when an externalization happens during nomination (usually only in a single-node network)
-			if !errors.Is(err, ErrNominationRejected) {
+			if !errors.Is(err, ErrProposalRejected) {
 				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			}
 			return
@@ -131,14 +128,14 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 
 		if !currentWasReplaced {
 			b.setValidated(basis, value, blockID)
-			liblog.Infof(ctx, "nominated block at height %d with block hash %s",
-				basis.Nomination.Block_height,
-				libxdr.HashString(basis.Nomination.Block_hash),
+			liblog.Infof(ctx, "nominated block at height %d with value hash %s",
+				protoutil.ValueHeight(&basis.Value),
+				protoutil.ValueDisplay(value),
 			)
 		} else {
-			liblog.Infof(ctx, "superceded nomination for block at height %d with block hash %s",
-				basis.Nomination.Block_height,
-				libxdr.HashString(basis.Nomination.Block_hash),
+			liblog.Infof(ctx, "superceded nomination for block at height %d with value hash %s",
+				protoutil.ValueHeight(&basis.Value),
+				protoutil.ValueDisplay(value),
 			)
 		}
 	}()

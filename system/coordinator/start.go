@@ -187,11 +187,12 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 					return
 				}
 				_ = sender
-				if !protoutil.IsSaneBasis(basis) {
-					liblog.Errorf(ctx, "received cv at height %d is not sane, dropping", basis.Nomination.Block_height)
+				if !protoutil.IsValidBasis(basis) {
+					liblog.Errorf(ctx, "received cv at height %d is not valid, dropping",
+						basis.Value.Proposal_header.Block_height)
 					continue
 				}
-				s.CVPool.CVPoolAdd(s.ctx, *basis, *protoutil.BasisValue(basis))
+				s.CVPool.CVPoolAdd(s.ctx, *basis, basis.Value)
 			}
 		}()
 	}()

@@ -17,9 +17,9 @@ func mkBasis() *proto.ConsensusBasis {
 	txn := make([]proto.NondeterministicProposalData, 1e6)
 	m := libxdr.NewXdrMarshaler()
 	return &proto.ConsensusBasis{
-		Nomination: proto.Nomination{
-			Transactions_hash:                  xdrutil.ParallelizeSignedTransactionHashBatch(m, 20, txh),
-			Transactions_nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(m, 20, txn),
+		Proposal_txs: proto.ProposalTxs{
+			Hash:                  xdrutil.ParallelizeSignedTransactionHashBatch(m, 20, txh),
+			Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(m, 20, txn),
 		},
 	}
 }
@@ -28,7 +28,7 @@ func Benchmark_HashCVSlow_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
 	basis := mkBasis()
 	for b.Loop() {
-		protoutil.HashBasisSlow(basis)
+		protoutil.HashProposalTxsSlow(&basis.Proposal_txs)
 	}
 }
 
@@ -36,7 +36,7 @@ func Benchmark_HashCVFast_1M(b *testing.B) {
 	// liblog.SetLogLevelDebug()
 	basis := mkBasis()
 	for b.Loop() {
-		protoutil.HashBasisFast(basis)
+		protoutil.HashProposalTxsFast(&basis.Proposal_txs)
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -29,7 +28,7 @@ attempting:
 		basis, err := x.attemptRepairMissingBasis(ctx, from, &missing)
 		if err != nil {
 			liblog.Errorf(ctx, "failed attempt to repair missing basis at height %d from %s: %v",
-				missing.Block_height, protoutil.VIDString(from), err)
+				protoutil.ValueHeight(&missing), protoutil.VIDString(from), err)
 			delay, canRetry := backoff.NextDelay()
 			must.Assert(ctx, canRetry)
 			tmo := time.NewTimer(delay)
@@ -62,23 +61,30 @@ func (x *RepairAgent) attemptRepairMissingBasis(
 	}
 	defer c.Close()
 
-	reply, err := c.Repair_missing_basis(ctx, *missing)
+	reply, err := c.Repair_missing_proposal(ctx, *missing)
 	if err != nil {
-		return nil, fmt.Errorf("calling Repair_missing_basis: %w", err)
+		return nil, fmt.Errorf("calling Repair_missing_proposal: %w", err)
 	}
 
 	if reply == nil {
-		return nil, fmt.Errorf("no repaired consensus basis returned, cvh %s, vid %s",
-			libxdr.HashString(missing.Basis_hash), protoutil.VIDString(from))
+		return nil, fmt.Errorf("no repaired proposal returned, value %s, vid %s",
+			protoutil.ValueDisplay(missing), protoutil.VIDString(from))
 	}
 
-	// verify returned basis matches hash
-	if !protoutil.IsSaneBasis(reply) {
-		return nil, fmt.Errorf("repaired consensus basis is not sane")
-	}
-	if !protoutil.ValueEquals(missing, protoutil.BasisValue(reply)) {
-		return nil, fmt.Errorf("repaired consensus basis/value mismatch")
+	// verify the returned proposal header agrees with the requested value
+	if !protoutil.HeaderEquals(&reply.Header, &missing.Proposal_header) {
+		return nil, fmt.Errorf("repaired proposal header/value mismatch")
 	}
 
-	return reply, nil
+	// reconstruct the basis from the requested value and the repaired proposal txs,
+	// and verify the proposal txs fast-hash to the proposal_txs_hash in the value
+	basis := &proto.ConsensusBasis{
+		Value:        *missing,
+		Proposal_txs: reply.Transactions,
+	}
+	if !protoutil.IsValidBasis(basis) {
+		return nil, fmt.Errorf("repaired consensus basis is not valid")
+	}
+
+	return basis, nil
 }

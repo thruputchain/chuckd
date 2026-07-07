@@ -187,7 +187,7 @@ func decodeHostedBootstrapTransactions(metadata hostedBootstrapMetadata) ([]prot
 
 type hostedBootstrapCommit struct {
 	Height    proto.BlockHeight `json:"height"`
-	BlockHash string            `json:"blockHash"`
+	ValueHash string            `json:"valueHash"`
 }
 
 func runtimeManifestProducer() map[string]any {
@@ -386,12 +386,13 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 	if tip.Outcome != proto.SchedulerGetTipOK {
 		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
 	}
-	if tip.Db_tip().Height > 0 {
-		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", tip.Db_tip().Height)
+	if protoutil.ValueHeight(&tip.Db_tip().Value) > 0 {
+		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.ValueHeight(&tip.Db_tip().Value))
 	}
 	if len(txs) == 0 {
 		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
-		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: tip.Db_tip().Height, BlockHash: "0x" + hex.EncodeToString(tip.Db_tip().Block_hash[:])})
+		tipValueHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
+		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.ValueHeight(&tip.Db_tip().Value), ValueHash: "0x" + hex.EncodeToString(tipValueHash[:])})
 		if err != nil {
 			return fmt.Errorf("writing hosted runtime manifest: %w", err)
 		}
@@ -424,12 +425,13 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 	if tip.Outcome != proto.SchedulerGetTipOK {
 		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
 	}
-	if tip.Db_tip().Height > 0 {
-		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", tip.Db_tip().Height)
+	if protoutil.ValueHeight(&tip.Db_tip().Value) > 0 {
+		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.ValueHeight(&tip.Db_tip().Value))
 	}
 	if len(txs) == 0 {
 		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
-		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: tip.Db_tip().Height, BlockHash: "0x" + hex.EncodeToString(tip.Db_tip().Block_hash[:])})
+		tipValueHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
+		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.ValueHeight(&tip.Db_tip().Value), ValueHash: "0x" + hex.EncodeToString(tipValueHash[:])})
 		if err != nil {
 			return fmt.Errorf("writing hosted runtime manifest: %w", err)
 		}
@@ -454,7 +456,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		mu.Lock()
 		defer mu.Unlock()
 
-		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Nomination.Transactions_hash)
+		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
 		if err != nil {
 			hookErr = err
 			return batonkit.BatonLevers{PauseNominating: true}
@@ -464,10 +466,10 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		}
 		complete = len(uncommitted) == 0
 		if complete {
-			blockHash := cb.BlockHash()
+			valueHash := cb.ValueHash()
 			commit = hostedBootstrapCommit{
 				Height:    cb.BlockHeight(),
-				BlockHash: "0x" + hex.EncodeToString(blockHash[:]),
+				ValueHash: "0x" + hex.EncodeToString(valueHash[:]),
 			}
 		}
 		return batonkit.BatonLevers{PauseNominating: complete}
@@ -511,8 +513,8 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 	if err != nil {
 		return fmt.Errorf("writing hosted runtime manifest: %w", err)
 	}
-	liblog.Infof(ctx, "hosted bootstrap initialized network=%s genesis=%s txs=%d height=%d block_hash=%s",
-		metadata.NetworkID, metadata.GenesisHash, len(txs), commit.Height, commit.BlockHash)
+	liblog.Infof(ctx, "hosted bootstrap initialized network=%s genesis=%s txs=%d height=%d value_hash=%s",
+		metadata.NetworkID, metadata.GenesisHash, len(txs), commit.Height, commit.ValueHash)
 	if cfg.runtimeManifestOut != "" {
 		liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
 	}

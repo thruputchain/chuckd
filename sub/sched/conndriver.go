@@ -33,16 +33,16 @@ func driveConn(
 				err := conn.Schedulercoord_submit_vetted(req.Ctx, req.VID, req.STB)
 				req.Reply <- Reply_Schedulercoord_submit_vetted{Err: err}
 
-			case Request_Schedulercoord_nominate:
-				result, err := conn.Schedulercoord_nominate(req.Ctx, req.Tip)
-				req.Reply <- Reply_Schedulercoord_nominate{Result: result, Err: err}
+			case Request_Schedulercoord_propose_block:
+				result, err := conn.Schedulercoord_propose_block(req.Ctx, req.Onto, req.PropCx)
+				req.Reply <- Reply_Schedulercoord_propose_block{Result: result, Err: err}
 
-			case Request_Schedulercoord_validate:
-				result, err := conn.Schedulercoord_validate(req.Ctx, req.Tip, req.Nom)
-				req.Reply <- Reply_Schedulercoord_validate{Result: result, Err: err}
+			case Request_Schedulercoord_validate_block:
+				result, err := conn.Schedulercoord_validate_block(req.Ctx, req.Onto, req.Prop)
+				req.Reply <- Reply_Schedulercoord_validate_block{Result: result, Err: err}
 
 			case Request_Schedulercoord_commit_block:
-				outcome, err := conn.Schedulercoord_commit_block(req.Ctx, req.ID)
+				outcome, err := conn.Schedulercoord_commit_block(req.Ctx, req.ID, req.Value)
 				req.Reply <- Reply_Schedulercoord_commit_block{Outcome: outcome, Err: err}
 
 			case Request_Schedcoord_get_tip:

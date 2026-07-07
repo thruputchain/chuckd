@@ -60,8 +60,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 	v := &View{Stamp: b.handler.Now()}
 
 	dbBlock := ViewDbBlock{
-		TipDb:  b.tipDb,
-		TipExt: b.tipExt,
+		TipDb: b.tipDb,
 	}
 
 	// if there are no scp blocks, we are done
@@ -71,14 +70,15 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		return v, nil
 	}
 
+	dbTipHeight := dbBlock.BlockHeight()
+
 	scpTopExt := b.externalized[len(b.externalized)-1]
 	scpTopHeight := scpTopExt.Height()
-	if scpTopHeight < dbBlock.TipDb.Height {
+	if scpTopHeight < dbTipHeight {
 		return nil, ErrConsensusBelowDb
 	}
-	if scpTopHeight == dbBlock.TipDb.Height {
-		if scpTopExt.BlockHash() == dbBlock.BlockHash() &&
-			scpTopExt.ConsensusBasisHash() == dbBlock.BasisHash() {
+	if scpTopHeight == dbTipHeight {
+		if scpTopExt.ValueHash() == dbBlock.ValueHash() {
 			v.Blocks = []ViewBlock{dbBlock}
 			v.Reqs = [][]batonkit.ID64{nil}
 			return v, nil
@@ -91,7 +91,7 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		liblog.Fatalf(ctx, "top externalized height is too high: %d", scpTopHeight)
 	}
 
-	n := int(scpTopHeight) + 1 - int(dbBlock.TipDb.Height)
+	n := int(scpTopHeight) + 1 - int(dbTipHeight)
 	if n > b.getMaxCatchupHeight() {
 		return nil, ErrDbFarBehind
 	}
@@ -105,13 +105,13 @@ func (b *Baton) buildView(ctx context.Context) (*View, error) {
 		scpPrevHeight = ext.Height()
 		//
 		if extConsensus, ok := ext.(externalizedBasis); ok {
-			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtBasisBlock{
+			v.Blocks[int(ext.Height())-int(dbTipHeight)] = ViewExtBasisBlock{
 				Ext:       extConsensus,
 				Validated: b.getValidatedBlockID(ext.ConsensusValue()),
 			}
 		} else {
 			extValue := ext.(externalizedValue)
-			v.Blocks[int(ext.Height())-int(dbBlock.TipDb.Height)] = ViewExtValueBlock{
+			v.Blocks[int(ext.Height())-int(dbTipHeight)] = ViewExtValueBlock{
 				Ext: extValue,
 			}
 		}
@@ -161,7 +161,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 			if u.Validated == nil {
 				if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 					// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-					if protoutil.ValueEquals(ca.ConsensusValue(), BlockValue(u)) {
+					if protoutil.ValueEquals(ca.ConsensusValue(), u.ConsensusValue()) {
 						u.Catchup = &ca
 						v.Blocks[i] = u
 					} else {
@@ -172,7 +172,7 @@ func (b *Baton) fillBlocks(_ context.Context, v *View) error {
 		case ViewExtValueBlock:
 			if ca, ok := b.findCatchupBlockAtHeight(height); ok {
 				// a catchup block in the same slot as an scp block can be linked immediately using the scp block
-				if protoutil.ValueEquals(ca.ConsensusValue(), BlockValue(u)) {
+				if protoutil.ValueEquals(ca.ConsensusValue(), u.ConsensusValue()) {
 					u.Catchup = &ca
 					v.Blocks[i] = u
 				} else {
@@ -194,23 +194,22 @@ func (b *Baton) chainBlocks(_ context.Context, v *View) error {
 		case ViewMissing:
 		case ViewCatchupBlock:
 			if !prev.IsMissing() &&
-				(prev.BlockHash() != u.PrevBlockHash() ||
-					prev.BasisHash() != u.PrevBasisHash()) {
+				prev.ValueHash() != u.PrevValueHash() {
 				return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 			}
 		case ViewExtBasisBlock, ViewExtValueBlock:
 			switch {
 			case prev.IsMissing():
 			case prev.IsCatchup():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
+				if u.PrevValueHash() != prev.ValueHash() {
 					return ErrFaultyCatchup // the caller must purge all catchup blocks and rerun view
 				}
 			case prev.IsDb():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
+				if u.PrevValueHash() != prev.ValueHash() {
 					return ErrDbConsensusDisagree // unrecoverable
 				}
 			case prev.IsExtBasis() || prev.IsExtValue():
-				if u.PrevBlockHash() != prev.BlockHash() || u.PrevBasisHash() != prev.BasisHash() {
+				if u.PrevValueHash() != prev.ValueHash() {
 					return ErrConsensusInconsistent // unrecoverable
 				}
 			default:

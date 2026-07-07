@@ -104,23 +104,23 @@ func (p *ConnPool) Schedulercoord_submit_vetted(ctx context.Context, vid proto.V
 	return r.Err
 }
 
-func (p *ConnPool) Schedulercoord_nominate(ctx context.Context, tip proto.DbTip) (proto.SchedulerNominationResult, error) {
-	reply := make(chan Reply_Schedulercoord_nominate, 1)
-	p.req <- Request_Schedulercoord_nominate{Reply: reply, Ctx: ctx, Tip: tip}
+func (p *ConnPool) Schedulercoord_propose_block(ctx context.Context, onto proto.BlockID, propCx proto.ProposalContext) (proto.SchedulerProposalResult, error) {
+	reply := make(chan Reply_Schedulercoord_propose_block, 1)
+	p.req <- Request_Schedulercoord_propose_block{Reply: reply, Ctx: ctx, Onto: onto, PropCx: propCx}
 	r := <-reply
 	return r.Result, r.Err
 }
 
-func (p *ConnPool) Schedulercoord_validate(ctx context.Context, tip proto.DbTip, nom proto.Nomination) (proto.SchedulerValidationResult, error) {
-	reply := make(chan Reply_Schedulercoord_validate, 1)
-	p.req <- Request_Schedulercoord_validate{Reply: reply, Ctx: ctx, Tip: tip, Nom: nom}
+func (p *ConnPool) Schedulercoord_validate_block(ctx context.Context, onto proto.BlockID, prop proto.Proposal) (proto.SchedulerValidationResult, error) {
+	reply := make(chan Reply_Schedulercoord_validate_block, 1)
+	p.req <- Request_Schedulercoord_validate_block{Reply: reply, Ctx: ctx, Onto: onto, Prop: prop}
 	r := <-reply
 	return r.Result, r.Err
 }
 
-func (p *ConnPool) Schedulercoord_commit_block(ctx context.Context, id proto.BlockID) (proto.SchedulerCommitOutcome, error) {
+func (p *ConnPool) Schedulercoord_commit_block(ctx context.Context, id proto.BlockID, value proto.ConsensusValue) (proto.SchedulerCommitOutcome, error) {
 	reply := make(chan Reply_Schedulercoord_commit_block, 1)
-	p.req <- Request_Schedulercoord_commit_block{Reply: reply, Ctx: ctx, ID: id}
+	p.req <- Request_Schedulercoord_commit_block{Reply: reply, Ctx: ctx, ID: id, Value: value}
 	r := <-reply
 	return r.Outcome, r.Err
 }

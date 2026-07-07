@@ -1,14 +1,15 @@
 package batonkit
 
 import (
+	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
 type Committable interface {
 	BlockHeight() proto.BlockHeight
-	BlockHash() proto.BlockHash
-	PrevBlockHash() proto.BlockHash
+	ValueHash() proto.ConsensusValueHash
+	PrevValueHash() proto.ConsensusValueHash
 	AlreadyValidated() *proto.BlockID
 	AsConsensusBasis() *proto.ConsensusBasis
 	ConsensusValue() *proto.ConsensusValue
@@ -16,57 +17,57 @@ type Committable interface {
 	NumTransactions() int
 }
 
-type CommittableNomination struct {
+type CommittableProposal struct {
 	basis     *proto.ConsensusBasis // always present
 	value     *proto.ConsensusValue
 	validated *proto.BlockID // always present
 }
 
-func NewCommittableNomination(
+func NewCommittableProposal(
 	basis *proto.ConsensusBasis,
 	value *proto.ConsensusValue,
 	validated *proto.BlockID,
-) *CommittableNomination {
-	return &CommittableNomination{
+) *CommittableProposal {
+	return &CommittableProposal{
 		basis:     basis,
 		value:     value,
 		validated: validated,
 	}
 }
 
-func (cb *CommittableNomination) BlockHeight() proto.BlockHeight {
-	return cb.basis.Nomination.Block_height
+func (cb *CommittableProposal) BlockHeight() proto.BlockHeight {
+	return cb.basis.Value.Proposal_header.Block_height
 }
 
-func (cb *CommittableNomination) BlockHash() proto.BlockHash {
-	return cb.basis.Nomination.Block_hash
+func (cb *CommittableProposal) ValueHash() proto.ConsensusValueHash {
+	return protoutil.HashValueToProto(cb.value)
 }
 
-func (cb *CommittableNomination) PrevBlockHash() proto.BlockHash {
-	return cb.basis.Nomination.Prev_block_hash
+func (cb *CommittableProposal) PrevValueHash() proto.ConsensusValueHash {
+	return cb.value.Prev_hash
 }
 
-func (cb *CommittableNomination) AlreadyValidated() *proto.BlockID {
+func (cb *CommittableProposal) AlreadyValidated() *proto.BlockID {
 	if cb.validated == nil {
 		panic("bug")
 	}
 	return cb.validated
 }
 
-func (cb *CommittableNomination) ConsensusValue() *proto.ConsensusValue {
+func (cb *CommittableProposal) ConsensusValue() *proto.ConsensusValue {
 	return cb.value
 }
 
-func (cb *CommittableNomination) AsConsensusBasis() *proto.ConsensusBasis {
+func (cb *CommittableProposal) AsConsensusBasis() *proto.ConsensusBasis {
 	return cb.basis
 }
 
-func (cb *CommittableNomination) UnsubmittedSignedTransactions() []proto.SignedTransaction {
+func (cb *CommittableProposal) UnsubmittedSignedTransactions() []proto.SignedTransaction {
 	return nil
 }
 
-func (cb *CommittableNomination) NumTransactions() int {
-	return xdrutil.TokenSizeOfBatch(cb.basis.Nomination.Transactions_hash)
+func (cb *CommittableProposal) NumTransactions() int {
+	return xdrutil.TokenSizeOfBatch(cb.basis.Proposal_txs.Hash)
 }
 
 type CommittableCatchup struct {
@@ -91,15 +92,15 @@ func NewCommittableCatchup(
 }
 
 func (cb *CommittableCatchup) BlockHeight() proto.BlockHeight {
-	return cb.catchup.Consensus_basis.Nomination.Block_height
+	return cb.catchup.Consensus_basis.Value.Proposal_header.Block_height
 }
 
-func (cb *CommittableCatchup) BlockHash() proto.BlockHash {
-	return cb.catchup.Consensus_basis.Nomination.Block_hash
+func (cb *CommittableCatchup) ValueHash() proto.ConsensusValueHash {
+	return protoutil.HashValueToProto(cb.value)
 }
 
-func (cb *CommittableCatchup) PrevBlockHash() proto.BlockHash {
-	return cb.catchup.Consensus_basis.Nomination.Prev_block_hash
+func (cb *CommittableCatchup) PrevValueHash() proto.ConsensusValueHash {
+	return cb.value.Prev_hash
 }
 
 func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {

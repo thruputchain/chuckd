@@ -64,12 +64,12 @@ func (x *RepairService) AnnounceNomination(value *proto.ConsensusValue) {
 
 	// clear older nominations
 	for mHash, mHeight := range x.nominated {
-		if mHeight < value.Block_height {
+		if mHeight < protoutil.ValueHeight(value) {
 			delete(x.nominated, mHash)
 		}
 	}
 
-	x.nominated[protoutil.HashValue(value)] = value.Block_height
+	x.nominated[protoutil.HashValue(value)] = protoutil.ValueHeight(value)
 }
 
 func (x *RepairService) Repair_missing_txs(
@@ -78,12 +78,12 @@ func (x *RepairService) Repair_missing_txs(
 ) (rtx proto.RepairedTransactions, err error) {
 
 	ctx = liblog.Enterf(ctx, "Repair_missing_txs", "by=%s; height=%d; value=%s; count=%d",
-		libxdr.HashString(env.Signer), env.Missing_transactions.Consensus_value.Block_height,
+		libxdr.HashString(env.Signer), protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 		protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 		len(env.Missing_transactions.Transaction_hashes))
 	defer func() {
 		liblog.Leavef(ctx, "by=%s; height=%d; value=%s; count=%d; error=%v; found=%d",
-			libxdr.HashString(env.Signer), env.Missing_transactions.Consensus_value.Block_height,
+			libxdr.HashString(env.Signer), protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 			len(env.Missing_transactions.Transaction_hashes),
 			err, len(rtx.Transactions))
@@ -94,7 +94,7 @@ func (x *RepairService) Repair_missing_txs(
 	txs, err := x.repairMissingTxsFromMempool(ctx, env.Missing_transactions.Transaction_hashes)
 	if err != nil {
 		liblog.Errorf(ctx, "repair_missing_txs not found in mempool (%v): height=%d; value=%s",
-			err, env.Missing_transactions.Consensus_value.Block_height,
+			err, protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 	} else {
 		return txs, nil
@@ -103,7 +103,7 @@ func (x *RepairService) Repair_missing_txs(
 	txs, err = x.repairMissingTxsFromStorage(ctx, env)
 	if err != nil {
 		liblog.Errorf(ctx, "repair_missing_txs not found in storage (%v): height=%d; value=%s",
-			err, env.Missing_transactions.Consensus_value.Block_height,
+			err, protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
 		return proto.RepairedTransactions{}, err
 	}
@@ -117,12 +117,12 @@ func (x *RepairService) repairMissingTxsFromStorage(
 ) (rtx proto.RepairedTransactions, err error) {
 
 	ctx = liblog.Enterf(ctx, "repairMissingTxsFromStorage", "height=%d; value=%s; count=%d",
-		env.Missing_transactions.Consensus_value.Block_height,
+		protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 		protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 		len(env.Missing_transactions.Transaction_hashes))
 	defer func() {
 		liblog.Leavef(ctx, "height=%d; value=%s; count=%d; error=%v; found=%d",
-			env.Missing_transactions.Consensus_value.Block_height,
+			protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
 			len(env.Missing_transactions.Transaction_hashes),
 			err, len(rtx.Transactions))
@@ -147,7 +147,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 			fmt.Errorf("failed to serialize transaction batch (%w)", err)
 	}
 
-	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_basis.Nomination.Transactions_hash)
+	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_basis.Proposal_txs.Hash)
 	if err != nil {
 		liblog.Errorf(ctx, "failed to serialize transaction hash batch: value=%s",
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
@@ -209,12 +209,13 @@ func (x *RepairService) repairMissingTxsFromMempool(
 }
 
 // XXX: needs dos protection
-func (x *RepairService) Repair_missing_basis(
+func (x *RepairService) Repair_missing_proposal(
 	ctx context.Context,
 	value proto.ConsensusValue,
-) (proto.OptConsensusBasis, error) {
+) (proto.OptProposal, error) {
 
-	liblog.Debugf(ctx, "repair_missing_basis request: height=%d; value=%s", value.Block_height, protoutil.ValueDisplay(&value))
+	liblog.Debugf(ctx, "repair_missing_proposal request: height=%d; value=%s",
+		protoutil.ValueHeight(&value), protoutil.ValueDisplay(&value))
 
 	// straggler validators may need a consensus value after
 	// it has been externalized and committed at other nodes.
@@ -236,27 +237,27 @@ func (x *RepairService) Repair_missing_basis(
 
 	basisX, err := x.cvpool.CVPoolLookup(ctx, value)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_basis failed to lookup cv in pool: %v", err)
+		liblog.Errorf(ctx, "repair_missing_proposal failed to lookup cv in pool: %v", err)
 	}
 	if basisX != nil {
-		liblog.Infof(ctx, "repair_missing_basis serving from pool: height=%d; value=%s",
-			value.Block_height, protoutil.ValueDisplay(&value))
-		return basisX, nil
+		liblog.Infof(ctx, "repair_missing_proposal serving from pool: height=%d; value=%s",
+			protoutil.ValueHeight(&value), protoutil.ValueDisplay(&value))
+		return protoutil.ProposalFromBasis(basisX), nil
 	}
 
 	basis, err := x.cvpool.CVPoolFind(ctx, value)
 	if err != nil {
-		liblog.Errorf(ctx, "repair_missing_basis failed to find cv in pool: %v", err)
+		liblog.Errorf(ctx, "repair_missing_proposal failed to find cv in pool: %v", err)
 		return nil, err
 	}
 	if basis != nil {
-		liblog.Infof(ctx, "repair_missing_basis serving from storage: height=%d; value=%s",
-			value.Block_height, protoutil.ValueDisplay(&value))
-	} else {
-		liblog.Errorf(ctx, "repair_missing_basis not found: height=%d; value=%s",
-			value.Block_height, protoutil.ValueDisplay(&value))
+		liblog.Infof(ctx, "repair_missing_proposal serving from storage: height=%d; value=%s",
+			protoutil.ValueHeight(&value), protoutil.ValueDisplay(&value))
+		return protoutil.ProposalFromBasis(basis), nil
 	}
-	return basis, nil
+	liblog.Errorf(ctx, "repair_missing_proposal not found: height=%d; value=%s",
+		protoutil.ValueHeight(&value), protoutil.ValueDisplay(&value))
+	return nil, nil
 }
 
 // XXX: dos protection
