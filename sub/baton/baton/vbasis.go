@@ -59,9 +59,9 @@ func (b *Baton) validateBasis(
 	// validate chaining with previous consensus
 
 	tipValueHash := protoutil.HashValueToProto(&dbTip.Value)
-	if value.Prev_value_hash != tipValueHash {
+	if value.Prev_hash != tipValueHash {
 		liblog.Errorf(ctx, "cannot validate, previous value hash mismatch, proposal %v vs ours %v",
-			libxdr.HashString(value.Prev_value_hash),
+			libxdr.HashString(value.Prev_hash),
 			libxdr.HashString(tipValueHash))
 		reply <- scpkit.InvalidValue
 		return

@@ -152,7 +152,7 @@ func (x *TestScheduler) Schedulercoord_propose_block(
 
 	r := proto.SchedulerProposalResult{}
 	r.Outcome = proto.SchedulerProposalOK
-	*r.Nominated_block() = proto.SchedulerProposedBlock{
+	*r.Proposed_block() = proto.SchedulerProposedBlock{
 		Block_id: blockID,
 		Proposal: proposal,
 		Txs: xdrutil.ParallelizeSignedTransactionBatch(x.m,

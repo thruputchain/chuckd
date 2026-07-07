@@ -44,7 +44,7 @@ func (cb *CommittableProposal) ValueHash() proto.ConsensusValueHash {
 }
 
 func (cb *CommittableProposal) PrevValueHash() proto.ConsensusValueHash {
-	return cb.value.Prev_value_hash
+	return cb.value.Prev_hash
 }
 
 func (cb *CommittableProposal) AlreadyValidated() *proto.BlockID {
@@ -100,7 +100,7 @@ func (cb *CommittableCatchup) ValueHash() proto.ConsensusValueHash {
 }
 
 func (cb *CommittableCatchup) PrevValueHash() proto.ConsensusValueHash {
-	return cb.value.Prev_value_hash
+	return cb.value.Prev_hash
 }
 
 func (cb *CommittableCatchup) AlreadyValidated() *proto.BlockID {

@@ -42,7 +42,7 @@ func (x ViewDbBlock) ValueHash() proto.ConsensusValueHash {
 	return protoutil.HashValueToProto(&x.TipDb.Value)
 }
 func (x ViewDbBlock) PrevValueHash() proto.ConsensusValueHash {
-	return x.TipDb.Value.Prev_value_hash
+	return x.TipDb.Value.Prev_hash
 }
 func (x ViewDbBlock) IsMissing() bool                   { return false }
 func (x ViewDbBlock) IsExtBasis() bool                  { return false }

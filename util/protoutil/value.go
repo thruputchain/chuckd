@@ -84,7 +84,7 @@ func HeaderEquals(h1, h2 *proto.ProposalHeader) bool {
 // therefore not comparable with the == operator.
 func ValueEquals(v1, v2 *proto.ConsensusValue) bool {
 	return v1.Ext.V == v2.Ext.V &&
-		v1.Prev_value_hash == v2.Prev_value_hash &&
+		v1.Prev_hash == v2.Prev_hash &&
 		HeaderEquals(&v1.Proposal_header, &v2.Proposal_header) &&
 		v1.Proposal_txs_hash == v2.Proposal_txs_hash &&
 		upgradesEqual(v1.Upgrades, v2.Upgrades)

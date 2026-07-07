@@ -62,7 +62,7 @@ func (a CatchupArrival) ValueHash() proto.ConsensusValueHash {
 }
 
 func (a CatchupArrival) PrevValueHash() proto.ConsensusValueHash {
-	return a.block.Consensus_basis.Value.Prev_value_hash
+	return a.block.Consensus_basis.Value.Prev_hash
 }
 
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {

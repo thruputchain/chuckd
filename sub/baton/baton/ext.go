@@ -63,7 +63,7 @@ func (x externalizedBasis) ValueHash() proto.ConsensusValueHash {
 }
 
 func (x externalizedBasis) PrevValueHash() proto.ConsensusValueHash {
-	return x.value.Prev_value_hash
+	return x.value.Prev_hash
 }
 
 func (x externalizedBasis) Height() proto.BlockHeight {
@@ -88,7 +88,7 @@ func (x externalizedValue) ValueHash() proto.ConsensusValueHash {
 }
 
 func (x externalizedValue) PrevValueHash() proto.ConsensusValueHash {
-	return x.value.Prev_value_hash
+	return x.value.Prev_hash
 }
 
 func (x externalizedValue) Height() proto.BlockHeight {

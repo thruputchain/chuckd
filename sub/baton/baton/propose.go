@@ -69,7 +69,7 @@ func (b *Baton) propose(
 	must.NoError(ctx, err)
 	must.Assert(ctx, result.Outcome == proto.SchedulerProposalOK)
 
-	proposedBlock := result.Nominated_block()
+	proposedBlock := result.Proposed_block()
 	proposal := proposedBlock.Proposal
 	height := proposal.Header.Block_height
 	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
@@ -88,7 +88,7 @@ func (b *Baton) propose(
 
 	q0 := b.handler.Now()
 	value := &proto.ConsensusValue{
-		Prev_value_hash:   protoutil.HashValueToProto(&ontoDb.Value),
+		Prev_hash:   protoutil.HashValueToProto(&ontoDb.Value),
 		Proposal_header:   proposal.Header,
 		Proposal_txs_hash: protoutil.HashProposalTxsFast(&proposal.Transactions),
 		Upgrades:          nil, // XXX: placeholder for upgrades
@@ -139,7 +139,7 @@ func (b *Baton) propose(
 	b.handler.AnnounceNomination(value)
 
 	// nominate to consensus
-	prevSummary := proto.PrevProposalSummary{Value_hash: value.Prev_value_hash}
+	prevSummary := proto.PrevProposalSummary{Value_hash: value.Prev_hash}
 	n0 := time.Now()
 	accepted := b.handler.SubmitNomination(ctx, scpkit.Slot(height), value, &prevSummary)
 	b.reportSCPNominationDelay(ctx, height, time.Since(n0))

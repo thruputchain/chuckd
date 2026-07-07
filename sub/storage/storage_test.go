@@ -288,7 +288,7 @@ func TestFindCommittedCVRejectsZeroByteFile(t *testing.T) {
 func newConsensusBasis(ts time.Time, height int64) proto.ConsensusBasis {
 	return proto.ConsensusBasis{
 		Value: proto.ConsensusValue{
-			Prev_value_hash: newTestHash(byte(height - 1)),
+			Prev_hash: newTestHash(byte(height - 1)),
 			Proposal_header: proto.ProposalHeader{
 				Block_timepoint: protoutil.TimepointFromTime(ts),
 				Block_height:    proto.BlockHeight(height),
