@@ -33,7 +33,7 @@ type Baton struct {
 
 	// state, under lk
 	committing      *proto.BlockHeight
-	nominating      *nominating
+	nominating      *proposing
 	tipDb           proto.DbTip
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupArrivals catchupArrivals                  // received catchup blocks

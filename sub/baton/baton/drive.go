@@ -85,8 +85,8 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		return
 	}
 
-	ontoDb := v.NominateOnto()
-	if !b.canNominate(ontoDb, b.nominating) {
+	ontoDb := v.ProposeOnto()
+	if !b.canPropose(ontoDb, b.nominating) {
 		return
 	}
 
@@ -96,7 +96,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		b.nominating = nil
 	}
 	nomCtx, nomCancel := context.WithCancel(ctx)
-	current := &nominating{
+	current := &proposing{
 		OntoDb: *ontoDb,
 		Cancel: func() {
 			// liblog.Debugf("cancelling ongoing nomination for slot %d", scpapi.Slot(tipToNominateOn.Height+1))
@@ -108,7 +108,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	liblog.Infof(ctx, "PREPARING: height %d", protoutil.ValueHeight(&ontoDb.Value)+1)
 
 	go func() {
-		basis, value, blockID, err := b.nominate(nomCtx, *ontoDb)
+		basis, value, blockID, err := b.propose(nomCtx, *ontoDb)
 		current.Cancel()
 
 		b.lock()
@@ -120,7 +120,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 		if err != nil {
 			// scp rejects nominations when it is not our turn to nominate, or
 			// when an externalization happens during nomination (usually only in a single-node network)
-			if !errors.Is(err, ErrNominationRejected) {
+			if !errors.Is(err, ErrProposalRejected) {
 				must.Assert(ctx, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 			}
 			return

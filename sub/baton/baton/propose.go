@@ -15,25 +15,25 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-type nominating struct {
+type proposing struct {
 	OntoDb proto.DbTip
 	Cancel context.CancelFunc
 }
 
-func (b *Baton) canNominate(tipToNominateOn *proto.DbTip, nominating *nominating) bool {
-	if tipToNominateOn == nil {
+func (b *Baton) canPropose(tipToProposeOnto *proto.DbTip, proposing *proposing) bool {
+	if tipToProposeOnto == nil {
 		return false
 	}
-	if nominating == nil {
+	if proposing == nil {
 		return true
 	} else {
-		return protoutil.ValueHeight(&tipToNominateOn.Value) > protoutil.ValueHeight(&nominating.OntoDb.Value)
+		return protoutil.ValueHeight(&tipToProposeOnto.Value) > protoutil.ValueHeight(&proposing.OntoDb.Value)
 	}
 }
 
-var ErrNominationRejected = fmt.Errorf("nomination rejected by scp")
+var ErrProposalRejected = fmt.Errorf("proposal rejected by scp")
 
-func (b *Baton) nominate(
+func (b *Baton) propose(
 	ctx context.Context,
 	ontoDb proto.DbTip,
 ) (*proto.ConsensusBasis, *proto.ConsensusValue, proto.BlockID, error) {
@@ -74,15 +74,15 @@ func (b *Baton) nominate(
 	height := proposal.Header.Block_height
 	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
 
-	tMempoolNominateEnd := b.handler.Now()
-	b.stampMempoolNominateEnd(height, tMempoolNominateEnd)
-	liblog.Debugf(ctx, "mempool_nomination_delay=%v | height=%d, num_txs=%d",
-		tMempoolNominateEnd.Sub(t0),
+	tMempoolProposeEnd := b.handler.Now()
+	b.stampMempoolNominateEnd(height, tMempoolProposeEnd)
+	liblog.Debugf(ctx, "mempool_proposal_delay=%v | height=%d, num_txs=%d",
+		tMempoolProposeEnd.Sub(t0),
 		height,
 		numTxs,
 	)
 
-	// --- fire nomination ---
+	// --- fire proposal ---
 
 	t1 := b.handler.Now()
 
@@ -172,7 +172,7 @@ func (b *Baton) nominate(
 		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=rejected height=%d, num_txs=%d",
 			b.handler.Now().Sub(t1), height, numTxs)
 
-		return nil, nil, 0, ErrNominationRejected
+		return nil, nil, 0, ErrProposalRejected
 	}
 }
 
