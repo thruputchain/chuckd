@@ -29,6 +29,7 @@ func (b *Baton) start(ctx context.Context) {
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
 	b.tipDb = *tipResult.Db_tip()
+	b.metrics.recordCurrentBlockHeight(ctx, b.tipDb.Height)
 	liblog.Infof(ctx, "db restored %v", protoutil.DbTipString(b.tipDb))
 
 	// genesis block has height 0, and no corresponding consensus value
