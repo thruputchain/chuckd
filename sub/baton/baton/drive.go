@@ -63,6 +63,7 @@ func (b *Baton) driveCommit(ctx context.Context, v *View) {
 			b.tipDb.Block_hash = cb.BlockHash()
 			b.tipDb.Height = cb.BlockHeight()
 			b.tipDb.Id = blockID
+			b.metrics.recordCommittedBlock(ctx, b.tipDb.Height)
 
 			b.tipExt = newExternalized(cb.ConsensusValue(), cb.AsConsensusBasis())
 

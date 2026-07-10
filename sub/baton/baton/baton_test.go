@@ -50,6 +50,7 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 // TestNominateCommit tests committing of blocks that we have nominated.
 func TestNominateCommit(t *testing.T) {
 
+	reader := installTestMeterProvider(t)
 	ctx, rig, baton, tick := testSetup()
 	baseHeight := rig.GetTip(ctx).Height
 
@@ -79,6 +80,14 @@ func TestNominateCommit(t *testing.T) {
 	rig.SignalNomination(true)
 	_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 	rig.PassTime(tick)
+
+	data := collectBatonMetrics(t, reader)
+	if height := findInt64Gauge(t, data, "coordinator_current_block_height"); height != baseHeight+1 {
+		t.Fatalf("coordinator height = %d, want %d", height, baseHeight+1)
+	}
+	if committed := findInt64Counter(t, data, "coordinator_committed_blocks"); committed != 1 {
+		t.Fatalf("committed blocks = %d, want 1", committed)
+	}
 
 }
 
@@ -175,6 +184,7 @@ func TestValidateCommit(t *testing.T) {
 }
 
 func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
+	reader := installTestMeterProvider(t)
 	ctx, rig, baton, _ := testSetup()
 
 	block := rig.GenNomination(ctx, 1)
@@ -200,6 +210,10 @@ func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
 	}
 	if baton.tipExt.Height() != 1 {
 		t.Fatalf("restored externalized height = %d, want 1", baton.tipExt.Height())
+	}
+	data := collectBatonMetrics(t, reader)
+	if height := findInt64Gauge(t, data, "coordinator_current_block_height"); height != 1 {
+		t.Fatalf("coordinator height = %d, want 1", height)
 	}
 }
 

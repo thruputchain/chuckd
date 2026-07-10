@@ -44,8 +44,9 @@ type Baton struct {
 	invalidated     map[protoutil.ValueHash]invalidated
 	liveness        liveness
 
-	// metrics (no lock necessary)
-	chrono chrono
+	// observability
+	metrics batonMetrics
+	chrono  chrono
 
 	// xdr marshalers (no lock necessary)
 	cvM            libxdr.XdrMarshaler // for marshalling ConsensusValue
@@ -79,6 +80,7 @@ func NewBaton(
 		catchupResultM:   libxdr.NewXdrMarshaler(),
 		batchCatchupM:    libxdr.NewXdrMarshaler(),
 		batchRepairM:     libxdr.NewXdrMarshaler(),
+		metrics:          newBatonMetrics(ctx),
 	}
 	b.cond = sync.NewCond(&b.lk)
 	return b
