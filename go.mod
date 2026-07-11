@@ -17,10 +17,11 @@ require (
 require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/groundhogchain/lib-go v0.0.0-20260512044649-33b87d4adadb
-	github.com/groundhogchain/protocol-go v0.0.0-20260628224948-51162e0a558a
+	github.com/groundhogchain/protocol-go v0.0.0-20260709000610-0df8eae64f42
 	github.com/prometheus/client_golang v1.22.0
 	github.com/xdrpp/goxdr v0.0.0-20260507185951-17b997ee737d
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
+	go.opentelemetry.io/otel/metric v1.35.0
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/sdk/metric v1.35.0
 	golang.org/x/sys v0.37.0
@@ -43,7 +44,6 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
