@@ -7,7 +7,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/release.yml'
-  workflow_dispatch:
 
 env:
   CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
@@ -114,6 +113,8 @@ jobs:
       - name: Generate aggregate checksums
         run: |
           cd artifacts
+          test -s chuckd-coordinator-linux-x86_64.tar.gz
+          test -s chuckd-coordinator-linux-arm64.tar.gz
           sha256sum -- *.tar.gz > SHA256SUMS
 
       - name: Create GitHub Release
