@@ -86,7 +86,7 @@ jobs:
           tar -C "$package_dir" -czf "${package_dir}.tar.gz" chuckd scpd
 
       - name: Upload coordinator artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: chuckd-linux-${{ matrix.architecture }}-release-artifact
           path: chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
@@ -99,13 +99,13 @@ jobs:
       contents: write
     steps:
       - name: Download Linux x86_64 artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: chuckd-linux-x86_64-release-artifact
           path: artifacts/
 
       - name: Download Linux ARM64 artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: chuckd-linux-arm64-release-artifact
           path: artifacts/
