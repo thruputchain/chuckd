@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
 
 env:
   CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
@@ -14,8 +18,20 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: namespace-profile-chuckd-rs-linux
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            machine: x86_64
+            runner: namespace-profile-chuckd-rs-linux
+          - architecture: arm64
+            machine: aarch64
+            runner: namespace-profile-hogd-linux-arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
     steps:
       - uses: webfactory/ssh-agent@v0.9.1
         with:
@@ -33,6 +49,9 @@ jobs:
 
       - name: Fetch submodules
         run: git submodule update --init --recursive
+
+      - name: Verify native Linux architecture
+        run: test "$(uname -m)" = "${{ matrix.machine }}"
 
       - uses: actions/setup-go@v5
         with:
@@ -61,19 +80,46 @@ jobs:
         run: |
           set -euo pipefail
 
-          package_dir="chuckd-coordinator-linux-x86_64"
+          package_dir="chuckd-coordinator-linux-${{ matrix.architecture }}"
           mkdir -p "$package_dir"
           install -m 0755 chuckd.dev "$package_dir/chuckd"
           install -m 0755 scpd.dev "$package_dir/scpd"
           tar -C "$package_dir" -czf "${package_dir}.tar.gz" chuckd scpd
-          sha256sum "${package_dir}.tar.gz" > SHA256SUMS
+
+      - name: Upload coordinator artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: chuckd-linux-${{ matrix.architecture }}-release-artifact
+          path: chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
+
+  publish:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: namespace-profile-chuckd-rs-linux
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux x86_64 artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: chuckd-linux-x86_64-release-artifact
+          path: artifacts/
+
+      - name: Download Linux ARM64 artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: chuckd-linux-arm64-release-artifact
+          path: artifacts/
+
+      - name: Generate aggregate checksums
+        run: |
+          cd artifacts
+          sha256sum -- *.tar.gz > SHA256SUMS
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            chuckd-coordinator-linux-x86_64.tar.gz
-            SHA256SUMS
+          files: artifacts/*
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
