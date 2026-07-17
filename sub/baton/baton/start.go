@@ -61,6 +61,26 @@ func (b *Baton) start(ctx context.Context) {
 		if basis.Nomination.Block_height > highestExternalized {
 			highestExternalized = basis.Nomination.Block_height
 		}
+
+		block, err := b.handler.CBPoolFindCommitted(ctx, basis.Nomination.Block_height)
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		must.NoError(ctx, err)
+		if block == nil {
+			continue
+		}
+		arrival, ok := verifiedCatchupArrival(block.Consensus_basis.Proposer, b.handler.Now(), block)
+		if !ok {
+			liblog.Errorf(ctx, "invalid local catchup block at height %d", basis.Nomination.Block_height)
+			continue
+		}
+		if !protoutil.ValueEquals(arrival.ConsensusValue(), protoutil.BasisValue(&basis)) {
+			liblog.Errorf(ctx, "local catchup block disagrees with consensus at height %d", basis.Nomination.Block_height)
+			continue
+		}
+		b.catchupArrivals = append(b.catchupArrivals, arrival)
+		liblog.Infof(ctx, "local catchup restored at height %d", basis.Nomination.Block_height)
 	}
 
 	// initialize scp

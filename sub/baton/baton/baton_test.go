@@ -217,6 +217,110 @@ func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
 	}
 }
 
+func TestStartCommitsLocallyPersistedCatchupAboveDbTip(t *testing.T) {
+	ctx, rig, baton, _ := testSetup()
+	block := rig.GenNomination(ctx, 1)
+
+	if err := rig.CVPoolCommit(ctx, block.ConsensusBasis, block.ConsensusValue); err != nil {
+		t.Fatalf("commit consensus value: %v", err)
+	}
+	if err := rig.CBPoolAdd(ctx, block.Catchup, block.ConsensusValue); err != nil {
+		t.Fatalf("add catchup block: %v", err)
+	}
+	if err := rig.CBPoolWaitPersist(ctx, block.ConsensusValue); err != nil {
+		t.Fatalf("persist catchup block: %v", err)
+	}
+	rig.TestCatchupStaged = nil
+
+	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
+	committed := waitForCommittedEvent(t, rig)
+	if committed.Height != block.ConsensusBasis.Nomination.Block_height {
+		t.Fatalf("committed height = %d, want %d", committed.Height, block.ConsensusBasis.Nomination.Block_height)
+	}
+	if height := rig.GetTip(ctx).Height; height != block.ConsensusBasis.Nomination.Block_height {
+		t.Fatalf("scheduler height = %d, want %d", height, block.ConsensusBasis.Nomination.Block_height)
+	}
+	if queries := rig.catchupQueries.Load(); queries != 0 {
+		t.Fatalf("network catchup queries = %d, want 0", queries)
+	}
+}
+
+func TestStartFallsBackWhenLocalCatchupDisagrees(t *testing.T) {
+	ctx, rig, baton, _ := testSetup()
+	want := rig.GenNomination(ctx, 1)
+	wrong := rig.GenNomination(ctx, 0)
+
+	if err := rig.CVPoolCommit(ctx, want.ConsensusBasis, want.ConsensusValue); err != nil {
+		t.Fatalf("commit consensus value: %v", err)
+	}
+	if err := rig.CBPoolAdd(ctx, wrong.Catchup, wrong.ConsensusValue); err != nil {
+		t.Fatalf("add wrong catchup block: %v", err)
+	}
+	if err := rig.CBPoolWaitPersist(ctx, wrong.ConsensusValue); err != nil {
+		t.Fatalf("persist wrong catchup block: %v", err)
+	}
+	rig.StageCatchup(want.Catchup)
+
+	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
+	committed := waitForCommittedEvent(t, rig)
+	if committed.BlockHash != want.ConsensusBasis.Nomination.Block_hash {
+		t.Fatalf("committed block hash does not match consensus")
+	}
+	if queries := rig.catchupQueries.Load(); queries == 0 {
+		t.Fatal("expected network catchup after rejecting the local block")
+	}
+}
+
+func TestCatchupWithoutProvidersWaitsForHeartbeatBeforeRetry(t *testing.T) {
+	ctx, rig, baton, tick := testSetup()
+	block := rig.GenNomination(ctx, 1)
+	if err := rig.CVPoolCommit(ctx, block.ConsensusBasis, block.ConsensusValue); err != nil {
+		t.Fatalf("commit consensus value: %v", err)
+	}
+	rig.TestCatchupStaged = nil
+
+	baton.Start(ctx)
+	rig.WaitBackfeed(ctx)
+	waitForCatchupQueries(t, rig, 1)
+	time.Sleep(20 * time.Millisecond)
+	if queries := rig.catchupQueries.Load(); queries != 1 {
+		t.Fatalf("catchup queries before heartbeat = %d, want 1", queries)
+	}
+
+	rig.PassTime(tick)
+	waitForCatchupQueries(t, rig, 2)
+}
+
+func waitForCommittedEvent(t *testing.T, rig *TestRig) batonkit.EventCommitted {
+	t.Helper()
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
+	for {
+		select {
+		case envelope := <-rig.emitted:
+			if committed, ok := envelope.Event.(batonkit.EventCommitted); ok {
+				return committed
+			}
+		case <-timer.C:
+			t.Fatal("timed out waiting for committed event")
+		}
+	}
+}
+
+func waitForCatchupQueries(t *testing.T, rig *TestRig, want uint64) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if rig.catchupQueries.Load() >= want {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("catchup queries = %d, want at least %d", rig.catchupQueries.Load(), want)
+}
+
 // TestCatchupMissingBlockCommit tests catchup for missing blocks between tip and externalizations.
 // The validator will request catchup twice, because the test catchup system returns one block at a time,
 // regardless of how many were requested.
