@@ -33,6 +33,24 @@ type CatchupArrival struct {
 	txs    []proto.SignedTransaction
 }
 
+func verifiedCatchupArrival(
+	source proto.ValidatorID,
+	stamp time.Time,
+	block *proto.CatchupBlock,
+) (CatchupArrival, bool) {
+	ns, txs, ok := protoutil.VerifyCatchupBlock(block)
+	if !ok {
+		return CatchupArrival{}, false
+	}
+	return CatchupArrival{
+		source: source,
+		stamp:  stamp,
+		block:  block,
+		ns:     ns,
+		txs:    txs,
+	}, true
+}
+
 func (a CatchupArrival) Proposer() proto.ValidatorID {
 	return a.block.Consensus_basis.Value.Proposal_header.Proposer
 }
@@ -115,13 +133,18 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 		var result catchupArrivals
 
 		defer func() {
-			b.lock()
-			defer b.unlock()
-
+			b.lockNoDrive()
 			// unmark pending request
 			delete(b.catchupWaiting, id)
 			// update known catchup blocks
 			b.catchupArrivals = append(b.catchupArrivals, result...)
+			if result.IsEmpty() {
+				// Let the heartbeat schedule the next attempt. Driving immediately
+				// here creates a tight retry loop when no providers are known.
+				b.unlockNoDrive()
+				return
+			}
+			b.unlock()
 		}()
 
 		// find sources
@@ -167,15 +190,8 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 
 		now := b.handler.Now()
 		for _, block := range reply.Result.Blocks {
-			if ns, txs, ok := protoutil.VerifyCatchupBlock(&block); ok {
-				result = append(result,
-					CatchupArrival{
-						source: protoutil.PublicVID(src),
-						stamp:  now,
-						block:  &block,
-						ns:     ns,
-						txs:    txs,
-					})
+			if arrival, ok := verifiedCatchupArrival(protoutil.PublicVID(src), now, &block); ok {
+				result = append(result, arrival)
 			} else {
 				liblog.Infof(ctx, "invalid catchup block")
 			}

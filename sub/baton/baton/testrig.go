@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/groundhogchain/chuckd/runtime"
@@ -47,6 +48,7 @@ type TestRig struct {
 	nominateRequest  chan nominateIn
 	nominateResponse chan bool
 	backfeed         chan struct{}
+	catchupQueries   atomic.Uint64
 }
 
 func NewTestRig(
@@ -163,6 +165,10 @@ func (h *TestRig) VerifyXdr(m libxdr.XdrMarshaler, value xdr.XdrType, sig proto.
 }
 
 func (h *TestRig) GetCatchupSources(context.Context, int64) []proto.ValidatorPublicInfo {
+	h.catchupQueries.Add(1)
+	if h.TestCatchupStaged == nil {
+		return nil
+	}
 	return []proto.ValidatorPublicInfo{h.TestCatchupStaged.Signer.Public_info}
 }
 

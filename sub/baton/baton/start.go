@@ -29,6 +29,7 @@ func (b *Baton) start(ctx context.Context) {
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
 	b.tipDb = *tipResult.Db_tip()
+	b.metrics.recordCurrentBlockHeight(ctx, protoutil.ValueHeight(&b.tipDb.Value))
 	liblog.Infof(ctx, "db restored %v", protoutil.DbTipString(b.tipDb))
 
 	// the db tip carries the consensus value that committed it;
@@ -47,6 +48,19 @@ func (b *Baton) start(ctx context.Context) {
 		if protoutil.ValueHeight(&basis.Value) > highestExternalized {
 			highestExternalized = protoutil.ValueHeight(&basis.Value)
 		}
+
+		height := protoutil.ValueHeight(&basis.Value)
+		block, err := b.handler.CBPoolFindCommitted(ctx, height)
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		must.NoError(ctx, err)
+		if block == nil {
+			continue
+		}
+		arrival := b.mustRestoreLocalCatchup(ctx, block, &basis)
+		b.catchupArrivals = append(b.catchupArrivals, arrival)
+		liblog.Infof(ctx, "local catchup restored at height %d", height)
 	}
 
 	// initialize scp
@@ -78,4 +92,22 @@ func (b *Baton) start(ctx context.Context) {
 		b.handler.Sleep(b.heartbeat)
 		b.Kick()
 	}
+}
+
+func (b *Baton) mustRestoreLocalCatchup(
+	ctx context.Context,
+	block *proto.CatchupBlock,
+	basis *proto.ConsensusBasis,
+) CatchupArrival {
+	height := protoutil.ValueHeight(&basis.Value)
+	proposer := block.Consensus_basis.Value.Proposal_header.Proposer
+	arrival, ok := verifiedCatchupArrival(proposer, b.handler.Now(), block)
+	must.Assertf(ctx, ok, "invalid local catchup block at height %d", height)
+	must.Assertf(
+		ctx,
+		protoutil.ValueEquals(arrival.ConsensusValue(), &basis.Value),
+		"local catchup block disagrees with consensus at height %d",
+		height,
+	)
+	return arrival
 }

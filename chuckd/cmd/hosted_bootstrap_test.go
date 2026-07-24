@@ -377,4 +377,15 @@ func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.
 	if !bytes.Contains(data, []byte(`"height": 1`)) {
 		t.Fatalf("manifest does not include hosted bootstrap commit height: %s", data)
 	}
+
+	notified := make(chan struct{})
+	go func() {
+		notify.Committed(context.Background(), ctl.commit)
+		close(notified)
+	}()
+	select {
+	case <-notified:
+	case <-time.After(time.Second):
+		t.Fatal("post-bootstrap commit notification blocked")
+	}
 }

@@ -406,6 +406,8 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 }
 
 func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBootstrapConfig, ctl hostedBootstrapCoordinator, notify *coordinator.NotifyReceive) error {
+	defer notify.Stop()
+
 	if err := validateHostedBootstrapManifestConfig(cfg); err != nil {
 		return err
 	}
