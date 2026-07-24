@@ -2,7 +2,6 @@ package protoutil
 
 import (
 	"crypto/sha256"
-	"sync"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -16,33 +15,11 @@ func HashProposalTxsSlow(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 }
 
 func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
-	txsBase := *txs
-	txsBase.Hash = proto.ParallelBatch{}
-	txsBase.Nondeterministic_data = proto.ParallelBatch{}
-
-	var hashBase proto.SHA256Hash
-	var hashTxsHash proto.SHA256Hash
-	var hashTxsND proto.SHA256Hash
-
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		hashBase = HashProposalTxsSlow(&txsBase)
-	}()
-	go func() {
-		defer wg.Done()
-		hashTxsHash = xdrutil.HashParallelBatch(txs.Hash)
-	}()
-	go func() {
-		defer wg.Done()
-		hashTxsND = xdrutil.HashParallelBatch(txs.Nondeterministic_data)
-	}()
-	wg.Wait()
-	for i := range hashBase {
-		hashBase[i] ^= hashTxsHash[i] ^ hashTxsND[i]
-	}
-	return hashBase
+	// ProposalTxsHash is defined by the protocol as SHA-256 of the canonical
+	// XDR encoding. SHA-256 cannot be assembled by XORing hashes of the
+	// parallel-batch segments; doing so produces a different digest from hogd.
+	// Keep this compatibility entry point while using the canonical hash.
+	return HashProposalTxsSlow(txs)
 }
 
 func IsSaneProposalTxs(txs *proto.ProposalTxs) bool {
