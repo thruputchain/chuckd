@@ -45,7 +45,7 @@ func (x *TestCatchupBlockPersistence) PersistAlreadyPrePersistedCatchupBlock(
 	p, ok := x.pre[vhash]
 	// dont delete p from pre, so it can be found by LookupCatchupBlock
 	must.Assert(ctx, ok)
-	must.Assert(ctx, p.Consensus_basis.Nomination.Block_height == height)
+	must.Assert(ctx, p.Consensus_basis.Value.Proposal_header.Block_height == height)
 
 	x.persisted[height] = p
 	return nil
@@ -97,11 +97,11 @@ func NewTestCVPersistence() *TestCVPersistence {
 func (x *TestCVPersistence) PersistCV(ctx context.Context, basis proto.ConsensusBasis, vhash protoutil.ValueHash) error {
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	if !x.hasHighest || basis.Nomination.Block_height > x.highest {
-		x.highest = basis.Nomination.Block_height
+	if !x.hasHighest || protoutil.ValueHeight(&basis.Value) > x.highest {
+		x.highest = protoutil.ValueHeight(&basis.Value)
 		x.hasHighest = true
 	}
-	x.committed[basis.Nomination.Block_height] = basis
+	x.committed[protoutil.ValueHeight(&basis.Value)] = basis
 	x.uncommitted[vhash] = basis
 	return nil
 }

@@ -54,7 +54,7 @@ func TestNominateCommit(t *testing.T) {
 
 	reader := installTestMeterProvider(t)
 	ctx, rig, baton, tick := testSetup()
-	baseHeight := rig.GetTip(ctx).Height
+	baseHeight := rig.GetTipHeight(ctx)
 
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
@@ -97,7 +97,7 @@ func TestNominateCommit(t *testing.T) {
 func TestValidateExternalized(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
-	baseHeight := rig.GetTip(ctx).Height
+	baseHeight := rig.GetTipHeight(ctx)
 
 	// stage 1: nominate [1]
 	rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // user submits tx
@@ -144,7 +144,7 @@ func TestValidateExternalized(t *testing.T) {
 func TestValidateCommit(t *testing.T) {
 
 	ctx, rig, baton, tick := testSetup()
-	baseHeight := rig.GetTip(ctx).Height
+	baseHeight := rig.GetTipHeight(ctx)
 
 	// stage 1: validate [1]
 	block := rig.GenNomination(ctx, 2)
@@ -164,7 +164,7 @@ func TestValidateCommit(t *testing.T) {
 
 	vlevel := rig.ValidateNominationValue(
 		ctx,
-		proto.SCPSlotIndex(block.ConsensusBasis.Nomination.Block_height),
+		proto.SCPSlotIndex(block.ConsensusValue.Proposal_header.Block_height),
 		testMarshaler.MarshalXdr(nomination.ConsensusValue).Bytes(),
 	)
 	// validation is skipped, as the nomination is already cached
@@ -191,7 +191,7 @@ func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
 
 	block := rig.GenNomination(ctx, 1)
 	rig.AddTxs(ctx, protoutil.Unpack(block.Txs)...)
-	validated, err := rig.Schedulercoord_validate(ctx, rig.GetTip(ctx), block.ConsensusBasis.Nomination)
+	validated, err := rig.Schedulercoord_validate_block(ctx, rig.GetTip(ctx).Id, *protoutil.ProposalFromBasis(&block.ConsensusBasis))
 	if err != nil {
 		t.Fatalf("validate block: %v", err)
 	}
@@ -202,16 +202,13 @@ func TestStartRestoresNonGenesisTipWithCommittedCV(t *testing.T) {
 	if err := rig.CVPoolCommit(ctx, block.ConsensusBasis, *value); err != nil {
 		t.Fatalf("commit cv: %v", err)
 	}
-	if outcome, err := rig.Schedulercoord_commit_block(ctx, validated.Block().Db_tip.Id); err != nil || outcome != proto.SchedulerCommitOK {
+	if outcome, err := rig.Schedulercoord_commit_block(ctx, validated.Block().Block_id, *value); err != nil || outcome != proto.SchedulerCommitOK {
 		t.Fatalf("commit block: outcome=%v err=%v", outcome, err)
 	}
 
 	baton.Start(ctx)
-	if baton.tipDb.Height != 1 {
-		t.Fatalf("restored height = %d, want 1", baton.tipDb.Height)
-	}
-	if baton.tipExt.Height() != 1 {
-		t.Fatalf("restored externalized height = %d, want 1", baton.tipExt.Height())
+	if protoutil.ValueHeight(&baton.tipDb.Value) != 1 {
+		t.Fatalf("restored height = %d, want 1", protoutil.ValueHeight(&baton.tipDb.Value))
 	}
 	data := collectBatonMetrics(t, reader)
 	if height := findInt64Gauge(t, data, "coordinator_current_block_height"); height != 1 {
@@ -237,11 +234,12 @@ func TestStartCommitsLocallyPersistedCatchupAboveDbTip(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 	committed := waitForCommittedEvent(t, rig)
-	if committed.Height != block.ConsensusBasis.Nomination.Block_height {
-		t.Fatalf("committed height = %d, want %d", committed.Height, block.ConsensusBasis.Nomination.Block_height)
+	wantHeight := protoutil.ValueHeight(&block.ConsensusBasis.Value)
+	if committed.Height != wantHeight {
+		t.Fatalf("committed height = %d, want %d", committed.Height, wantHeight)
 	}
-	if height := rig.GetTip(ctx).Height; height != block.ConsensusBasis.Nomination.Block_height {
-		t.Fatalf("scheduler height = %d, want %d", height, block.ConsensusBasis.Nomination.Block_height)
+	if height := rig.GetTipHeight(ctx); height != wantHeight {
+		t.Fatalf("scheduler height = %d, want %d", height, wantHeight)
 	}
 	if queries := rig.catchupQueries.Load(); queries != 0 {
 		t.Fatalf("network catchup queries = %d, want 0", queries)
@@ -343,10 +341,10 @@ func waitForCatchupQueries(t *testing.T, rig *TestRig, want uint64) {
 func TestCatchupMissingBlockCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
-	baseHeight := rig.GetTip(ctx).Height
+	baseHeight := rig.GetTipHeight(ctx)
 
 	block2 := rig.GenNomination(ctx, 1) // db is initialized at block height 1
-	block3 := rig.GenNominationOntoBlock(ctx, 1, block2)
+	block3 := rig.GenProposalOntoBlock(ctx, 1, block2)
 
 	rig.AddTxs(ctx, protoutil.Unpack(block3.Txs)...) // prevent catchup request for [2]
 
@@ -382,7 +380,7 @@ func TestCatchupMissingBlockCommit(t *testing.T) {
 func TestCatchupMissingTxsCommit(t *testing.T) {
 
 	ctx, rig, baton, _ := testSetup()
-	baseHeight := rig.GetTip(ctx).Height
+	baseHeight := rig.GetTipHeight(ctx)
 
 	block1 := rig.GenNomination(ctx, 1)
 	rig.StageCatchup(block1.Catchup)
@@ -412,10 +410,10 @@ func TestAlternatingNominateCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 
-	lastCommitted := testutil.BlockHandleFromTip(rig.GetTipCV(ctx))
+	lastCommitted := testutil.BlockHandleFromTip(rig.GetTip(ctx))
 	for round := 0; round < numRounds; round++ {
 
-		theirBlock := rig.GenNominationOnto(ctx, 1, lastCommitted)
+		theirBlock := rig.GenProposalOnto(ctx, 1, lastCommitted)
 
 		// prepare stage
 		rig.AddTxs(ctx, rig.GenSignedTx(ctx)) // submit tx
@@ -433,7 +431,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusBasis, theirBlock.ConsensusValue)
 		validatedTheirs := rig.ValidateNominationValue(
 			ctx,
-			proto.SCPSlotIndex(theirBlock.ConsensusBasis.Nomination.Block_height),
+			proto.SCPSlotIndex(theirBlock.ConsensusValue.Proposal_header.Block_height),
 			testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
 		)
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidating)
@@ -447,14 +445,14 @@ func TestAlternatingNominateCommit(t *testing.T) {
 			rig.PlaceConsensusValue(ctx, *nominated.ConsensusBasis, *nominated.ConsensusValue)
 			rig.ExternalizedValue(
 				ctx,
-				proto.SCPSlotIndex(nominated.ConsensusBasis.Nomination.Block_height),
+				proto.SCPSlotIndex(nominated.ConsensusValue.Proposal_header.Block_height),
 				testMarshaler.MarshalXdr(nominated.ConsensusValue).Bytes(),
 			)
 		} else { // nominate [our], validate [their], committ [their]
 			// kick off commit of validated
 			rig.ExternalizedValue(
 				ctx,
-				proto.SCPSlotIndex(theirBlock.ConsensusBasis.Nomination.Block_height),
+				proto.SCPSlotIndex(theirBlock.ConsensusValue.Proposal_header.Block_height),
 				testMarshaler.MarshalXdr(&theirBlock.ConsensusValue).Bytes(),
 			)
 		}

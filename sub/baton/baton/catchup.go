@@ -29,8 +29,7 @@ type CatchupArrival struct {
 	source proto.ValidatorID
 	stamp  time.Time
 	block  *proto.CatchupBlock
-	basis  proto.ConsensusBasisHash
-	ns     protoutil.NominationSerialized
+	ns     protoutil.ProposalTxsSerialized
 	txs    []proto.SignedTransaction
 }
 
@@ -47,14 +46,13 @@ func verifiedCatchupArrival(
 		source: source,
 		stamp:  stamp,
 		block:  block,
-		basis:  protoutil.HashBasisFast(&block.Consensus_basis),
 		ns:     ns,
 		txs:    txs,
 	}, true
 }
 
 func (a CatchupArrival) Proposer() proto.ValidatorID {
-	return a.block.Consensus_basis.Proposer
+	return a.block.Consensus_basis.Value.Proposal_header.Proposer
 }
 
 func (a CatchupArrival) Provider() proto.ValidatorID {
@@ -66,34 +64,30 @@ func (a CatchupArrival) Block() *proto.CatchupBlock {
 }
 
 func (a CatchupArrival) BlockHeight() proto.BlockHeight {
-	return a.block.Consensus_basis.Nomination.Block_height
-}
-
-func (a CatchupArrival) BlockHash() proto.BlockHash {
-	return a.block.Consensus_basis.Nomination.Block_hash
-}
-
-func (a CatchupArrival) PrevBlockHash() proto.BlockHash {
-	return a.block.Consensus_basis.Nomination.Prev_block_hash
+	return a.block.Consensus_basis.Value.Proposal_header.Block_height
 }
 
 func (a CatchupArrival) ConsensusBasis() *proto.ConsensusBasis {
 	return &a.block.Consensus_basis
 }
 
-func (a CatchupArrival) ConsensusBasisHash() proto.ConsensusBasisHash {
-	return a.basis
+func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
+	return &a.block.Consensus_basis.Value
 }
 
-func (a CatchupArrival) ConsensusValue() *proto.ConsensusValue {
-	return protoutil.ValueGivenBasisHash(a.ConsensusBasis(), a.basis)
+func (a CatchupArrival) ValueHash() proto.ConsensusValueHash {
+	return protoutil.HashValueToProto(a.ConsensusValue())
+}
+
+func (a CatchupArrival) PrevValueHash() proto.ConsensusValueHash {
+	return a.block.Consensus_basis.Value.Prev_hash
 }
 
 func (a CatchupArrival) SignedTransactions() []proto.SignedTransaction {
 	return a.txs
 }
 
-func (a CatchupArrival) NominationSerialized() protoutil.NominationSerialized {
+func (a CatchupArrival) ProposalTxsSerialized() protoutil.ProposalTxsSerialized {
 	return a.ns
 }
 

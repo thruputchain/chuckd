@@ -29,40 +29,28 @@ func (b *Baton) start(ctx context.Context) {
 	must.Assertf(ctx, err == nil, "db not restored: %v", err)
 	must.Assertf(ctx, tipResult.Outcome == proto.SchedulerGetTipOK, "missing genesis block")
 	b.tipDb = *tipResult.Db_tip()
-	b.metrics.recordCurrentBlockHeight(ctx, b.tipDb.Height)
+	b.metrics.recordCurrentBlockHeight(ctx, protoutil.ValueHeight(&b.tipDb.Value))
 	liblog.Infof(ctx, "db restored %v", protoutil.DbTipString(b.tipDb))
 
-	// genesis block has height 0, and no corresponding consensus value
-	if b.tipDb.Height > 0 {
-		tipBasis, err := b.handler.CVPoolFindCommitted(ctx, b.tipDb.Height)
-		if errors.Is(err, context.Canceled) {
-			return
-		}
-		must.NoError(ctx, err)
-		must.Assert(ctx, tipBasis != nil)
-		must.Assert(ctx, tipBasis.Nomination.Block_height == b.tipDb.Height)
-		b.tipExt = newExternalized(protoutil.BasisValue(tipBasis), tipBasis)
-		liblog.Infof(ctx, "externalized restored (above genesis) %v", ExternalizedString(b.tipExt))
-	} else {
-		assumedCV := assumedConsensusBasisAtHeight(b.tipDb.Height)
-		b.tipExt = newExternalized(protoutil.BasisValue(&assumedCV), &assumedCV)
-		liblog.Infof(ctx, "externalized restored (from genesis) %v", ExternalizedString(b.tipExt))
-	}
+	// the db tip carries the consensus value that committed it;
+	// the genesis block has height 0 and a zero-valued consensus value
+	tipHeight := protoutil.ValueHeight(&b.tipDb.Value)
 
 	// load known externalizations above db tip
-	higherBasis, err := b.handler.CVPoolFindCommittedAbove(ctx, b.tipDb.Height)
+	higherBasis, err := b.handler.CVPoolFindCommittedAbove(ctx, tipHeight)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
 	must.NoError(ctx, err)
-	highestExternalized := b.tipDb.Height
+	highestExternalized := tipHeight
 	for _, basis := range higherBasis {
-		b.externalized = append(b.externalized, newExternalized(protoutil.BasisValue(&basis), &basis))
-		if basis.Nomination.Block_height > highestExternalized {
-			highestExternalized = basis.Nomination.Block_height
+		b.externalized = append(b.externalized, newExternalized(&basis.Value, &basis))
+		if protoutil.ValueHeight(&basis.Value) > highestExternalized {
+			highestExternalized = protoutil.ValueHeight(&basis.Value)
 		}
 
-		block, err := b.handler.CBPoolFindCommitted(ctx, basis.Nomination.Block_height)
+		height := protoutil.ValueHeight(&basis.Value)
+		block, err := b.handler.CBPoolFindCommitted(ctx, height)
 		if errors.Is(err, context.Canceled) {
 			return
 		}
@@ -72,7 +60,7 @@ func (b *Baton) start(ctx context.Context) {
 		}
 		arrival := b.mustRestoreLocalCatchup(ctx, block, &basis)
 		b.catchupArrivals = append(b.catchupArrivals, arrival)
-		liblog.Infof(ctx, "local catchup restored at height %d", basis.Nomination.Block_height)
+		liblog.Infof(ctx, "local catchup restored at height %d", height)
 	}
 
 	// initialize scp
@@ -83,7 +71,7 @@ func (b *Baton) start(ctx context.Context) {
 	// prevents scpd from processing envelopes before the initialization above completes.
 	b.handler.SCPAllowFeedingEnvelopes(ctx)
 
-	liblog.Infof(ctx, "baton db restored at height %d", b.tipDb.Height)
+	liblog.Infof(ctx, "baton db restored at height %d", tipHeight)
 
 	// release lock on scp events
 	close(b.ready)
@@ -111,17 +99,15 @@ func (b *Baton) mustRestoreLocalCatchup(
 	block *proto.CatchupBlock,
 	basis *proto.ConsensusBasis,
 ) CatchupArrival {
-	arrival, ok := verifiedCatchupArrival(block.Consensus_basis.Proposer, b.handler.Now(), block)
-	must.Assertf(ctx, ok, "invalid local catchup block at height %d", basis.Nomination.Block_height)
+	height := protoutil.ValueHeight(&basis.Value)
+	proposer := block.Consensus_basis.Value.Proposal_header.Proposer
+	arrival, ok := verifiedCatchupArrival(proposer, b.handler.Now(), block)
+	must.Assertf(ctx, ok, "invalid local catchup block at height %d", height)
 	must.Assertf(
 		ctx,
-		protoutil.ValueEquals(arrival.ConsensusValue(), protoutil.BasisValue(basis)),
+		protoutil.ValueEquals(arrival.ConsensusValue(), &basis.Value),
 		"local catchup block disagrees with consensus at height %d",
-		basis.Nomination.Block_height,
+		height,
 	)
 	return arrival
-}
-
-func assumedConsensusBasisAtHeight(height proto.BlockHeight) proto.ConsensusBasis {
-	return proto.ConsensusBasis{Nomination: proto.Nomination{Block_height: height}}
 }

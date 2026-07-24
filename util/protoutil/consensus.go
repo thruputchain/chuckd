@@ -2,59 +2,46 @@ package protoutil
 
 import (
 	"crypto/sha256"
-	"sync"
 
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func HashBasisSlow(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
+func HashProposalTxsSlow(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 	h := sha256.New()
-	libxdr.MarshalXdrWriter(h, basis)
-	return proto.ConsensusBasisHash(h.Sum(nil))
+	libxdr.MarshalXdrWriter(h, txs)
+	return proto.ProposalTxsHash(h.Sum(nil))
 }
 
-func HashBasisFast(basis *proto.ConsensusBasis) proto.ConsensusBasisHash {
-	cvBase := *basis
-	cvBase.Nomination.Transactions_hash = proto.ParallelBatch{}
-	cvBase.Nomination.Transactions_nondeterministic_data = proto.ParallelBatch{}
-
-	var hashBase proto.SHA256Hash
-	var hashTxsHash proto.SHA256Hash
-	var hashTxsND proto.SHA256Hash
-
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		hashBase = HashBasisSlow(&cvBase)
-	}()
-	go func() {
-		defer wg.Done()
-		hashTxsHash = xdrutil.HashParallelBatch(basis.Nomination.Transactions_hash)
-	}()
-	go func() {
-		defer wg.Done()
-		hashTxsND = xdrutil.HashParallelBatch(basis.Nomination.Transactions_nondeterministic_data)
-	}()
-	wg.Wait()
-	for i := range hashBase {
-		hashBase[i] ^= hashTxsHash[i] ^ hashTxsND[i]
-	}
-	return hashBase
+func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
+	// ProposalTxsHash is defined by the protocol as SHA-256 of the canonical
+	// XDR encoding. SHA-256 cannot be assembled by XORing hashes of the
+	// parallel-batch segments; doing so produces a different digest from hogd.
+	// Keep this compatibility entry point while using the canonical hash.
+	return HashProposalTxsSlow(txs)
 }
 
-func IsSaneBasis(basis *proto.ConsensusBasis) bool {
-	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_hash); err != nil {
+func IsSaneProposalTxs(txs *proto.ProposalTxs) bool {
+	if err := xdrutil.ValidateBatch(txs.Hash); err != nil {
 		return false
 	}
-	if err := xdrutil.ValidateBatch(basis.Nomination.Transactions_nondeterministic_data); err != nil {
+	if err := xdrutil.ValidateBatch(txs.Nondeterministic_data); err != nil {
 		return false
 	}
-	if xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_hash) !=
-		xdrutil.TokenSizeOfBatch(basis.Nomination.Transactions_nondeterministic_data) {
+	if xdrutil.TokenSizeOfBatch(txs.Hash) !=
+		xdrutil.TokenSizeOfBatch(txs.Nondeterministic_data) {
 		return false
 	}
 	return true
+}
+
+// IsValidBasis reports whether a ConsensusBasis is valid:
+// its proposal_txs are structurally sane and fast-hash to the
+// proposal_txs_hash in the ConsensusValue it carries.
+func IsValidBasis(basis *proto.ConsensusBasis) bool {
+	if !IsSaneProposalTxs(&basis.Proposal_txs) {
+		return false
+	}
+	return HashProposalTxsFast(&basis.Proposal_txs) == basis.Value.Proposal_txs_hash
 }

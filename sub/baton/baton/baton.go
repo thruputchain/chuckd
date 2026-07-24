@@ -33,9 +33,8 @@ type Baton struct {
 
 	// state, under lk
 	committing      *proto.BlockHeight
-	nominating      *nominating
+	nominating      *proposing
 	tipDb           proto.DbTip
-	tipExt          externalizedBasis
 	catchupWaiting  map[batonkit.ID64]catchupRequest // pending catchup requests
 	catchupArrivals catchupArrivals                  // received catchup blocks
 	externalized    []externalized                   // known externalizations
@@ -160,8 +159,13 @@ func (b *Baton) WaitExternalizedBeyond(ctx context.Context, height proto.BlockHe
 	}
 }
 
+// tipHeight returns the height of the db tip. Must be called under lk.
+func (b *Baton) tipHeight() proto.BlockHeight {
+	return protoutil.ValueHeight(&b.tipDb.Value)
+}
+
 func (b *Baton) seenExternalizationsBeyond(height proto.BlockHeight) bool {
-	if b.tipDb.Height >= height {
+	if b.tipHeight() >= height {
 		return true
 	}
 	if len(b.externalized) == 0 {
@@ -174,7 +178,7 @@ func (b *Baton) HighestCommitted() proto.BlockHeight {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 
-	return b.tipDb.Height
+	return b.tipHeight()
 }
 
 func (b *Baton) HighestCommittedOrExternalized() proto.BlockHeight {
@@ -182,14 +186,14 @@ func (b *Baton) HighestCommittedOrExternalized() proto.BlockHeight {
 	defer b.lk.Unlock()
 
 	if len(b.externalized) == 0 {
-		return b.tipDb.Height
+		return b.tipHeight()
 	}
 	return b.externalized[len(b.externalized)-1].Height()
 }
 
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
-func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, *externalizedBasis, error) {
+func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, error) {
 	liblog.Infof(ctx, "waiting for commit at height %d", height)
 
 	stop := context.AfterFunc(ctx, func() {
@@ -205,16 +209,16 @@ func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (
 		select {
 		case <-ctx.Done():
 			liblog.Errorf(ctx, "waiting for commit at height %d: context cancelled", height)
-			return nil, nil, ctx.Err()
+			return nil, ctx.Err()
 		default:
 			switch {
-			case b.tipDb.Height > height:
+			case b.tipHeight() > height:
 				liblog.Errorf(ctx, "waiting for commit at height %d: tip already ahead", height)
-				return nil, nil, ErrTipAlreadyAhead
-			case b.tipDb.Height == height:
+				return nil, ErrTipAlreadyAhead
+			case b.tipHeight() == height:
 				liblog.Infof(ctx, "waiting for commit at height %d: tip reached", height)
-				copyTipDb, copyTipExt := b.tipDb, b.tipExt
-				return &copyTipDb, &copyTipExt, nil
+				copyTipDb := b.tipDb
+				return &copyTipDb, nil
 			default:
 				b.cond.Wait()
 			}

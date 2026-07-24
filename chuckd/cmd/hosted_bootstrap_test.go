@@ -129,19 +129,25 @@ func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction)
 	for i := range txs {
 		hashes[i] = protoutil.HashSignedTx(&txs[i])
 	}
-	var blockHash proto.BlockHash
-	copy(blockHash[:], bytes.Repeat([]byte{0x88}, len(blockHash)))
+	var storageHash proto.StorageShortHash
+	copy(storageHash[:], bytes.Repeat([]byte{0x88}, len(storageHash)))
+	proposalTxs := proto.ProposalTxs{
+		Hash: xdrutil.ParallelizeSignedTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
+	}
 	basis := &proto.ConsensusBasis{
-		Nomination: proto.Nomination{
-			Block_height:      1,
-			Block_hash:        blockHash,
-			Transactions_hash: xdrutil.ParallelizeSignedTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
+		Value: proto.ConsensusValue{
+			Proposal_header: proto.ProposalHeader{
+				Block_height: 1,
+				Storage_hash: storageHash,
+			},
+			Proposal_txs_hash: protoutil.HashProposalTxsFast(&proposalTxs),
 		},
+		Proposal_txs: proposalTxs,
 	}
 	blockID := proto.BlockID(1)
 	return &batonkit.CommittableBlock{
-		Committable: batonkit.NewCommittableNomination(basis, protoutil.BasisValue(basis), &blockID),
-		Onto:        proto.DbTip{Height: 0},
+		Committable: batonkit.NewCommittableProposal(basis, protoutil.BasisValue(basis), &blockID),
+		Onto:        proto.DbTip{},
 	}
 }
 
@@ -239,7 +245,7 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 		viewGatewayAddress: "hog-exec.internal:8042",
 		publicRPCURL:       "http://203.0.113.10:8545",
 		runtimeManifestOut: path,
-	}, hostedBootstrapCommit{Height: 1, BlockHash: "0x" + strings.Repeat("88", 32)})
+	}, hostedBootstrapCommit{Height: 1, ValueHash: "0x" + strings.Repeat("88", 32)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +340,7 @@ func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.
 	manifestPath := filepath.Join(t.TempDir(), "runtime-manifest.json")
 	notify := coordinator.NewNotifyReceive()
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
-	*tip.Db_tip() = proto.DbTip{Height: 0}
+	*tip.Db_tip() = proto.DbTip{}
 	ctl := &fakeHostedBootstrapCoordinator{
 		tip:    tip,
 		commit: testHostedBootstrapCommitBlock(t, []proto.SignedTransaction{tx}),

@@ -9,7 +9,6 @@ import (
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -18,10 +17,10 @@ import (
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
 	value := cb.ConsensusValue()
-	liblog.Infof(ctx, "committing: height %d; block_hash %s; value %s; proposer %s",
-		cb.BlockHeight(), libxdr.HashString(cb.BlockHash()),
+	liblog.Infof(ctx, "committing: height %d; value %s; proposer %s",
+		cb.BlockHeight(),
 		protoutil.ValueDisplay(value),
-		protoutil.VIDString(cb.AsConsensusBasis().Proposer))
+		protoutil.VIDString(protoutil.ValueProposer(value)))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
 	defer b.stampCommitEnd(cb.BlockHeight())
@@ -32,7 +31,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	if validatedBlockID == nil {
 
 		basis := cb.AsConsensusBasis()
-		proposer := basis.Proposer
+		proposer := basis.Value.Proposal_header.Proposer
 
 		if txs := cb.UnsubmittedSignedTransactions(); txs != nil {
 			// submit catchup transactions
@@ -41,7 +40,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 			must.NoError(ctx, err)
 		}
 
-		validatedTip, err := b.validateProposal(ctx, cb.Onto, basis, cb.ConsensusValue())
+		blockID, err := b.validateProposal(ctx, cb.Onto, basis, cb.ConsensusValue())
 		// an error cannot arise here:
 		// - context cancellation or deadlines do not apply on the commit path
 		// - ErrNotValid is not expected on the commit path,
@@ -53,7 +52,7 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 			liblog.Fatalf(ctx, "committing catchup failed to validate: %v", err)
 		}
 		must.NoError(ctx, err)
-		validatedBlockID = &validatedTip.Id
+		validatedBlockID = &blockID
 	}
 
 	// CV must be guaranteed persisted before the db commits.
@@ -63,14 +62,14 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 	b.handler.CBPoolWaitPersist(ctx, *cb.ConsensusValue())
 
 	// commit to db
-	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID)
+	// on commit the block is associated with the consensus value that confirmed it
+	outcome, err := b.handler.Schedulercoord_commit_block(ctx, *validatedBlockID, *cb.ConsensusValue())
 	must.NoError(ctx, err)
 	must.Assertf(ctx, outcome == proto.SchedulerCommitOK, "scheduler commit outcome: %v", outcome)
 
 	evCommitted := batonkit.EventCommitted{
 		Onto:           cb.Onto,
 		Height:         cb.BlockHeight(),
-		BlockHash:      cb.BlockHash(),
 		DbgValidatable: cb,
 	}
 	liblog.Infof(ctx, "%v", evCommitted)
@@ -81,10 +80,12 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 
 func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 
+	tipHeight := protoutil.ValueHeight(&b.tipDb.Value)
+
 	// purge catchup blocks
 	var catchup catchupArrivals
 	for _, cb := range b.catchupArrivals {
-		if cb.BlockHeight() > b.tipDb.Height {
+		if cb.BlockHeight() > tipHeight {
 			catchup = append(catchup, cb)
 		}
 	}
@@ -93,7 +94,7 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 	// purge externalized consensus values
 	var exts []externalized
 	for _, p := range b.externalized {
-		if p.Height() > b.tipDb.Height {
+		if p.Height() > tipHeight {
 			exts = append(exts, p)
 		}
 	}
@@ -101,14 +102,14 @@ func (b *Baton) purgeNotAboveTipHeight(_ context.Context) {
 
 	// purge validations
 	for h, p := range b.validated {
-		if p.Nomination.Block_height <= b.tipDb.Height {
+		if protoutil.ValueHeight(&p.ConsensusBasis.Value) <= tipHeight {
 			delete(b.validated, h)
 		}
 	}
 
 	// purge invalidations
 	for h, p := range b.invalidated {
-		if p.Nomination.Block_height <= b.tipDb.Height {
+		if protoutil.ValueHeight(&p.ConsensusBasis.Value) <= tipHeight {
 			delete(b.invalidated, h)
 		}
 	}
