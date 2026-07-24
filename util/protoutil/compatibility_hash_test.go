@@ -6,7 +6,7 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func TestHashProposalTxsFastIsCanonicalXDRHash(t *testing.T) {
+func TestHashProposalTxsFastCompatibilityVector(t *testing.T) {
 	txs := proto.ProposalTxs{
 		Hash: proto.ParallelBatch{
 			Segment_tokens: []uint32{1, 2},
@@ -21,8 +21,16 @@ func TestHashProposalTxsFastIsCanonicalXDRHash(t *testing.T) {
 	}
 
 	got := HashProposalTxsFast(&txs)
-	want := HashProposalTxsSlow(&txs)
+	want := proto.ProposalTxsHash{
+		0x3a, 0x3c, 0xe7, 0x82, 0x83, 0x94, 0x38, 0x26,
+		0xac, 0x43, 0x29, 0x1f, 0xab, 0x79, 0xbd, 0x17,
+		0xc4, 0xad, 0x1d, 0x1e, 0xf9, 0xe2, 0x2d, 0x8c,
+		0x72, 0x31, 0xa9, 0x7c, 0xb6, 0x68, 0xdc, 0xd9,
+	}
 	if got != want {
-		t.Fatalf("non-canonical ProposalTxs hash: got %x, want %x", got, want)
+		t.Fatalf("compatibility ProposalTxs hash: got %x, want %x", got, want)
+	}
+	if got == HashProposalTxsSlow(&txs) {
+		t.Fatal("compatibility hash unexpectedly equals canonical XDR hash")
 	}
 }
