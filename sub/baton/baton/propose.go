@@ -57,6 +57,7 @@ func (b *Baton) propose(
 	// --- prepare proposal ---
 
 	propCx := proto.ProposalContext{
+		Protocol:        proto.Protocol(0),
 		Proposer:        protoutil.PublicVID(b.handler.Signer()),
 		Block_timepoint: protoutil.TimepointFromTime(stamp.Add(-b.skew)),
 	}
@@ -88,7 +89,8 @@ func (b *Baton) propose(
 
 	q0 := b.handler.Now()
 	value := &proto.ConsensusValue{
-		Prev_hash:   protoutil.HashValueToProto(&ontoDb.Value),
+		Protocol:          proto.Protocol(0),
+		Prev_hash:         protoutil.HashValueToProto(&ontoDb.Value),
 		Proposal_header:   proposal.Header,
 		Proposal_txs_hash: protoutil.HashProposalTxsFast(&proposal.Transactions),
 		Upgrades:          nil, // XXX: placeholder for upgrades
