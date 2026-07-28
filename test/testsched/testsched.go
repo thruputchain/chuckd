@@ -109,6 +109,7 @@ func (x *TestScheduler) Schedulercoord_propose_block(
 	onto proto.BlockID,
 	propCx proto.ProposalContext,
 ) (proto.SchedulerProposalResult, error) {
+	must.Assert(ctx, propCx.Protocol == proto.Protocol(0))
 
 	blockID := x.generateBlockID()
 

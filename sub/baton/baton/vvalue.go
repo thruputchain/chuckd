@@ -26,6 +26,9 @@ func (x scpHandler) ValidateValue(
 	if err != nil {
 		return scpkit.InvalidValue
 	}
+	if value.Protocol != proto.Protocol(0) {
+		return scpkit.InvalidValue
+	}
 
 	kind := "ballot"
 	if nomination {
