@@ -87,7 +87,7 @@ type hostedBootstrapCoordinator interface {
 type hostedBootstrapMetadata struct {
 	SchemaVersion              int             `json:"schemaVersion"`
 	Kind                       string          `json:"kind"`
-	NetworkID                  string          `json:"networkId"`
+	NetworkHash                string          `json:"networkHash"`
 	Protocol                   string          `json:"protocol"`
 	GenesisHash                string          `json:"genesisHash"`
 	BootstrapAccountDerivation json.RawMessage `json:"bootstrapAccountDerivation"`
@@ -118,8 +118,11 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if metadata.Kind != "hog-hosted-bootstrap" {
 		return hostedBootstrapMetadata{}, fmt.Errorf("unsupported hosted bootstrap metadata kind %q", metadata.Kind)
 	}
-	if metadata.NetworkID == "" {
-		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing networkId")
+	if len(metadata.NetworkHash) != 64 || strings.ToLower(metadata.NetworkHash) != metadata.NetworkHash {
+		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata networkHash must be exactly 64 lowercase hexadecimal characters")
+	}
+	if _, err := hex.DecodeString(metadata.NetworkHash); err != nil {
+		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata networkHash must be exactly 64 lowercase hexadecimal characters")
 	}
 	if metadata.Protocol != proto.HogProtocol() {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata protocol %q does not match chuckd protocol %q", metadata.Protocol, proto.HogProtocol())
@@ -338,9 +341,9 @@ func writeHostedRuntimeManifest(metadata hostedBootstrapMetadata, cfg hostedBoot
 		endpoints["viewGateway"] = cfg.viewGatewayAddress
 	}
 	manifest := map[string]any{
-		"schemaVersion":              1,
+		"schemaVersion":              2,
 		"kind":                       "hosted-devnet-runtime",
-		"networkId":                  metadata.NetworkID,
+		"networkHash":                metadata.NetworkHash,
 		"protocol":                   metadata.Protocol,
 		"genesisHash":                metadata.GenesisHash,
 		"producer":                   runtimeManifestProducer(),
@@ -390,7 +393,7 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.ValueHeight(&tip.Db_tip().Value))
 	}
 	if len(txs) == 0 {
-		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
+		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkHash, metadata.GenesisHash)
 		tipValueHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
 		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.ValueHeight(&tip.Db_tip().Value), ValueHash: "0x" + hex.EncodeToString(tipValueHash[:])})
 		if err != nil {
@@ -431,7 +434,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.ValueHeight(&tip.Db_tip().Value))
 	}
 	if len(txs) == 0 {
-		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkID, metadata.GenesisHash)
+		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkHash, metadata.GenesisHash)
 		tipValueHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
 		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.ValueHeight(&tip.Db_tip().Value), ValueHash: "0x" + hex.EncodeToString(tipValueHash[:])})
 		if err != nil {
@@ -516,7 +519,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		return fmt.Errorf("writing hosted runtime manifest: %w", err)
 	}
 	liblog.Infof(ctx, "hosted bootstrap initialized network=%s genesis=%s txs=%d height=%d value_hash=%s",
-		metadata.NetworkID, metadata.GenesisHash, len(txs), commit.Height, commit.ValueHash)
+		metadata.NetworkHash, metadata.GenesisHash, len(txs), commit.Height, commit.ValueHash)
 	if cfg.runtimeManifestOut != "" {
 		liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
 	}

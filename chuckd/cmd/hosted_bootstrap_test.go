@@ -55,7 +55,7 @@ func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 	return hostedBootstrapMetadata{
 		SchemaVersion:              1,
 		Kind:                       "hog-hosted-bootstrap",
-		NetworkID:                  "devnet-test",
+		NetworkHash:                strings.Repeat("00", 32),
 		Protocol:                   proto.HogProtocol(),
 		GenesisHash:                "0x" + strings.Repeat("42", 32),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
@@ -155,7 +155,7 @@ func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	path := writeHostedBootstrapMetadata(t, `{
   "schemaVersion": 1,
   "kind": "wrong",
-  "networkId": "devnet",
+  "networkHash": "`+strings.Repeat("00", 32)+`",
   "protocol": "`+proto.HogProtocol()+`",
   "genesisHash": "0xabc",
   "initializationTransactions": []
@@ -166,13 +166,30 @@ func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	}
 }
 
+func TestLoadHostedBootstrapMetadataRejectsInvalidNetworkHash(t *testing.T) {
+	for _, networkHash := range []string{
+		"devnet",
+		strings.Repeat("AA", 32),
+		strings.Repeat("gg", 32),
+	} {
+		path := writeHostedBootstrapMetadata(t, `{
+  "schemaVersion": 1,
+  "kind": "hog-hosted-bootstrap",
+  "networkHash": "`+networkHash+`"
+}`)
+		if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "networkHash") {
+			t.Fatalf("networkHash %q returned %v", networkHash, err)
+		}
+	}
+}
+
 func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	txHex := xdrHexSignedTransaction(t, tx)
 	metadata := hostedBootstrapMetadata{
 		SchemaVersion: 1,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkID:     "devnet",
+		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      proto.HogProtocol(),
 		GenesisHash:   "0xabc",
 		InitializationTransactions: []struct {
@@ -197,7 +214,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
 		SchemaVersion: 1,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkID:     "devnet",
+		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      proto.HogProtocol(),
 		GenesisHash:   "0xabc",
 		InitializationTransactions: []struct {
@@ -219,7 +236,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
 		SchemaVersion: 1,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkID:     "devnet",
+		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      proto.HogProtocol(),
 		GenesisHash:   "0xabc",
 		InitializationTransactions: []struct {
@@ -262,6 +279,12 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	}
 	if manifest["kind"] != "hosted-devnet-runtime" {
 		t.Fatalf("kind = %v", manifest["kind"])
+	}
+	if manifest["schemaVersion"] != float64(2) {
+		t.Fatalf("schemaVersion = %v", manifest["schemaVersion"])
+	}
+	if manifest["networkHash"] != strings.Repeat("00", 32) {
+		t.Fatalf("networkHash = %v", manifest["networkHash"])
 	}
 	endpoints := manifest["endpoints"].(map[string]any)
 	if endpoints["scheduler"] != "127.0.0.1:8070" ||
