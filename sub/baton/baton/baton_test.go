@@ -49,6 +49,22 @@ func testSetup() (context.Context, *TestRig, *Baton, time.Duration) {
 	return ctx, rig, baton, roundTTL
 }
 
+func TestValidateValueRejectsUnsupportedProtocol(t *testing.T) {
+	ctx, rig, baton, _ := testSetup()
+	block := rig.GenNomination(ctx, 1)
+	block.ConsensusValue.Protocol = proto.Protocol(1)
+
+	baton.Start(ctx)
+	level := <-rig.ValidateNominationValue(
+		ctx,
+		scpkit.Slot(block.ConsensusValue.Proposal_header.Block_height),
+		testMarshaler.MarshalXdr(&block.ConsensusValue).Bytes(),
+	)
+	if level != scpkit.InvalidValue {
+		t.Fatalf("validation level = %v, want invalid", level)
+	}
+}
+
 // TestNominateCommit tests committing of blocks that we have nominated.
 func TestNominateCommit(t *testing.T) {
 
@@ -61,6 +77,9 @@ func TestNominateCommit(t *testing.T) {
 	baton.Start(ctx)
 	rig.WaitBackfeed(ctx)
 	nominating_1 := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominating)
+	if nominating_1.ConsensusValue.Protocol != proto.Protocol(0) {
+		t.Fatalf("consensus protocol = %d, want 0", nominating_1.ConsensusValue.Protocol)
+	}
 	rig.PlaceConsensusValue(ctx, *nominating_1.ConsensusBasis, *nominating_1.ConsensusValue)
 	rig.WaitNomination(ctx)
 	rig.SignalNomination(true)

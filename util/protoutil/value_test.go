@@ -74,6 +74,12 @@ func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
 			wantEqual: true,
 		},
 		{
+			name: "protocol differs",
+			mutate: func(value *proto.ConsensusValue) {
+				value.Protocol++
+			},
+		},
+		{
 			name: "prev value hash differs",
 			mutate: func(value *proto.ConsensusValue) {
 				value.Prev_hash[2] ^= 0xFF
@@ -156,6 +162,7 @@ func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo)
 
 func sampleConsensusValue(seed byte) proto.ConsensusValue {
 	return proto.ConsensusValue{
+		Protocol:  proto.Protocol(0),
 		Prev_hash: filledHash(seed + 2),
 		Proposal_header: proto.ProposalHeader{
 			Network_hash:    filledHash(seed + 1),

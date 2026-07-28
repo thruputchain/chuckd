@@ -143,6 +143,7 @@ func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHa
 			h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),
 	}
 	value := proto.ConsensusValue{
+		Protocol:  proto.Protocol(0),
 		Prev_hash: protoutil.HashValueToProto(&onto.Value),
 		Proposal_header: proto.ProposalHeader{
 			Network_hash:    TestNetworkHash,
