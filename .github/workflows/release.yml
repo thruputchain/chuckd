@@ -12,6 +12,7 @@ env:
   CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
   CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  CHUCKD_DISTRIBUTION_VERSION: "0.1.19"
 
 permissions:
   contents: write
@@ -74,6 +75,17 @@ jobs:
 
       - name: Build scpd
         run: ./scripts/build_scpd.sh
+
+      - name: Verify chuckd distribution version
+        run: |
+          set -euo pipefail
+          for args in "--version" "version"; do
+            output=$(./chuckd.dev $args 2>&1)
+            if [[ "$output" != *"$CHUCKD_DISTRIBUTION_VERSION"* ]]; then
+              echo "chuckd $args does not report distribution version ${CHUCKD_DISTRIBUTION_VERSION}: ${output}" >&2
+              exit 1
+            fi
+          done
 
       - name: Package coordinator
         run: |
