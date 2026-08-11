@@ -12,6 +12,8 @@ import (
 var (
 	lk          sync.Mutex
 	versionInfo = VersionInfo{DirtyBuild: true}
+	// Set by release builds without replacing the component's Go/VCS identity.
+	distributionVersion string
 )
 
 func GetVersionInfo() VersionInfo {
@@ -74,7 +76,11 @@ func Short() string {
 		parts = append(parts, "dirty")
 	}
 	if len(parts) == 0 {
-		return "dev"
+		parts = append(parts, "dev")
 	}
-	return strings.Join(parts, "-")
+	componentVersion := strings.Join(parts, "-")
+	if distributionVersion == "" {
+		return componentVersion
+	}
+	return distributionVersion + " (component " + componentVersion + ")"
 }
