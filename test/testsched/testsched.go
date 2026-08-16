@@ -98,7 +98,7 @@ func (x *TestScheduler) Schedulercoord_submit_vetted(ctx context.Context, vid pr
 
 func (x *TestScheduler) Schedcoord_lookup_transactions(
 	ctx context.Context,
-	hashes proto.SignedTransactionHashBatch,
+	hashes proto.TransactionHashBatch,
 ) (proto.OptSignedTransactionBatch, error) {
 	_, _, mixed := x.mempool.LookupTxs(hashes)
 	return mixed, nil
@@ -140,9 +140,9 @@ func (x *TestScheduler) Schedulercoord_propose_block(
 			Events_hash:     testutil.TestEventsHash,
 		},
 		Transactions: proto.ProposalTxs{
-			Hash: xdrutil.ParallelizeSignedTransactionHashBatch(
+			Hash: xdrutil.ParallelizeTransactionHashBatch(
 				x.m,
-				systemfixed.NominationSignedTransactionHashBatchMaxSegments,
+				systemfixed.NominationTransactionHashBatchMaxSegments,
 				txHashes),
 			Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
 				x.m,
@@ -165,7 +165,7 @@ func (x *TestScheduler) Schedulercoord_propose_block(
 
 func (x *TestScheduler) Schedulercoord_validate_block(ctx context.Context, onto proto.BlockID, proposal proto.Proposal) (proto.SchedulerValidationResult, error) {
 
-	nomTxhs, err := xdrutil.SerializeSignedTransactionHashBatch(proposal.Transactions.Hash)
+	nomTxhs, err := xdrutil.SerializeTransactionHashBatch(proposal.Transactions.Hash)
 	if err != nil {
 		return proto.SchedulerValidationResult{}, err
 	}

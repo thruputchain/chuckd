@@ -13,12 +13,12 @@ import (
 )
 
 func mkBasis() *proto.ConsensusBasis {
-	txh := make([]proto.SignedTransactionHash, 1e6) // 1M
+	txh := make([]proto.TransactionHash, 1e6) // 1M
 	txn := make([]proto.NondeterministicProposalData, 1e6)
 	m := libxdr.NewXdrMarshaler()
 	return &proto.ConsensusBasis{
 		Proposal_txs: proto.ProposalTxs{
-			Hash:                  xdrutil.ParallelizeSignedTransactionHashBatch(m, 20, txh),
+			Hash:                  xdrutil.ParallelizeTransactionHashBatch(m, 20, txh),
 			Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(m, 20, txn),
 		},
 	}

@@ -129,7 +129,7 @@ type Reply_Schedcoord_load_genesis_configuration struct {
 type Request_Schedcoord_lookup_transactions struct {
 	Reply chan<- Reply_Schedcoord_lookup_transactions
 	Ctx   context.Context
-	STHB  proto.SignedTransactionHashBatch
+	STHB  proto.TransactionHashBatch
 }
 
 func (Request_Schedcoord_lookup_transactions) IsSchedCoordRequest() {}

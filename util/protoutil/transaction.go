@@ -31,14 +31,14 @@ func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.Propose
 	return Unpack(ts)
 }
 
-func HashSignedTx(tx *proto.SignedTransaction) proto.SignedTransactionHash {
+func HashSignedTx(tx *proto.SignedTransaction) proto.TransactionHash {
 	h := sha256.New()
 	libxdr.MarshalXdrWriter(h, &tx.Tx)
-	return proto.SignedTransactionHash(h.Sum(nil))
+	return proto.TransactionHash(h.Sum(nil))
 }
 
-func HashSignedTxs(txs []proto.SignedTransaction) []proto.SignedTransactionHash {
-	sxs := make([]proto.SignedTransactionHash, len(txs))
+func HashSignedTxs(txs []proto.SignedTransaction) []proto.TransactionHash {
+	sxs := make([]proto.TransactionHash, len(txs))
 	for i := range txs {
 		sxs[i] = HashSignedTx(&txs[i])
 	}

@@ -99,7 +99,7 @@ func (x *fakeHostedBootstrapCoordinator) GetTip(context.Context) (proto.Schedule
 	return x.tip, nil
 }
 
-func (x *fakeHostedBootstrapCoordinator) LookupTransactions(_ context.Context, hashes proto.SignedTransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
+func (x *fakeHostedBootstrapCoordinator) LookupTransactions(_ context.Context, hashes proto.TransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
 	found := make(proto.OptSignedTransactionBatch, len(hashes))
 	for i, hash := range hashes {
 		for _, tx := range x.submitted {
@@ -144,14 +144,14 @@ func (x *fakeHostedBootstrapCoordinator) ResumeNominating() {
 
 func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction) *batonkit.CommittableBlock {
 	t.Helper()
-	hashes := make([]proto.SignedTransactionHash, len(txs))
+	hashes := make([]proto.TransactionHash, len(txs))
 	for i := range txs {
 		hashes[i] = protoutil.HashSignedTx(&txs[i])
 	}
 	var storageHash proto.StorageShortHash
 	copy(storageHash[:], bytes.Repeat([]byte{0x88}, len(storageHash)))
 	proposalTxs := proto.ProposalTxs{
-		Hash: xdrutil.ParallelizeSignedTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationSignedTransactionHashBatchMaxSegments, hashes),
+		Hash: xdrutil.ParallelizeTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationTransactionHashBatchMaxSegments, hashes),
 	}
 	basis := &proto.ConsensusBasis{
 		Value: proto.ConsensusValue{

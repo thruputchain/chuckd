@@ -27,14 +27,14 @@ func ParallelizeSignedTransactionBatch(
 	)
 }
 
-func ParallelizeSignedTransactionHashBatch(
+func ParallelizeTransactionHashBatch(
 	m libxdr.XdrMarshaler,
 	maxSegments int,
-	tokens []proto.SignedTransactionHash,
-) proto.ParallelSignedTransactionHashBatch {
+	tokens []proto.TransactionHash,
+) proto.ParallelTransactionHashBatch {
 	return parallelizeBatch(m, maxSegments, tokens,
-		func(x *proto.SignedTransactionHash) xdr.XdrType {
-			return proto.XDR_SignedTransactionHash(x)
+		func(x *proto.TransactionHash) xdr.XdrType {
+			return proto.XDR_TransactionHash(x)
 		},
 	)
 }

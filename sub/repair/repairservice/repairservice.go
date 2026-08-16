@@ -147,7 +147,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 			fmt.Errorf("failed to serialize transaction batch (%w)", err)
 	}
 
-	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_basis.Proposal_txs.Hash)
+	txhs, err := xdrutil.SerializeTransactionHashBatch(cb.Consensus_basis.Proposal_txs.Hash)
 	if err != nil {
 		liblog.Errorf(ctx, "failed to serialize transaction hash batch: value=%s",
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
@@ -163,7 +163,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 				len(txs), len(txhs))
 	}
 
-	m := map[proto.SignedTransactionHash]int{}
+	m := map[proto.TransactionHash]int{}
 	for i, txh := range txhs {
 		m[txh] = i
 	}
@@ -184,7 +184,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 
 func (x *RepairService) repairMissingTxsFromMempool(
 	ctx context.Context,
-	txhs []proto.SignedTransactionHash,
+	txhs []proto.TransactionHash,
 ) (proto.RepairedTransactions, error) {
 
 	found, err := x.conn.Schedcoord_lookup_transactions(ctx, txhs)

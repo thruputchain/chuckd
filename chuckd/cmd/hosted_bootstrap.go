@@ -77,7 +77,7 @@ type hostedBootstrapConfig struct {
 
 type hostedBootstrapCoordinator interface {
 	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
-	LookupTransactions(context.Context, proto.SignedTransactionHashBatch) (proto.OptSignedTransactionBatch, error)
+	LookupTransactions(context.Context, proto.TransactionHashBatch) (proto.OptSignedTransactionBatch, error)
 	SetLevers(batonkit.BatonLevers)
 	SetHooks(batonkit.BatonHooks)
 	SignalGenesisIsReady()
@@ -143,16 +143,16 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	return metadata, nil
 }
 
-func decodeHostedBootstrapHash(value string, index int) (proto.SignedTransactionHash, error) {
+func decodeHostedBootstrapHash(value string, index int) (proto.TransactionHash, error) {
 	trimmed := strings.TrimPrefix(value, "0x")
 	if len(trimmed) != 64 {
-		return proto.SignedTransactionHash{}, fmt.Errorf("initialization transaction %d hash must be 32 bytes of hex", index)
+		return proto.TransactionHash{}, fmt.Errorf("initialization transaction %d hash must be 32 bytes of hex", index)
 	}
 	decoded, err := hex.DecodeString(trimmed)
 	if err != nil {
-		return proto.SignedTransactionHash{}, fmt.Errorf("decoding initialization transaction %d hash: %w", index, err)
+		return proto.TransactionHash{}, fmt.Errorf("decoding initialization transaction %d hash: %w", index, err)
 	}
-	var hash proto.SignedTransactionHash
+	var hash proto.TransactionHash
 	copy(hash[:], decoded)
 	return hash, nil
 }
@@ -448,9 +448,9 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		return nil
 	}
 
-	uncommitted := map[proto.SignedTransactionHash]struct{}{}
+	uncommitted := map[proto.TransactionHash]struct{}{}
 	txPtrs := make([]*proto.SignedTransaction, len(txs))
-	pendingHashes := make(proto.SignedTransactionHashBatch, len(txs))
+	pendingHashes := make(proto.TransactionHashBatch, len(txs))
 	for i := range txs {
 		hash := protoutil.HashSignedTx(&txs[i])
 		uncommitted[hash] = struct{}{}
@@ -467,7 +467,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		mu.Lock()
 		defer mu.Unlock()
 
-		hashes, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
+		hashes, err := xdrutil.SerializeTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
 		if err != nil {
 			hookErr = err
 			return batonkit.BatonLevers{PauseNominating: true}
@@ -510,7 +510,7 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 			return fmt.Errorf("confirming hosted bootstrap transactions: scheduler returned %d results for %d hashes", len(found), len(pendingTxs))
 		}
 		nextTxs := make([]*proto.SignedTransaction, 0, len(pendingTxs))
-		nextHashes := make(proto.SignedTransactionHashBatch, 0, len(pendingHashes))
+		nextHashes := make(proto.TransactionHashBatch, 0, len(pendingHashes))
 		for i := range found {
 			if found[i] == nil {
 				nextTxs = append(nextTxs, pendingTxs[i])
