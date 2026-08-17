@@ -82,19 +82,34 @@ func testHostedBootstrapMetadataWithTransactions(t *testing.T, txs ...proto.Sign
 }
 
 type fakeHostedBootstrapCoordinator struct {
-	tip       proto.SchedulerGetTipResult
-	levers    batonkit.BatonLevers
-	hooks     batonkit.BatonHooks
-	signaled  bool
-	resumed   bool
-	resumes   int
-	submitted []*proto.SignedTransaction
-	commit    *batonkit.CommittableBlock
-	notify    *coordinator.NotifyReceive
+	tip         proto.SchedulerGetTipResult
+	levers      batonkit.BatonLevers
+	hooks       batonkit.BatonHooks
+	signaled    bool
+	resumed     bool
+	resumes     int
+	submitted   []*proto.SignedTransaction
+	submitDrops int
+	submitCalls int
+	commit      *batonkit.CommittableBlock
+	notify      *coordinator.NotifyReceive
 }
 
 func (x *fakeHostedBootstrapCoordinator) GetTip(context.Context) (proto.SchedulerGetTipResult, error) {
 	return x.tip, nil
+}
+
+func (x *fakeHostedBootstrapCoordinator) LookupTransactions(_ context.Context, hashes proto.SignedTransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
+	found := make(proto.OptSignedTransactionBatch, len(hashes))
+	for i, hash := range hashes {
+		for _, tx := range x.submitted {
+			if protoutil.HashSignedTx(tx) == hash {
+				found[i] = tx
+				break
+			}
+		}
+	}
+	return found, nil
 }
 
 func (x *fakeHostedBootstrapCoordinator) SetLevers(levers batonkit.BatonLevers) {
@@ -110,6 +125,10 @@ func (x *fakeHostedBootstrapCoordinator) SignalGenesisIsReady() {
 }
 
 func (x *fakeHostedBootstrapCoordinator) SubmitTxs(_ context.Context, txs []*proto.SignedTransaction) {
+	x.submitCalls++
+	if x.submitCalls <= x.submitDrops {
+		return
+	}
 	x.submitted = append(x.submitted, txs...)
 }
 
@@ -357,7 +376,7 @@ func TestInitializeHostedBootstrapRejectsStandaloneTransactions(t *testing.T) {
 	}
 }
 
-func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.T) {
+func TestInitializeHostedBootstrapWithCoordinatorRetriesSubmissionAndWaitsForBatonCommit(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	metadataPath := writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx))
 	manifestPath := filepath.Join(t.TempDir(), "runtime-manifest.json")
@@ -365,9 +384,10 @@ func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
 	*tip.Db_tip() = proto.DbTip{}
 	ctl := &fakeHostedBootstrapCoordinator{
-		tip:    tip,
-		commit: testHostedBootstrapCommitBlock(t, []proto.SignedTransaction{tx}),
-		notify: notify,
+		tip:         tip,
+		submitDrops: 1,
+		commit:      testHostedBootstrapCommitBlock(t, []proto.SignedTransaction{tx}),
+		notify:      notify,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -386,6 +406,9 @@ func TestInitializeHostedBootstrapWithCoordinatorWaitsForBatonCommit(t *testing.
 	}
 	if len(ctl.submitted) != 1 {
 		t.Fatalf("submitted %d txs, want 1", len(ctl.submitted))
+	}
+	if ctl.submitCalls != 2 {
+		t.Fatalf("submitted %d times, want one retry", ctl.submitCalls)
 	}
 	if ctl.resumes != 2 {
 		t.Fatalf("expected bootstrap resume and final resume, got %d resumes", ctl.resumes)

@@ -22,6 +22,10 @@ func (x Control) GetTip(ctx context.Context) (proto.SchedulerGetTipResult, error
 	return x.conn.Schedcoord_get_tip(ctx)
 }
 
+func (x Control) LookupTransactions(ctx context.Context, hashes proto.SignedTransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
+	return x.conn.Schedcoord_lookup_transactions(ctx, hashes)
+}
+
 func (x Control) SubmitTxs(ctx context.Context, txs []*proto.SignedTransaction) {
 	x.system.UnvettedSubmitter.SubmitTxs(ctx, txs...)
 }

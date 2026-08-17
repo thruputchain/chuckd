@@ -77,6 +77,7 @@ type hostedBootstrapConfig struct {
 
 type hostedBootstrapCoordinator interface {
 	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
+	LookupTransactions(context.Context, proto.SignedTransactionHashBatch) (proto.OptSignedTransactionBatch, error)
 	SetLevers(batonkit.BatonLevers)
 	SetHooks(batonkit.BatonHooks)
 	SignalGenesisIsReady()
@@ -448,8 +449,13 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 	}
 
 	uncommitted := map[proto.SignedTransactionHash]struct{}{}
+	txPtrs := make([]*proto.SignedTransaction, len(txs))
+	pendingHashes := make(proto.SignedTransactionHashBatch, len(txs))
 	for i := range txs {
-		uncommitted[protoutil.HashSignedTx(&txs[i])] = struct{}{}
+		hash := protoutil.HashSignedTx(&txs[i])
+		uncommitted[hash] = struct{}{}
+		txPtrs[i] = &txs[i]
+		pendingHashes[i] = hash
 	}
 
 	var mu sync.Mutex
@@ -482,15 +488,38 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 	defer ctl.SetHooks(nil)
 
 	ctl.SignalGenesisIsReady()
-	txPtrs := make([]*proto.SignedTransaction, len(txs))
-	for i := range txs {
-		txPtrs[i] = &txs[i]
-	}
-	ctl.SubmitTxs(ctx, txPtrs)
+	pendingTxs := txPtrs
+	for len(pendingTxs) != 0 {
+		ctl.SubmitTxs(ctx, pendingTxs)
 
-	// Give the submitter's batching goroutine time to deliver the fenced init txs
-	// before nominations resume, matching the loadgen init path.
-	time.Sleep(500 * time.Millisecond)
+		// The scheduler may have loaded genesis but not yet be ready to admit
+		// transactions. Wait for the submitter to flush, then retry any txs that
+		// the scheduler did not retain while nominations remain paused.
+		timer := time.NewTimer(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+		found, err := ctl.LookupTransactions(ctx, pendingHashes)
+		if err != nil {
+			return fmt.Errorf("confirming hosted bootstrap transactions: %w", err)
+		}
+		if len(found) != len(pendingTxs) {
+			return fmt.Errorf("confirming hosted bootstrap transactions: scheduler returned %d results for %d hashes", len(found), len(pendingTxs))
+		}
+		nextTxs := make([]*proto.SignedTransaction, 0, len(pendingTxs))
+		nextHashes := make(proto.SignedTransactionHashBatch, 0, len(pendingHashes))
+		for i := range found {
+			if found[i] == nil {
+				nextTxs = append(nextTxs, pendingTxs[i])
+				nextHashes = append(nextHashes, pendingHashes[i])
+			}
+		}
+		pendingTxs = nextTxs
+		pendingHashes = nextHashes
+	}
 	ctl.ResumeNominating()
 
 	for {
