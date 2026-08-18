@@ -20,10 +20,10 @@ func SerializeSignedTransactionBatch(batch proto.ParallelBatch) ([]proto.SignedT
 	)
 }
 
-func SerializeSignedTransactionHashBatch(batch proto.ParallelBatch) ([]proto.SignedTransactionHash, error) {
+func SerializeTransactionHashBatch(batch proto.ParallelBatch) ([]proto.TransactionHash, error) {
 	return serializeBatch(batch,
-		func(x *proto.SignedTransactionHash) xdr.XdrType {
-			return proto.XDR_SignedTransactionHash(x)
+		func(x *proto.TransactionHash) xdr.XdrType {
+			return proto.XDR_TransactionHash(x)
 		},
 	)
 }

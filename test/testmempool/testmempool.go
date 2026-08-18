@@ -9,12 +9,12 @@ import (
 
 type TestMempool struct {
 	lk   sync.Mutex
-	pool map[proto.SignedTransactionHash]*proto.SignedTransaction
+	pool map[proto.TransactionHash]*proto.SignedTransaction
 }
 
 func NewTestMempool() *TestMempool {
 	return &TestMempool{
-		pool: map[proto.SignedTransactionHash]*proto.SignedTransaction{},
+		pool: map[proto.TransactionHash]*proto.SignedTransaction{},
 	}
 }
 
@@ -37,16 +37,16 @@ func (x *TestMempool) DrainTxs() []*proto.SignedTransaction {
 }
 
 func (x *TestMempool) LookupTxs(
-	hashes []proto.SignedTransactionHash,
+	hashes []proto.TransactionHash,
 ) (
 	found []proto.SignedTransaction,
-	missing []proto.SignedTransactionHash,
+	missing []proto.TransactionHash,
 	mixed proto.OptSignedTransactionBatch,
 ) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	found = make([]proto.SignedTransaction, len(hashes))
-	missing = []proto.SignedTransactionHash{}
+	missing = []proto.TransactionHash{}
 	mixed = make(proto.OptSignedTransactionBatch, len(hashes))
 	for i, h := range hashes {
 		got, ok := x.pool[h]
@@ -63,7 +63,7 @@ func (x *TestMempool) LookupTxs(
 	return found, nil, mixed
 }
 
-func (x *TestMempool) RemoveTxs(hashes []proto.SignedTransactionHash) {
+func (x *TestMempool) RemoveTxs(hashes []proto.TransactionHash) {
 	x.lk.Lock()
 	defer x.lk.Unlock()
 	for _, h := range hashes {

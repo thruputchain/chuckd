@@ -24,7 +24,7 @@ type testDbSnapshot struct {
 	tip       proto.DbTip // id and, once committed, the consensus value that committed the block
 	height    proto.BlockHeight
 	storage   proto.StorageShortHash // rolling storage hash of applied txs
-	hashes    []proto.SignedTransactionHash
+	hashes    []proto.TransactionHash
 	open      int
 	committed bool
 }
@@ -117,7 +117,7 @@ func (db *TestDb) CreateSnapshot(ctx context.Context, parentID proto.BlockID, id
 }
 
 // CommitSnapshot commits the block and associates it with the consensus value that confirmed it.
-func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID, value proto.ConsensusValue) (proto.StorageShortHash, []proto.SignedTransactionHash) {
+func (db *TestDb) CommitSnapshot(ctx context.Context, id proto.BlockID, value proto.ConsensusValue) (proto.StorageShortHash, []proto.TransactionHash) {
 	// liblog.Debugf("db commit %v", form.Display(id))
 	db.lk.Lock()
 	defer db.lk.Unlock()

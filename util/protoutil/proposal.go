@@ -7,12 +7,12 @@ import (
 
 type ProposalTxsSerialized struct {
 	ProposalTxs      *proto.ProposalTxs
-	Transaction_hash []proto.SignedTransactionHash
+	Transaction_hash []proto.TransactionHash
 	Transaction_data []proto.NondeterministicProposalData
 }
 
 func SerializeProposalTxs(txs *proto.ProposalTxs) (ProposalTxsSerialized, error) {
-	txh, err := xdrutil.SerializeSignedTransactionHashBatch(txs.Hash)
+	txh, err := xdrutil.SerializeTransactionHashBatch(txs.Hash)
 	if err != nil {
 		return ProposalTxsSerialized{}, err
 	}

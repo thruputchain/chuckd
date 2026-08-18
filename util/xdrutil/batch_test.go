@@ -15,12 +15,12 @@ const nseg = 30
 
 func TestParallelizeSignedTxHashRoundtrip(t *testing.T) {
 	m := libxdr.NewXdrMarshaler()
-	in := make([]proto.SignedTransactionHash, 10)
+	in := make([]proto.TransactionHash, 10)
 	for i := range in {
 		crand.Read(in[i][:])
 	}
-	x := ParallelizeSignedTransactionHashBatch(m, nseg, in)
-	out, err := SerializeSignedTransactionHashBatch(x)
+	x := ParallelizeTransactionHashBatch(m, nseg, in)
+	out, err := SerializeTransactionHashBatch(x)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,9 +81,9 @@ func BenchmarkParallelizeSignedTx(b *testing.B) {
 
 func BenchmarkParallelizeSignedTxHash(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
-	tokens := make([]proto.SignedTransactionHash, n)
+	tokens := make([]proto.TransactionHash, n)
 	for b.Loop() {
-		ParallelizeSignedTransactionHashBatch(m, nseg, tokens)
+		ParallelizeTransactionHashBatch(m, nseg, tokens)
 	}
 }
 
@@ -109,10 +109,10 @@ func BenchmarkSerializeSignedTx(b *testing.B) {
 
 func BenchmarkSerializeSignedTxHash(b *testing.B) {
 	m := libxdr.NewXdrMarshaler()
-	tokens := make([]proto.SignedTransactionHash, n)
-	x := ParallelizeSignedTransactionHashBatch(m, nseg, tokens)
+	tokens := make([]proto.TransactionHash, n)
+	x := ParallelizeTransactionHashBatch(m, nseg, tokens)
 	for b.Loop() {
-		_, err := SerializeSignedTransactionHashBatch(x)
+		_, err := SerializeTransactionHashBatch(x)
 		if err != nil {
 			b.Fatal(err)
 		}

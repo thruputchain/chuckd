@@ -8,7 +8,7 @@ const (
 
 // Parallel batch segmentation constants.
 const (
-	NominationSignedTransactionHashBatchMaxSegments = 20
+	NominationTransactionHashBatchMaxSegments = 20
 	NominationNondeterministicDataBatchMaxSegments  = 20
 
 	UnvettedTxBatchMaxSegments  = 20
