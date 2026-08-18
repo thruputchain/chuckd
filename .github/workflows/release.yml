@@ -12,7 +12,7 @@ env:
   CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
   CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-  CHUCKD_DISTRIBUTION_VERSION: "0.1.21"
+  CHUCKD_DISTRIBUTION_VERSION: "0.1.22"
 
 permissions:
   contents: write
@@ -33,7 +33,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: webfactory/ssh-agent@v0.9.1
+      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
         with:
           ssh-private-key: |
             ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
@@ -43,7 +43,7 @@ jobs:
             ${{ secrets.CHUCKD_TO_SCP_KEY }}
             ${{ secrets.CHUCKD_TO_HOGX_KEY }}
 
-      - uses: namespacelabs/nscloud-checkout-action@v8
+      - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
         with:
           submodules: false
 
@@ -53,13 +53,15 @@ jobs:
       - name: Verify native Linux architecture
         run: test "$(uname -m)" = "${{ matrix.machine }}"
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go.mod
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.96.0
 
-      - uses: namespacelabs/nscloud-cache-action@v1
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547 # v1
         with:
           cache: go
 
@@ -131,7 +133,7 @@ jobs:
           sha256sum -- *.tar.gz > SHA256SUMS
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: artifacts/*
           generate_release_notes: true
