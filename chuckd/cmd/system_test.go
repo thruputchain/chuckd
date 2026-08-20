@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -41,6 +42,24 @@ func writeMinimalGenesisFile(t *testing.T) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "genesis.json")
 	data := []byte(minimalGenesisJSON)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func writeMinimalGenesisV2File(t *testing.T) string {
+	t.Helper()
+	genesis := proto.GenesisConfigurationV2{
+		Storage_cost_model: expectedMinimalCostModel,
+		Root_contract:      proto.Contract{Contract_type: proto.KRv32},
+	}
+	genesis.Root_contract.Rv32_contract().Data = []byte{1, 2, 3}
+	data, err := libxdr.XdrToJson(&genesis)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "genesis-v2.json")
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -87,6 +106,20 @@ type fakeGenesisControl struct {
 	loadResults []proto.DbSchedResult
 	loadErr     error
 	loads       []proto.GenesisConfiguration
+	loadsV2     []proto.GenesisConfigurationV2
+}
+
+func (f *fakeGenesisControl) LoadGenesisConfigurationV2(_ context.Context, genesis proto.GenesisConfigurationV2) (proto.DbSchedResult, error) {
+	f.loadsV2 = append(f.loadsV2, genesis)
+	if f.loadErr != nil {
+		return 0, f.loadErr
+	}
+	if len(f.loadResults) == 0 {
+		return 0, errors.New("unexpected LoadGenesisConfigurationV2 call")
+	}
+	result := f.loadResults[0]
+	f.loadResults = f.loadResults[1:]
+	return result, nil
 }
 
 func (f *fakeGenesisControl) GetTip(context.Context) (proto.SchedulerGetTipResult, error) {
@@ -147,6 +180,22 @@ func TestLoadGenesisIfNeededLoadsMinimalGenesis(t *testing.T) {
 	}
 	if fake.loads[0].Storage_cost_model != expectedMinimalCostModel {
 		t.Fatalf("unexpected loaded cost model: %+v", fake.loads[0].Storage_cost_model)
+	}
+}
+
+func TestLoadGenesisIfNeededLoadsGenesisV2(t *testing.T) {
+	fake := &fakeGenesisControl{
+		tips:        []proto.SchedulerGetTipResult{tipNoGenesis()},
+		loadResults: []proto.DbSchedResult{proto.DbSchedResultOK},
+	}
+
+	loadGenesisIfNeeded(context.Background(), fake, writeMinimalGenesisV2File(t))
+
+	if len(fake.loads) != 0 || len(fake.loadsV2) != 1 {
+		t.Fatalf("loaded V1 %d times and V2 %d times, want only one V2 load", len(fake.loads), len(fake.loadsV2))
+	}
+	if fake.loadsV2[0].Storage_cost_model != expectedMinimalCostModel {
+		t.Fatalf("unexpected loaded V2 cost model: %+v", fake.loadsV2[0].Storage_cost_model)
 	}
 }
 

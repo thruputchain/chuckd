@@ -10,11 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/libxdr"
@@ -82,92 +78,31 @@ func testHostedBootstrapMetadataWithTransactions(t *testing.T, txs ...proto.Sign
 }
 
 type fakeHostedBootstrapCoordinator struct {
-	tip         proto.SchedulerGetTipResult
-	levers      batonkit.BatonLevers
-	hooks       batonkit.BatonHooks
-	signaled    bool
-	resumed     bool
-	resumes     int
-	submitted   []*proto.SignedTransaction
-	submitDrops int
-	submitCalls int
-	commit      *batonkit.CommittableBlock
-	notify      *coordinator.NotifyReceive
+	tip       proto.SchedulerGetTipResult
+	result    proto.GenesisCeremonyResult
+	request   *proto.GenesisCeremonyRequest
+	commitErr error
+	signaled  bool
 }
 
 func (x *fakeHostedBootstrapCoordinator) GetTip(context.Context) (proto.SchedulerGetTipResult, error) {
 	return x.tip, nil
 }
 
-func (x *fakeHostedBootstrapCoordinator) LookupTransactions(_ context.Context, hashes proto.TransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
-	found := make(proto.OptSignedTransactionBatch, len(hashes))
-	for i, hash := range hashes {
-		for _, tx := range x.submitted {
-			if protoutil.HashSignedTx(tx) == hash {
-				found[i] = tx
-				break
-			}
-		}
-	}
-	return found, nil
-}
-
-func (x *fakeHostedBootstrapCoordinator) SetLevers(levers batonkit.BatonLevers) {
-	x.levers = levers
-}
-
-func (x *fakeHostedBootstrapCoordinator) SetHooks(hooks batonkit.BatonHooks) {
-	x.hooks = hooks
+func (x *fakeHostedBootstrapCoordinator) CommitGenesisCeremony(_ context.Context, request proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error) {
+	x.request = &request
+	return x.result, x.commitErr
 }
 
 func (x *fakeHostedBootstrapCoordinator) SignalGenesisIsReady() {
 	x.signaled = true
 }
 
-func (x *fakeHostedBootstrapCoordinator) SubmitTxs(_ context.Context, txs []*proto.SignedTransaction) {
-	x.submitCalls++
-	if x.submitCalls <= x.submitDrops {
-		return
-	}
-	x.submitted = append(x.submitted, txs...)
-}
-
-func (x *fakeHostedBootstrapCoordinator) ResumeNominating() {
-	x.resumed = true
-	x.resumes++
-	x.levers.PauseNominating = false
-	if x.hooks != nil && x.commit != nil {
-		x.levers = x.hooks.CommitHook(x.commit)
-		go x.notify.Committed(context.Background(), x.commit)
-	}
-}
-
-func testHostedBootstrapCommitBlock(t *testing.T, txs []proto.SignedTransaction) *batonkit.CommittableBlock {
+func testHostedBootstrapCeremonyResult(t *testing.T, height proto.BlockHeight) proto.GenesisCeremonyResult {
 	t.Helper()
-	hashes := make([]proto.TransactionHash, len(txs))
-	for i := range txs {
-		hashes[i] = protoutil.HashSignedTx(&txs[i])
-	}
-	var storageHash proto.StorageShortHash
-	copy(storageHash[:], bytes.Repeat([]byte{0x88}, len(storageHash)))
-	proposalTxs := proto.ProposalTxs{
-		Hash: xdrutil.ParallelizeTransactionHashBatch(libxdr.NewXdrMarshaler(), systemfixed.NominationTransactionHashBatchMaxSegments, hashes),
-	}
-	basis := &proto.ConsensusBasis{
-		Value: proto.ConsensusValue{
-			Proposal_header: proto.ProposalHeader{
-				Block_height: 1,
-				Storage_hash: storageHash,
-			},
-			Proposal_txs_hash: protoutil.HashProposalTxsFast(&proposalTxs),
-		},
-		Proposal_txs: proposalTxs,
-	}
-	blockID := proto.BlockID(1)
-	return &batonkit.CommittableBlock{
-		Committable: batonkit.NewCommittableProposal(basis, protoutil.BasisValue(basis), &blockID),
-		Onto:        proto.DbTip{},
-	}
+	result := proto.GenesisCeremonyResult{Outcome: proto.GenesisCeremonyCommitted}
+	result.Commit().Db_tip.Value.Proposal_header.Block_height = height
+	return result
 }
 
 func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
@@ -363,58 +298,58 @@ func TestInitializeHostedBootstrapValidatesManifestConfigBeforeMetadata(t *testi
 	}
 }
 
-func TestInitializeHostedBootstrapRejectsStandaloneTransactions(t *testing.T) {
-	tx := proto.SignedTransaction{}
-	err := initializeHostedBootstrap(context.Background(), hostedBootstrapConfig{
-		metadataPath: writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx)),
-	})
-	if err == nil {
-		t.Fatal("expected standalone transaction bootstrap to fail")
-	}
-	if !strings.Contains(err.Error(), "Baton commits the bootstrap block") {
+func TestCommitHostedBootstrapRejectsMissingCeremonyTransaction(t *testing.T) {
+	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
+	*tip.Db_tip() = proto.DbTip{}
+	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
+	err := commitHostedBootstrap(context.Background(), hostedBootstrapConfig{
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadata()),
+		schedulerAddress: "127.0.0.1:8070",
+	}, ctl)
+	if err == nil || !strings.Contains(err.Error(), "exactly one initialization transaction") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestInitializeHostedBootstrapWithCoordinatorRetriesSubmissionAndWaitsForBatonCommit(t *testing.T) {
+func TestInitializeHostedBootstrapWithCoordinatorCommitsCeremonyBeforeSignal(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	metadataPath := writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx))
 	manifestPath := filepath.Join(t.TempDir(), "runtime-manifest.json")
-	notify := coordinator.NewNotifyReceive()
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
 	*tip.Db_tip() = proto.DbTip{}
 	ctl := &fakeHostedBootstrapCoordinator{
-		tip:         tip,
-		submitDrops: 1,
-		commit:      testHostedBootstrapCommitBlock(t, []proto.SignedTransaction{tx}),
-		notify:      notify,
+		tip:    tip,
+		result: testHostedBootstrapCeremonyResult(t, 1),
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
 
-	if err := initializeHostedBootstrapWithCoordinator(ctx, hostedBootstrapConfig{
+	if err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
 		metadataPath:       metadataPath,
 		schedulerAddress:   "127.0.0.1:8070",
 		indexerAddress:     "127.0.0.1:8061",
 		publicRPCURL:       "http://203.0.113.10:8545",
 		runtimeManifestOut: manifestPath,
-	}, ctl, notify); err != nil {
+	}, ctl); err != nil {
 		t.Fatal(err)
 	}
-	if !ctl.signaled || !ctl.resumed {
-		t.Fatalf("expected genesis signal and nomination resume, signaled=%v resumed=%v", ctl.signaled, ctl.resumed)
+	if !ctl.signaled {
+		t.Fatal("expected Baton genesis readiness to be signaled after the ceremony")
 	}
-	if len(ctl.submitted) != 1 {
-		t.Fatalf("submitted %d txs, want 1", len(ctl.submitted))
+	if ctl.request == nil {
+		t.Fatal("expected genesis ceremony request")
 	}
-	if ctl.submitCalls != 2 {
-		t.Fatalf("submitted %d times, want one retry", ctl.submitCalls)
+	if ctl.request.Expected_parent_height != 0 {
+		t.Fatalf("expected parent height = %d, want 0", ctl.request.Expected_parent_height)
 	}
-	if ctl.resumes != 2 {
-		t.Fatalf("expected bootstrap resume and final resume, got %d resumes", ctl.resumes)
+	wantParentHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
+	if ctl.request.Expected_parent_value_hash != wantParentHash {
+		t.Fatal("ceremony request parent hash does not match height-0 tip")
 	}
-	if ctl.levers.PauseNominating {
-		t.Fatal("expected nominations resumed after hosted bootstrap txs commit")
+	txs, err := xdrutil.SerializeSignedTransactionBatch(ctl.request.Transactions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(txs) != 1 || protoutil.HashSignedTx(&txs[0]) != protoutil.HashSignedTx(&tx) {
+		t.Fatalf("ceremony request contained %d unexpected transactions", len(txs))
 	}
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
@@ -423,15 +358,46 @@ func TestInitializeHostedBootstrapWithCoordinatorRetriesSubmissionAndWaitsForBat
 	if !bytes.Contains(data, []byte(`"height": 1`)) {
 		t.Fatalf("manifest does not include hosted bootstrap commit height: %s", data)
 	}
+}
 
-	notified := make(chan struct{})
-	go func() {
-		notify.Committed(context.Background(), ctl.commit)
-		close(notified)
-	}()
-	select {
-	case <-notified:
-	case <-time.After(time.Second):
-		t.Fatal("post-bootstrap commit notification blocked")
+func TestInitializeHostedBootstrapWithCoordinatorDoesNotSignalOnCeremonyFailure(t *testing.T) {
+	tx := proto.SignedTransaction{}
+	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
+	*tip.Db_tip() = proto.DbTip{}
+	ctl := &fakeHostedBootstrapCoordinator{
+		tip:    tip,
+		result: proto.GenesisCeremonyResult{Outcome: proto.GenesisCeremonyExecutionFailed},
+	}
+	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx)),
+		schedulerAddress: "127.0.0.1:8070",
+	}, ctl)
+	if err == nil || !strings.Contains(err.Error(), "GenesisCeremonyExecutionFailed") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ctl.signaled {
+		t.Fatal("Baton was signaled despite a failed genesis ceremony")
+	}
+}
+
+func TestInitializeHostedBootstrapWithCoordinatorRecoversCommittedCeremony(t *testing.T) {
+	tx := proto.SignedTransaction{}
+	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
+	*tip.Db_tip() = proto.DbTip{}
+	tip.Db_tip().Value.Proposal_header.Block_height = 1
+	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
+
+	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx)),
+		schedulerAddress: "127.0.0.1:8070",
+	}, ctl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ctl.request != nil {
+		t.Fatal("genesis ceremony was recommitted during height-1 recovery")
+	}
+	if !ctl.signaled {
+		t.Fatal("expected Baton genesis readiness after height-1 recovery")
 	}
 }

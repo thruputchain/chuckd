@@ -53,6 +53,14 @@ func driveConn(
 				result, err := conn.Schedcoord_load_genesis_configuration(req.Ctx, req.GC)
 				req.Reply <- Reply_Schedcoord_load_genesis_configuration{Result: result, Err: err}
 
+			case Request_Schedcoord_load_genesis_configuration_v2:
+				result, err := conn.Schedcoord_load_genesis_configuration_v2(req.Ctx, req.GC)
+				req.Reply <- Reply_Schedcoord_load_genesis_configuration_v2{Result: result, Err: err}
+
+			case Request_Schedulercoord_commit_genesis_ceremony:
+				result, err := conn.Schedulercoord_commit_genesis_ceremony(req.Ctx, req.Request)
+				req.Reply <- Reply_Schedulercoord_commit_genesis_ceremony{Result: result, Err: err}
+
 			case Request_Schedcoord_lookup_transactions:
 				optSTB, err := conn.Schedcoord_lookup_transactions(req.Ctx, req.STHB)
 				req.Reply <- Reply_Schedcoord_lookup_transactions{OptSTB: optSTB, Err: err}
