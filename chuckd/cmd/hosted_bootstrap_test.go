@@ -105,6 +105,32 @@ func testHostedBootstrapCeremonyResult(t *testing.T, height proto.BlockHeight) p
 	return result
 }
 
+func setHostedBootstrapCommitIdentity(t *testing.T, metadata hostedBootstrapMetadata, tx proto.SignedTransaction, tip *proto.DbTip) {
+	t.Helper()
+	networkHash, err := hex.DecodeString(metadata.NetworkHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy(tip.Value.Proposal_header.Network_hash[:], networkHash)
+	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
+}
+
+func TestHashSingleHostedBootstrapTxSetMatchesHogdMerkleTriePrefix(t *testing.T) {
+	var txHash proto.TransactionHash
+	for i := range txHash {
+		txHash[i] = byte(i)
+	}
+	wantBytes, err := hex.DecodeString("e5bc3a60b899d43959e618e136d92812d7cca7313ea6bc79079fae3e1b5d9d60")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want proto.TxsHash
+	copy(want[:], wantBytes)
+	if got := hashSingleHostedBootstrapTxSet(txHash); got != want {
+		t.Fatalf("transaction set hash = %x, want %x", got, want)
+	}
+}
+
 func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	path := writeHostedBootstrapMetadata(t, `{
   "schemaVersion": 1,
@@ -313,7 +339,8 @@ func TestCommitHostedBootstrapRejectsMissingCeremonyTransaction(t *testing.T) {
 
 func TestInitializeHostedBootstrapWithCoordinatorCommitsCeremonyBeforeSignal(t *testing.T) {
 	tx := proto.SignedTransaction{}
-	metadataPath := writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx))
+	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
+	metadataPath := writeHostedBootstrapMetadataJSON(t, metadata)
 	manifestPath := filepath.Join(t.TempDir(), "runtime-manifest.json")
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
 	*tip.Db_tip() = proto.DbTip{}
@@ -321,6 +348,7 @@ func TestInitializeHostedBootstrapWithCoordinatorCommitsCeremonyBeforeSignal(t *
 		tip:    tip,
 		result: testHostedBootstrapCeremonyResult(t, 1),
 	}
+	setHostedBootstrapCommitIdentity(t, metadata, tx, &ctl.result.Commit().Db_tip)
 
 	if err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
 		metadataPath:       metadataPath,
@@ -382,13 +410,15 @@ func TestInitializeHostedBootstrapWithCoordinatorDoesNotSignalOnCeremonyFailure(
 
 func TestInitializeHostedBootstrapWithCoordinatorRecoversCommittedCeremony(t *testing.T) {
 	tx := proto.SignedTransaction{}
+	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
 	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
 	*tip.Db_tip() = proto.DbTip{}
 	tip.Db_tip().Value.Proposal_header.Block_height = 1
+	setHostedBootstrapCommitIdentity(t, metadata, tx, tip.Db_tip())
 	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
 
 	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx)),
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
 		schedulerAddress: "127.0.0.1:8070",
 	}, ctl)
 	if err != nil {
@@ -399,5 +429,50 @@ func TestInitializeHostedBootstrapWithCoordinatorRecoversCommittedCeremony(t *te
 	}
 	if !ctl.signaled {
 		t.Fatal("expected Baton genesis readiness after height-1 recovery")
+	}
+}
+
+func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentNetwork(t *testing.T) {
+	tx := proto.SignedTransaction{}
+	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
+	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
+	*tip.Db_tip() = proto.DbTip{}
+	tip.Db_tip().Value.Proposal_header.Block_height = 1
+	setHostedBootstrapCommitIdentity(t, metadata, tx, tip.Db_tip())
+	tip.Db_tip().Value.Proposal_header.Network_hash[0] ^= 0xff
+	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
+
+	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
+		schedulerAddress: "127.0.0.1:8070",
+	}, ctl)
+	if err == nil || !strings.Contains(err.Error(), "network hash") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ctl.signaled {
+		t.Fatal("Baton was signaled for an unrelated network")
+	}
+}
+
+func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentTransaction(t *testing.T) {
+	committedTx := proto.SignedTransaction{}
+	metadataTx := proto.SignedTransaction{}
+	metadataTx.Tx.Uniquifier.Nonce = 1
+	metadata := testHostedBootstrapMetadataWithTransactions(t, metadataTx)
+	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
+	*tip.Db_tip() = proto.DbTip{}
+	tip.Db_tip().Value.Proposal_header.Block_height = 1
+	setHostedBootstrapCommitIdentity(t, metadata, committedTx, tip.Db_tip())
+	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
+
+	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
+		schedulerAddress: "127.0.0.1:8070",
+	}, ctl)
+	if err == nil || !strings.Contains(err.Error(), "transaction set hash") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ctl.signaled {
+		t.Fatal("Baton was signaled for an unrelated genesis transaction")
 	}
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -201,6 +202,74 @@ func decodeHostedBootstrapTransactions(metadata hostedBootstrapMetadata) ([]prot
 type hostedBootstrapCommit struct {
 	Height    proto.BlockHeight `json:"height"`
 	ValueHash string            `json:"valueHash"`
+}
+
+// hashSingleHostedBootstrapTxSet reproduces the MerkleTriePrefix root used by
+// hogd for a transaction set containing one key with an empty value. Hosted
+// bootstrap deliberately requires exactly one ceremony transaction, so this
+// small, fixed-shape implementation avoids introducing a second general
+// Merkle-trie implementation in Go.
+func hashSingleHostedBootstrapTxSet(txHash proto.TransactionHash) proto.TxsHash {
+	const (
+		branchNodeType = byte(0)
+		leafNodeType   = byte(2)
+		numBranches    = 16
+	)
+
+	hashBranch := func(children [numBranches][sha256.Size]byte) [sha256.Size]byte {
+		// A branch encoding is its type, a false value-present byte, and its
+		// sixteen child hashes.
+		encoding := make([]byte, 0, 2+numBranches*sha256.Size)
+		encoding = append(encoding, branchNodeType, 0)
+		for _, child := range children {
+			encoding = append(encoding, child[:]...)
+		}
+		return sha256.Sum256(encoding)
+	}
+
+	// MerkleTriePrefix consumes the first nibble. The selected inner trie then
+	// consumes the second nibble in its root branch, leaving 62 nibbles (31
+	// bytes) in the leaf path.
+	leafEncoding := make([]byte, 0, 1+8+31+1+sha256.Size)
+	leafEncoding = append(leafEncoding, leafNodeType)
+	pathLength := make([]byte, 8)
+	binary.LittleEndian.PutUint64(pathLength, 62)
+	leafEncoding = append(leafEncoding, pathLength...)
+	leafEncoding = append(leafEncoding, txHash[1:]...)
+	leafEncoding = append(leafEncoding, 1)
+	emptyValueHash := sha256.Sum256(nil)
+	leafEncoding = append(leafEncoding, emptyValueHash[:]...)
+	leafHash := sha256.Sum256(leafEncoding)
+
+	var innerChildren [numBranches][sha256.Size]byte
+	innerChildren[txHash[0]&0x0f] = leafHash
+	innerRootHash := hashBranch(innerChildren)
+
+	emptyInnerRootHash := hashBranch([numBranches][sha256.Size]byte{})
+	var outerChildren [numBranches][sha256.Size]byte
+	for i := range outerChildren {
+		outerChildren[i] = emptyInnerRootHash
+	}
+	outerChildren[txHash[0]>>4] = innerRootHash
+	return proto.TxsHash(hashBranch(outerChildren))
+}
+
+func validateHostedBootstrapCommittedTip(metadata hostedBootstrapMetadata, tx proto.SignedTransaction, tip *proto.DbTip) error {
+	networkHashBytes, err := hex.DecodeString(metadata.NetworkHash)
+	if err != nil {
+		return fmt.Errorf("decoding hosted bootstrap network hash: %w", err)
+	}
+	var expectedNetworkHash proto.NetworkHash
+	copy(expectedNetworkHash[:], networkHashBytes)
+	if actual := tip.Value.Proposal_header.Network_hash; actual != expectedNetworkHash {
+		return fmt.Errorf("committed genesis ceremony network hash %x does not match hosted bootstrap metadata %x", actual, expectedNetworkHash)
+	}
+
+	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
+	if actual := tip.Value.Proposal_header.Txs_hash; actual != expectedTxsHash {
+		return fmt.Errorf("committed genesis ceremony transaction set hash %x does not match hosted bootstrap transaction %x", actual, expectedTxsHash)
+	}
+	return nil
 }
 
 func runtimeManifestProducer() map[string]any {
@@ -427,7 +496,13 @@ func commitHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig, sched
 		if committedHeight := protoutil.ValueHeight(&committedTip.Value); committedHeight != 1 {
 			return fmt.Errorf("hosted bootstrap genesis ceremony committed height %d, want 1", committedHeight)
 		}
+		if err := validateHostedBootstrapCommittedTip(metadata, txs[0], &committedTip); err != nil {
+			return err
+		}
 	case 1:
+		if err := validateHostedBootstrapCommittedTip(metadata, txs[0], &committedTip); err != nil {
+			return fmt.Errorf("recovering hosted bootstrap genesis ceremony: %w", err)
+		}
 		liblog.Infof(ctx, "hosted bootstrap genesis ceremony is already committed")
 	default:
 		return fmt.Errorf("hosted bootstrap must run at height 0 or recover height 1; scheduler is already at height %d", height)
