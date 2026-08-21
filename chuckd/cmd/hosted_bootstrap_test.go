@@ -53,7 +53,6 @@ func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 		Kind:                       "hog-hosted-bootstrap",
 		NetworkHash:                strings.Repeat("00", 32),
 		Protocol:                   proto.HogProtocol(),
-		GenesisHash:                "0x" + strings.Repeat("42", 32),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
 		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"0x` + strings.Repeat("11", 32) + `","walletAddress":"0x` + strings.Repeat("22", 32) + `","initialStorageTokens":"1000"}]`),
 		Bootstrap:                  json.RawMessage(`{"devWallet":{"contentHash":"0x` + strings.Repeat("33", 32) + `","deployedCodeHash":"0x` + strings.Repeat("33", 32) + `","artifactHint":"dev_wallet.rv32a","deployEntrypoint":"0x` + strings.Repeat("44", 8) + `","doActionEntrypoint":"0x` + strings.Repeat("55", 8) + `","createWalletEntrypoint":"0x` + strings.Repeat("66", 8) + `"},"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
@@ -112,11 +111,6 @@ func setHostedBootstrapCommitIdentity(t *testing.T, metadata hostedBootstrapMeta
 		t.Fatal(err)
 	}
 	copy(tip.Value.Proposal_header.Network_hash[:], networkHash)
-	genesisHash, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tip.Value.Proposal_header.Genesis_configuration_hash = genesisHash
 	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
 }
 
@@ -142,7 +136,6 @@ func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
   "kind": "wrong",
   "networkHash": "`+strings.Repeat("00", 32)+`",
   "protocol": "`+proto.HogProtocol()+`",
-  "genesisHash": "0xabc",
   "initializationTransactions": []
 }`)
 
@@ -168,17 +161,6 @@ func TestLoadHostedBootstrapMetadataRejectsInvalidNetworkHash(t *testing.T) {
 	}
 }
 
-func TestLoadHostedBootstrapMetadataRejectsInvalidGenesisHash(t *testing.T) {
-	for _, genesisHash := range []string{"", "0xabc", strings.Repeat("AA", 32), strings.Repeat("gg", 32)} {
-		metadata := testHostedBootstrapMetadata()
-		metadata.GenesisHash = genesisHash
-		path := writeHostedBootstrapMetadataJSON(t, metadata)
-		if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "genesisHash") {
-			t.Fatalf("genesisHash %q returned %v", genesisHash, err)
-		}
-	}
-}
-
 func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	txHex := xdrHexSignedTransaction(t, tx)
@@ -187,7 +169,6 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      proto.HogProtocol(),
-		GenesisHash:   "0xabc",
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
@@ -212,7 +193,6 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      proto.HogProtocol(),
-		GenesisHash:   "0xabc",
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
@@ -234,7 +214,6 @@ func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      proto.HogProtocol(),
-		GenesisHash:   "0xabc",
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
@@ -467,28 +446,6 @@ func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentNet
 	}
 	if ctl.signaled {
 		t.Fatal("Baton was signaled for an unrelated network")
-	}
-}
-
-func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentGenesisConfiguration(t *testing.T) {
-	tx := proto.SignedTransaction{}
-	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
-	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
-	*tip.Db_tip() = proto.DbTip{}
-	tip.Db_tip().Value.Proposal_header.Block_height = 1
-	setHostedBootstrapCommitIdentity(t, metadata, tx, tip.Db_tip())
-	tip.Db_tip().Value.Proposal_header.Genesis_configuration_hash[0] ^= 0xff
-	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
-
-	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
-		schedulerAddress: "127.0.0.1:8070",
-	}, ctl)
-	if err == nil || !strings.Contains(err.Error(), "genesis configuration hash") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if ctl.signaled {
-		t.Fatal("Baton was signaled for an unrelated genesis configuration")
 	}
 }
 

@@ -100,7 +100,6 @@ type hostedBootstrapMetadata struct {
 	Kind                       string          `json:"kind"`
 	NetworkHash                string          `json:"networkHash"`
 	Protocol                   string          `json:"protocol"`
-	GenesisHash                string          `json:"genesisHash"`
 	BootstrapAccountDerivation json.RawMessage `json:"bootstrapAccountDerivation"`
 	BootstrapAccounts          json.RawMessage `json:"bootstrapAccounts"`
 	Bootstrap                  json.RawMessage `json:"bootstrap"`
@@ -138,9 +137,6 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if metadata.Protocol != proto.HogProtocol() {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata protocol %q does not match chuckd protocol %q", metadata.Protocol, proto.HogProtocol())
 	}
-	if _, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash); err != nil {
-		return hostedBootstrapMetadata{}, err
-	}
 	if len(metadata.BootstrapAccountDerivation) == 0 {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrapAccountDerivation")
 	}
@@ -151,20 +147,6 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrap")
 	}
 	return metadata, nil
-}
-
-func decodeHostedBootstrapGenesisHash(value string) (proto.GenesisConfigurationHash, error) {
-	trimmed := strings.TrimPrefix(value, "0x")
-	if len(trimmed) != 64 || strings.ToLower(trimmed) != trimmed {
-		return proto.GenesisConfigurationHash{}, fmt.Errorf("hosted bootstrap metadata genesisHash must be exactly 64 lowercase hexadecimal characters, optionally prefixed by 0x")
-	}
-	decoded, err := hex.DecodeString(trimmed)
-	if err != nil {
-		return proto.GenesisConfigurationHash{}, fmt.Errorf("hosted bootstrap metadata genesisHash must be exactly 64 lowercase hexadecimal characters, optionally prefixed by 0x")
-	}
-	var hash proto.GenesisConfigurationHash
-	copy(hash[:], decoded)
-	return hash, nil
 }
 
 func decodeHostedBootstrapHash(value string, index int) (proto.TransactionHash, error) {
@@ -278,14 +260,6 @@ func validateHostedBootstrapCommittedTip(metadata hostedBootstrapMetadata, tx pr
 	if actual := tip.Value.Proposal_header.Network_hash; actual != expectedNetworkHash {
 		return fmt.Errorf("committed genesis ceremony network hash %x does not match hosted bootstrap metadata %x", actual, expectedNetworkHash)
 	}
-	expectedGenesisHash, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash)
-	if err != nil {
-		return err
-	}
-	if actual := tip.Value.Proposal_header.Genesis_configuration_hash; actual != expectedGenesisHash {
-		return fmt.Errorf("committed genesis configuration hash %x does not match hosted bootstrap metadata %x", actual, expectedGenesisHash)
-	}
-
 	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
 	if actual := tip.Value.Proposal_header.Txs_hash; actual != expectedTxsHash {
 		return fmt.Errorf("committed genesis ceremony transaction set hash %x does not match hosted bootstrap transaction %x", actual, expectedTxsHash)
@@ -445,7 +419,6 @@ func writeHostedRuntimeManifest(metadata hostedBootstrapMetadata, cfg hostedBoot
 		"kind":                       "hosted-devnet-runtime",
 		"networkHash":                metadata.NetworkHash,
 		"protocol":                   metadata.Protocol,
-		"genesisHash":                metadata.GenesisHash,
 		"producer":                   runtimeManifestProducer(),
 		"endpoints":                  endpoints,
 		"bootstrapAccountDerivation": derivation,
@@ -536,8 +509,8 @@ func commitHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig, sched
 	if err != nil {
 		return fmt.Errorf("writing hosted runtime manifest: %w", err)
 	}
-	liblog.Infof(ctx, "hosted bootstrap initialized network=%s genesis=%s txs=%d height=%d value_hash=%s",
-		metadata.NetworkHash, metadata.GenesisHash, len(txs), commit.Height, commit.ValueHash)
+	liblog.Infof(ctx, "hosted bootstrap initialized network=%s txs=%d height=%d value_hash=%s",
+		metadata.NetworkHash, len(txs), commit.Height, commit.ValueHash)
 	if cfg.runtimeManifestOut != "" {
 		liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
 	}

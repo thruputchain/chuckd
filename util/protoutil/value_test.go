@@ -110,12 +110,6 @@ func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
 			},
 		},
 		{
-			name: "genesis configuration hash differs",
-			mutate: func(value *proto.ConsensusValue) {
-				value.Proposal_header.Genesis_configuration_hash[1] ^= 0xFF
-			},
-		},
-		{
 			name: "block height differs",
 			mutate: func(value *proto.ConsensusValue) {
 				value.Proposal_header.Block_height++
