@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -130,29 +129,9 @@ func loadGenesisConfigurationFile(ctx context.Context, filePath string) proto.Ge
 	return genesis
 }
 
-func loadGenesisConfigurationV2File(ctx context.Context, filePath string) proto.GenesisConfigurationV2 {
-	data, err := os.ReadFile(filePath)
-	must.Assertf(ctx, err == nil, "reading genesis file (%w)", err)
-
-	var genesis proto.GenesisConfigurationV2
-	err = libxdr.JsonToXdr(&genesis, data)
-	must.NoError(ctx, err)
-	return genesis
-}
-
-func genesisConfigurationFileIsV2(ctx context.Context, filePath string) bool {
-	data, err := os.ReadFile(filePath)
-	must.Assertf(ctx, err == nil, "reading genesis file (%w)", err)
-	var fields map[string]json.RawMessage
-	must.NoError(ctx, json.Unmarshal(data, &fields))
-	_, ok := fields["root_contract"]
-	return ok
-}
-
 type genesisControl interface {
 	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
 	LoadGenesisConfiguration(context.Context, proto.GenesisConfiguration) (proto.DbSchedResult, error)
-	LoadGenesisConfigurationV2(context.Context, proto.GenesisConfigurationV2) (proto.DbSchedResult, error)
 }
 
 func loadGenesisIfNeeded(ctx context.Context, ctl genesisControl, genesisPath string) {
@@ -164,14 +143,8 @@ func loadGenesisIfNeeded(ctx context.Context, ctl genesisControl, genesisPath st
 		liblog.Infof(ctx, "scheduler genesis already loaded at %v", protoutil.DbTipString(*tip.Db_tip()))
 		return
 	case proto.SchedulerGetTipNoGenesisBlock:
-		var result proto.DbSchedResult
-		if genesisConfigurationFileIsV2(ctx, genesisPath) {
-			genesis := loadGenesisConfigurationV2File(ctx, genesisPath)
-			result, err = ctl.LoadGenesisConfigurationV2(ctx, genesis)
-		} else {
-			genesis := loadGenesisConfigurationFile(ctx, genesisPath)
-			result, err = ctl.LoadGenesisConfiguration(ctx, genesis)
-		}
+		genesis := loadGenesisConfigurationFile(ctx, genesisPath)
+		result, err := ctl.LoadGenesisConfiguration(ctx, genesis)
 		must.NoError(ctx, err)
 		if result != proto.DbSchedResultOK {
 			tip, err := ctl.GetTip(ctx)
