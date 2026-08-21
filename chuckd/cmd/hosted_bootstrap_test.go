@@ -112,6 +112,11 @@ func setHostedBootstrapCommitIdentity(t *testing.T, metadata hostedBootstrapMeta
 		t.Fatal(err)
 	}
 	copy(tip.Value.Proposal_header.Network_hash[:], networkHash)
+	genesisHash, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tip.Value.Proposal_header.Genesis_configuration_hash = genesisHash
 	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
 }
 
@@ -159,6 +164,17 @@ func TestLoadHostedBootstrapMetadataRejectsInvalidNetworkHash(t *testing.T) {
 }`)
 		if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "networkHash") {
 			t.Fatalf("networkHash %q returned %v", networkHash, err)
+		}
+	}
+}
+
+func TestLoadHostedBootstrapMetadataRejectsInvalidGenesisHash(t *testing.T) {
+	for _, genesisHash := range []string{"", "0xabc", strings.Repeat("AA", 32), strings.Repeat("gg", 32)} {
+		metadata := testHostedBootstrapMetadata()
+		metadata.GenesisHash = genesisHash
+		path := writeHostedBootstrapMetadataJSON(t, metadata)
+		if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "genesisHash") {
+			t.Fatalf("genesisHash %q returned %v", genesisHash, err)
 		}
 	}
 }
@@ -451,6 +467,28 @@ func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentNet
 	}
 	if ctl.signaled {
 		t.Fatal("Baton was signaled for an unrelated network")
+	}
+}
+
+func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentGenesisConfiguration(t *testing.T) {
+	tx := proto.SignedTransaction{}
+	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
+	tip := proto.SchedulerGetTipResult{Outcome: proto.SchedulerGetTipOK}
+	*tip.Db_tip() = proto.DbTip{}
+	tip.Db_tip().Value.Proposal_header.Block_height = 1
+	setHostedBootstrapCommitIdentity(t, metadata, tx, tip.Db_tip())
+	tip.Db_tip().Value.Proposal_header.Genesis_configuration_hash[0] ^= 0xff
+	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
+
+	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
+		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
+		schedulerAddress: "127.0.0.1:8070",
+	}, ctl)
+	if err == nil || !strings.Contains(err.Error(), "genesis configuration hash") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ctl.signaled {
+		t.Fatal("Baton was signaled for an unrelated genesis configuration")
 	}
 }
 

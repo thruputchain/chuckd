@@ -138,8 +138,8 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if metadata.Protocol != proto.HogProtocol() {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata protocol %q does not match chuckd protocol %q", metadata.Protocol, proto.HogProtocol())
 	}
-	if metadata.GenesisHash == "" {
-		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing genesisHash")
+	if _, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash); err != nil {
+		return hostedBootstrapMetadata{}, err
 	}
 	if len(metadata.BootstrapAccountDerivation) == 0 {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrapAccountDerivation")
@@ -151,6 +151,20 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrap")
 	}
 	return metadata, nil
+}
+
+func decodeHostedBootstrapGenesisHash(value string) (proto.GenesisConfigurationHash, error) {
+	trimmed := strings.TrimPrefix(value, "0x")
+	if len(trimmed) != 64 || strings.ToLower(trimmed) != trimmed {
+		return proto.GenesisConfigurationHash{}, fmt.Errorf("hosted bootstrap metadata genesisHash must be exactly 64 lowercase hexadecimal characters, optionally prefixed by 0x")
+	}
+	decoded, err := hex.DecodeString(trimmed)
+	if err != nil {
+		return proto.GenesisConfigurationHash{}, fmt.Errorf("hosted bootstrap metadata genesisHash must be exactly 64 lowercase hexadecimal characters, optionally prefixed by 0x")
+	}
+	var hash proto.GenesisConfigurationHash
+	copy(hash[:], decoded)
+	return hash, nil
 }
 
 func decodeHostedBootstrapHash(value string, index int) (proto.TransactionHash, error) {
@@ -263,6 +277,13 @@ func validateHostedBootstrapCommittedTip(metadata hostedBootstrapMetadata, tx pr
 	copy(expectedNetworkHash[:], networkHashBytes)
 	if actual := tip.Value.Proposal_header.Network_hash; actual != expectedNetworkHash {
 		return fmt.Errorf("committed genesis ceremony network hash %x does not match hosted bootstrap metadata %x", actual, expectedNetworkHash)
+	}
+	expectedGenesisHash, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash)
+	if err != nil {
+		return err
+	}
+	if actual := tip.Value.Proposal_header.Genesis_configuration_hash; actual != expectedGenesisHash {
+		return fmt.Errorf("committed genesis configuration hash %x does not match hosted bootstrap metadata %x", actual, expectedGenesisHash)
 	}
 
 	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
