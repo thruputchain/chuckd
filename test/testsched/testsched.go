@@ -244,6 +244,14 @@ func (x *TestScheduler) Schedcoord_load_genesis_configuration(context.Context, p
 	panic("not used")
 }
 
+func (x *TestScheduler) Schedcoord_load_genesis_configuration_v2(context.Context, proto.GenesisConfigurationV2) (proto.DbSchedResult, error) {
+	panic("not used")
+}
+
+func (x *TestScheduler) Schedulercoord_commit_genesis_ceremony(context.Context, proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error) {
+	panic("not used")
+}
+
 func (x *TestScheduler) Schedcoord_pending_transaction_count(ctx context.Context) (int64, error) {
 	return int64(x.mempool.Len()), nil
 }

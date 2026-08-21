@@ -18,6 +18,7 @@ import (
 	"github.com/groundhogchain/lib-go/libnet"
 	"github.com/groundhogchain/lib-go/librand"
 	"github.com/groundhogchain/lib-go/libtime"
+	"github.com/groundhogchain/lib-go/libxdr"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
 )
@@ -89,34 +90,91 @@ func (s *CoordinatorLoadgenSystem) Start(
 
 	s.scheduler.ConnectSchedulerToCoordinator(ctx, opcfg)
 
-	// check if genesis exists
-	hasGenesis := false
-	tipResult, err := s.coordinator.SchedConn.Schedcoord_get_tip(ctx)
+	genesis := s.loadgen.WaitGenesis(ctx)
+	ceremonyTxs := s.loadgen.WaitGenesisCeremony(ctx)
+	initialize, err := ensureGenesisCeremony(ctx, ctl, *genesis, ceremonyTxs)
 	must.NoError(ctx, err)
-	if tipResult.Outcome == proto.SchedulerGetTipOK {
-		hasGenesis = tipResult.Db_tip().Value.Proposal_header.Block_height >= 0
-	}
 
-	// process genesis
-	if hasGenesis {
-		s.loadgen.WaitGenesis(ctx)
+	ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
+	ctl.SignalGenesisIsReady()
 
-		ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
-		ctl.SignalGenesisIsReady()
-
-		s.DrainInitTxs(ctx)
-	} else {
-		genesis := s.loadgen.WaitGenesis(ctx)
-		_, err = ctl.LoadGenesisConfiguration(ctx, *genesis)
-		must.NoError(ctx, err)
-
-		ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
-		ctl.SignalGenesisIsReady()
-
+	if initialize {
 		s.PumpInitTxs(ctx, ctl)
+	} else {
+		s.DrainInitTxs(ctx)
 	}
 
 	s.PumpWorkTxs(ctx, ctl, s.skip)
+}
+
+type genesisCeremonyControl interface {
+	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
+	LoadGenesisConfigurationV2(context.Context, proto.GenesisConfigurationV2) (proto.DbSchedResult, error)
+	CommitGenesisCeremony(context.Context, proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error)
+}
+
+// ensureGenesisCeremony establishes the height-1 ceremony block before Baton
+// is allowed to nominate ordinary blocks. The return value says whether this
+// process created height 1 and should therefore submit the generated post-
+// genesis initialization transactions; a restored chain drains those inputs.
+func ensureGenesisCeremony(
+	ctx context.Context,
+	ctl genesisCeremonyControl,
+	genesis proto.GenesisConfigurationV2,
+	txs []proto.SignedTransaction,
+) (bool, error) {
+	tip, err := ctl.GetTip(ctx)
+	if err != nil {
+		return false, fmt.Errorf("getting scheduler tip: %w", err)
+	}
+	if tip.Outcome != proto.SchedulerGetTipOK {
+		result, err := ctl.LoadGenesisConfigurationV2(ctx, genesis)
+		if err != nil {
+			return false, fmt.Errorf("loading V2 genesis configuration: %w", err)
+		}
+		if result != proto.DbSchedResultOK {
+			return false, fmt.Errorf("loading V2 genesis configuration failed with %v", result)
+		}
+		tip, err = ctl.GetTip(ctx)
+		if err != nil {
+			return false, fmt.Errorf("getting loaded scheduler tip: %w", err)
+		}
+		if tip.Outcome != proto.SchedulerGetTipOK {
+			return false, fmt.Errorf("scheduler still has no genesis after V2 load: %v", tip.Outcome)
+		}
+	}
+
+	parent := *tip.Db_tip()
+	height := protoutil.ValueHeight(&parent.Value)
+	if height >= 1 {
+		liblog.Infof(ctx, "genesis ceremony already committed at height %d", height)
+		return false, nil
+	}
+	if height != 0 {
+		return false, fmt.Errorf("unexpected scheduler genesis height %d", height)
+	}
+	if len(txs) == 0 {
+		return false, fmt.Errorf("loadgen returned no genesis ceremony transactions")
+	}
+
+	parallel := xdrutil.ParallelizeSignedTransactionBatch(libxdr.NewXdrMarshaler(), 1, txs)
+	result, err := ctl.CommitGenesisCeremony(ctx, proto.GenesisCeremonyRequest{
+		Expected_parent_height:     0,
+		Expected_parent_value_hash: protoutil.HashValueToProto(&parent.Value),
+		Context:                    proto.ProposalContext{Protocol: 0},
+		Transactions:               parallel,
+	})
+	if err != nil {
+		return false, fmt.Errorf("committing loadgen genesis ceremony: %w", err)
+	}
+	if result.Outcome != proto.GenesisCeremonyCommitted {
+		return false, fmt.Errorf("loadgen genesis ceremony failed with %v", result.Outcome)
+	}
+	if committedHeight := protoutil.ValueHeight(&result.Commit().Db_tip.Value); committedHeight != 1 {
+		return false, fmt.Errorf("loadgen genesis ceremony committed height %d, want 1", committedHeight)
+	}
+	liblog.Infof(ctx, "loadgen genesis ceremony committed at height 1")
+	return true, nil
 }
 
 func (s *CoordinatorLoadgenSystem) DrainInitTxs(ctx context.Context) {

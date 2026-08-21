@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,14 +12,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
 	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/system/coordinator"
 	"github.com/groundhogchain/chuckd/util/protoutil"
 	"github.com/groundhogchain/chuckd/util/xdrutil"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -37,8 +34,8 @@ var (
 
 	hostedBootstrapInitializeCmd = &cobra.Command{
 		Use:   "initialize",
-		Short: "submit and commit hosted devnet initialization transactions",
-		Long:  "Write no-transaction hosted devnet runtime manifests. Non-empty hosted bootstrap initialization must run through `chuckd sys coordinator --hosted-bootstrap-metadata` so Baton commits the bootstrap block.",
+		Short: "commit the hosted devnet genesis ceremony",
+		Long:  "Commit the hosted devnet initialization transaction atomically through the scheduler's genesis ceremony RPC.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmdkit.Invoke(ctx, func() {
 				must.NoError(ctx, initializeHostedBootstrap(ctx, hostedBootstrapConfig{
@@ -77,12 +74,25 @@ type hostedBootstrapConfig struct {
 
 type hostedBootstrapCoordinator interface {
 	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
-	LookupTransactions(context.Context, proto.TransactionHashBatch) (proto.OptSignedTransactionBatch, error)
-	SetLevers(batonkit.BatonLevers)
-	SetHooks(batonkit.BatonHooks)
+	CommitGenesisCeremony(context.Context, proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error)
 	SignalGenesisIsReady()
-	SubmitTxs(context.Context, []*proto.SignedTransaction)
-	ResumeNominating()
+}
+
+type hostedBootstrapScheduler interface {
+	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
+	CommitGenesisCeremony(context.Context, proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error)
+}
+
+type directHostedBootstrapScheduler struct {
+	conn sched.SchedulerCoordConn
+}
+
+func (x directHostedBootstrapScheduler) GetTip(ctx context.Context) (proto.SchedulerGetTipResult, error) {
+	return x.conn.Schedcoord_get_tip(ctx)
+}
+
+func (x directHostedBootstrapScheduler) CommitGenesisCeremony(ctx context.Context, request proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error) {
+	return x.conn.Schedulercoord_commit_genesis_ceremony(ctx, request)
 }
 
 type hostedBootstrapMetadata struct {
@@ -128,8 +138,8 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if metadata.Protocol != proto.HogProtocol() {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata protocol %q does not match chuckd protocol %q", metadata.Protocol, proto.HogProtocol())
 	}
-	if metadata.GenesisHash == "" {
-		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing genesisHash")
+	if _, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash); err != nil {
+		return hostedBootstrapMetadata{}, err
 	}
 	if len(metadata.BootstrapAccountDerivation) == 0 {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrapAccountDerivation")
@@ -141,6 +151,20 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrap")
 	}
 	return metadata, nil
+}
+
+func decodeHostedBootstrapGenesisHash(value string) (proto.GenesisConfigurationHash, error) {
+	trimmed := strings.TrimPrefix(value, "0x")
+	if len(trimmed) != 64 || strings.ToLower(trimmed) != trimmed {
+		return proto.GenesisConfigurationHash{}, fmt.Errorf("hosted bootstrap metadata genesisHash must be exactly 64 lowercase hexadecimal characters, optionally prefixed by 0x")
+	}
+	decoded, err := hex.DecodeString(trimmed)
+	if err != nil {
+		return proto.GenesisConfigurationHash{}, fmt.Errorf("hosted bootstrap metadata genesisHash must be exactly 64 lowercase hexadecimal characters, optionally prefixed by 0x")
+	}
+	var hash proto.GenesisConfigurationHash
+	copy(hash[:], decoded)
+	return hash, nil
 }
 
 func decodeHostedBootstrapHash(value string, index int) (proto.TransactionHash, error) {
@@ -192,6 +216,81 @@ func decodeHostedBootstrapTransactions(metadata hostedBootstrapMetadata) ([]prot
 type hostedBootstrapCommit struct {
 	Height    proto.BlockHeight `json:"height"`
 	ValueHash string            `json:"valueHash"`
+}
+
+// hashSingleHostedBootstrapTxSet reproduces the MerkleTriePrefix root used by
+// hogd for a transaction set containing one key with an empty value. Hosted
+// bootstrap deliberately requires exactly one ceremony transaction, so this
+// small, fixed-shape implementation avoids introducing a second general
+// Merkle-trie implementation in Go.
+func hashSingleHostedBootstrapTxSet(txHash proto.TransactionHash) proto.TxsHash {
+	const (
+		branchNodeType = byte(0)
+		leafNodeType   = byte(2)
+		numBranches    = 16
+	)
+
+	hashBranch := func(children [numBranches][sha256.Size]byte) [sha256.Size]byte {
+		// A branch encoding is its type, a false value-present byte, and its
+		// sixteen child hashes.
+		encoding := make([]byte, 0, 2+numBranches*sha256.Size)
+		encoding = append(encoding, branchNodeType, 0)
+		for _, child := range children {
+			encoding = append(encoding, child[:]...)
+		}
+		return sha256.Sum256(encoding)
+	}
+
+	// MerkleTriePrefix consumes the first nibble. The selected inner trie then
+	// consumes the second nibble in its root branch, leaving 62 nibbles (31
+	// bytes) in the leaf path.
+	leafEncoding := make([]byte, 0, 1+8+31+1+sha256.Size)
+	leafEncoding = append(leafEncoding, leafNodeType)
+	pathLength := make([]byte, 8)
+	binary.LittleEndian.PutUint64(pathLength, 62)
+	leafEncoding = append(leafEncoding, pathLength...)
+	leafEncoding = append(leafEncoding, txHash[1:]...)
+	leafEncoding = append(leafEncoding, 1)
+	emptyValueHash := sha256.Sum256(nil)
+	leafEncoding = append(leafEncoding, emptyValueHash[:]...)
+	leafHash := sha256.Sum256(leafEncoding)
+
+	var innerChildren [numBranches][sha256.Size]byte
+	innerChildren[txHash[0]&0x0f] = leafHash
+	innerRootHash := hashBranch(innerChildren)
+
+	emptyInnerRootHash := hashBranch([numBranches][sha256.Size]byte{})
+	var outerChildren [numBranches][sha256.Size]byte
+	for i := range outerChildren {
+		outerChildren[i] = emptyInnerRootHash
+	}
+	outerChildren[txHash[0]>>4] = innerRootHash
+	return proto.TxsHash(hashBranch(outerChildren))
+}
+
+func validateHostedBootstrapCommittedTip(metadata hostedBootstrapMetadata, tx proto.SignedTransaction, tip *proto.DbTip) error {
+	networkHashBytes, err := hex.DecodeString(metadata.NetworkHash)
+	if err != nil {
+		return fmt.Errorf("decoding hosted bootstrap network hash: %w", err)
+	}
+	var expectedNetworkHash proto.NetworkHash
+	copy(expectedNetworkHash[:], networkHashBytes)
+	if actual := tip.Value.Proposal_header.Network_hash; actual != expectedNetworkHash {
+		return fmt.Errorf("committed genesis ceremony network hash %x does not match hosted bootstrap metadata %x", actual, expectedNetworkHash)
+	}
+	expectedGenesisHash, err := decodeHostedBootstrapGenesisHash(metadata.GenesisHash)
+	if err != nil {
+		return err
+	}
+	if actual := tip.Value.Proposal_header.Genesis_configuration_hash; actual != expectedGenesisHash {
+		return fmt.Errorf("committed genesis configuration hash %x does not match hosted bootstrap metadata %x", actual, expectedGenesisHash)
+	}
+
+	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
+	if actual := tip.Value.Proposal_header.Txs_hash; actual != expectedTxsHash {
+		return fmt.Errorf("committed genesis ceremony transaction set hash %x does not match hosted bootstrap transaction %x", actual, expectedTxsHash)
+	}
+	return nil
 }
 
 func runtimeManifestProducer() map[string]any {
@@ -365,53 +464,15 @@ func initializeHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig) e
 		return err
 	}
 
-	metadata, err := loadHostedBootstrapMetadata(cfg.metadataPath)
-	if err != nil {
-		return err
-	}
-	txs, err := decodeHostedBootstrapTransactions(metadata)
-	if err != nil {
-		return err
-	}
-	if len(txs) > 0 {
-		return fmt.Errorf("standalone hosted bootstrap initialization cannot commit transactions safely; use chuckd sys coordinator --hosted-bootstrap-metadata so Baton commits the bootstrap block")
-	}
-
 	client, err := sched.DialSchedulerCoordClient(ctx, libnet.TCPNet{}, cfg.schedulerAddress)
 	if err != nil {
 		return fmt.Errorf("connecting to scheduler at %s: %w", cfg.schedulerAddress, err)
 	}
 	defer client.Close()
-
-	tip, err := client.Schedcoord_get_tip(ctx)
-	if err != nil {
-		return fmt.Errorf("getting scheduler tip: %w", err)
-	}
-	if tip.Outcome != proto.SchedulerGetTipOK {
-		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
-	}
-	if protoutil.ValueHeight(&tip.Db_tip().Value) > 0 {
-		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.ValueHeight(&tip.Db_tip().Value))
-	}
-	if len(txs) == 0 {
-		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkHash, metadata.GenesisHash)
-		tipValueHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
-		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.ValueHeight(&tip.Db_tip().Value), ValueHash: "0x" + hex.EncodeToString(tipValueHash[:])})
-		if err != nil {
-			return fmt.Errorf("writing hosted runtime manifest: %w", err)
-		}
-		if cfg.runtimeManifestOut != "" {
-			liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
-		}
-		return nil
-	}
-
-	return nil
+	return commitHostedBootstrap(ctx, cfg, directHostedBootstrapScheduler{conn: client})
 }
 
-func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBootstrapConfig, ctl hostedBootstrapCoordinator, notify *coordinator.NotifyReceive) error {
-	defer notify.Stop()
-
+func commitHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig, scheduler hostedBootstrapScheduler) error {
 	if err := validateHostedBootstrapManifestConfig(cfg); err != nil {
 		return err
 	}
@@ -424,124 +485,52 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 		return err
 	}
 
-	tip, err := ctl.GetTip(ctx)
+	tip, err := scheduler.GetTip(ctx)
 	if err != nil {
 		return fmt.Errorf("getting scheduler tip: %w", err)
 	}
 	if tip.Outcome != proto.SchedulerGetTipOK {
 		return fmt.Errorf("scheduler has no loaded genesis for hosted bootstrap: %v", tip.Outcome)
 	}
-	if protoutil.ValueHeight(&tip.Db_tip().Value) > 0 {
-		return fmt.Errorf("hosted bootstrap must run at genesis height 0; scheduler is already at height %d", protoutil.ValueHeight(&tip.Db_tip().Value))
+	if len(txs) != 1 {
+		return fmt.Errorf("hosted bootstrap requires exactly one initialization transaction, got %d", len(txs))
 	}
-	if len(txs) == 0 {
-		liblog.Infof(ctx, "hosted bootstrap has no initialization transactions network=%s genesis=%s", metadata.NetworkHash, metadata.GenesisHash)
-		tipValueHash := protoutil.HashValueToProto(&tip.Db_tip().Value)
-		manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, hostedBootstrapCommit{Height: protoutil.ValueHeight(&tip.Db_tip().Value), ValueHash: "0x" + hex.EncodeToString(tipValueHash[:])})
+
+	committedTip := *tip.Db_tip()
+	switch height := protoutil.ValueHeight(&committedTip.Value); height {
+	case 0:
+		parentHash := protoutil.HashValueToProto(&committedTip.Value)
+		parallel := xdrutil.ParallelizeSignedTransactionBatch(libxdr.NewXdrMarshaler(), 1, txs)
+		result, err := scheduler.CommitGenesisCeremony(ctx, proto.GenesisCeremonyRequest{
+			Expected_parent_height:     0,
+			Expected_parent_value_hash: parentHash,
+			Context:                    proto.ProposalContext{Protocol: 0},
+			Transactions:               parallel,
+		})
 		if err != nil {
-			return fmt.Errorf("writing hosted runtime manifest: %w", err)
+			return fmt.Errorf("committing hosted bootstrap genesis ceremony: %w", err)
 		}
-		if cfg.runtimeManifestOut != "" {
-			liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
+		if result.Outcome != proto.GenesisCeremonyCommitted {
+			return fmt.Errorf("hosted bootstrap genesis ceremony failed with %v", result.Outcome)
 		}
-		ctl.SignalGenesisIsReady()
-		return nil
+		committedTip = result.Commit().Db_tip
+		if committedHeight := protoutil.ValueHeight(&committedTip.Value); committedHeight != 1 {
+			return fmt.Errorf("hosted bootstrap genesis ceremony committed height %d, want 1", committedHeight)
+		}
+		if err := validateHostedBootstrapCommittedTip(metadata, txs[0], &committedTip); err != nil {
+			return err
+		}
+	case 1:
+		if err := validateHostedBootstrapCommittedTip(metadata, txs[0], &committedTip); err != nil {
+			return fmt.Errorf("recovering hosted bootstrap genesis ceremony: %w", err)
+		}
+		liblog.Infof(ctx, "hosted bootstrap genesis ceremony is already committed")
+	default:
+		return fmt.Errorf("hosted bootstrap must run at height 0 or recover height 1; scheduler is already at height %d", height)
 	}
 
-	uncommitted := map[proto.TransactionHash]struct{}{}
-	txPtrs := make([]*proto.SignedTransaction, len(txs))
-	pendingHashes := make(proto.TransactionHashBatch, len(txs))
-	for i := range txs {
-		hash := protoutil.HashSignedTx(&txs[i])
-		uncommitted[hash] = struct{}{}
-		txPtrs[i] = &txs[i]
-		pendingHashes[i] = hash
-	}
-
-	var mu sync.Mutex
-	var commit hostedBootstrapCommit
-	var complete bool
-	var hookErr error
-	ctl.SetLevers(batonkit.BatonLevers{PauseNominating: true})
-	ctl.SetHooks(batonkit.JustCommitHook(func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
-		mu.Lock()
-		defer mu.Unlock()
-
-		hashes, err := xdrutil.SerializeTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
-		if err != nil {
-			hookErr = err
-			return batonkit.BatonLevers{PauseNominating: true}
-		}
-		for _, hash := range hashes {
-			delete(uncommitted, hash)
-		}
-		complete = len(uncommitted) == 0
-		if complete {
-			valueHash := cb.ValueHash()
-			commit = hostedBootstrapCommit{
-				Height:    cb.BlockHeight(),
-				ValueHash: "0x" + hex.EncodeToString(valueHash[:]),
-			}
-		}
-		return batonkit.BatonLevers{PauseNominating: complete}
-	}))
-	defer ctl.SetHooks(nil)
-
-	ctl.SignalGenesisIsReady()
-	pendingTxs := txPtrs
-	for len(pendingTxs) != 0 {
-		ctl.SubmitTxs(ctx, pendingTxs)
-
-		// The scheduler may have loaded genesis but not yet be ready to admit
-		// transactions. Wait for the submitter to flush, then retry any txs that
-		// the scheduler did not retain while nominations remain paused.
-		timer := time.NewTimer(500 * time.Millisecond)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return ctx.Err()
-		case <-timer.C:
-		}
-		found, err := ctl.LookupTransactions(ctx, pendingHashes)
-		if err != nil {
-			return fmt.Errorf("confirming hosted bootstrap transactions: %w", err)
-		}
-		if len(found) != len(pendingTxs) {
-			return fmt.Errorf("confirming hosted bootstrap transactions: scheduler returned %d results for %d hashes", len(found), len(pendingTxs))
-		}
-		nextTxs := make([]*proto.SignedTransaction, 0, len(pendingTxs))
-		nextHashes := make(proto.TransactionHashBatch, 0, len(pendingHashes))
-		for i := range found {
-			if found[i] == nil {
-				nextTxs = append(nextTxs, pendingTxs[i])
-				nextHashes = append(nextHashes, pendingHashes[i])
-			}
-		}
-		pendingTxs = nextTxs
-		pendingHashes = nextHashes
-	}
-	ctl.ResumeNominating()
-
-	for {
-		if notify.ReceiveCommitted(ctx) == nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			return fmt.Errorf("hosted bootstrap commit notification channel closed")
-		}
-		mu.Lock()
-		done := complete
-		err := hookErr
-		mu.Unlock()
-		if err != nil {
-			return fmt.Errorf("inspecting hosted bootstrap committed block: %w", err)
-		}
-		if done {
-			break
-		}
-	}
-	ctl.SetHooks(nil)
-	ctl.ResumeNominating()
+	valueHash := protoutil.HashValueToProto(&committedTip.Value)
+	commit := hostedBootstrapCommit{Height: 1, ValueHash: "0x" + hex.EncodeToString(valueHash[:])}
 
 	manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, commit)
 	if err != nil {
@@ -552,6 +541,14 @@ func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBoo
 	if cfg.runtimeManifestOut != "" {
 		liblog.Infof(ctx, "hosted runtime manifest written path=%s hash=%s", cfg.runtimeManifestOut, "0x"+hex.EncodeToString(manifestHash[:]))
 	}
+	return nil
+}
+
+func initializeHostedBootstrapWithCoordinator(ctx context.Context, cfg hostedBootstrapConfig, ctl hostedBootstrapCoordinator) error {
+	if err := commitHostedBootstrap(ctx, cfg, ctl); err != nil {
+		return err
+	}
+	ctl.SignalGenesisIsReady()
 	return nil
 }
 

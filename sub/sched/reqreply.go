@@ -126,6 +126,32 @@ type Reply_Schedcoord_load_genesis_configuration struct {
 	Err    error
 }
 
+type Request_Schedcoord_load_genesis_configuration_v2 struct {
+	Reply chan<- Reply_Schedcoord_load_genesis_configuration_v2
+	Ctx   context.Context
+	GC    proto.GenesisConfigurationV2
+}
+
+func (Request_Schedcoord_load_genesis_configuration_v2) IsSchedCoordRequest() {}
+
+type Reply_Schedcoord_load_genesis_configuration_v2 struct {
+	Result proto.DbSchedResult
+	Err    error
+}
+
+type Request_Schedulercoord_commit_genesis_ceremony struct {
+	Reply   chan<- Reply_Schedulercoord_commit_genesis_ceremony
+	Ctx     context.Context
+	Request proto.GenesisCeremonyRequest
+}
+
+func (Request_Schedulercoord_commit_genesis_ceremony) IsSchedCoordRequest() {}
+
+type Reply_Schedulercoord_commit_genesis_ceremony struct {
+	Result proto.GenesisCeremonyResult
+	Err    error
+}
+
 type Request_Schedcoord_lookup_transactions struct {
 	Reply chan<- Reply_Schedcoord_lookup_transactions
 	Ctx   context.Context

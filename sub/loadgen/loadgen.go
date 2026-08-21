@@ -15,6 +15,7 @@ type Config struct {
 	NumAccts       int
 	NumTxsPerBlock int
 	NumBlocks      int
+	NetworkHash    proto.NetworkHash
 }
 
 type LoadGen struct {
@@ -23,10 +24,11 @@ type LoadGen struct {
 	rand   *rand.Rand
 	inside libnet.Network
 	//
-	genesisCh chan *proto.GenesisConfiguration
-	initTxsCh chan []*proto.SignedTransaction
-	workTxsCh chan proto.ParallelSignedTransactionBatch
-	done      chan struct{}
+	genesisCh         chan *proto.GenesisConfigurationV2
+	genesisCeremonyCh chan []proto.SignedTransaction
+	initTxsCh         chan []*proto.SignedTransaction
+	workTxsCh         chan proto.ParallelSignedTransactionBatch
+	done              chan struct{}
 }
 
 func NewLoadGen(
@@ -36,13 +38,14 @@ func NewLoadGen(
 	cfg Config,
 ) *LoadGen {
 	x := &LoadGen{
-		Cfg:       cfg,
-		rand:      rand,
-		inside:    inside,
-		genesisCh: make(chan *proto.GenesisConfiguration, 1),
-		initTxsCh: make(chan []*proto.SignedTransaction),
-		workTxsCh: make(chan proto.ParallelSignedTransactionBatch),
-		done:      make(chan struct{}),
+		Cfg:               cfg,
+		rand:              rand,
+		inside:            inside,
+		genesisCh:         make(chan *proto.GenesisConfigurationV2, 1),
+		genesisCeremonyCh: make(chan []proto.SignedTransaction, 1),
+		initTxsCh:         make(chan []*proto.SignedTransaction),
+		workTxsCh:         make(chan proto.ParallelSignedTransactionBatch),
+		done:              make(chan struct{}),
 	}
 	return x
 }
@@ -57,8 +60,12 @@ func (x *LoadGen) Start(ctx context.Context, loadgenAddr string) {
 	go x.obtainTxs(ctx, lgConn)
 }
 
-func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisConfiguration {
+func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisConfigurationV2 {
 	return <-x.genesisCh
+}
+
+func (x *LoadGen) WaitGenesisCeremony(ctx context.Context) []proto.SignedTransaction {
+	return <-x.genesisCeremonyCh
 }
 
 func (x *LoadGen) WaitInitTxs(ctx context.Context) []*proto.SignedTransaction {
@@ -83,7 +90,10 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 
 	cfg := proto.ExperimentConfig{}
 	cfg.Experiment_type = proto.KExperimentTypeERC20BasicAuthPayments
-	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{Num_addresses: uint64(x.Cfg.NumAccts)}
+	*cfg.Erc20_payments() = proto.ERC20PaymentsConfig{
+		Num_addresses: uint64(x.Cfg.NumAccts),
+		Network_hash:  x.Cfg.NetworkHash,
+	}
 	r, err := lgConn.Generate_experiment(ctx, cfg)
 	must.NoError(ctx, err)
 
@@ -93,6 +103,10 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	liblog.Infof(ctx, "delivering genesis block")
 	x.genesisCh <- &result.Genesis_configuration
 	close(x.genesisCh)
+
+	liblog.Infof(ctx, "delivering genesis ceremony")
+	x.genesisCeremonyCh <- result.Genesis_ceremony_txs
+	close(x.genesisCeremonyCh)
 
 	liblog.Infof(ctx, "delivering init blocks")
 	for _, blockInitTxs := range result.Initialization_txs {

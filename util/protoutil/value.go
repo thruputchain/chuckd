@@ -71,6 +71,7 @@ func BasisAgreesWithValue(basis *proto.ConsensusBasis, value *proto.ConsensusVal
 func HeaderEquals(h1, h2 *proto.ProposalHeader) bool {
 	return h1.Ext.V == h2.Ext.V &&
 		h1.Network_hash == h2.Network_hash &&
+		h1.Genesis_configuration_hash == h2.Genesis_configuration_hash &&
 		h1.Proposer == h2.Proposer &&
 		h1.Block_timepoint == h2.Block_timepoint &&
 		h1.Block_height == h2.Block_height &&
