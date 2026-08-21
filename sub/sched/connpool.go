@@ -139,13 +139,6 @@ func (p *ConnPool) Schedcoord_load_genesis_configuration(ctx context.Context, gc
 	return r.Result, r.Err
 }
 
-func (p *ConnPool) Schedcoord_load_genesis_configuration_v2(ctx context.Context, gc proto.GenesisConfigurationV2) (proto.DbSchedResult, error) {
-	reply := make(chan Reply_Schedcoord_load_genesis_configuration_v2, 1)
-	p.req <- Request_Schedcoord_load_genesis_configuration_v2{Reply: reply, Ctx: ctx, GC: gc}
-	r := <-reply
-	return r.Result, r.Err
-}
-
 func (p *ConnPool) Schedulercoord_commit_genesis_ceremony(ctx context.Context, request proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error) {
 	reply := make(chan Reply_Schedulercoord_commit_genesis_ceremony, 1)
 	p.req <- Request_Schedulercoord_commit_genesis_ceremony{Reply: reply, Ctx: ctx, Request: request}

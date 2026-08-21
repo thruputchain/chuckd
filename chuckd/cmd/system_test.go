@@ -13,20 +13,6 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-const minimalGenesisJSON = `{
-  "initial_config": [],
-  "storage_cost_model": {
-    "base_data_item_cost": 12000,
-    "bytestring_cost_per_byte": 10,
-    "base_contract_deployment_cost": 12000,
-    "contract_deployment_cost_per_byte": 10,
-    "auth_per_key_cost": 1111,
-    "rcq_cost_per_entry": 8,
-    "replay_cache_cost_per_entry": 7,
-    "balance_cost": 1234
-  }
-}`
-
 var expectedMinimalCostModel = proto.StorageCostModelXdr{
 	Base_data_item_cost:               12000,
 	Bytestring_cost_per_byte:          10,
@@ -40,17 +26,7 @@ var expectedMinimalCostModel = proto.StorageCostModelXdr{
 
 func writeMinimalGenesisFile(t *testing.T) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "genesis.json")
-	data := []byte(minimalGenesisJSON)
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return path
-}
-
-func writeMinimalGenesisV2File(t *testing.T) string {
-	t.Helper()
-	genesis := proto.GenesisConfigurationV2{
+	genesis := proto.GenesisConfiguration{
 		Storage_cost_model: expectedMinimalCostModel,
 		Root_contract:      proto.Contract{Contract_type: proto.KRv32},
 	}
@@ -59,7 +35,7 @@ func writeMinimalGenesisV2File(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "genesis-v2.json")
+	path := filepath.Join(t.TempDir(), "genesis.json")
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -71,9 +47,6 @@ func TestLoadGenesisConfigurationFileAcceptsMinimalDefaultCostModel(t *testing.T
 
 	genesis := loadGenesisConfigurationFile(context.Background(), path)
 
-	if len(genesis.Initial_config) != 0 {
-		t.Fatalf("initial config length = %d, want 0", len(genesis.Initial_config))
-	}
 	if genesis.Storage_cost_model != expectedMinimalCostModel {
 		t.Fatalf("unexpected storage cost model: %+v", genesis.Storage_cost_model)
 	}
@@ -106,20 +79,6 @@ type fakeGenesisControl struct {
 	loadResults []proto.DbSchedResult
 	loadErr     error
 	loads       []proto.GenesisConfiguration
-	loadsV2     []proto.GenesisConfigurationV2
-}
-
-func (f *fakeGenesisControl) LoadGenesisConfigurationV2(_ context.Context, genesis proto.GenesisConfigurationV2) (proto.DbSchedResult, error) {
-	f.loadsV2 = append(f.loadsV2, genesis)
-	if f.loadErr != nil {
-		return 0, f.loadErr
-	}
-	if len(f.loadResults) == 0 {
-		return 0, errors.New("unexpected LoadGenesisConfigurationV2 call")
-	}
-	result := f.loadResults[0]
-	f.loadResults = f.loadResults[1:]
-	return result, nil
 }
 
 func (f *fakeGenesisControl) GetTip(context.Context) (proto.SchedulerGetTipResult, error) {
@@ -180,22 +139,6 @@ func TestLoadGenesisIfNeededLoadsMinimalGenesis(t *testing.T) {
 	}
 	if fake.loads[0].Storage_cost_model != expectedMinimalCostModel {
 		t.Fatalf("unexpected loaded cost model: %+v", fake.loads[0].Storage_cost_model)
-	}
-}
-
-func TestLoadGenesisIfNeededLoadsGenesisV2(t *testing.T) {
-	fake := &fakeGenesisControl{
-		tips:        []proto.SchedulerGetTipResult{tipNoGenesis()},
-		loadResults: []proto.DbSchedResult{proto.DbSchedResultOK},
-	}
-
-	loadGenesisIfNeeded(context.Background(), fake, writeMinimalGenesisV2File(t))
-
-	if len(fake.loads) != 0 || len(fake.loadsV2) != 1 {
-		t.Fatalf("loaded V1 %d times and V2 %d times, want only one V2 load", len(fake.loads), len(fake.loadsV2))
-	}
-	if fake.loadsV2[0].Storage_cost_model != expectedMinimalCostModel {
-		t.Fatalf("unexpected loaded V2 cost model: %+v", fake.loadsV2[0].Storage_cost_model)
 	}
 }
 

@@ -109,7 +109,7 @@ func (s *CoordinatorLoadgenSystem) Start(
 
 type genesisCeremonyControl interface {
 	GetTip(context.Context) (proto.SchedulerGetTipResult, error)
-	LoadGenesisConfigurationV2(context.Context, proto.GenesisConfigurationV2) (proto.DbSchedResult, error)
+	LoadGenesisConfiguration(context.Context, proto.GenesisConfiguration) (proto.DbSchedResult, error)
 	CommitGenesisCeremony(context.Context, proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error)
 }
 
@@ -120,7 +120,7 @@ type genesisCeremonyControl interface {
 func ensureGenesisCeremony(
 	ctx context.Context,
 	ctl genesisCeremonyControl,
-	genesis proto.GenesisConfigurationV2,
+	genesis proto.GenesisConfiguration,
 	txs []proto.SignedTransaction,
 ) (bool, error) {
 	tip, err := ctl.GetTip(ctx)
@@ -128,19 +128,19 @@ func ensureGenesisCeremony(
 		return false, fmt.Errorf("getting scheduler tip: %w", err)
 	}
 	if tip.Outcome != proto.SchedulerGetTipOK {
-		result, err := ctl.LoadGenesisConfigurationV2(ctx, genesis)
+		result, err := ctl.LoadGenesisConfiguration(ctx, genesis)
 		if err != nil {
-			return false, fmt.Errorf("loading V2 genesis configuration: %w", err)
+			return false, fmt.Errorf("loading genesis configuration: %w", err)
 		}
 		if result != proto.DbSchedResultOK {
-			return false, fmt.Errorf("loading V2 genesis configuration failed with %v", result)
+			return false, fmt.Errorf("loading genesis configuration failed with %v", result)
 		}
 		tip, err = ctl.GetTip(ctx)
 		if err != nil {
 			return false, fmt.Errorf("getting loaded scheduler tip: %w", err)
 		}
 		if tip.Outcome != proto.SchedulerGetTipOK {
-			return false, fmt.Errorf("scheduler still has no genesis after V2 load: %v", tip.Outcome)
+			return false, fmt.Errorf("scheduler still has no genesis after genesis load: %v", tip.Outcome)
 		}
 	}
 

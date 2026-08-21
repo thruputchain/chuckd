@@ -13,7 +13,7 @@ import (
 type fakeGenesisCeremonyControl struct {
 	tips       []proto.SchedulerGetTipResult
 	loadResult proto.DbSchedResult
-	loads      []proto.GenesisConfigurationV2
+	loads      []proto.GenesisConfiguration
 	commit     proto.GenesisCeremonyResult
 	request    *proto.GenesisCeremonyRequest
 }
@@ -27,7 +27,7 @@ func (f *fakeGenesisCeremonyControl) GetTip(context.Context) (proto.SchedulerGet
 	return tip, nil
 }
 
-func (f *fakeGenesisCeremonyControl) LoadGenesisConfigurationV2(_ context.Context, genesis proto.GenesisConfigurationV2) (proto.DbSchedResult, error) {
+func (f *fakeGenesisCeremonyControl) LoadGenesisConfiguration(_ context.Context, genesis proto.GenesisConfiguration) (proto.DbSchedResult, error) {
 	f.loads = append(f.loads, genesis)
 	return f.loadResult, nil
 }
@@ -62,7 +62,7 @@ func TestEnsureGenesisCeremonyLoadsAndCommitsBeforeInitialization(t *testing.T) 
 	}
 	tx := proto.SignedTransaction{}
 	initialize, err := ensureGenesisCeremony(
-		context.Background(), ctl, proto.GenesisConfigurationV2{}, []proto.SignedTransaction{tx})
+		context.Background(), ctl, proto.GenesisConfiguration{}, []proto.SignedTransaction{tx})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestEnsureGenesisCeremonyLoadsAndCommitsBeforeInitialization(t *testing.T) 
 func TestEnsureGenesisCeremonyRestoredChainSkipsInitialization(t *testing.T) {
 	ctl := &fakeGenesisCeremonyControl{tips: []proto.SchedulerGetTipResult{loadgenTip(7)}}
 	initialize, err := ensureGenesisCeremony(
-		context.Background(), ctl, proto.GenesisConfigurationV2{}, []proto.SignedTransaction{{}})
+		context.Background(), ctl, proto.GenesisConfiguration{}, []proto.SignedTransaction{{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestEnsureGenesisCeremonyRejectsFailedCommit(t *testing.T) {
 		commit: proto.GenesisCeremonyResult{Outcome: proto.GenesisCeremonyExecutionFailed},
 	}
 	_, err := ensureGenesisCeremony(
-		context.Background(), ctl, proto.GenesisConfigurationV2{}, []proto.SignedTransaction{{}})
+		context.Background(), ctl, proto.GenesisConfiguration{}, []proto.SignedTransaction{{}})
 	if err == nil || !strings.Contains(err.Error(), "GenesisCeremonyExecutionFailed") {
 		t.Fatalf("unexpected error: %v", err)
 	}
