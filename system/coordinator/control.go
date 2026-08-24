@@ -18,10 +18,6 @@ func (x Control) LoadGenesisConfiguration(ctx context.Context, gb proto.GenesisC
 	return x.conn.Schedcoord_load_genesis_configuration(ctx, gb)
 }
 
-func (x Control) LoadGenesisConfigurationV2(ctx context.Context, gb proto.GenesisConfigurationV2) (proto.DbSchedResult, error) {
-	return x.conn.Schedcoord_load_genesis_configuration_v2(ctx, gb)
-}
-
 func (x Control) CommitGenesisCeremony(ctx context.Context, request proto.GenesisCeremonyRequest) (proto.GenesisCeremonyResult, error) {
 	return x.conn.Schedulercoord_commit_genesis_ceremony(ctx, request)
 }

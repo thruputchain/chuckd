@@ -24,7 +24,7 @@ type LoadGen struct {
 	rand   *rand.Rand
 	inside libnet.Network
 	//
-	genesisCh         chan *proto.GenesisConfigurationV2
+	genesisCh         chan *proto.GenesisConfiguration
 	genesisCeremonyCh chan []proto.SignedTransaction
 	initTxsCh         chan []*proto.SignedTransaction
 	workTxsCh         chan proto.ParallelSignedTransactionBatch
@@ -41,7 +41,7 @@ func NewLoadGen(
 		Cfg:               cfg,
 		rand:              rand,
 		inside:            inside,
-		genesisCh:         make(chan *proto.GenesisConfigurationV2, 1),
+		genesisCh:         make(chan *proto.GenesisConfiguration, 1),
 		genesisCeremonyCh: make(chan []proto.SignedTransaction, 1),
 		initTxsCh:         make(chan []*proto.SignedTransaction),
 		workTxsCh:         make(chan proto.ParallelSignedTransactionBatch),
@@ -60,7 +60,7 @@ func (x *LoadGen) Start(ctx context.Context, loadgenAddr string) {
 	go x.obtainTxs(ctx, lgConn)
 }
 
-func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisConfigurationV2 {
+func (x *LoadGen) WaitGenesis(ctx context.Context) *proto.GenesisConfiguration {
 	return <-x.genesisCh
 }
 
