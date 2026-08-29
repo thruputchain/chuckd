@@ -134,8 +134,9 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if _, err := hex.DecodeString(metadata.NetworkHash); err != nil {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata networkHash must be exactly 64 lowercase hexadecimal characters")
 	}
-	if metadata.Protocol != proto.HogProtocol() {
-		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata protocol %q does not match chuckd protocol %q", metadata.Protocol, proto.HogProtocol())
+	protocol := proto.HogProtocol()
+	if metadata.Protocol != string(protocol[:]) {
+		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata protocol %q does not match chuckd protocol %q", metadata.Protocol, string(protocol[:]))
 	}
 	if len(metadata.BootstrapAccountDerivation) == 0 {
 		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata missing bootstrapAccountDerivation")

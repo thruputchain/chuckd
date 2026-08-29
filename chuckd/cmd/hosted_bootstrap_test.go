@@ -47,12 +47,18 @@ func hostedBootstrapHashHex(tx proto.SignedTransaction) string {
 	return "0x" + hex.EncodeToString(hash[:])
 }
 
+// testProtocolText is the protocol token as it appears in metadata JSON.
+func testProtocolText() string {
+	protocol := proto.HogProtocol()
+	return string(protocol[:])
+}
+
 func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 	return hostedBootstrapMetadata{
 		SchemaVersion:              1,
 		Kind:                       "hog-hosted-bootstrap",
 		NetworkHash:                strings.Repeat("00", 32),
-		Protocol:                   proto.HogProtocol(),
+		Protocol:                   testProtocolText(),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
 		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"0x` + strings.Repeat("11", 32) + `","walletAddress":"0x` + strings.Repeat("22", 32) + `","initialStorageTokens":"1000"}]`),
 		Bootstrap:                  json.RawMessage(`{"devWallet":{"contentHash":"0x` + strings.Repeat("33", 32) + `","deployedCodeHash":"0x` + strings.Repeat("33", 32) + `","artifactHint":"dev_wallet.rv32a","deployEntrypoint":"0x` + strings.Repeat("44", 8) + `","doActionEntrypoint":"0x` + strings.Repeat("55", 8) + `","createWalletEntrypoint":"0x` + strings.Repeat("66", 8) + `"},"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
@@ -135,7 +141,7 @@ func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
   "schemaVersion": 1,
   "kind": "wrong",
   "networkHash": "`+strings.Repeat("00", 32)+`",
-  "protocol": "`+proto.HogProtocol()+`",
+  "protocol": "`+testProtocolText()+`",
   "initializationTransactions": []
 }`)
 
@@ -168,7 +174,7 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 		SchemaVersion: 1,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
-		Protocol:      proto.HogProtocol(),
+		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
@@ -192,7 +198,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 		SchemaVersion: 1,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
-		Protocol:      proto.HogProtocol(),
+		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
@@ -213,7 +219,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 		SchemaVersion: 1,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
-		Protocol:      proto.HogProtocol(),
+		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
