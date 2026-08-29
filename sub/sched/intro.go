@@ -39,7 +39,7 @@ func intro(
 	address_for_sched string,
 ) error {
 	outcome, err := conn.Schedulercoord_intro_coord(ctx, proto.CoordCard{
-		Protocol:          proto.HogProtocolCommit(),
+		Protocol:          proto.ProtocolCommit([]byte(proto.HogProtocol())),
 		Address_for_sched: address_for_sched,
 	})
 	if err != nil {
