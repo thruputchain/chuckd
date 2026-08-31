@@ -1,0 +1,118 @@
+name: Publish component build
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_commit:
+        description: Commit or ref to publish (must resolve to an ancestor of main)
+        required: true
+        type: string
+      component_version:
+        description: Component version embedded in the binaries and descriptor
+        required: true
+        default: 0.1.25-rc.4
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: namespace-profile-chuckd-rs-linux
+    outputs:
+      source_commit: ${{ steps.authorize.outputs.source_commit }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - id: authorize
+        name: Resolve and authorize target commit
+        env:
+          TARGET_COMMIT: ${{ inputs.target_commit }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_COMMIT" =~ ^[0-9A-Za-z][0-9A-Za-z._/-]*$ ]] || [[ "$TARGET_COMMIT" == *..* ]]; then
+            echo "target_commit is not a safe commit or ref name" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "$TARGET_COMMIT"
+          source_commit=$(git rev-parse --verify FETCH_HEAD^{commit})
+          if [[ ! "$source_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "target did not resolve to a full commit SHA" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$source_commit" origin/main || {
+            echo "$source_commit is not an ancestor of main; refusing publication" >&2
+            exit 1
+          }
+          echo "source_commit=$source_commit" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: authorize
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/coordinator-build.yml
+    with:
+      source_commit: ${{ needs.authorize.outputs.source_commit }}
+      component_version: ${{ inputs.component_version }}
+    secrets: inherit
+
+  publish:
+    needs: [authorize, build]
+    runs-on: namespace-profile-chuckd-rs-linux
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download Linux x86_64 artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: chuckd-linux-x86_64-release-artifact
+          path: artifacts/
+
+      - name: Download Linux ARM64 artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: chuckd-linux-arm64-release-artifact
+          path: artifacts/
+
+      - name: Generate component-build-v1 descriptor
+        env:
+          COMPONENT_VERSION: ${{ inputs.component_version }}
+          SOURCE_COMMIT: ${{ needs.authorize.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          cd artifacts
+          x86_digest=$(sha256sum chuckd-coordinator-linux-x86_64.tar.gz | cut -d' ' -f1)
+          arm64_digest=$(sha256sum chuckd-coordinator-linux-arm64.tar.gz | cut -d' ' -f1)
+          jq -n --sort-keys --compact-output \
+            --arg sourceCommit "$SOURCE_COMMIT" \
+            --arg version "$COMPONENT_VERSION" \
+            --arg x86Digest "sha256:$x86_digest" \
+            --arg arm64Digest "sha256:$arm64_digest" \
+            '{schema:"groundhog-component-build-v1",component:{name:"chuckd-go",repository:"groundhogchain/chuckd",sourceCommit:$sourceCommit,version:$version},artifacts:{"linux/amd64":{"coordinator-archive":{filename:"chuckd-coordinator-linux-x86_64.tar.gz",sha256:$x86Digest}},"linux/arm64":{"coordinator-archive":{filename:"chuckd-coordinator-linux-arm64.tar.gz",sha256:$arm64Digest}}}}' \
+            > groundhog-component-build.json
+          descriptor_digest=$(sha256sum groundhog-component-build.json | cut -d' ' -f1)
+          echo "Descriptor digest for bundle manifests: sha256:$descriptor_digest" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refuse replacement and publish immutable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ needs.authorize.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          tag="packaging-main-$SOURCE_COMMIT"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "immutable component build $tag already exists; refusing to overwrite it" >&2
+            exit 1
+          fi
+          gh release create "$tag" artifacts/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_COMMIT" \
+            --title "Component build $SOURCE_COMMIT" \
+            --notes "Immutable component-build-v1 artifacts for chuckd-go at $SOURCE_COMMIT." \
+            --prerelease
