@@ -24,6 +24,8 @@ github.com/groundhogchain/lib-go v0.0.0-20260512044649-33b87d4adadb h1:2wmYANFAX
 github.com/groundhogchain/lib-go v0.0.0-20260512044649-33b87d4adadb/go.mod h1:9T+7e+2XYbmJZtHOGFVmKCVHycc7wM6zjaMn2xFPZIE=
 github.com/groundhogchain/protocol-go v0.0.0-20260829231854-81f71e7ee62e h1:K/qxd9fgvZ6DmmGMIIl3WIkJtzY2opVnNaMJcHhPY/s=
 github.com/groundhogchain/protocol-go v0.0.0-20260829231854-81f71e7ee62e/go.mod h1:uLHk7si7BM/d4Ojeos0w6PvCfJ4hUZ0UWiVgF46gWe4=
+github.com/groundhogchain/protocol-go v0.0.0-20260905171658-1e057815c95a h1:Nscn6SGS0LZA/VrTvD5yUurlVL+13GNyzwhF0O1E4+Y=
+github.com/groundhogchain/protocol-go v0.0.0-20260905171658-1e057815c95a/go.mod h1:uLHk7si7BM/d4Ojeos0w6PvCfJ4hUZ0UWiVgF46gWe4=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
