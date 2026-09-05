@@ -1,15 +1,32 @@
 package testdb
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/groundhogchain/lib-go/libxdr"
 	proto "github.com/groundhogchain/protocol-go"
 )
+
+func assertTipEqual(t *testing.T, got, want proto.DbTip) {
+	t.Helper()
+	// XDR unions lazily materialize their active arm during serialization.
+	// Compare persisted values, not whether the in-memory arm was allocated.
+	gotJSON, err := libxdr.XdrToJson(&got)
+	if err != nil {
+		t.Fatalf("marshal actual tip: %v", err)
+	}
+	wantJSON, err := libxdr.XdrToJson(&want)
+	if err != nil {
+		t.Fatalf("marshal expected tip: %v", err)
+	}
+	if !bytes.Equal(gotJSON, wantJSON) {
+		t.Fatalf("unexpected tip: got=%s want=%s", gotJSON, wantJSON)
+	}
+}
 
 func tipAt(height int64, id proto.BlockID) proto.DbTip {
 	return proto.DbTip{
@@ -37,9 +54,7 @@ func TestNewTestDbLoadsPersistedTip(t *testing.T) {
 
 	genesis := tipAt(0, 1)
 	db := NewTestDb(ctx, genesis, dir)
-	if got := db.GetTip(); !reflect.DeepEqual(got, persisted) {
-		t.Fatalf("unexpected loaded tip: got=%+v want=%+v", got, persisted)
-	}
+	assertTipEqual(t, db.GetTip(), persisted)
 }
 
 func TestNewTestDbFallsBackToGenesisTip(t *testing.T) {
@@ -48,9 +63,7 @@ func TestNewTestDbFallsBackToGenesisTip(t *testing.T) {
 	genesis := tipAt(0, 42)
 
 	db := NewTestDb(ctx, genesis, filepath.Join(dir, "missing", "nested"))
-	if got := db.GetTip(); !reflect.DeepEqual(got, genesis) {
-		t.Fatalf("unexpected genesis fallback: got=%+v want=%+v", got, genesis)
-	}
+	assertTipEqual(t, db.GetTip(), genesis)
 }
 
 func TestCommitSnapshotPersistsTip(t *testing.T) {
@@ -64,7 +77,5 @@ func TestCommitSnapshotPersistsTip(t *testing.T) {
 	want := db.GetTip()
 
 	reloaded := NewTestDb(ctx, tipAt(0, 777), dir)
-	if got := reloaded.GetTip(); !reflect.DeepEqual(got, want) {
-		t.Fatalf("unexpected reloaded tip: got=%+v want=%+v", got, want)
-	}
+	assertTipEqual(t, reloaded.GetTip(), want)
 }
