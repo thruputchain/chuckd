@@ -2,6 +2,7 @@ package loadgen
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 
 	"github.com/groundhogchain/chuckd/util/protoutil"
@@ -87,6 +88,9 @@ func (x *LoadGen) Close() {
 func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	defer lgConn.Close()
 	defer close(x.done)
+	if x.Cfg.NumBlocks > proto.KReplayCacheHeightsMaxLen {
+		must.NoError(ctx, fmt.Errorf("loadgen: %d batches exceed the %d live replay-cache heights; use a height-aware expiring workload for longer runs", x.Cfg.NumBlocks, proto.KReplayCacheHeightsMaxLen))
+	}
 
 	cfg := proto.ExperimentConfig{}
 	cfg.Experiment_type = proto.KExperimentTypeERC20BasicAuthPayments
@@ -115,12 +119,27 @@ func (x *LoadGen) obtainTxs(ctx context.Context, lgConn *LoadgenClient) {
 	close(x.initTxsCh)
 
 	liblog.Infof(ctx, "delivering work blocks")
-	for range x.Cfg.NumBlocks {
-		r, err := lgConn.Extend_experiment(ctx, ctxID, uint64(x.Cfg.NumTxsPerBlock), 1e9)
+	for batch := range x.Cfg.NumBlocks {
+		expiry, err := workBatchExpiryHeight(batch)
+		must.NoError(ctx, err)
+		r, err := lgConn.Extend_experiment(ctx, ctxID, uint64(x.Cfg.NumTxsPerBlock), expiry)
 		must.NoError(ctx, err)
 
 		ext := r.Success()
 		x.workTxsCh <- ext.Work_txs
 	}
 	close(x.workTxsCh)
+}
+
+// This bounded benchmark keeps transactions valid throughout the run, but
+// must not accumulate every payment in the same per-account nonce bucket.
+// A distinct height per batch avoids the 8,000-nonce ceiling across batches.
+// Each batch must still fit that per-account limit; the CI workload distributes
+// one million payments across 10,000 accounts. Long-running workloads should
+// instead track committed height and let old replay-cache entries expire.
+func workBatchExpiryHeight(batch int) (proto.BlockHeight, error) {
+	if batch < 0 || batch >= proto.KReplayCacheHeightsMaxLen {
+		return 0, fmt.Errorf("loadgen: batch index %d exceeds live replay-cache height budget", batch)
+	}
+	return proto.BlockHeight(1_000_000_000 + batch), nil
 }
