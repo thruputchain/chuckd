@@ -8,13 +8,27 @@ on:
     paths:
       - '.github/workflows/release.yml'
       - '.github/workflows/coordinator-build.yml'
+      - '.github/workflows/component-build.yml'
       - '.github/scripts/write-build-measurement.py'
+      - '.github/tests/**'
 
 permissions:
   contents: read
 
 jobs:
+  workflow-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          persist-credentials: false
+      - name: Test component publication contracts
+        run: |
+          test -f .github/tests/test_component_build.py
+          python3 -m unittest discover -s .github/tests -p 'test_*.py'
+
   build:
+    needs: workflow-tests
     permissions:
       actions: read
       contents: read
@@ -22,7 +36,14 @@ jobs:
     with:
       source_commit: ${{ github.sha }}
       component_version: 0.1.27-rc.4
-    secrets: inherit
+    secrets:
+      CHUCKD_TO_CHUCKD_KEY: ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+      CHUCKD_TO_LIB_GO_KEY: ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
+      CHUCKD_TO_PROTOCOL_GO_KEY: ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+      CHUCKD_TO_METRICS_HISTORY_KEY: ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+      CHUCKD_TO_SCP_KEY: ${{ secrets.CHUCKD_TO_SCP_KEY }}
+      CHUCKD_TO_HOGX_KEY: ${{ secrets.CHUCKD_TO_HOGX_KEY }}
+      GROUNDHOG_REGISTRY_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
 
   publish:
     if: github.event_name == 'push'

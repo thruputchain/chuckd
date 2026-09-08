@@ -31,7 +31,7 @@ def time_value(label: str) -> float | None:
         text = (measurement_dir / "build-time.txt").read_text(encoding="utf-8")
     except OSError:
         return None
-    match = re.search(rf"^{re.escape(label)}:\s*([0-9.]+)$", text, re.MULTILINE)
+    match = re.search(rf"^[ \t]*{re.escape(label)}:[ \t]*([0-9]+(?:\.[0-9]+)?)[ \t]*$", text, re.MULTILINE)
     return float(match.group(1)) if match else None
 
 
@@ -64,7 +64,10 @@ record = {
         "outcome": os.environ.get("BUILD_OUTCOME") or "not-run",
         "durationSeconds": build_seconds,
         "cpuHours": None if cpu_seconds is None else round(cpu_seconds / 3600, 6),
-        "allocatedCpuHours": None if build_seconds is None else round((os.cpu_count() or 1) * build_seconds / 3600, 6),
+        "allocatedCpuHours": None,
+        "visibleCpuCount": os.cpu_count(),
+        "visibleCpuHours": None if build_seconds is None else round((os.cpu_count() or 1) * build_seconds / 3600, 6),
+        "allocationLimitation": "Visible OS CPUs need not equal runner allocation; allocated CPU hours are unknown.",
         "artifactBytes": archive.stat().st_size if archive.is_file() else None,
         "packageOutcome": os.environ.get("PACKAGE_OUTCOME") or "not-run",
         "retry": int(os.environ["GITHUB_RUN_ATTEMPT"]) > 1,

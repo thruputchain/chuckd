@@ -7,20 +7,22 @@ on:
         description: Commit or ref to publish (must resolve to an ancestor of main)
         required: true
         type: string
-      component_version:
-        description: Component version embedded in the binaries and descriptor
-        required: true
-        default: 0.1.27-rc.4
-        type: string
 
 permissions:
   contents: read
 
+# Manual publication is deliberately serialized, including aliases for one SHA.
+concurrency:
+  group: component-build-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   authorize:
+    if: github.ref == 'refs/heads/main'
     runs-on: namespace-profile-chuckd-rs-linux
     outputs:
       source_commit: ${{ steps.authorize.outputs.source_commit }}
+      component_version: ${{ steps.authorize.outputs.component_version }}
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
         with:
@@ -31,6 +33,7 @@ jobs:
         name: Resolve and authorize target commit
         env:
           TARGET_COMMIT: ${{ inputs.target_commit }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ ! "$TARGET_COMMIT" =~ ^[0-9A-Za-z][0-9A-Za-z._/-]*$ ]] || [[ "$TARGET_COMMIT" == *..* ]]; then
@@ -48,7 +51,16 @@ jobs:
             echo "$source_commit is not an ancestor of main; refusing publication" >&2
             exit 1
           }
+          tag="packaging-main-$source_commit"
+          # A tag lookup fails closed on API errors and catches published coordinates
+          # before spending CPU on a rebuild. Partial releases need operator review.
+          existing_refs=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" --jq 'length')
+          if [[ "$existing_refs" != 0 ]]; then
+            echo "immutable component build $tag already has a tag; refusing to rebuild or replace it" >&2
+            exit 1
+          fi
           echo "source_commit=$source_commit" >> "$GITHUB_OUTPUT"
+          echo "component_version=0.0.0-main.g${source_commit:0:12}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: authorize
@@ -58,8 +70,15 @@ jobs:
     uses: ./.github/workflows/coordinator-build.yml
     with:
       source_commit: ${{ needs.authorize.outputs.source_commit }}
-      component_version: ${{ inputs.component_version }}
-    secrets: inherit
+      component_version: ${{ needs.authorize.outputs.component_version }}
+    secrets:
+      CHUCKD_TO_CHUCKD_KEY: ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+      CHUCKD_TO_LIB_GO_KEY: ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
+      CHUCKD_TO_PROTOCOL_GO_KEY: ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+      CHUCKD_TO_METRICS_HISTORY_KEY: ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+      CHUCKD_TO_SCP_KEY: ${{ secrets.CHUCKD_TO_SCP_KEY }}
+      CHUCKD_TO_HOGX_KEY: ${{ secrets.CHUCKD_TO_HOGX_KEY }}
+      GROUNDHOG_REGISTRY_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
 
   publish:
     needs: [authorize, build]
@@ -82,7 +101,7 @@ jobs:
 
       - name: Generate component-build-v1 descriptor
         env:
-          COMPONENT_VERSION: ${{ inputs.component_version }}
+          COMPONENT_VERSION: ${{ needs.authorize.outputs.component_version }}
           SOURCE_COMMIT: ${{ needs.authorize.outputs.source_commit }}
         run: |
           set -euo pipefail
@@ -106,13 +125,28 @@ jobs:
         run: |
           set -euo pipefail
           tag="packaging-main-$SOURCE_COMMIT"
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          assets=(
+            artifacts/chuckd-coordinator-linux-x86_64.tar.gz
+            artifacts/chuckd-coordinator-linux-arm64.tar.gz
+            artifacts/groundhog-component-build.json
+          )
+          for asset in "${assets[@]}"; do
+            test -s "$asset"
+          done
+          # Listing returns an empty match for absence, but API errors stop the job.
+          # Include drafts so an interrupted upload cannot be silently replaced.
+          existing_release=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq ".[] | select(.tag_name == \"$tag\") | .id")
+          if [[ -n "$existing_release" ]]; then
             echo "immutable component build $tag already exists; refusing to overwrite it" >&2
             exit 1
           fi
-          gh release create "$tag" artifacts/* \
+          # Atomically reserve the tag. Never adopt a tag created after preflight.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f "ref=refs/tags/$tag" -f "sha=$SOURCE_COMMIT" >/dev/null
+          gh release create "$tag" "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
-            --target "$SOURCE_COMMIT" \
+            --verify-tag \
             --title "Component build $SOURCE_COMMIT" \
             --notes "Immutable component-build-v1 artifacts for chuckd-go at $SOURCE_COMMIT." \
-            --prerelease
+            --prerelease --latest=false
