@@ -10,7 +10,7 @@ on:
       component_version:
         description: Component version embedded in the binaries and descriptor
         required: true
-        default: 0.1.25-rc.4
+        default: 0.1.27-rc.4
         type: string
 
 permissions:

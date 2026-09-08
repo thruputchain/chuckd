@@ -21,7 +21,7 @@ jobs:
     uses: ./.github/workflows/coordinator-build.yml
     with:
       source_commit: ${{ github.sha }}
-      component_version: 0.1.25-rc.4
+      component_version: 0.1.27-rc.4
     secrets: inherit
 
   publish:
