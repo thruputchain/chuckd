@@ -7,109 +7,50 @@ on:
   pull_request:
     paths:
       - '.github/workflows/release.yml'
-
-env:
-  CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
-  CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
-  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-  CHUCKD_DISTRIBUTION_VERSION: "0.1.27-rc.4"
+      - '.github/workflows/coordinator-build.yml'
+      - '.github/workflows/component-build.yml'
+      - '.github/scripts/write-build-measurement.py'
+      - '.github/tests/**'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - architecture: x86_64
-            machine: x86_64
-            runner: namespace-profile-chuckd-rs-linux
-          - architecture: arm64
-            machine: aarch64
-            runner: namespace-profile-hogd-linux-arm64
-    runs-on: ${{ matrix.runner }}
-    permissions:
-      contents: read
+  workflow-tests:
+    runs-on: ubuntu-24.04
     steps:
-      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
         with:
-          ssh-private-key: |
-            ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
-            ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
-            ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
-            ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
-            ${{ secrets.CHUCKD_TO_SCP_KEY }}
-            ${{ secrets.CHUCKD_TO_HOGX_KEY }}
-
-      - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
-        with:
-          submodules: false
-
-      - name: Fetch submodules
-        run: git submodule update --init --recursive
-
-      - name: Verify native Linux architecture
-        run: test "$(uname -m)" = "${{ matrix.machine }}"
-
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
-        with:
-          go-version-file: go.mod
-
-      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
-        with:
-          toolchain: 1.96.0
-
-      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547 # v1
-        with:
-          cache: go
-
-      - name: Set up Go private modules
+          persist-credentials: false
+      - name: Test component publication contracts
         run: |
-          go env -w GOPRIVATE=github.com/groundhogchain/*
-          go env -w GONOSUMDB=github.com/groundhogchain/*
-          go env -w GONOPROXY=github.com/groundhogchain/*
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          test -f .github/tests/test_component_build.py
+          python3 -m unittest discover -s .github/tests -p 'test_*.py'
 
-      - name: Build chuckd
-        run: ./scripts/build_chuckd.sh
-
-      - name: Build scpd
-        run: ./scripts/build_scpd.sh
-
-      - name: Verify chuckd distribution version
-        run: |
-          set -euo pipefail
-          for args in "--version" "version"; do
-            output=$(./chuckd.dev $args 2>&1)
-            if [[ "$output" != *"$CHUCKD_DISTRIBUTION_VERSION"* ]]; then
-              echo "chuckd $args does not report distribution version ${CHUCKD_DISTRIBUTION_VERSION}: ${output}" >&2
-              exit 1
-            fi
-          done
-
-      - name: Package coordinator
-        run: |
-          set -euo pipefail
-
-          package_dir="chuckd-coordinator-linux-${{ matrix.architecture }}"
-          mkdir -p "$package_dir"
-          install -m 0755 chuckd.dev "$package_dir/chuckd"
-          install -m 0755 scpd.dev "$package_dir/scpd"
-          tar -C "$package_dir" -czf "${package_dir}.tar.gz" chuckd scpd
-
-      - name: Upload coordinator artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: chuckd-linux-${{ matrix.architecture }}-release-artifact
-          path: chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
+  build:
+    needs: workflow-tests
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/coordinator-build.yml
+    with:
+      source_commit: ${{ github.sha }}
+      component_version: 0.1.27-rc.4
+    secrets:
+      CHUCKD_TO_CHUCKD_KEY: ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+      CHUCKD_TO_LIB_GO_KEY: ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
+      CHUCKD_TO_PROTOCOL_GO_KEY: ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+      CHUCKD_TO_METRICS_HISTORY_KEY: ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+      CHUCKD_TO_SCP_KEY: ${{ secrets.CHUCKD_TO_SCP_KEY }}
+      CHUCKD_TO_HOGX_KEY: ${{ secrets.CHUCKD_TO_HOGX_KEY }}
+      GROUNDHOG_REGISTRY_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
 
   publish:
     if: github.event_name == 'push'
     needs: build
     runs-on: namespace-profile-chuckd-rs-linux
     permissions:
+      actions: read
       contents: write
     steps:
       - name: Download Linux x86_64 artifact
