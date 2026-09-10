@@ -13,6 +13,9 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 .NOTPARALLEL:
 
+# Reaches config, test, lint and fmt only. The build targets hand off to
+# scripts/build_chuckd.sh, which invokes `go build` directly, so overriding this
+# does not change which toolchain builds the binaries.
 GO ?= go
 
 # The module and its dependencies live in private repos, so the toolchain must
@@ -60,7 +63,8 @@ help:
 	@echo "Clean"
 	@echo "  clean         remove the built binaries"
 	@echo ""
-	@echo "Variables: PREFIX BINDIR DESTDIR CHUCKD_DISTRIBUTION_VERSION GO"
+	@echo "Variables: PREFIX BINDIR DESTDIR CHUCKD_DISTRIBUTION_VERSION"
+	@echo "  GO covers config, test, lint and fmt; the build scripts call go themselves"
 
 # Both submodule remotes are git@github.com, so this needs an SSH agent holding
 # a key GitHub accepts. scpd cannot build without the scp submodule.
