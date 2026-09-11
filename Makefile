@@ -58,7 +58,7 @@ help:
 	@echo "  version       distribution version, commit, and built binaries"
 	@echo ""
 	@echo "Install"
-	@echo "  install       copy built binaries to $(BINDIR) under their operator names"
+	@echo "  install       copy both binaries to $(BINDIR) under their operator names"
 	@echo ""
 	@echo "Clean"
 	@echo "  clean         remove the built binaries"
@@ -130,22 +130,25 @@ version:
 	done
 
 # Installed under the operator-facing names, without the .dev suffix the build
-# scripts use to mark a local build.
+# scripts use to mark a local build. Both or neither: `chuckd sys coordinator`
+# resolves scpd on PATH at startup (chuckd/cmd/system.go) and runs it as a child
+# process, so installing only the coordinator leaves an installation that cannot
+# start. Same all-or-nothing shape as groundhog-rpc's install.
 .PHONY: install
 install:
-	@installed=0; \
+	@missing=""; \
+	for b in $(CHUCKD_BIN) $(SCPD_BIN); do \
+		test -f $$b || missing="$$missing $$b"; \
+	done; \
+	if [ -n "$$missing" ]; then \
+		echo "not built:$$missing; run 'make build' first" >&2; \
+		exit 1; \
+	fi; \
 	mkdir -p "$(DESTDIR)$(BINDIR)"; \
-	if [ -f $(CHUCKD_BIN) ]; then \
-		install -m 755 $(CHUCKD_BIN) "$(DESTDIR)$(BINDIR)/chuckd" || exit 1; \
-		echo "  $(DESTDIR)$(BINDIR)/chuckd"; installed=1; \
-	fi; \
-	if [ -f $(SCPD_BIN) ]; then \
-		install -m 755 $(SCPD_BIN) "$(DESTDIR)$(BINDIR)/scpd" || exit 1; \
-		echo "  $(DESTDIR)$(BINDIR)/scpd"; installed=1; \
-	fi; \
-	if [ $$installed -eq 0 ]; then \
-		echo "nothing built to install; run 'make build' first" >&2; exit 1; \
-	fi
+	install -m 755 $(CHUCKD_BIN) "$(DESTDIR)$(BINDIR)/chuckd" || exit 1; \
+	echo "  $(DESTDIR)$(BINDIR)/chuckd"; \
+	install -m 755 $(SCPD_BIN) "$(DESTDIR)$(BINDIR)/scpd" || exit 1; \
+	echo "  $(DESTDIR)$(BINDIR)/scpd"
 
 .PHONY: clean
 clean:
