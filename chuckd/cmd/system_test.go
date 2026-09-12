@@ -62,6 +62,7 @@ func TestSysCoordinatorCommandHasHostedBootstrapFlags(t *testing.T) {
 	for _, name := range []string{
 		"hosted-bootstrap-metadata",
 		"hosted-bootstrap-indexer",
+		"hosted-bootstrap-scheduler-gateway",
 		"hosted-bootstrap-db-gateway",
 		"hosted-bootstrap-view-gateway",
 		"hosted-bootstrap-public-rpc-url",
