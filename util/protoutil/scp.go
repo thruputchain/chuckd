@@ -42,6 +42,9 @@ func scpOptBallotToString(ballot *proto.SCPBallot) string {
 }
 
 func scpNodeIDToString(nodeID proto.SCPNodeID) string {
+	if nodeID.Scheme != proto.Ed25519 {
+		return fmt.Sprintf("unsupported public key scheme:%d", nodeID.Scheme)
+	}
 	validatorID := NodeToValidatorID(nodeID)
 	return scpHexAbbrev(validatorID[:])
 }

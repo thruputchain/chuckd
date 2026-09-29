@@ -183,6 +183,11 @@ func (b *Baton) attemptCatchup(ctx context.Context, spans []Span) {
 		}
 
 		// verify the signature of the source
+		if reply.Signer.Public_key.Scheme != proto.Ed25519 || src.Public_key.Scheme != proto.Ed25519 {
+			liblog.Infof(ctx, "dropping catchup result: unsupported public key scheme (signer=%d, source=%d)",
+				reply.Signer.Public_key.Scheme, src.Public_key.Scheme)
+			return
+		}
 		if !protoutil.VerifyXdr(b.catchupResultM, src.Public_key, &reply.Result, reply.Signature) {
 			liblog.Errorf(ctx, "catchup with invalid signature")
 			return

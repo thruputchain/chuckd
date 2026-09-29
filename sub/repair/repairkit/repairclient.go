@@ -35,7 +35,7 @@ func NewRepairClient(ctx context.Context, sock net.Conn) *RepairClient {
 	go driver.Go()
 
 	return &RepairClient{
-		Repair1_Client: proto.Repair1_Client{Send: driver, Ctx: ctx},
+		Repair1_Client: proto.Repair1_Client{Send: rpcutil.LogReplyDecodeErrors(driver), Ctx: ctx},
 		driver:         driver,
 	}
 }

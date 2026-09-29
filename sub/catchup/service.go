@@ -54,7 +54,7 @@ func (svc *CatchupService) Start(ctx context.Context, address string) {
 		netutil.MaxMessageSize,
 		rpcutil.BaseDriverRegime,
 		address,
-		proto.Catchup1_Server{Srv: svc},
+		rpcutil.LogDecodeErrors(ctx, proto.Catchup1_Server{Srv: svc}),
 	)
 }
 
@@ -80,6 +80,10 @@ func (svc *CatchupService) Catchup_solicit(
 ) (proto.SignedCatchupBlocksResult, error) {
 
 	// check signatures
+	if sreq.Signer.Public_key.Scheme != proto.Ed25519 {
+		liblog.Infof(ctx, "rejecting catchup request: unsupported public key scheme %d", sreq.Signer.Public_key.Scheme)
+		return proto.SignedCatchupBlocksResult{}, fmt.Errorf("unsupported public key scheme")
+	}
 	if !protoutil.VerifyXdr(svc.reqM, sreq.Signer.Public_key, &sreq.Request, sreq.Signature) {
 		return proto.SignedCatchupBlocksResult{}, fmt.Errorf("signature verification")
 	}

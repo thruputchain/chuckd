@@ -104,5 +104,9 @@ func upgradesEqual(a, b []proto.Upgrade) bool {
 }
 
 func ValidatorInfoEquals(v1, v2 *proto.ValidatorPublicInfo) bool {
-	return *v1 == *v2
+	// PublicKey's union arm is a pointer, so Go's == compares its identity,
+	// not the key bytes. Only Ed25519 validator identities are supported.
+	return v1.Address == v2.Address &&
+		v1.Public_key.Scheme == proto.Ed25519 && v2.Public_key.Scheme == proto.Ed25519 &&
+		*v1.Public_key.Ed25519() == *v2.Public_key.Ed25519()
 }

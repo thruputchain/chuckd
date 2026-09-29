@@ -12,10 +12,7 @@ import (
 const ShortHashLen = 3
 
 func ToSecretKey(v proto.ValidatorSecretKey) proto.SecretKey {
-	sk := proto.SecretKey{}
-	sk.Scheme = proto.Ed25519
-	*sk.Ed25519() = proto.Ed25519SecretKey(v)
-	return sk
+	return v
 }
 
 func ValidatorToNodeIDs(vids []proto.ValidatorID) []proto.SCPNodeID {
@@ -33,6 +30,7 @@ func ValidatorToNodeID(vid proto.ValidatorID) proto.SCPNodeID {
 	return pk
 }
 
+// NodeToValidatorID requires an Ed25519 key. Validate network keys before calling it.
 func NodeToValidatorID(pk proto.SCPNodeID) proto.ValidatorID {
 	return *pk.Ed25519()
 }
@@ -41,8 +39,9 @@ func PublicVID(v proto.ValidatorPublicInfo) proto.ValidatorID {
 	return VPublicKeyToID(v.Public_key)
 }
 
+// VPublicKeyToID requires an Ed25519 key. Validate network keys before calling it.
 func VPublicKeyToID(pubKey proto.ValidatorPublicKey) proto.ValidatorID {
-	return proto.ValidatorID(pubKey)
+	return *pubKey.Ed25519()
 }
 
 func VIDString(vid proto.ValidatorID) string {
@@ -54,6 +53,9 @@ func VIDUntypedString(vid proto.ValidatorID) string {
 }
 
 func VPublicDisplay(pubInfo proto.ValidatorPublicInfo) string {
+	if pubInfo.Public_key.Scheme != proto.Ed25519 {
+		return fmt.Sprintf("(unsupported public key scheme:%d address:%s)", pubInfo.Public_key.Scheme, pubInfo.Address)
+	}
 	id := VPublicKeyToID(pubInfo.Public_key)
 	return fmt.Sprintf("(%s address:%s)", VIDString(id), pubInfo.Address)
 }

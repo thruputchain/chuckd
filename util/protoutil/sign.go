@@ -39,7 +39,7 @@ func (s *signer) VerifyXdr(m libxdr.XdrMarshaler, value xdr.XdrType, sig proto.S
 func SignBytes(secretKey proto.ValidatorSecretKey, msg []byte) proto.Signature {
 
 	msgHash := sha512.Sum512(msg)
-	privKey := ed25519.PrivateKey(secretKey[:])
+	privKey := ed25519.PrivateKey(secretKey.Ed25519()[:])
 	signatureBytes, err := privKey.Sign(nil, msgHash[:], crypto.SHA512)
 	if err != nil {
 		panic(err)
@@ -58,14 +58,17 @@ func SignXdr(m libxdr.XdrMarshaler, secretKey proto.ValidatorSecretKey, value xd
 }
 
 func VerifyBytes(pubKey proto.ValidatorPublicKey, msg []byte, signature []byte) bool {
+	if pubKey.Scheme != proto.Ed25519 {
+		return false
+	}
 
 	msgHash := sha512.Sum512(msg)
-	err := ed25519.VerifyWithOptions(pubKey[:], msgHash[:], signature, &ed25519.Options{Hash: crypto.SHA512})
+	err := ed25519.VerifyWithOptions(pubKey.Ed25519()[:], msgHash[:], signature, &ed25519.Options{Hash: crypto.SHA512})
 	return err == nil
 }
 
 func VerifyXdr(m libxdr.XdrMarshaler, pubKey proto.ValidatorPublicKey, value xdr.XdrType, sig proto.Signature) bool {
-	if sig.Scheme != proto.Ed25519 {
+	if pubKey.Scheme != proto.Ed25519 || sig.Scheme != proto.Ed25519 {
 		return false
 	}
 	sigBytes := *sig.Ed25519()

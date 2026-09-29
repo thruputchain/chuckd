@@ -212,7 +212,7 @@ func (s *DiscoveryService) updateKnown(ctx context.Context, known proto.KnownQuo
 		s.addQuorumSet(ctx, qs)
 	}
 	for _, vs := range known.Validator_snapshots {
-		s.addValidator(vs)
+		s.addValidator(ctx, vs)
 	}
 }
 
@@ -221,6 +221,7 @@ func (s *DiscoveryService) addQuorumSet(ctx context.Context, qset proto.SignedQu
 	defer s.inflight.Done()
 
 	if !protoutil.VerifySignedQuorumSetSnapshot(s.m, qset) {
+		liblog.Infof(ctx, "dropping quorum set snapshot: unsupported public key scheme, invalid quorum set, or invalid signature")
 		return
 	}
 
@@ -239,11 +240,12 @@ func (s *DiscoveryService) addQuorumSet(ctx context.Context, qset proto.SignedQu
 	s.setQuorumSet(ctx, qset.Quorum_set_snapshot.Quorum_set)
 }
 
-func (s *DiscoveryService) addValidator(v proto.SignedValidatorInfoSnapshot) {
+func (s *DiscoveryService) addValidator(ctx context.Context, v proto.SignedValidatorInfoSnapshot) {
 
 	//XXX: determine if the signer is trusted
 
 	if !protoutil.VerifySignedValidatorInfoSnapshot(s.m, v) {
+		liblog.Infof(ctx, "dropping validator snapshot: unsupported public key scheme or invalid signature")
 		return
 	}
 

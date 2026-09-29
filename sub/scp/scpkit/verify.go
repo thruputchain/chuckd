@@ -20,8 +20,7 @@ func VerifyEnvelope(m libxdr.XdrMarshaler, env *proto.SCPEnvelope) error {
 		return errors.New("envelope is not sane")
 	}
 
-	pubKey := *env.Statement.Node_id.Ed25519()
-	if !protoutil.VerifyXdr(m, pubKey, &env.Statement, env.Signature) {
+	if !protoutil.VerifyXdr(m, env.Statement.Node_id, &env.Statement, env.Signature) {
 		return errors.New("invalid signature")
 	}
 	return nil

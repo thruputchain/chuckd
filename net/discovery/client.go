@@ -30,7 +30,7 @@ func NewDiscoveryClient(ctx context.Context, sock net.Conn) *DiscoveryClient {
 	go driver.Go()
 
 	return &DiscoveryClient{
-		Discovery1_Client: proto.Discovery1_Client{Send: driver, Ctx: ctx},
+		Discovery1_Client: proto.Discovery1_Client{Send: rpcutil.LogReplyDecodeErrors(driver), Ctx: ctx},
 		driver:            driver,
 	}
 }

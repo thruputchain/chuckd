@@ -109,6 +109,9 @@ func VerifySignedQuorumSetSnapshot(m libxdr.XdrMarshaler, v proto.SignedQuorumSe
 }
 
 func VerifySignedValidatorInfoSnapshot(m libxdr.XdrMarshaler, v proto.SignedValidatorInfoSnapshot) bool {
+	if v.Validator_snapshot.Validator.Public_key.Scheme != proto.Ed25519 {
+		return false
+	}
 	return VerifyXdr(m, v.Signer.Public_key, &v.Validator_snapshot, v.Signature)
 }
 
