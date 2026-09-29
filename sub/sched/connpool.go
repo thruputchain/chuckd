@@ -152,3 +152,10 @@ func (p *ConnPool) Schedcoord_lookup_transactions(ctx context.Context, sthb prot
 	r := <-reply
 	return r.OptSTB, r.Err
 }
+
+func (p *ConnPool) Schedcoord_lookup_transaction_outcomes(ctx context.Context, sthb proto.TransactionHashBatch) (proto.SchedulerTransactionOutcomeBatch, error) {
+	reply := make(chan Reply_Schedcoord_lookup_transaction_outcomes, 1)
+	p.req <- Request_Schedcoord_lookup_transaction_outcomes{Reply: reply, Ctx: ctx, STHB: sthb}
+	r := <-reply
+	return r.Outcomes, r.Err
+}

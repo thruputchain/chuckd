@@ -104,6 +104,20 @@ func (x *TestScheduler) Schedcoord_lookup_transactions(
 	return mixed, nil
 }
 
+func (x *TestScheduler) Schedcoord_lookup_transaction_outcomes(
+	ctx context.Context,
+	hashes proto.TransactionHashBatch,
+) (proto.SchedulerTransactionOutcomeBatch, error) {
+	_, _, found := x.mempool.LookupTxs(hashes)
+	outcomes := make(proto.SchedulerTransactionOutcomeBatch, len(hashes))
+	for i := range outcomes {
+		if found[i] != nil {
+			outcomes[i].Status = proto.SchedulerTransactionPending
+		}
+	}
+	return outcomes, nil
+}
+
 func (x *TestScheduler) Schedulercoord_propose_block(
 	ctx context.Context,
 	onto proto.BlockID,
