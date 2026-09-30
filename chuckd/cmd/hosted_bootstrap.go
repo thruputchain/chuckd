@@ -125,7 +125,7 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if err := json.Unmarshal(data, &metadata); err != nil {
 		return hostedBootstrapMetadata{}, fmt.Errorf("parsing hosted bootstrap metadata: %w", err)
 	}
-	if metadata.SchemaVersion != 1 {
+	if metadata.SchemaVersion != 2 {
 		return hostedBootstrapMetadata{}, fmt.Errorf("unsupported hosted bootstrap metadata schemaVersion %d", metadata.SchemaVersion)
 	}
 	if metadata.Kind != "hog-hosted-bootstrap" {
@@ -429,7 +429,7 @@ func writeHostedRuntimeManifest(metadata hostedBootstrapMetadata, cfg hostedBoot
 		endpoints["viewGateway"] = cfg.viewGatewayAddress
 	}
 	manifest := map[string]any{
-		"schemaVersion":              2,
+		"schemaVersion":              3,
 		"kind":                       "hosted-devnet-runtime",
 		"networkHash":                metadata.NetworkHash,
 		"protocol":                   metadata.Protocol,
