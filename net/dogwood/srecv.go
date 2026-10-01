@@ -96,6 +96,7 @@ func (r *StreamReceiver) process(ctx context.Context, env proto.DogwoodDeliveryE
 	// XXX(SECURITY): should we verify regardless who its from?
 	if v, ok := r.discovery.LookupValidator(env.Delivery.Stream.Source_id); ok {
 		if !protoutil.VerifyXdr(r.m, v.Public_key, &env.Delivery, env.Signature) {
+			liblog.Infof(ctx, "dropping delivery: unsupported public key scheme or invalid signature")
 			return
 		}
 	}

@@ -29,12 +29,16 @@ func GenerateIdentity(rr io.Reader, address string) (*proto.ValidatorPrivateInfo
 	if err != nil {
 		return nil, err
 	}
+	publicKey := proto.ValidatorPublicKey{Scheme: proto.Ed25519}
+	*publicKey.Ed25519() = proto.Ed25519PublicKey(pubKey)
+	privateKey := proto.ValidatorSecretKey{Scheme: proto.Ed25519}
+	*privateKey.Ed25519() = proto.Ed25519SecretKey(secretKey)
 	return &proto.ValidatorPrivateInfo{
 		Public_info: proto.ValidatorPublicInfo{
-			Public_key: proto.ValidatorPublicKey(pubKey),
+			Public_key: publicKey,
 			Address:    address,
 		},
-		Secret_key: proto.ValidatorSecretKey(secretKey),
+		Secret_key: privateKey,
 	}, nil
 }
 

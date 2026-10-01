@@ -1,0 +1,183 @@
+name: Coordinator build
+
+on:
+  workflow_call:
+    inputs:
+      source_commit:
+        description: Full source commit to build
+        required: true
+        type: string
+      component_version:
+        description: Version embedded in the coordinator binary
+        required: true
+        type: string
+    secrets:
+      CHUCKD_TO_CHUCKD_KEY:
+        required: true
+      CHUCKD_TO_LIB_GO_KEY:
+        required: true
+      CHUCKD_TO_PROTOCOL_GO_KEY:
+        required: true
+      CHUCKD_TO_METRICS_HISTORY_KEY:
+        required: true
+      CHUCKD_TO_SCP_KEY:
+        required: true
+      CHUCKD_TO_HOGX_KEY:
+        required: true
+      GROUNDHOG_REGISTRY_TOKEN:
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            platform: linux/amd64
+            machine: x86_64
+            runner: namespace-profile-chuckd-rs-linux
+          - architecture: arm64
+            platform: linux/arm64
+            machine: aarch64
+            runner: namespace-profile-hogd-linux-arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
+      CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      CHUCKD_DISTRIBUTION_VERSION: ${{ inputs.component_version }}
+    steps:
+      - name: Initialize measurement
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/chuckd-measurement"
+          date -u +%s > "$RUNNER_TEMP/chuckd-measurement/runner-start-epoch"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at \
+            > "$RUNNER_TEMP/chuckd-measurement/workflow-created-at" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+        with:
+          ssh-private-key: |
+            ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
+            ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
+            ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
+            ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
+            ${{ secrets.CHUCKD_TO_SCP_KEY }}
+            ${{ secrets.CHUCKD_TO_HOGX_KEY }}
+
+      - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
+        with:
+          ref: ${{ inputs.source_commit }}
+          submodules: false
+
+      - name: Verify source commit
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.source_commit }}"
+
+      - name: Fetch submodules
+        run: git submodule update --init --recursive
+
+      - name: Verify native Linux architecture
+        run: test "$(uname -m)" = "${{ matrix.machine }}"
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.96.0
+
+      - id: go-cache
+        uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547 # v1
+        with:
+          cache: go
+
+      - name: Set up Go private modules
+        run: |
+          go env -w GOPRIVATE=github.com/groundhogchain/*
+          go env -w GONOSUMDB=github.com/groundhogchain/*
+          go env -w GONOPROXY=github.com/groundhogchain/*
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+      - id: coordinator-build
+        name: Build coordinator
+        run: |
+          set -euo pipefail
+          start=$(date -u +%s)
+          echo "$start" > "$RUNNER_TEMP/chuckd-measurement/build-start-epoch"
+          set +e
+          /usr/bin/time -v -o "$RUNNER_TEMP/chuckd-measurement/build-time.txt" \
+            bash -c './scripts/build_chuckd.sh && ./scripts/build_scpd.sh'
+          status=$?
+          set -e
+          date -u +%s > "$RUNNER_TEMP/chuckd-measurement/build-end-epoch"
+          exit "$status"
+
+      - name: Verify chuckd distribution version
+        run: |
+          set -euo pipefail
+          for args in "--version" "version"; do
+            output=$(./chuckd.dev $args 2>&1)
+            if [[ "$output" != *"$CHUCKD_DISTRIBUTION_VERSION"* ]]; then
+              echo "chuckd $args does not report distribution version ${CHUCKD_DISTRIBUTION_VERSION}: ${output}" >&2
+              exit 1
+            fi
+          done
+
+      - id: package
+        name: Package coordinator
+        run: |
+          set -euo pipefail
+          package_dir="chuckd-coordinator-linux-${{ matrix.architecture }}"
+          mkdir -p "$package_dir"
+          install -m 0755 chuckd.dev "$package_dir/chuckd"
+          install -m 0755 scpd.dev "$package_dir/scpd"
+          tar -C "$package_dir" -czf "${package_dir}.tar.gz" chuckd scpd
+
+      - name: Upload coordinator artifact
+        if: steps.package.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: chuckd-linux-${{ matrix.architecture }}-release-artifact
+          path: chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
+
+      - name: Check out measurement tooling from workflow revision
+        if: always()
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .workflow-tooling
+          persist-credentials: false
+          sparse-checkout: .github/scripts/write-build-measurement.py
+          sparse-checkout-cone-mode: false
+
+      - name: Write build measurement
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.coordinator-build.outcome }}
+          CACHE_HIT_SIGNAL: ${{ steps.go-cache.outputs.cache-hit }}
+          COMPONENT_VERSION: ${{ inputs.component_version }}
+          PACKAGE_OUTCOME: ${{ steps.package.outcome }}
+          PLATFORM: ${{ matrix.platform }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          measurement_script=.workflow-tooling/.github/scripts/write-build-measurement.py
+          if [[ ! -f "$measurement_script" ]]; then
+            echo "::error title=Measurement tooling unavailable::Workflow revision ${{ github.workflow_sha }} does not contain $measurement_script" >&2
+            exit 1
+          fi
+          python3 "$measurement_script"
+
+      - name: Upload build measurement
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: chuckd-${{ matrix.architecture }}-build-measurement
+          path: ${{ runner.temp }}/chuckd-measurement/build-measurement.json

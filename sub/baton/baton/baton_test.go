@@ -422,8 +422,59 @@ func TestCatchupMissingTxsCommit(t *testing.T) {
 }
 
 func TestAlternatingNominateCommit(t *testing.T) {
+	testAlternatingNominateCommit(t, false)
+}
+
+// A virtual-clock advance need not wake the heartbeat: its next Sleep may
+// start after the advance. Hold it outside Sleep to exercise that schedule.
+func TestAlternatingNominateCommitWithoutHeartbeat(t *testing.T) {
+	testAlternatingNominateCommit(t, true)
+}
+
+type pausedHeartbeatRig struct {
+	*TestRig
+	resume <-chan struct{}
+}
+
+func (h *pausedHeartbeatRig) Sleep(d time.Duration) {
+	<-h.resume
+	h.TestRig.Sleep(d)
+}
+
+func testAlternatingNominateCommit(t *testing.T, pauseHeartbeat bool) {
+	t.Helper()
 
 	ctx, rig, baton, tick := testSetup()
+	if pauseHeartbeat {
+		resume := make(chan struct{})
+		defer close(resume)
+		baton.handler = &pausedHeartbeatRig{TestRig: rig, resume: resume}
+	}
+	advanceAndBackfeed := func() {
+		t.Helper()
+		rig.PassTime(tick)
+		// PassTime does not guarantee the heartbeat was already asleep.
+		// Explicitly drive after advancing, without blocking on the rig's
+		// synchronous backfeed send. A concurrent heartbeat is harmless:
+		// the baton lock and last-backfeed timestamp suppress duplicates.
+		kicked := make(chan struct{})
+		go func() {
+			baton.Kick()
+			close(kicked)
+		}()
+		timer := time.NewTimer(5 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-rig.backfeed:
+		case <-timer.C:
+			t.Fatal("no backfeed after advancing virtual time and kicking baton")
+		}
+		select {
+		case <-kicked:
+		case <-timer.C:
+			t.Fatal("baton kick did not finish after consuming backfeed")
+		}
+	}
 	numRounds := 15
 
 	baton.Start(ctx)
@@ -444,8 +495,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		nominated := rig.ReceiveEvent(ctx).Event.(batonkit.EventNominated)
 
 		// kick off validation
-		rig.PassTime(tick)
-		rig.WaitBackfeed(ctx)
+		advanceAndBackfeed()
 		rig.AddTxs(ctx, protoutil.Unpack(theirBlock.Txs)...)
 		rig.PlaceConsensusValue(ctx, theirBlock.ConsensusBasis, theirBlock.ConsensusValue)
 		validatedTheirs := rig.ValidateNominationValue(
@@ -457,8 +507,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		_ = rig.ReceiveEvent(ctx).Event.(batonkit.EventValidated)
 		<-validatedTheirs
 
-		rig.PassTime(tick)
-		rig.WaitBackfeed(ctx)
+		advanceAndBackfeed()
 		if round%2 == 1 { // nominate [our], validate [their], committ [our]
 			// kick off commit of nominated
 			rig.PlaceConsensusValue(ctx, *nominated.ConsensusBasis, *nominated.ConsensusValue)
@@ -478,8 +527,7 @@ func TestAlternatingNominateCommit(t *testing.T) {
 		committed := rig.ReceiveEvent(ctx).Event.(batonkit.EventCommitted)
 		lastCommitted = testutil.BlockHandleFromCommittableBlock(committed.DbgValidatable)
 
-		rig.PassTime(tick)
-		rig.WaitBackfeed(ctx)
+		advanceAndBackfeed()
 	}
 
 }

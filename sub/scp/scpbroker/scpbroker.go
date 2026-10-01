@@ -116,7 +116,7 @@ func (x *SCPBroker) SCPFeedEnvelope(ctx context.Context, env proto.SCPEnvelope) 
 	liblog.Debugf(ctx, "feeding envelope for slot %d", env.Statement.Slot_index)
 
 	if err := scpkit.VerifyEnvelope(x.m, &env); err != nil {
-		liblog.Errorf(ctx, "dropping envelope due to %v: %v", err, protoutil.SCPEnvelopeDisplay(env))
+		liblog.Infof(ctx, "dropping envelope due to %v: %v", err, protoutil.SCPEnvelopeDisplay(env))
 		return
 	}
 
@@ -150,6 +150,10 @@ func (x *SCPBroker) fulfillBackfeed(callerCtx context.Context, slot scpkit.Slot,
 	}
 
 	for i, env := range envs {
+		if env.Statement.Node_id.Scheme != proto.Ed25519 {
+			liblog.Infof(ctx, "dropping backfilled envelope: unsupported public key scheme %d", env.Statement.Node_id.Scheme)
+			continue
+		}
 		liblog.Debugf(ctx, "backfilling envelope %d of %d for slot %d", i+1, len(envs), env.Statement.Slot_index)
 		// replay envelopes for the requested slot, but not our own!
 		if env.Statement.Slot_index == slot &&

@@ -23,7 +23,11 @@ func NewServer(ctx context.Context, srv ...xdr.XdrSrv) *Server {
 
 func (s *Server) Start(ctx context.Context, net libnet.Network, address string) {
 	liblog.Infof(ctx, "starting server on network %s at address %s", net, address)
-	s.l = librpc.StartSerial(ctx, net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, address, s.srv...)
+	services := make([]xdr.XdrSrv, len(s.srv))
+	for i, srv := range s.srv {
+		services[i] = rpcutil.LogDecodeErrors(ctx, srv)
+	}
+	s.l = librpc.StartSerial(ctx, net, netutil.MaxMessageSize, rpcutil.BaseDriverRegime, address, services...)
 }
 
 func (s *Server) Close() {

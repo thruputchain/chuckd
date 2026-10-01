@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -53,15 +54,19 @@ func testProtocolText() string {
 	return string(protocol[:])
 }
 
+// The native nonce-zero account emitted for bootstrap seed "seed", index 0.
+const testHostedBootstrapPublicKey = "0x8007f4e0a1f7ce19482951626496baa944ce0b870289605a1279630ea5dc846b"
+const testHostedBootstrapWalletAddress = "0x269b179ac3bd69a15af3dbf5656a661e968b96acb573280886d5ce00cc997a36"
+
 func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 	return hostedBootstrapMetadata{
-		SchemaVersion:              1,
+		SchemaVersion:              2,
 		Kind:                       "hog-hosted-bootstrap",
 		NetworkHash:                strings.Repeat("00", 32),
 		Protocol:                   testProtocolText(),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
-		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"0x` + strings.Repeat("11", 32) + `","walletAddress":"0x` + strings.Repeat("22", 32) + `","initialStorageTokens":"1000"}]`),
-		Bootstrap:                  json.RawMessage(`{"devWallet":{"contentHash":"0x` + strings.Repeat("33", 32) + `","deployedCodeHash":"0x` + strings.Repeat("33", 32) + `","artifactHint":"dev_wallet.rv32a","deployEntrypoint":"0x` + strings.Repeat("44", 8) + `","doActionEntrypoint":"0x` + strings.Repeat("55", 8) + `","createWalletEntrypoint":"0x` + strings.Repeat("66", 8) + `"},"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
+		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"` + testHostedBootstrapPublicKey + `","walletAddress":"` + testHostedBootstrapWalletAddress + `","initialStorageTokens":"1000"}]`),
+		Bootstrap:                  json.RawMessage(`{"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
 	}
 }
 
@@ -136,9 +141,18 @@ func TestHashSingleHostedBootstrapTxSetMatchesHogdMerkleTriePrefix(t *testing.T)
 	}
 }
 
+func TestLoadHostedBootstrapMetadataRejectsLegacySchema(t *testing.T) {
+	metadata := testHostedBootstrapMetadata()
+	metadata.SchemaVersion = 1
+	path := writeHostedBootstrapMetadataJSON(t, metadata)
+	if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "schemaVersion 1") {
+		t.Fatalf("legacy metadata must require the original producer, got %v", err)
+	}
+}
+
 func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	path := writeHostedBootstrapMetadata(t, `{
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "wrong",
   "networkHash": "`+strings.Repeat("00", 32)+`",
   "protocol": "`+testProtocolText()+`",
@@ -157,7 +171,7 @@ func TestLoadHostedBootstrapMetadataRejectsInvalidNetworkHash(t *testing.T) {
 		strings.Repeat("gg", 32),
 	} {
 		path := writeHostedBootstrapMetadata(t, `{
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "hog-hosted-bootstrap",
   "networkHash": "`+networkHash+`"
 }`)
@@ -171,7 +185,7 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	txHex := xdrHexSignedTransaction(t, tx)
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      testProtocolText(),
@@ -195,7 +209,7 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 
 func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      testProtocolText(),
@@ -216,7 +230,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 	txHex := xdrHexSignedTransaction(t, proto.SignedTransaction{})
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      testProtocolText(),
@@ -237,12 +251,13 @@ func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 func TestWriteHostedRuntimeManifest(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-manifest.json")
 	hash, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
-		schedulerAddress:   "127.0.0.1:8070",
-		indexerAddress:     "127.0.0.1:8061",
-		dbGatewayAddress:   "hog-db.internal:8084",
-		viewGatewayAddress: "hog-exec.internal:8042",
-		publicRPCURL:       "http://203.0.113.10:8545",
-		runtimeManifestOut: path,
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
+		indexerAddress:          "127.0.0.1:8061",
+		dbGatewayAddress:        "hog-db.internal:8084",
+		viewGatewayAddress:      "hog-exec.internal:8042",
+		publicRPCURL:            "http://203.0.113.10:8545",
+		runtimeManifestOut:      path,
 	}, hostedBootstrapCommit{Height: 1, ValueHash: "0x" + strings.Repeat("88", 32)})
 	if err != nil {
 		t.Fatal(err)
@@ -261,14 +276,36 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	if manifest["kind"] != "hosted-devnet-runtime" {
 		t.Fatalf("kind = %v", manifest["kind"])
 	}
-	if manifest["schemaVersion"] != float64(2) {
+	if manifest["schemaVersion"] != float64(3) {
 		t.Fatalf("schemaVersion = %v", manifest["schemaVersion"])
 	}
 	if manifest["networkHash"] != strings.Repeat("00", 32) {
 		t.Fatalf("networkHash = %v", manifest["networkHash"])
 	}
+	wantDerivation := map[string]any{
+		"scheme": "groundhog-bootstrap-account-v1",
+		"seed":   "seed",
+	}
+	if !reflect.DeepEqual(manifest["bootstrapAccountDerivation"], wantDerivation) {
+		t.Fatalf("unexpected account derivation: %+v", manifest["bootstrapAccountDerivation"])
+	}
+	wantAccounts := []any{map[string]any{
+		"index":                float64(0),
+		"role":                 "hosted_dev_account",
+		"publicKey":            testHostedBootstrapPublicKey,
+		"walletAddress":        testHostedBootstrapWalletAddress,
+		"initialStorageTokens": "1000",
+	}}
+	if !reflect.DeepEqual(manifest["bootstrapAccounts"], wantAccounts) {
+		t.Fatalf("unexpected native bootstrap accounts: %+v", manifest["bootstrapAccounts"])
+	}
+	bootstrap := manifest["bootstrap"].(map[string]any)
+	if len(bootstrap) != 1 || bootstrap["storageCostModel"] == nil {
+		t.Fatalf("unexpected bootstrap metadata: %+v", bootstrap)
+	}
 	endpoints := manifest["endpoints"].(map[string]any)
 	if endpoints["scheduler"] != "127.0.0.1:8070" ||
+		endpoints["schedulerGateway"] != "127.0.0.1:8075" ||
 		endpoints["indexer"] != "127.0.0.1:8061" ||
 		endpoints["dbGateway"] != "hog-db.internal:8084" ||
 		endpoints["viewGateway"] != "hog-exec.internal:8042" {
@@ -282,8 +319,9 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 
 func TestWriteHostedRuntimeManifestAllowsHostnameEndpoint(t *testing.T) {
 	if _, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
-		schedulerAddress:   "localhost:8070",
-		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
+		schedulerAddress:        "localhost:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
+		runtimeManifestOut:      filepath.Join(t.TempDir(), "runtime-manifest.json"),
 	}, hostedBootstrapCommit{}); err != nil {
 		t.Fatalf("expected hostname scheduler endpoint to pass: %v", err)
 	}
@@ -299,8 +337,9 @@ func TestWriteHostedRuntimeManifestRejectsMalformedEndpoint(t *testing.T) {
 		{address: "host_with_underscore:8070", wantErr: "host must be an IP literal or DNS hostname"},
 	} {
 		_, err := writeHostedRuntimeManifest(testHostedBootstrapMetadata(), hostedBootstrapConfig{
-			schedulerAddress:   tc.address,
-			runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
+			schedulerAddress:        tc.address,
+			schedulerGatewayAddress: "127.0.0.1:8075",
+			runtimeManifestOut:      filepath.Join(t.TempDir(), "runtime-manifest.json"),
 		}, hostedBootstrapCommit{})
 		if err == nil {
 			t.Fatalf("expected %s to fail", tc.address)
@@ -313,9 +352,10 @@ func TestWriteHostedRuntimeManifestRejectsMalformedEndpoint(t *testing.T) {
 
 func TestInitializeHostedBootstrapValidatesManifestConfigBeforeMetadata(t *testing.T) {
 	err := initializeHostedBootstrap(context.Background(), hostedBootstrapConfig{
-		metadataPath:       filepath.Join(t.TempDir(), "missing-metadata.json"),
-		schedulerAddress:   "localhost:not-a-port",
-		runtimeManifestOut: filepath.Join(t.TempDir(), "runtime-manifest.json"),
+		metadataPath:            filepath.Join(t.TempDir(), "missing-metadata.json"),
+		schedulerAddress:        "localhost:not-a-port",
+		schedulerGatewayAddress: "127.0.0.1:8075",
+		runtimeManifestOut:      filepath.Join(t.TempDir(), "runtime-manifest.json"),
 	})
 	if err == nil {
 		t.Fatal("expected malformed scheduler endpoint to fail")
@@ -330,8 +370,9 @@ func TestCommitHostedBootstrapRejectsMissingCeremonyTransaction(t *testing.T) {
 	*tip.Db_tip() = proto.DbTip{}
 	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
 	err := commitHostedBootstrap(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadata()),
-		schedulerAddress: "127.0.0.1:8070",
+		metadataPath:            writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadata()),
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
 	}, ctl)
 	if err == nil || !strings.Contains(err.Error(), "exactly one initialization transaction") {
 		t.Fatalf("unexpected error: %v", err)
@@ -352,11 +393,12 @@ func TestInitializeHostedBootstrapWithCoordinatorCommitsCeremonyBeforeSignal(t *
 	setHostedBootstrapCommitIdentity(t, metadata, tx, &ctl.result.Commit().Db_tip)
 
 	if err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:       metadataPath,
-		schedulerAddress:   "127.0.0.1:8070",
-		indexerAddress:     "127.0.0.1:8061",
-		publicRPCURL:       "http://203.0.113.10:8545",
-		runtimeManifestOut: manifestPath,
+		metadataPath:            metadataPath,
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
+		indexerAddress:          "127.0.0.1:8061",
+		publicRPCURL:            "http://203.0.113.10:8545",
+		runtimeManifestOut:      manifestPath,
 	}, ctl); err != nil {
 		t.Fatal(err)
 	}
@@ -398,8 +440,9 @@ func TestInitializeHostedBootstrapWithCoordinatorDoesNotSignalOnCeremonyFailure(
 		result: proto.GenesisCeremonyResult{Outcome: proto.GenesisCeremonyExecutionFailed},
 	}
 	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx)),
-		schedulerAddress: "127.0.0.1:8070",
+		metadataPath:            writeHostedBootstrapMetadataJSON(t, testHostedBootstrapMetadataWithTransactions(t, tx)),
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
 	}, ctl)
 	if err == nil || !strings.Contains(err.Error(), "GenesisCeremonyExecutionFailed") {
 		t.Fatalf("unexpected error: %v", err)
@@ -419,8 +462,9 @@ func TestInitializeHostedBootstrapWithCoordinatorRecoversCommittedCeremony(t *te
 	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
 
 	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
-		schedulerAddress: "127.0.0.1:8070",
+		metadataPath:            writeHostedBootstrapMetadataJSON(t, metadata),
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
 	}, ctl)
 	if err != nil {
 		t.Fatal(err)
@@ -444,8 +488,9 @@ func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentNet
 	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
 
 	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
-		schedulerAddress: "127.0.0.1:8070",
+		metadataPath:            writeHostedBootstrapMetadataJSON(t, metadata),
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
 	}, ctl)
 	if err == nil || !strings.Contains(err.Error(), "network hash") {
 		t.Fatalf("unexpected error: %v", err)
@@ -467,13 +512,51 @@ func TestInitializeHostedBootstrapWithCoordinatorRejectsRecoveryFromDifferentTra
 	ctl := &fakeHostedBootstrapCoordinator{tip: tip}
 
 	err := initializeHostedBootstrapWithCoordinator(context.Background(), hostedBootstrapConfig{
-		metadataPath:     writeHostedBootstrapMetadataJSON(t, metadata),
-		schedulerAddress: "127.0.0.1:8070",
+		metadataPath:            writeHostedBootstrapMetadataJSON(t, metadata),
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "127.0.0.1:8075",
 	}, ctl)
 	if err == nil || !strings.Contains(err.Error(), "transaction set hash") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if ctl.signaled {
 		t.Fatal("Baton was signaled for an unrelated genesis transaction")
+	}
+}
+
+func TestHostedRuntimeManifestRequiresPublicSchedulerGatewayBeforeBootstrap(t *testing.T) {
+	for _, address := range []string{"", "127.0.0.1:not-a-port", "bad host:8075", "gateway.internal:8075"} {
+		t.Run(address, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "runtime-manifest.json")
+			cfg := hostedBootstrapConfig{
+				metadataPath:            filepath.Join(t.TempDir(), "missing-metadata.json"),
+				schedulerAddress:        "coordinator.internal:8070",
+				schedulerGatewayAddress: address,
+				runtimeManifestOut:      path,
+			}
+			err := initializeHostedBootstrap(context.Background(), cfg)
+			if err == nil || !strings.Contains(err.Error(), "schedulerGateway") {
+				t.Fatalf("expected schedulerGateway validation before metadata or bootstrap, got %v", err)
+			}
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Fatalf("invalid configuration wrote a runtime manifest: %v", err)
+			}
+		})
+	}
+}
+
+func TestHostedBootstrapWithoutManifestDoesNotRequireSchedulerGateway(t *testing.T) {
+	if err := validateHostedBootstrapManifestConfig(hostedBootstrapConfig{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHostedRuntimeManifestAcceptsIPv6SchedulerGateway(t *testing.T) {
+	if err := validateHostedBootstrapManifestConfig(hostedBootstrapConfig{
+		schedulerAddress:        "127.0.0.1:8070",
+		schedulerGatewayAddress: "[::1]:8075",
+		runtimeManifestOut:      "runtime-manifest.json",
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

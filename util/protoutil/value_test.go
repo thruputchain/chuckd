@@ -6,55 +6,37 @@ import (
 	proto "github.com/groundhogchain/protocol-go"
 )
 
-func TestValidatorPublicInfoRecursiveFieldEqualityMatchesGoValueEquality(t *testing.T) {
-	base := sampleValidatorPublicInfo(41)
-
+func TestValidatorInfoEquals(t *testing.T) {
 	testCases := []struct {
-		name   string
-		mutate func(*proto.ValidatorPublicInfo)
+		name      string
+		mutate    func(*proto.ValidatorPublicInfo)
+		wantEqual bool
 	}{
 		{
-			name:   "identical",
-			mutate: func(*proto.ValidatorPublicInfo) {},
+			name:      "separately allocated equal keys",
+			mutate:    func(*proto.ValidatorPublicInfo) {},
+			wantEqual: true,
 		},
 		{
-			name: "public key differs",
-			mutate: func(info *proto.ValidatorPublicInfo) {
-				info.Public_key[0] ^= 0xFF
-			},
+			name:   "public key differs",
+			mutate: func(info *proto.ValidatorPublicInfo) { info.Public_key.Ed25519()[0] ^= 0xFF },
 		},
 		{
-			name: "address differs",
-			mutate: func(info *proto.ValidatorPublicInfo) {
-				info.Address = "127.0.0.1:9002"
-			},
+			name:   "address differs",
+			mutate: func(info *proto.ValidatorPublicInfo) { info.Address = "127.0.0.1:9002" },
+		},
+		{
+			name:   "unsupported public key",
+			mutate: func(info *proto.ValidatorPublicInfo) { info.Public_key.Scheme = proto.CryptographicScheme(123) },
 		},
 	}
-
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			left := base
-			right := base
+			left := sampleValidatorPublicInfo(41)
+			right := sampleValidatorPublicInfo(41)
 			tc.mutate(&right)
-
-			gotRecursiveFieldByField := validatorPublicInfoFieldByFieldEqual(left, right)
-			gotDirectGoValue := left == right
-			if gotRecursiveFieldByField != gotDirectGoValue {
-				t.Fatalf(
-					"recursive field-by-field comparison (%v) != direct Go value comparison (%v)",
-					gotRecursiveFieldByField,
-					gotDirectGoValue,
-				)
-			}
-
-			gotValidatorPublicInfoEquals := ValidatorInfoEquals(&left, &right)
-			if gotValidatorPublicInfoEquals != gotDirectGoValue {
-				t.Fatalf(
-					"ValidatorPublicInfoEquals (%v) != direct Go value comparison (%v)",
-					gotValidatorPublicInfoEquals,
-					gotDirectGoValue,
-				)
+			if got := ValidatorInfoEquals(&left, &right); got != tc.wantEqual {
+				t.Fatalf("ValidatorInfoEquals = %v, want %v", got, tc.wantEqual)
 			}
 		})
 	}
@@ -155,11 +137,6 @@ func TestValueEqualsDetectsFieldDifferences(t *testing.T) {
 	}
 }
 
-func validatorPublicInfoFieldByFieldEqual(left, right proto.ValidatorPublicInfo) bool {
-	return left.Public_key == right.Public_key &&
-		left.Address == right.Address
-}
-
 func sampleConsensusValue(seed byte) proto.ConsensusValue {
 	return proto.ConsensusValue{
 		Protocol:  proto.Protocol(0),
@@ -201,9 +178,9 @@ func sampleValidatorPublicInfo(seed byte) proto.ValidatorPublicInfo {
 }
 
 func filledPublicKey(seed byte) proto.ValidatorPublicKey {
-	var out proto.ValidatorPublicKey
-	for i := range out {
-		out[i] = seed + byte(i)
+	out := proto.ValidatorPublicKey{Scheme: proto.Ed25519}
+	for i := range out.Ed25519() {
+		out.Ed25519()[i] = seed + byte(i)
 	}
 	return out
 }

@@ -9,11 +9,29 @@ import (
 )
 
 func VerifyQSet(qset proto.SCPQuorumSet) error {
+	if !VerifyQSetDepth(qset, systemfixed.MaxQuorumSetNestingDepth) {
+		return fmt.Errorf("quorum set nesting depth is more than %d", systemfixed.MaxQuorumSetNestingDepth)
+	}
+	// Check all union tags before marshaling or normalizing network quorum sets.
+	if err := verifyQSetPublicKeys(qset); err != nil {
+		return err
+	}
 	if !VerifyQSetSize(qset, int(proto.KCoordinatorMaxBytesSCPQuorumSet)) {
 		return fmt.Errorf("quorum set size is more than %d", proto.KCoordinatorMaxBytesSCPQuorumSet)
 	}
-	if !VerifyQSetDepth(qset, systemfixed.MaxQuorumSetNestingDepth) {
-		return fmt.Errorf("quorum set nesting depth is more than %d", systemfixed.MaxQuorumSetNestingDepth)
+	return nil
+}
+
+func verifyQSetPublicKeys(qset proto.SCPQuorumSet) error {
+	for _, key := range qset.Validators {
+		if key.Scheme != proto.Ed25519 {
+			return fmt.Errorf("unsupported public key scheme %d in quorum set", key.Scheme)
+		}
+	}
+	for _, inner := range qset.Inner_sets {
+		if err := verifyQSetPublicKeys(inner); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -67,7 +67,7 @@ func (x *RepairAgent) attemptRepairMissingTxs(
 	defer c.Close()
 
 	env := proto.MissingTransactionsEnvelope{
-		Signer:               x.signatory.Signer().Public_key,
+		Signer:               protoutil.PublicVID(x.signatory.Signer()),
 		Signature:            x.signatory.SignXdr(x.txM, &missing),
 		Missing_transactions: missing,
 	}

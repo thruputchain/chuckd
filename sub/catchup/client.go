@@ -35,7 +35,7 @@ func NewCatchupClient(ctx context.Context, sock net.Conn) *CatchupClient {
 	go driver.Go()
 
 	return &CatchupClient{
-		Catchup1_Client: proto.Catchup1_Client{Send: driver, Ctx: ctx},
+		Catchup1_Client: proto.Catchup1_Client{Send: rpcutil.LogReplyDecodeErrors(driver), Ctx: ctx},
 		driver:          driver,
 	}
 }
