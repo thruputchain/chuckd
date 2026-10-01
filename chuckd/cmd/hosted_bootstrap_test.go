@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -53,6 +54,10 @@ func testProtocolText() string {
 	return string(protocol[:])
 }
 
+// The native nonce-zero account emitted for bootstrap seed "seed", index 0.
+const testHostedBootstrapPublicKey = "0x8007f4e0a1f7ce19482951626496baa944ce0b870289605a1279630ea5dc846b"
+const testHostedBootstrapWalletAddress = "0x269b179ac3bd69a15af3dbf5656a661e968b96acb573280886d5ce00cc997a36"
+
 func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 	return hostedBootstrapMetadata{
 		SchemaVersion:              2,
@@ -60,7 +65,7 @@ func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 		NetworkHash:                strings.Repeat("00", 32),
 		Protocol:                   testProtocolText(),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
-		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"0x` + strings.Repeat("11", 32) + `","walletAddress":"0x` + strings.Repeat("22", 32) + `","initialStorageTokens":"1000"}]`),
+		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"` + testHostedBootstrapPublicKey + `","walletAddress":"` + testHostedBootstrapWalletAddress + `","initialStorageTokens":"1000"}]`),
 		Bootstrap:                  json.RawMessage(`{"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
 	}
 }
@@ -276,6 +281,27 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	}
 	if manifest["networkHash"] != strings.Repeat("00", 32) {
 		t.Fatalf("networkHash = %v", manifest["networkHash"])
+	}
+	wantDerivation := map[string]any{
+		"scheme": "groundhog-bootstrap-account-v1",
+		"seed":   "seed",
+	}
+	if !reflect.DeepEqual(manifest["bootstrapAccountDerivation"], wantDerivation) {
+		t.Fatalf("unexpected account derivation: %+v", manifest["bootstrapAccountDerivation"])
+	}
+	wantAccounts := []any{map[string]any{
+		"index":                float64(0),
+		"role":                 "hosted_dev_account",
+		"publicKey":            testHostedBootstrapPublicKey,
+		"walletAddress":        testHostedBootstrapWalletAddress,
+		"initialStorageTokens": "1000",
+	}}
+	if !reflect.DeepEqual(manifest["bootstrapAccounts"], wantAccounts) {
+		t.Fatalf("unexpected native bootstrap accounts: %+v", manifest["bootstrapAccounts"])
+	}
+	bootstrap := manifest["bootstrap"].(map[string]any)
+	if len(bootstrap) != 1 || bootstrap["storageCostModel"] == nil {
+		t.Fatalf("unexpected bootstrap metadata: %+v", bootstrap)
 	}
 	endpoints := manifest["endpoints"].(map[string]any)
 	if endpoints["scheduler"] != "127.0.0.1:8070" ||
