@@ -60,6 +60,7 @@ func flushBlockProfile(ctx context.Context, blockProfilePath string) {
 func Invoke(ctx context.Context, f func()) error {
 
 	hooks := []func(os.Signal){}
+	applyPprofRates(runtime.SetMutexProfileFraction, runtime.SetBlockProfileRate)
 
 	// mem profile
 	if memProfilePath != "" {
@@ -127,7 +128,7 @@ func Invoke(ctx context.Context, f func()) error {
 	}
 
 	// start telemetry
-	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
+	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr, pprofEnabled)
 	if err != nil {
 		liblog.Fatalf(ctx, "starting telemetry: %v", err)
 		return err
@@ -196,6 +197,23 @@ var metricsAddr string
 
 func SetMetricsAddr(addr string) {
 	metricsAddr = addr
+}
+
+var pprofEnabled bool
+var pprofMutexFraction int
+var pprofBlockRate int
+
+func SetPprof(enabled bool, mutexFraction, blockRate int) {
+	pprofEnabled = enabled
+	pprofMutexFraction = mutexFraction
+	pprofBlockRate = blockRate
+}
+
+func applyPprofRates(setMutex func(int) int, setBlock func(int)) {
+	if pprofEnabled {
+		setMutex(pprofMutexFraction)
+		setBlock(pprofBlockRate)
+	}
 }
 
 var stackTrace bool

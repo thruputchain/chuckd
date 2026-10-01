@@ -35,21 +35,24 @@ var (
 )
 
 var (
-	rootConfigPath       string
-	rootCPUProfilePath   string
-	rootTraceProfilePath string
-	rootMemProfilePath   string
-	rootMutexProfilePath string
-	rootBlockProfilePath string
-	rootSeed             int64
-	rootInstanceID       string
-	rootMetricsAddr      string
-	rootStackTrace       bool
-	rootColor            bool
-	rootLogLevel         string
-	rootMaxMsgSize       int
-	rootRpcLogCalls      bool
-	rootRpcLogStats      bool
+	rootConfigPath         string
+	rootCPUProfilePath     string
+	rootTraceProfilePath   string
+	rootMemProfilePath     string
+	rootMutexProfilePath   string
+	rootBlockProfilePath   string
+	rootSeed               int64
+	rootInstanceID         string
+	rootMetricsAddr        string
+	rootPprof              bool
+	rootPprofMutexFraction int
+	rootPprofBlockRate     int
+	rootStackTrace         bool
+	rootColor              bool
+	rootLogLevel           string
+	rootMaxMsgSize         int
+	rootRpcLogCalls        bool
+	rootRpcLogStats        bool
 )
 
 func init() {
@@ -71,6 +74,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
 	rootCmd.PersistentFlags().BoolVarP(&rootStackTrace, "stack", "s", false, "stack trace on error")
 	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
+	rootCmd.PersistentFlags().BoolVar(&rootPprof, "pprof", false, "enable pprof endpoints on the metrics listener")
+	rootCmd.PersistentFlags().IntVar(&rootPprofMutexFraction, "pprof-mutex-fraction", 0, "mutex sampling fraction with --pprof (0 off; devnet: 5 samples one in five contention events)")
+	rootCmd.PersistentFlags().IntVar(&rootPprofBlockRate, "pprof-block-rate", 0, "block sampling rate in nanoseconds with --pprof (0 off; devnet: 10000ns)")
 	rootCmd.PersistentFlags().IntVar(&rootMaxMsgSize, "max-msg-size", 100e6, "maximum message size")
 	rootCmd.PersistentFlags().BoolVar(&rootRpcLogCalls, "rpc-log-calls", false, "log rpc call arguments and replies")
 	rootCmd.PersistentFlags().BoolVar(&rootRpcLogStats, "rpc-log-stats", false, "log rpc call latencies")
@@ -97,6 +103,7 @@ func initAfterFlags() {
 	cmdkit.SetBlockProfilePath(rootBlockProfilePath)
 	cmdkit.SetInstanceID(rootInstanceID)
 	cmdkit.SetMetricsAddr(rootMetricsAddr)
+	cmdkit.SetPprof(rootPprof, rootPprofMutexFraction, rootPprofBlockRate)
 	rpc.DefaultMaxMsgSize = rootMaxMsgSize
 	chuckdruntime.SetRootSeed(rootSeed)
 }

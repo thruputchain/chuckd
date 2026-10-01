@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -15,7 +16,7 @@ import (
 )
 
 // SetupTelemetry initializes OpenTelemetry with Prometheus and returns a function to shut it down
-func SetupTelemetry(ctx context.Context, instanceID string, addr string) (shutdown func(context.Context) error, err error) {
+func SetupTelemetry(ctx context.Context, instanceID string, addr string, pprofEnabled bool) (shutdown func(context.Context) error, err error) {
 
 	rsc, err := createResource(instanceID)
 	if err != nil {
@@ -38,16 +39,32 @@ func SetupTelemetry(ctx context.Context, instanceID string, addr string) (shutdo
 	otel.SetMeterProvider(meterProvider)
 
 	// Set up HTTP server to expose Prometheus metrics endpoint
-	http.Handle("/metrics", promhttp.Handler())
+	mux := telemetryMux(pprofEnabled)
 	go func() {
 		liblog.Infof(ctx, "prometheus metrics endpoint started at %s/metrics", addr)
-		if err := http.ListenAndServe(addr, nil); err != nil {
+		if err := http.ListenAndServe(addr, mux); err != nil {
 			liblog.Fatalf(ctx, "starting metrics server: %v", err)
 		}
 	}()
 
 	// Return a shutdown function that cleans up resources
 	return meterProvider.Shutdown, nil
+}
+
+func telemetryMux(pprofEnabled bool) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	if pprofEnabled {
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		for _, name := range []string{"heap", "allocs", "goroutine", "mutex", "block", "threadcreate"} {
+			mux.Handle("/debug/pprof/"+name, pprof.Handler(name))
+		}
+	}
+	return mux
 }
 
 func createResource(instanceID string) (*resource.Resource, error) {
