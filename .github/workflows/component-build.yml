@@ -128,6 +128,8 @@ jobs:
           assets=(
             artifacts/chuckd-coordinator-linux-x86_64.tar.gz
             artifacts/chuckd-coordinator-linux-arm64.tar.gz
+            artifacts/chuckd-coordinator-debuginfo-linux-x86_64.tar.gz
+            artifacts/chuckd-coordinator-debuginfo-linux-arm64.tar.gz
             artifacts/groundhog-component-build.json
           )
           for asset in "${assets[@]}"; do
