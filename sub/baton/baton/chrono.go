@@ -22,6 +22,7 @@ type blockChrono struct {
 	persistCV          time.Duration
 	scpNominationDelay time.Duration
 	attributes         []attribute.KeyValue
+	proposalAttributes []attribute.KeyValue
 	emitted            bool
 }
 
@@ -157,10 +158,11 @@ func (b *Baton) stampCommitEnd(height proto.BlockHeight) {
 	b.chrono.lastCommitEndHeight = height
 }
 
-// emitSpans waits for both concurrent paths to finish, then reconstructs the
-// phase tree using the recorded clock values. Catchup has only a commit phase.
+// emitSpans reconstructs completed phases as soon as commit finishes. A local
+// proposal may still be running; it must not delay emission of the commit trace.
+// Catchup has only a commit phase.
 func (x *blockChrono) emitSpans() {
-	if x.emitted || x.commitEnd.IsZero() || (!x.nominateStart.IsZero() && x.nominateEnd.IsZero()) {
+	if x.emitted || x.commitEnd.IsZero() {
 		return
 	}
 	x.emitted = true
@@ -174,19 +176,20 @@ func (x *blockChrono) emitSpans() {
 	tracer := otel.Tracer("github.com/groundhogchain/chuckd/sub/baton/baton")
 	ctx, root := tracer.Start(context.Background(), "block", trace.WithNewRoot(),
 		trace.WithTimestamp(start), trace.WithAttributes(append(x.attributes, attribute.Int64("block.height", int64(x.height)))...))
-	phase := func(name string, start, end time.Time) {
+	phase := func(name string, start, end time.Time, attrs ...attribute.KeyValue) {
 		if start.IsZero() || end.IsZero() || end.Before(start) {
 			return
 		}
-		_, span := tracer.Start(ctx, name, trace.WithTimestamp(start))
+		_, span := tracer.Start(ctx, name, trace.WithTimestamp(start), trace.WithAttributes(attrs...))
 		span.End(trace.WithTimestamp(end))
 	}
-	phase("propose", x.nominateStart, x.mempoolNominateEnd)
+	proposalAttrs := append([]attribute.KeyValue{attribute.String("proposal.scope", "local")}, x.proposalAttributes...)
+	phase("propose", x.nominateStart, x.mempoolNominateEnd, proposalAttrs...)
 	nominateStart := x.mempoolNominateEnd
 	if nominateStart.IsZero() {
 		nominateStart = x.nominateStart
 	}
-	phase("nominate", nominateStart, x.nominateEnd)
+	phase("nominate", nominateStart, x.nominateEnd, proposalAttrs...)
 	phase("commit", x.commitStart, x.commitEnd)
 	root.End(trace.WithTimestamp(end))
 }
