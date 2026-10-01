@@ -11,6 +11,7 @@ import (
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // XXX: commit currently does not handle the upgrades in the consensus value
@@ -23,6 +24,13 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 		protoutil.VIDString(protoutil.ValueProposer(value)))
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
+	b.chrono.lk.Lock()
+	b.chrono.at(cb.BlockHeight()).attributes = []attribute.KeyValue{
+		attribute.Int("tx_count", cb.NumTransactions()),
+		attribute.String("proposer", protoutil.VIDString(protoutil.ValueProposer(value))),
+		attribute.String("value.hash_prefix", protoutil.ValueDisplay(value)),
+	}
+	b.chrono.lk.Unlock()
 	defer b.stampCommitEnd(cb.BlockHeight())
 
 	validatedBlockID := cb.AlreadyValidated()

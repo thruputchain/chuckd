@@ -8,10 +8,16 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func newPprofRequest(method, target string) *http.Request {
@@ -420,5 +426,184 @@ func TestSetupTelemetryBindError(t *testing.T) {
 	if err == nil {
 		t.Cleanup(func() { shutdown(context.Background()) })
 		t.Fatal("second listener did not return a bind error")
+	}
+}
+
+func TestTracingEndpointSwitch(t *testing.T) {
+	t.Setenv("OTEL_SDK_DISABLED", "false")
+	t.Setenv("OTEL_TRACES_SAMPLER", "always_on")
+	oldProvider, oldHandler, oldPropagator := otel.GetTracerProvider(), otel.GetErrorHandler(), otel.GetTextMapPropagator()
+	t.Cleanup(func() {
+		otel.SetTracerProvider(oldProvider)
+		otel.SetErrorHandler(oldHandler)
+		otel.SetTextMapPropagator(oldPropagator)
+	})
+	for _, endpoint := range []string{"", "http://127.0.0.1:4317"} {
+		t.Run(endpoint, func(t *testing.T) {
+			t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
+			ctx := context.Background()
+			provider := setupTracing(ctx, "test")
+			_, span := otel.Tracer("test").Start(ctx, "switch")
+			if span.IsRecording() != (endpoint != "") {
+				t.Fatalf("recording = %v for endpoint %q", span.IsRecording(), endpoint)
+			}
+			// Do not queue a span for the unreachable test endpoint.
+			if provider != nil {
+				if err := provider.Shutdown(ctx); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+type fixedTraceID byte
+
+func (b fixedTraceID) NewIDs(context.Context) (trace.TraceID, trace.SpanID) {
+	var id trace.TraceID
+	for i := range id {
+		id[i] = byte(b)
+	}
+	return id, trace.SpanID{1}
+}
+
+func (b fixedTraceID) NewSpanID(context.Context, trace.TraceID) trace.SpanID {
+	return trace.SpanID{1}
+}
+
+func TestTraceSamplerEnvironment(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		low  bool
+		high bool
+	}{
+		{"always_on", true, true},
+		{"always_off", false, false},
+		{"traceidratio", true, false},
+		{"parentbased_always_on", true, true},
+		{"parentbased_always_off", false, false},
+		{"parentbased_traceidratio", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("OTEL_TRACES_SAMPLER", tc.name)
+			t.Setenv("OTEL_TRACES_SAMPLER_ARG", "0.5")
+			opts := traceSamplerOptions(func(err error) { t.Fatal(err) })
+			for _, sample := range []struct {
+				id   fixedTraceID
+				want bool
+			}{{0x40, tc.low}, {0xc0, tc.high}} {
+				assertTraceSample(t, opts, sample.id, context.Background(), sample.want)
+				for _, remote := range []bool{false, true} {
+					for _, sampled := range []bool{false, true} {
+						flags := trace.TraceFlags(0)
+						if sampled {
+							flags = trace.FlagsSampled
+						}
+						id, sid := sample.id.NewIDs(context.Background())
+						parent := trace.NewSpanContext(trace.SpanContextConfig{
+							TraceID: id, SpanID: sid, TraceFlags: flags, Remote: remote,
+						})
+						ctx := trace.ContextWithSpanContext(context.Background(), parent)
+						want := sample.want
+						if tc.name == "parentbased_always_on" ||
+							tc.name == "parentbased_always_off" ||
+							tc.name == "parentbased_traceidratio" {
+							want = sampled
+						}
+						assertTraceSample(t, opts, sample.id, ctx, want)
+					}
+				}
+			}
+		})
+	}
+}
+
+func assertTraceSample(t *testing.T, opts []sdktrace.TracerProviderOption,
+	id fixedTraceID, ctx context.Context, want bool,
+) {
+	t.Helper()
+	all := append([]sdktrace.TracerProviderOption{sdktrace.WithIDGenerator(id)}, opts...)
+	p := newTraceProvider(func(error) {}, all...)
+	t.Cleanup(func() {
+		if err := p.Shutdown(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
+	_, span := p.Tracer("test").Start(ctx, "sample")
+	defer span.End()
+	if span.IsRecording() != want {
+		t.Errorf("sampler=%q id=%x parent=%v: recording=%v, want %v",
+			os.Getenv("OTEL_TRACES_SAMPLER"), byte(id), trace.SpanContextFromContext(ctx),
+			span.IsRecording(), want)
+	}
+}
+
+func TestTraceSamplerDefaultAndFallback(t *testing.T) {
+	old := otel.GetErrorHandler()
+	t.Cleanup(func() { otel.SetErrorHandler(old) })
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		t.Errorf("unexpected SDK error: %v", err)
+	}))
+	t.Run("unset", func(t *testing.T) {
+		t.Setenv("OTEL_TRACES_SAMPLER", "")
+		if err := os.Unsetenv("OTEL_TRACES_SAMPLER"); err != nil {
+			t.Fatal(err)
+		}
+		assertTraceSample(t, nil, 0x0a, context.Background(), true)
+		assertTraceSample(t, nil, 0x0f, context.Background(), false)
+	})
+	for _, tc := range []struct {
+		name string
+		arg  string
+		warn int
+	}{
+		{"", "", 0},
+		{"", "1", 0},
+		{"invalid", "0.5", 1},
+		{"traceidratio", "", 1},
+		{"parentbased_traceidratio", "invalid", 1},
+		{"traceidratio", "NaN", 1},
+		{"traceidratio", "Inf", 1},
+		{"traceidratio", "-0.1", 1},
+		{"traceidratio", "1.1", 1},
+	} {
+		t.Run(tc.name+"/"+tc.arg, func(t *testing.T) {
+			t.Setenv("OTEL_TRACES_SAMPLER", tc.name)
+			t.Setenv("OTEL_TRACES_SAMPLER_ARG", tc.arg)
+			warnings := 0
+			p := newTraceProvider(func(error) { warnings++ })
+			if err := p.Shutdown(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if warnings != tc.warn {
+				t.Fatalf("warnings=%d, want %d", warnings, tc.warn)
+			}
+			assertTraceSample(t, nil, 0x0a, context.Background(), true)
+			assertTraceSample(t, nil, 0x0f, context.Background(), false)
+		})
+	}
+}
+
+func TestTracingSDKDisabled(t *testing.T) {
+	old := otel.GetTracerProvider()
+	t.Cleanup(func() { otel.SetTracerProvider(old) })
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317")
+	t.Setenv("OTEL_TRACES_SAMPLER", "invalid")
+	for _, disabled := range []string{"true", "TRUE"} {
+		t.Run(disabled, func(t *testing.T) {
+			t.Setenv("OTEL_SDK_DISABLED", disabled)
+			p := setupTracing(context.Background(), "test")
+			if p != nil {
+				t.Fatal("disabled tracing created an SDK provider")
+			}
+			if _, ok := otel.GetTracerProvider().(noop.TracerProvider); !ok {
+				t.Fatalf("disabled provider type: %T", otel.GetTracerProvider())
+			}
+			_, span := otel.Tracer("test").Start(context.Background(), "disabled")
+			defer span.End()
+			if span.IsRecording() {
+				t.Fatal("disabled tracing recorded a span")
+			}
+		})
 	}
 }

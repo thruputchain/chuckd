@@ -7,6 +7,9 @@ import (
 
 	"github.com/groundhogchain/lib-go/liblog"
 	proto "github.com/groundhogchain/protocol-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type blockChrono struct {
@@ -18,6 +21,8 @@ type blockChrono struct {
 	commitEnd          time.Time
 	persistCV          time.Duration
 	scpNominationDelay time.Duration
+	attributes         []attribute.KeyValue
+	emitted            bool
 }
 
 type chrono struct {
@@ -112,6 +117,7 @@ func (b *Baton) stampNominateEnd(height proto.BlockHeight) {
 
 	now := b.handler.Now()
 	b.chrono.at(height).nominateEnd = now
+	b.chrono.at(height).emitSpans()
 	b.chrono.lastNominateEnd = now
 	b.chrono.lastNominateEndHeight = height
 }
@@ -146,6 +152,41 @@ func (b *Baton) stampCommitEnd(height proto.BlockHeight) {
 
 	now := b.handler.Now()
 	b.chrono.at(height).commitEnd = now
+	b.chrono.at(height).emitSpans()
 	b.chrono.lastCommitEnd = now
 	b.chrono.lastCommitEndHeight = height
+}
+
+// emitSpans waits for both concurrent paths to finish, then reconstructs the
+// phase tree using the recorded clock values. Catchup has only a commit phase.
+func (x *blockChrono) emitSpans() {
+	if x.emitted || x.commitEnd.IsZero() || (!x.nominateStart.IsZero() && x.nominateEnd.IsZero()) {
+		return
+	}
+	x.emitted = true
+	start, end := x.commitStart, x.commitEnd
+	if !x.nominateStart.IsZero() && x.nominateStart.Before(start) {
+		start = x.nominateStart
+	}
+	if x.nominateEnd.After(end) {
+		end = x.nominateEnd
+	}
+	tracer := otel.Tracer("github.com/groundhogchain/chuckd/sub/baton/baton")
+	ctx, root := tracer.Start(context.Background(), "block", trace.WithNewRoot(),
+		trace.WithTimestamp(start), trace.WithAttributes(append(x.attributes, attribute.Int64("block.height", int64(x.height)))...))
+	phase := func(name string, start, end time.Time) {
+		if start.IsZero() || end.IsZero() || end.Before(start) {
+			return
+		}
+		_, span := tracer.Start(ctx, name, trace.WithTimestamp(start))
+		span.End(trace.WithTimestamp(end))
+	}
+	phase("propose", x.nominateStart, x.mempoolNominateEnd)
+	nominateStart := x.mempoolNominateEnd
+	if nominateStart.IsZero() {
+		nominateStart = x.nominateStart
+	}
+	phase("nominate", nominateStart, x.nominateEnd)
+	phase("commit", x.commitStart, x.commitEnd)
+	root.End(trace.WithTimestamp(end))
 }
