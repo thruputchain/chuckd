@@ -58,6 +58,9 @@ func flushBlockProfile(ctx context.Context, blockProfilePath string) {
 }
 
 func Invoke(ctx context.Context, f func()) error {
+	if err := validateProfileOptions(); err != nil {
+		return err
+	}
 
 	hooks := []func(os.Signal){}
 	applyPprofRates(runtime.SetMutexProfileFraction, runtime.SetBlockProfileRate)
@@ -128,7 +131,11 @@ func Invoke(ctx context.Context, f func()) error {
 	}
 
 	// start telemetry
-	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr, pprofEnabled)
+	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr, xruntime.PprofConfig{
+		Enabled:            pprofEnabled,
+		CPUProfileActive:   cpuProfilePath != "",
+		TraceProfileActive: traceProfilePath != "",
+	})
 	if err != nil {
 		liblog.Fatalf(ctx, "starting telemetry: %v", err)
 		return err
@@ -214,6 +221,16 @@ func applyPprofRates(setMutex func(int) int, setBlock func(int)) {
 		setMutex(pprofMutexFraction)
 		setBlock(pprofBlockRate)
 	}
+}
+
+func validateProfileOptions() error {
+	if pprofEnabled && mutexProfilePath != "" && pprofMutexFraction != 0 {
+		return fmt.Errorf("--mutex and --pprof-mutex-fraction cannot be combined with --pprof: file profiling sets the mutex sampling fraction to 1")
+	}
+	if pprofEnabled && blockProfilePath != "" && pprofBlockRate != 0 {
+		return fmt.Errorf("--block and --pprof-block-rate cannot be combined with --pprof: file profiling sets the block sampling rate to 1")
+	}
+	return nil
 }
 
 var stackTrace bool
