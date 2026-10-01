@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -53,15 +54,19 @@ func testProtocolText() string {
 	return string(protocol[:])
 }
 
+// The native nonce-zero account emitted for bootstrap seed "seed", index 0.
+const testHostedBootstrapPublicKey = "0x8007f4e0a1f7ce19482951626496baa944ce0b870289605a1279630ea5dc846b"
+const testHostedBootstrapWalletAddress = "0x269b179ac3bd69a15af3dbf5656a661e968b96acb573280886d5ce00cc997a36"
+
 func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 	return hostedBootstrapMetadata{
-		SchemaVersion:              1,
+		SchemaVersion:              2,
 		Kind:                       "hog-hosted-bootstrap",
 		NetworkHash:                strings.Repeat("00", 32),
 		Protocol:                   testProtocolText(),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
-		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"0x` + strings.Repeat("11", 32) + `","walletAddress":"0x` + strings.Repeat("22", 32) + `","initialStorageTokens":"1000"}]`),
-		Bootstrap:                  json.RawMessage(`{"devWallet":{"contentHash":"0x` + strings.Repeat("33", 32) + `","deployedCodeHash":"0x` + strings.Repeat("33", 32) + `","artifactHint":"dev_wallet.rv32a","deployEntrypoint":"0x` + strings.Repeat("44", 8) + `","doActionEntrypoint":"0x` + strings.Repeat("55", 8) + `","createWalletEntrypoint":"0x` + strings.Repeat("66", 8) + `"},"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
+		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"` + testHostedBootstrapPublicKey + `","walletAddress":"` + testHostedBootstrapWalletAddress + `","initialStorageTokens":"1000"}]`),
+		Bootstrap:                  json.RawMessage(`{"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
 	}
 }
 
@@ -136,9 +141,18 @@ func TestHashSingleHostedBootstrapTxSetMatchesHogdMerkleTriePrefix(t *testing.T)
 	}
 }
 
+func TestLoadHostedBootstrapMetadataRejectsLegacySchema(t *testing.T) {
+	metadata := testHostedBootstrapMetadata()
+	metadata.SchemaVersion = 1
+	path := writeHostedBootstrapMetadataJSON(t, metadata)
+	if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "schemaVersion 1") {
+		t.Fatalf("legacy metadata must require the original producer, got %v", err)
+	}
+}
+
 func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	path := writeHostedBootstrapMetadata(t, `{
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "wrong",
   "networkHash": "`+strings.Repeat("00", 32)+`",
   "protocol": "`+testProtocolText()+`",
@@ -157,7 +171,7 @@ func TestLoadHostedBootstrapMetadataRejectsInvalidNetworkHash(t *testing.T) {
 		strings.Repeat("gg", 32),
 	} {
 		path := writeHostedBootstrapMetadata(t, `{
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "hog-hosted-bootstrap",
   "networkHash": "`+networkHash+`"
 }`)
@@ -171,7 +185,7 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	txHex := xdrHexSignedTransaction(t, tx)
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      testProtocolText(),
@@ -195,7 +209,7 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 
 func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      testProtocolText(),
@@ -216,7 +230,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 	txHex := xdrHexSignedTransaction(t, proto.SignedTransaction{})
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		Kind:          "hog-hosted-bootstrap",
 		NetworkHash:   strings.Repeat("00", 32),
 		Protocol:      testProtocolText(),
@@ -262,11 +276,32 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	if manifest["kind"] != "hosted-devnet-runtime" {
 		t.Fatalf("kind = %v", manifest["kind"])
 	}
-	if manifest["schemaVersion"] != float64(2) {
+	if manifest["schemaVersion"] != float64(3) {
 		t.Fatalf("schemaVersion = %v", manifest["schemaVersion"])
 	}
 	if manifest["networkHash"] != strings.Repeat("00", 32) {
 		t.Fatalf("networkHash = %v", manifest["networkHash"])
+	}
+	wantDerivation := map[string]any{
+		"scheme": "groundhog-bootstrap-account-v1",
+		"seed":   "seed",
+	}
+	if !reflect.DeepEqual(manifest["bootstrapAccountDerivation"], wantDerivation) {
+		t.Fatalf("unexpected account derivation: %+v", manifest["bootstrapAccountDerivation"])
+	}
+	wantAccounts := []any{map[string]any{
+		"index":                float64(0),
+		"role":                 "hosted_dev_account",
+		"publicKey":            testHostedBootstrapPublicKey,
+		"walletAddress":        testHostedBootstrapWalletAddress,
+		"initialStorageTokens": "1000",
+	}}
+	if !reflect.DeepEqual(manifest["bootstrapAccounts"], wantAccounts) {
+		t.Fatalf("unexpected native bootstrap accounts: %+v", manifest["bootstrapAccounts"])
+	}
+	bootstrap := manifest["bootstrap"].(map[string]any)
+	if len(bootstrap) != 1 || bootstrap["storageCostModel"] == nil {
+		t.Fatalf("unexpected bootstrap metadata: %+v", bootstrap)
 	}
 	endpoints := manifest["endpoints"].(map[string]any)
 	if endpoints["scheduler"] != "127.0.0.1:8070" ||
