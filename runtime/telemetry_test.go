@@ -13,12 +13,18 @@ import (
 	"time"
 )
 
+func newPprofRequest(method, target string) *http.Request {
+	req := httptest.NewRequest(method, target, nil)
+	req.Host = "127.0.0.1:9101"
+	return req
+}
+
 func TestTelemetryMuxDisabled(t *testing.T) {
-	mux := telemetryMux(PprofConfig{}, false)
+	mux := telemetryMux(PprofConfig{}, false, false)
 	for _, name := range []string{"", "cmdline", "profile", "symbol", "trace", "heap", "allocs", "goroutine", "mutex", "block", "threadcreate"} {
 		t.Run(name, func(t *testing.T) {
 			r := httptest.NewRecorder()
-			mux.ServeHTTP(r, httptest.NewRequest(http.MethodGet, "/debug/pprof/"+name, nil))
+			mux.ServeHTTP(r, newPprofRequest(http.MethodGet, "/debug/pprof/"+name))
 			if r.Code != http.StatusNotFound {
 				t.Fatalf("status = %d, want 404", r.Code)
 			}
@@ -27,10 +33,10 @@ func TestTelemetryMuxDisabled(t *testing.T) {
 }
 
 func TestTelemetryMuxEnabled(t *testing.T) {
-	mux := telemetryMux(PprofConfig{Enabled: true}, true)
+	mux := telemetryMux(PprofConfig{Enabled: true}, true, false)
 	for _, name := range []string{"", "symbol", "heap", "allocs", "goroutine", "mutex", "block", "threadcreate"} {
 		r := httptest.NewRecorder()
-		mux.ServeHTTP(r, httptest.NewRequest(http.MethodGet, "/debug/pprof/"+name, nil))
+		mux.ServeHTTP(r, newPprofRequest(http.MethodGet, "/debug/pprof/"+name))
 		if r.Code != http.StatusOK {
 			t.Fatalf("%s: status = %d, want 200", name, r.Code)
 		}
@@ -47,7 +53,7 @@ func TestTelemetryMuxEnabled(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"profile", "trace"} {
-		req := httptest.NewRequest(http.MethodGet, "/debug/pprof/"+name, nil)
+		req := newPprofRequest(http.MethodGet, "/debug/pprof/"+name)
 		_, pattern := mux.Handler(req)
 		if pattern != "/debug/pprof/"+name {
 			t.Fatalf("%s: registered pattern = %q", name, pattern)
@@ -58,7 +64,9 @@ func TestTelemetryMuxEnabled(t *testing.T) {
 func TestTelemetryMetrics(t *testing.T) {
 	for _, enabled := range []bool{false, true} {
 		r := httptest.NewRecorder()
-		telemetryMux(PprofConfig{Enabled: enabled}, enabled).ServeHTTP(r, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+		req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+		req.Host = "evil.example"
+		telemetryMux(PprofConfig{Enabled: enabled}, enabled, false).ServeHTTP(r, req)
 		if r.Code != http.StatusOK {
 			t.Fatalf("enabled=%v: metrics status = %d", enabled, r.Code)
 		}
@@ -68,7 +76,7 @@ func TestTelemetryMetrics(t *testing.T) {
 func TestTelemetryCmdlineNotFound(t *testing.T) {
 	for _, path := range []string{"/debug/pprof/goroutineleak", "/debug/pprof/foo", "/debug/pprof/cmdline", "/debug/pprof/cmdline?debug=1", "/debug/pprof/cmdline/"} {
 		r := httptest.NewRecorder()
-		telemetryMux(PprofConfig{Enabled: true}, true).ServeHTTP(r, httptest.NewRequest(http.MethodGet, path, nil))
+		telemetryMux(PprofConfig{Enabled: true}, true, false).ServeHTTP(r, newPprofRequest(http.MethodGet, path))
 		if r.Code != http.StatusNotFound {
 			t.Fatalf("%s: status = %d, want 404", path, r.Code)
 		}
@@ -78,13 +86,13 @@ func TestTelemetryCmdlineNotFound(t *testing.T) {
 func TestTelemetryProfileConflicts(t *testing.T) {
 	for _, cpu := range []bool{false, true} {
 		for _, trace := range []bool{false, true} {
-			mux := telemetryMux(PprofConfig{Enabled: true, CPUProfileActive: cpu, TraceProfileActive: trace}, true)
+			mux := telemetryMux(PprofConfig{Enabled: true, CPUProfileActive: cpu, TraceProfileActive: trace}, true, false)
 			for _, endpoint := range []struct {
 				name   string
 				flag   string
 				active bool
 			}{{"profile", "--cpu", cpu}, {"trace", "--trace", trace}} {
-				req := httptest.NewRequest(http.MethodGet, "/debug/pprof/"+endpoint.name, nil)
+				req := newPprofRequest(http.MethodGet, "/debug/pprof/"+endpoint.name)
 				handler, _ := mux.Handler(req)
 				if !endpoint.active {
 					continue
@@ -104,8 +112,8 @@ func TestTelemetryProfileConflicts(t *testing.T) {
 
 func TestPprofIndex(t *testing.T) {
 	r := httptest.NewRecorder()
-	telemetryMux(PprofConfig{}, true).ServeHTTP(r,
-		httptest.NewRequest(http.MethodGet, "/debug/pprof/", nil))
+	telemetryMux(PprofConfig{}, true, false).ServeHTTP(r,
+		newPprofRequest(http.MethodGet, "/debug/pprof/"))
 	if r.Code != http.StatusOK || strings.Contains(r.Body.String(), "cmdline") {
 		t.Fatalf("invalid index: %d %s", r.Code, r.Body.String())
 	}
@@ -117,12 +125,12 @@ func TestPprofIndex(t *testing.T) {
 }
 
 func TestPprofSeconds(t *testing.T) {
-	mux := telemetryMux(PprofConfig{}, true)
+	mux := telemetryMux(PprofConfig{}, true, false)
 	for _, name := range []string{"profile", "trace", "heap", "symbol", ""} {
-		for _, seconds := range []string{"61", "abc", "-1", ""} {
+		for _, seconds := range []string{"61", "1.5", "abc", "-1", "", "9223372036854775808"} {
 			r := httptest.NewRecorder()
-			mux.ServeHTTP(r, httptest.NewRequest(http.MethodGet,
-				"/debug/pprof/"+name+"?seconds="+seconds, nil))
+			mux.ServeHTTP(r, newPprofRequest(http.MethodGet,
+				"/debug/pprof/"+name+"?seconds="+seconds))
 			if r.Code != http.StatusBadRequest ||
 				!strings.Contains(r.Body.String(), "seconds must be an integer between 0 and 60") {
 				t.Fatalf("%s seconds=%q: %d %s", name, seconds, r.Code, r.Body.String())
@@ -130,9 +138,95 @@ func TestPprofSeconds(t *testing.T) {
 		}
 	}
 	r := httptest.NewRecorder()
-	mux.ServeHTTP(r, httptest.NewRequest(http.MethodGet, "/debug/pprof/heap?seconds=1", nil))
+	mux.ServeHTTP(r, newPprofRequest(http.MethodGet, "/debug/pprof/heap?seconds=1"))
 	if r.Code != http.StatusOK {
 		t.Fatalf("delta heap status = %d: %s", r.Code, r.Body.String())
+	}
+}
+
+func TestPprofHost(t *testing.T) {
+	for _, allowRemote := range []bool{false, true} {
+		mux := telemetryMux(PprofConfig{}, true, allowRemote)
+		for _, host := range []string{"evil.example", "evil.example:9101", "", "127.0.0.1:9101", "localhost:9101", "LOCALHOST:9101", "[::1]:9101", "127.0.0.2", "[::ffff:127.0.0.2]:9101", "10.0.0.5:9101"} {
+			t.Run(fmt.Sprintf("%t/%s", allowRemote, host), func(t *testing.T) {
+				want := http.StatusOK
+				if host == "" || strings.HasPrefix(host, "evil.example") || (host == "10.0.0.5:9101" && !allowRemote) {
+					want = http.StatusForbidden
+				}
+				req := newPprofRequest(http.MethodGet, "/debug/pprof/heap")
+				req.Host = host
+				r := httptest.NewRecorder()
+				mux.ServeHTTP(r, req)
+				if r.Code != want {
+					t.Fatalf("status = %d, want %d", r.Code, want)
+				}
+			})
+		}
+	}
+}
+
+func TestPprofOrigin(t *testing.T) {
+	mux := telemetryMux(PprofConfig{}, true, false)
+	for _, origin := range []string{"http://evil.example", "http://127.0.0.1:9101", "://invalid", ""} {
+		req := newPprofRequest(http.MethodGet, "/debug/pprof/heap")
+		req.Header.Set("Origin", origin)
+		r := httptest.NewRecorder()
+		mux.ServeHTTP(r, req)
+		want := http.StatusForbidden
+		if origin == "http://127.0.0.1:9101" {
+			want = http.StatusOK
+		}
+		if r.Code != want {
+			t.Fatalf("origin %q: status = %d, want %d", origin, r.Code, want)
+		}
+	}
+}
+
+func TestPprofMethodsAndForms(t *testing.T) {
+	mux := telemetryMux(PprofConfig{}, true, false)
+	for _, tc := range []struct {
+		method, target, body, allow, message string
+		status                               int
+	}{
+		{http.MethodPost, "/debug/pprof/heap", "seconds=61", "GET, HEAD", "", 405},
+		{http.MethodPut, "/debug/pprof/heap", "", "GET, HEAD", "", 405},
+		{http.MethodPut, "/debug/pprof/symbol", "", "GET, HEAD, POST", "", 405},
+		{http.MethodPost, "/debug/pprof/symbol", "seconds=61", "", "seconds must be an integer between 0 and 60", 400},
+		{http.MethodGet, "/debug/pprof/profile?seconds=1&seconds=61", "", "", "seconds must be given at most once", 400},
+		{http.MethodPost, "/debug/pprof/symbol?seconds=1", "seconds=1", "", "seconds must be given at most once", 400},
+		{http.MethodGet, "/debug/pprof/heap?seconds=%zz", "", "", "invalid form", 400},
+		{http.MethodHead, "/debug/pprof/heap", "", "", "", 200},
+		{http.MethodPost, "/debug/pprof/symbol", "", "", "", 200},
+		{http.MethodPut, "/debug/pprof/unknown", "", "GET, HEAD", "", 405},
+	} {
+		req := newPprofRequest(tc.method, tc.target)
+		req.Body = io.NopCloser(strings.NewReader(tc.body))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r := httptest.NewRecorder()
+		mux.ServeHTTP(r, req)
+		if r.Code != tc.status || r.Header().Get("Allow") != tc.allow || !strings.Contains(r.Body.String(), tc.message) {
+			t.Fatalf("%s %s body=%q: status=%d Allow=%q response=%q", tc.method, tc.target, tc.body, r.Code, r.Header().Get("Allow"), r.Body.String())
+		}
+	}
+}
+
+// net/http/pprof reads r.FormValue("seconds"), which parses a multipart body
+// only when r.Form is still nil. limitPprof fills r.Form first, so a multipart
+// body cannot smuggle an unchecked seconds value past the cap.
+func TestPprofMultipartSecondsIgnored(t *testing.T) {
+	var got string
+	h := limitPprof(make(chan struct{}, maxConcurrentPprof),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got = r.FormValue("seconds")
+		}))
+	body := "--b\r\nContent-Disposition: form-data; name=\"seconds\"\r\n\r\n3600\r\n--b--\r\n"
+	req := newPprofRequest(http.MethodGet, "/debug/pprof/profile")
+	req.Body = io.NopCloser(strings.NewReader(body))
+	req.Header.Set("Content-Type", "multipart/form-data; boundary=b")
+	r := httptest.NewRecorder()
+	h.ServeHTTP(r, req)
+	if r.Code != http.StatusOK || got != "" {
+		t.Fatalf("status = %d, handler saw seconds = %q", r.Code, got)
 	}
 }
 

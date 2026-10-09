@@ -7,8 +7,10 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/groundhogchain/chuckd"
@@ -39,6 +41,7 @@ func SetupTelemetry(ctx context.Context, instanceID string, addr string, config 
 }
 
 const maxConcurrentPprof = 2
+const maxPprofSeconds = 60
 const telemetryReadHeaderTimeout = 10 * time.Second
 
 type telemetry struct {
@@ -103,7 +106,7 @@ func startTelemetry(ctx context.Context, instanceID, addr string, config PprofCo
 	if servePprof {
 		liblog.Infof(ctx, "pprof enabled at http://%s/debug/pprof/ (remote access allowed=%t)", ln.Addr(), allowRemote)
 	}
-	srv := newTelemetryServer(telemetryMux(config, servePprof))
+	srv := newTelemetryServer(telemetryMux(config, servePprof, allowRemote))
 	if servePprof && config.CPUProfileActive {
 		liblog.Infof(ctx, "pprof /debug/pprof/profile unavailable: --cpu file profiling is active")
 	}
@@ -121,13 +124,13 @@ func startTelemetry(ctx context.Context, instanceID, addr string, config PprofCo
 	return &telemetry{addr: ln.Addr(), srv: srv, mp: meterProvider}, nil
 }
 
-func telemetryMux(config PprofConfig, servePprof bool) *http.ServeMux {
+func telemetryMux(config PprofConfig, servePprof, allowRemote bool) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	if servePprof {
 		sem := make(chan struct{}, maxConcurrentPprof)
 		handle := func(path string, h http.Handler) {
-			mux.Handle(path, limitPprof(sem, h))
+			mux.Handle(path, guardPprof(allowRemote, limitPprof(sem, h)))
 		}
 		handle("/debug/pprof/", http.HandlerFunc(pprofIndex))
 		if config.CPUProfileActive {
@@ -148,11 +151,54 @@ func telemetryMux(config PprofConfig, servePprof bool) *http.ServeMux {
 	return mux
 }
 
+func guardPprof(allowRemote bool, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, err := net.SplitHostPort(r.Host)
+		if err != nil {
+			host = r.Host
+		}
+		host = strings.TrimPrefix(strings.TrimSuffix(host, "]"), "[")
+		ip := net.ParseIP(host)
+		// DNS names can rebind to the listener; remote opt-in permits direct IP access only.
+		if !strings.EqualFold(host, "localhost") && !(ip != nil && (ip.IsLoopback() || allowRemote)) {
+			http.Error(w, "pprof requires a loopback or IP-literal Host header", http.StatusForbidden)
+			return
+		}
+		if _, present := r.Header["Origin"]; present {
+			origin, err := url.Parse(r.Header.Get("Origin"))
+			if err != nil || !strings.EqualFold(origin.Host, r.Host) {
+				http.Error(w, "pprof requires a same-host Origin header", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func limitPprof(sem chan struct{}, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, value := range r.URL.Query()["seconds"] {
-			n, err := strconv.Atoi(value)
-			if err != nil || n < 0 || n > 60 {
+		allow := "GET, HEAD"
+		if r.URL.Path == "/debug/pprof/symbol" {
+			allow += ", POST"
+		}
+		if r.Method != http.MethodGet && r.Method != http.MethodHead &&
+			!(r.Method == http.MethodPost && r.URL.Path == "/debug/pprof/symbol") {
+			w.Header().Set("Allow", allow)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "invalid form", http.StatusBadRequest)
+			return
+		}
+		values := r.Form["seconds"]
+		if len(values) > 1 {
+			http.Error(w, "seconds must be given at most once", http.StatusBadRequest)
+			return
+		}
+		if len(values) == 1 {
+			n, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil || n < 0 || n > maxPprofSeconds {
 				http.Error(w, "seconds must be an integer between 0 and 60", http.StatusBadRequest)
 				return
 			}
