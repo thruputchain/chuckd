@@ -45,6 +45,7 @@ var (
 	rootInstanceID         string
 	rootMetricsAddr        string
 	rootPprof              bool
+	rootPprofAllowRemote   bool
 	rootPprofMutexFraction int
 	rootPprofBlockRate     int
 	rootStackTrace         bool
@@ -74,9 +75,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&rootInstanceID, "instance", "i", "", "instance id")
 	rootCmd.PersistentFlags().BoolVarP(&rootStackTrace, "stack", "s", false, "stack trace on error")
 	rootCmd.PersistentFlags().StringVar(&rootMetricsAddr, "metrics", ":2222", "metrics address")
-	rootCmd.PersistentFlags().BoolVar(&rootPprof, "pprof", false, "enable pprof endpoints on the metrics listener")
+	rootCmd.PersistentFlags().BoolVar(&rootPprof, "pprof", false, "enable pprof endpoints on the metrics listener (loopback only unless --pprof-allow-remote)")
+	rootCmd.PersistentFlags().BoolVar(&rootPprofAllowRemote, "pprof-allow-remote", false, "with --pprof, serve unauthenticated pprof endpoints when the metrics listener is not loopback (or set GROUNDHOG_PPROF_ALLOW_REMOTE=1)")
 	rootCmd.PersistentFlags().IntVar(&rootPprofMutexFraction, "pprof-mutex-fraction", 0, "mutex sampling fraction with --pprof (0 off; devnet: 5 samples one in five contention events)")
-	rootCmd.PersistentFlags().IntVar(&rootPprofBlockRate, "pprof-block-rate", 0, "block sampling rate in nanoseconds with --pprof (0 off; devnet: 10000ns)")
+	rootCmd.PersistentFlags().IntVar(&rootPprofBlockRate, "pprof-block-rate", 0, "block sampling rate in nanoseconds with --pprof (0 off; start at 100000 and validate with coordinator_bench_3n before lowering)")
 	rootCmd.PersistentFlags().IntVar(&rootMaxMsgSize, "max-msg-size", 100e6, "maximum message size")
 	rootCmd.PersistentFlags().BoolVar(&rootRpcLogCalls, "rpc-log-calls", false, "log rpc call arguments and replies")
 	rootCmd.PersistentFlags().BoolVar(&rootRpcLogStats, "rpc-log-stats", false, "log rpc call latencies")
@@ -104,6 +106,7 @@ func initAfterFlags() {
 	cmdkit.SetInstanceID(rootInstanceID)
 	cmdkit.SetMetricsAddr(rootMetricsAddr)
 	cmdkit.SetPprof(rootPprof, rootPprofMutexFraction, rootPprofBlockRate)
+	cmdkit.SetPprofAllowRemote(rootPprofAllowRemote)
 	rpc.DefaultMaxMsgSize = rootMaxMsgSize
 	chuckdruntime.SetRootSeed(rootSeed)
 }

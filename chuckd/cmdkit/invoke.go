@@ -133,6 +133,7 @@ func Invoke(ctx context.Context, f func()) error {
 	// start telemetry
 	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr, xruntime.PprofConfig{
 		Enabled:            pprofEnabled,
+		AllowRemote:        pprofAllowRemote,
 		CPUProfileActive:   cpuProfilePath != "",
 		TraceProfileActive: traceProfilePath != "",
 	})
@@ -207,6 +208,7 @@ func SetMetricsAddr(addr string) {
 }
 
 var pprofEnabled bool
+var pprofAllowRemote bool
 var pprofMutexFraction int
 var pprofBlockRate int
 
@@ -214,6 +216,10 @@ func SetPprof(enabled bool, mutexFraction, blockRate int) {
 	pprofEnabled = enabled
 	pprofMutexFraction = mutexFraction
 	pprofBlockRate = blockRate
+}
+
+func SetPprofAllowRemote(allow bool) {
+	pprofAllowRemote = allow
 }
 
 func applyPprofRates(setMutex func(int) int, setBlock func(int)) {
@@ -224,6 +230,18 @@ func applyPprofRates(setMutex func(int) int, setBlock func(int)) {
 }
 
 func validateProfileOptions() error {
+	if pprofMutexFraction < 0 {
+		return fmt.Errorf("--pprof-mutex-fraction must be non-negative")
+	}
+	if pprofBlockRate < 0 {
+		return fmt.Errorf("--pprof-block-rate must be non-negative")
+	}
+	if !pprofEnabled && pprofMutexFraction != 0 {
+		return fmt.Errorf("--pprof-mutex-fraction requires --pprof")
+	}
+	if !pprofEnabled && pprofBlockRate != 0 {
+		return fmt.Errorf("--pprof-block-rate requires --pprof")
+	}
 	if pprofEnabled && mutexProfilePath != "" && pprofMutexFraction != 0 {
 		return fmt.Errorf("--mutex and --pprof-mutex-fraction cannot be combined with --pprof: file profiling sets the mutex sampling fraction to 1")
 	}

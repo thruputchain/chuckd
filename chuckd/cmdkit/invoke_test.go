@@ -55,7 +55,12 @@ func TestProfileRateConflicts(t *testing.T) {
 		{"block conflict", true, "", "block.pprof", 0, 10000, "--block"},
 		{"default rates", true, "mutex.pprof", "block.pprof", 0, 0, ""},
 		{"live only", true, "", "", 5, 10000, ""},
-		{"disabled", false, "mutex.pprof", "block.pprof", 5, 10000, ""},
+		{"disabled", false, "mutex.pprof", "block.pprof", 5, 10000, "--pprof-mutex-fraction requires --pprof"},
+		{"negative mutex", true, "", "", -1, 0, "--pprof-mutex-fraction must be non-negative"},
+		{"negative block", true, "", "", 0, -1, "--pprof-block-rate must be non-negative"},
+		{"mutex without pprof", false, "", "", 5, 0, "--pprof-mutex-fraction requires --pprof"},
+		{"block without pprof", false, "", "", 0, 100000, "--pprof-block-rate requires --pprof"},
+		{"disabled defaults", false, "", "", 0, 0, ""},
 		{"independent mutex", true, "mutex.pprof", "", 0, 10000, ""},
 		{"independent block", true, "", "block.pprof", 5, 0, ""},
 	} {

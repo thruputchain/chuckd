@@ -2,8 +2,14 @@ package runtime
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/groundhogchain/chuckd"
 	"github.com/groundhogchain/lib-go/liblog"
@@ -18,21 +24,59 @@ import (
 // PprofConfig controls live profiling and endpoints reserved by file profiling.
 type PprofConfig struct {
 	Enabled            bool
+	AllowRemote        bool
 	CPUProfileActive   bool
 	TraceProfileActive bool
 }
 
 // SetupTelemetry initializes OpenTelemetry with Prometheus and returns a function to shut it down.
 func SetupTelemetry(ctx context.Context, instanceID string, addr string, config PprofConfig) (shutdown func(context.Context) error, err error) {
+	t, err := startTelemetry(ctx, instanceID, addr, config)
+	if err != nil {
+		return nil, err
+	}
+	return t.shutdown, nil
+}
+
+const maxConcurrentPprof = 2
+const telemetryReadHeaderTimeout = 10 * time.Second
+
+type telemetry struct {
+	addr net.Addr
+	srv  *http.Server
+	mp   *sdkmetric.MeterProvider
+}
+
+func (t *telemetry) shutdown(ctx context.Context) error {
+	return errors.Join(t.srv.Shutdown(ctx), t.mp.Shutdown(ctx))
+}
+
+func isLoopback(ip net.IP) bool { return ip.IsLoopback() }
+
+func pprofRemoteAllowed(config PprofConfig) bool {
+	return config.AllowRemote || os.Getenv("GROUNDHOG_PPROF_ALLOW_REMOTE") == "1"
+}
+
+func newTelemetryServer(mux http.Handler) *http.Server {
+	return &http.Server{Handler: mux, ReadHeaderTimeout: telemetryReadHeaderTimeout}
+}
+
+func startTelemetry(ctx context.Context, instanceID, addr string, config PprofConfig) (*telemetry, error) {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("binding metrics listener: %w", err)
+	}
 
 	rsc, err := createResource(instanceID)
 	if err != nil {
+		ln.Close()
 		return nil, err
 	}
 
 	// Create a Prometheus exporter
 	exporter, err := prometheus.New()
 	if err != nil {
+		ln.Close()
 		return nil, err
 	}
 
@@ -46,46 +90,95 @@ func SetupTelemetry(ctx context.Context, instanceID string, addr string, config 
 	otel.SetMeterProvider(meterProvider)
 
 	// Set up HTTP server to expose Prometheus metrics endpoint
-	mux := telemetryMux(config)
-	if config.Enabled && config.CPUProfileActive {
+	remote := !isLoopback(ln.Addr().(*net.TCPAddr).IP)
+	allowRemote := pprofRemoteAllowed(config)
+	servePprof := config.Enabled && (!remote || allowRemote)
+	if config.Enabled && remote {
+		if !allowRemote {
+			liblog.Warnf(ctx, "pprof disabled: metrics listener %s is not loopback; pass --pprof-allow-remote or set GROUNDHOG_PPROF_ALLOW_REMOTE=1 to serve unauthenticated profiles beyond loopback", ln.Addr())
+		} else {
+			liblog.Warnf(ctx, "unauthenticated pprof endpoints are reachable beyond loopback on %s", ln.Addr())
+		}
+	}
+	if servePprof {
+		liblog.Infof(ctx, "pprof enabled at http://%s/debug/pprof/ (remote access allowed=%t)", ln.Addr(), allowRemote)
+	}
+	srv := newTelemetryServer(telemetryMux(config, servePprof))
+	if servePprof && config.CPUProfileActive {
 		liblog.Infof(ctx, "pprof /debug/pprof/profile unavailable: --cpu file profiling is active")
 	}
-	if config.Enabled && config.TraceProfileActive {
+	if servePprof && config.TraceProfileActive {
 		liblog.Infof(ctx, "pprof /debug/pprof/trace unavailable: --trace file profiling is active")
 	}
 	go func() {
-		liblog.Infof(ctx, "prometheus metrics endpoint started at %s/metrics", addr)
-		if err := http.ListenAndServe(addr, mux); err != nil {
-			liblog.Fatalf(ctx, "starting metrics server: %v", err)
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			liblog.Errorf(ctx, "serving metrics: %v", err)
 		}
 	}()
 
 	// Return a shutdown function that cleans up resources
-	return meterProvider.Shutdown, nil
+	liblog.Infof(ctx, "prometheus metrics endpoint started at %s/metrics", ln.Addr())
+	return &telemetry{addr: ln.Addr(), srv: srv, mp: meterProvider}, nil
 }
 
-func telemetryMux(config PprofConfig) *http.ServeMux {
+func telemetryMux(config PprofConfig, servePprof bool) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	if config.Enabled {
-		mux.HandleFunc("/debug/pprof/", pprof.Index)
-		mux.HandleFunc("/debug/pprof/cmdline", http.NotFound)
-		if config.CPUProfileActive {
-			mux.HandleFunc("/debug/pprof/profile", profileConflict("--cpu"))
-		} else {
-			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	if servePprof {
+		sem := make(chan struct{}, maxConcurrentPprof)
+		handle := func(path string, h http.Handler) {
+			mux.Handle(path, limitPprof(sem, h))
 		}
-		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		if config.TraceProfileActive {
-			mux.HandleFunc("/debug/pprof/trace", profileConflict("--trace"))
+		handle("/debug/pprof/", http.HandlerFunc(pprofIndex))
+		if config.CPUProfileActive {
+			handle("/debug/pprof/profile", profileConflict("--cpu"))
 		} else {
-			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+			handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		}
+		handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		if config.TraceProfileActive {
+			handle("/debug/pprof/trace", profileConflict("--trace"))
+		} else {
+			handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 		}
 		for _, name := range []string{"heap", "allocs", "goroutine", "mutex", "block", "threadcreate"} {
-			mux.Handle("/debug/pprof/"+name, pprof.Handler(name))
+			handle("/debug/pprof/"+name, pprof.Handler(name))
 		}
 	}
 	return mux
+}
+
+func limitPprof(sem chan struct{}, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, value := range r.URL.Query()["seconds"] {
+			n, err := strconv.Atoi(value)
+			if err != nil || n < 0 || n > 60 {
+				http.Error(w, "seconds must be an integer between 0 and 60", http.StatusBadRequest)
+				return
+			}
+		}
+		select {
+		case sem <- struct{}{}:
+			defer func() { <-sem }()
+		default:
+			http.Error(w, "too many concurrent pprof requests", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func pprofIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/debug/pprof/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintln(w, "<!doctype html><title>pprof</title><ul>")
+	for _, name := range []string{"profile", "trace", "symbol", "heap", "allocs", "goroutine", "mutex", "block", "threadcreate"} {
+		fmt.Fprintf(w, "<li><a href=\"/debug/pprof/%s\">%s</a></li>\n", name, name)
+	}
+	fmt.Fprintln(w, "</ul>")
 }
 
 func profileConflict(flag string) http.HandlerFunc {
