@@ -1,112 +1,224 @@
 package baton
 
 import (
+	"context"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/groundhogchain/chuckd/util/blocktrace"
+	proto "github.com/groundhogchain/protocol-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-func TestBlockSpanTree(t *testing.T) {
-	recorder := tracetest.NewSpanRecorder()
-	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
+func newRecorder(t *testing.T) *tracetest.SpanRecorder {
+	t.Helper()
+	r := tracetest.NewSpanRecorder()
+	p := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(r),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()), sdktrace.WithIDGenerator(blocktrace.IDGenerator()))
 	old := otel.GetTracerProvider()
-	otel.SetTracerProvider(provider)
-	t.Cleanup(func() { otel.SetTracerProvider(old) })
-	t0 := time.Unix(100, 0)
-	x := blockChrono{height: 42, nominateStart: t0,
-		mempoolNominateEnd: t0.Add(time.Second), nominateEnd: t0.Add(2 * time.Second),
-		commitStart: t0.Add(3 * time.Second), commitEnd: t0.Add(4 * time.Second)}
-	x.emitSpans()
-	x.emitSpans()
-	spans := recorder.Ended()
-	if len(spans) != 4 {
-		t.Fatalf("got %d spans, want 4", len(spans))
-	}
-	root := spans[3]
-	if root.Name() != "block" || root.Parent().IsValid() || !root.StartTime().Equal(t0) || !root.EndTime().Equal(x.commitEnd) {
-		t.Fatal("incorrect block root or timestamps")
-	}
-	for i, name := range []string{"propose", "nominate", "commit"} {
-		if spans[i].Name() != name || spans[i].Parent().SpanID() != root.SpanContext().SpanID() || spans[i].SpanContext().TraceID() != root.SpanContext().TraceID() {
-			t.Fatalf("incorrect child %s", name)
+	otel.SetTracerProvider(p)
+	t.Cleanup(func() {
+		otel.SetTracerProvider(old)
+		if err := p.Shutdown(context.Background()); err != nil {
+			t.Error(err)
 		}
+	})
+	return r
+}
+
+type chronoHandler struct {
+	batonkit.Handler
+	now time.Time
+}
+
+func (h *chronoHandler) Now() time.Time { return h.now }
+
+func newChronoBaton() (*Baton, *chronoHandler) {
+	h := &chronoHandler{now: time.Unix(100, 0)}
+	return &Baton{handler: h}, h
+}
+
+func proposalAttrs() []attribute.KeyValue {
+	return []attribute.KeyValue{
+		attribute.String("proposal.value.hash_prefix", "loser"),
+		attribute.String("proposal.proposer", "local-validator"),
+	}
+}
+
+func setCommitIdentity(b *Baton, height proto.BlockHeight, hash [32]byte) {
+	b.chrono.lk.Lock()
+	defer b.chrono.lk.Unlock()
+	if x := b.chrono.existing(height); x != nil {
+		x.attributes = []attribute.KeyValue{attribute.String("value.hash_prefix", "winner")}
+		x.networkHash, x.hasNetworkHash = hash, true
+	}
+}
+
+func spanTree(t *testing.T, r *tracetest.SpanRecorder, count int) map[string]sdktrace.ReadOnlySpan {
+	t.Helper()
+	spans := r.Ended()
+	if len(spans) != count {
+		t.Fatalf("got %d spans, want %d", len(spans), count)
+	}
+	byName := make(map[string]sdktrace.ReadOnlySpan)
+	for _, span := range spans {
+		if byName[span.Name()] != nil {
+			t.Fatalf("duplicate phase %s", span.Name())
+		}
+		byName[span.Name()] = span
+	}
+	root := byName["block"]
+	if root == nil || root.Parent().IsValid() {
+		t.Fatal("missing or incorrectly parented root")
+	}
+	for name, span := range byName {
+		if name != "block" && (span.Parent().SpanID() != root.SpanContext().SpanID() ||
+			span.SpanContext().TraceID() != root.SpanContext().TraceID()) {
+			t.Fatalf("incorrect parent or trace ID for %s", name)
+		}
+		attrs := attribute.NewSet(span.Attributes()...)
+		if attrs.HasValue("proposal.scope") {
+			t.Fatal("obsolete proposal.scope attribute")
+		}
+		if name == "propose" || name == "nominate" {
+			for _, want := range proposalAttrs() {
+				got, ok := attrs.Value(want.Key)
+				if !ok || got != want.Value {
+					t.Fatalf("%s missing proposal attribute %s", name, want.Key)
+				}
+			}
+		}
+	}
+	return byName
+}
+
+func TestBlockSpanTree(t *testing.T) {
+	r := newRecorder(t)
+	b, clock := newChronoBaton()
+	t0 := clock.now
+	hash := [32]byte{0x11}
+	b.stampNominateStart(context.Background(), 42)
+	clock.now = t0.Add(time.Second)
+	b.stampMempoolNominateEnd(42, clock.now, proposalAttrs(), hash)
+	clock.now = t0.Add(2 * time.Second)
+	b.stampNominateEnd(42)
+	if len(r.Ended()) != 0 {
+		t.Fatal("emitted before commit")
+	}
+	clock.now = t0.Add(3 * time.Second)
+	b.stampCommitStart(context.Background(), 42)
+	setCommitIdentity(b, 42, hash)
+	clock.now = t0.Add(4 * time.Second)
+	b.stampCommitEnd(42)
+	b.stampCommitEnd(42)
+	spans := spanTree(t, r, 4)
+	root := spans["block"]
+	if root.SpanContext().TraceID() != blocktrace.TraceID(hash, 42) ||
+		!root.StartTime().Equal(t0) || !root.EndTime().Equal(clock.now) {
+		t.Fatal("incorrect root identity or timestamps")
+	}
+	attrs := attribute.NewSet(root.Attributes()...)
+	if got, ok := attrs.Value("groundhog.block.height"); !ok || got.AsInt64() != 42 {
+		t.Fatal("incorrect block height")
+	}
+	if got, _ := attrs.Value("value.hash_prefix"); got.AsString() != "winner" {
+		t.Fatal("root lost committed value identity")
 	}
 }
 
 func TestCommitSpanSurvivesPendingNomination(t *testing.T) {
-	for _, prepared := range []bool{false, true} {
-		t.Run(map[bool]string{false: "clock_skew_wait", true: "nomination_pending"}[prepared], func(t *testing.T) {
-			recorder := tracetest.NewSpanRecorder()
-			provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
-			old := otel.GetTracerProvider()
-			otel.SetTracerProvider(provider)
-			t.Cleanup(func() { otel.SetTracerProvider(old) })
-			t0 := time.Unix(100, 0)
-			var c chrono
-			x := c.at(42)
-			x.nominateStart = t0
-			if prepared {
-				x.mempoolNominateEnd = t0.Add(time.Second)
-			}
-			x.commitStart = t0.Add(2 * time.Second)
-			x.commitEnd = t0.Add(3 * time.Second)
-			x.emitSpans()
-			c.at(44) // Reuse the slot before the old proposal returns.
-			spans := recorder.Ended()
-			want := 2
-			if prepared {
-				want++
-			}
-			if len(spans) != want {
-				t.Fatalf("got %d spans, want %d", len(spans), want)
-			}
-			root := spans[len(spans)-1]
-			commit := spans[len(spans)-2]
-			if root.Name() != "block" || commit.Name() != "commit" || commit.Parent().SpanID() != root.SpanContext().SpanID() || !root.EndTime().Equal(t0.Add(3*time.Second)) {
-				t.Fatal("completed commit trace lost or incorrect")
-			}
+	r := newRecorder(t)
+	b, clock := newChronoBaton()
+	t0 := clock.now
+	hash := [32]byte{2}
+	b.stampNominateStart(context.Background(), 42)
+	clock.now = t0.Add(time.Second)
+	b.stampMempoolNominateEnd(42, clock.now, proposalAttrs(), hash)
+	clock.now = t0.Add(2 * time.Second)
+	b.stampCommitStart(context.Background(), 42)
+	setCommitIdentity(b, 42, hash)
+	clock.now = t0.Add(3 * time.Second)
+	b.stampCommitEnd(42)
+	spans := spanTree(t, r, 3)
+	if spans["nominate"] != nil || !spans["block"].EndTime().Equal(clock.now) {
+		t.Fatal("incorrect pending nomination emission")
+	}
+	clock.now = t0.Add(4 * time.Second)
+	b.stampNominateEnd(42)
+	b.stampNominateEnd(42)
+	b.stampMempoolNominateEnd(42, t0.Add(time.Second), proposalAttrs(), hash)
+	spans = spanTree(t, r, 4)
+	if spans["nominate"] == nil || spans["block"].SpanContext().TraceID() != blocktrace.TraceID(hash, 42) {
+		t.Fatal("late nomination lost trace identity")
+	}
+}
+
+func TestStaleChronoWrites(t *testing.T) {
+	r := newRecorder(t)
+	b, clock := newChronoBaton()
+	if b.chrono.existing(0) != nil {
+		t.Fatal("unclaimed zero-height slot is owned")
+	}
+	b.stampNominateStart(context.Background(), 42)
+	clock.now = clock.now.Add(time.Second)
+	b.stampNominateStart(context.Background(), 44)
+	b.stampMempoolNominateEnd(42, clock.now, proposalAttrs(), [32]byte{1})
+	b.stampNominateEnd(42)
+	b.reportSCPNominationDelay(context.Background(), 42, time.Second)
+	b.reportPersistCV(42, time.Second)
+	b.stampCommitEnd(42)
+	x := b.chrono.existing(44)
+	if x == nil || !x.nominateStart.Equal(clock.now) || !x.mempoolNominateEnd.IsZero() ||
+		!x.nominateEnd.IsZero() || !x.commitEnd.IsZero() || x.scpNominationDelay != 0 || x.persistCV != 0 || x.hasNetworkHash {
+		t.Fatal("stale completion overwrote reused slot")
+	}
+	if len(r.Ended()) != 0 || b.chrono.lastNominateEndHeight != 42 || b.chrono.lastCommitEndHeight != 42 {
+		t.Fatal("incorrect stale completion bookkeeping")
+	}
+}
+
+func TestProposalAttributesInterleave(t *testing.T) {
+	for i := range 200 {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			r := newRecorder(t)
+			b, clock := newChronoBaton()
+			hash := [32]byte{3}
+			b.stampNominateStart(context.Background(), 42)
+			mempoolEnd := clock.now.Add(time.Second)
+			clock.now = clock.now.Add(2 * time.Second)
+			b.stampCommitStart(context.Background(), 42)
+			setCommitIdentity(b, 42, hash)
+			clock.now = clock.now.Add(time.Second)
+			var wg sync.WaitGroup
+			start := make(chan struct{})
+			wg.Add(2)
+			go func() { defer wg.Done(); <-start; b.stampMempoolNominateEnd(42, mempoolEnd, proposalAttrs(), hash) }()
+			go func() { defer wg.Done(); <-start; b.stampCommitEnd(42) }()
+			close(start)
+			wg.Wait()
+			clock.now = clock.now.Add(time.Second)
+			b.stampNominateEnd(42)
+			spanTree(t, r, 4)
 		})
 	}
 }
 
-func TestLosingProposalSpanIdentity(t *testing.T) {
-	recorder := tracetest.NewSpanRecorder()
-	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
-	old := otel.GetTracerProvider()
-	otel.SetTracerProvider(provider)
-	t.Cleanup(func() { otel.SetTracerProvider(old) })
-	t0 := time.Unix(100, 0)
-	x := blockChrono{height: 42, nominateStart: t0,
-		mempoolNominateEnd: t0.Add(time.Second), nominateEnd: t0.Add(2 * time.Second),
-		commitStart: t0.Add(3 * time.Second), commitEnd: t0.Add(4 * time.Second),
-		attributes: []attribute.KeyValue{attribute.String("value.hash_prefix", "winner")},
-		proposalAttributes: []attribute.KeyValue{
-			attribute.String("proposal.value.hash_prefix", "loser"),
-			attribute.String("proposal.proposer", "local-validator"),
-		},
-	}
-	x.emitSpans()
-	spans := recorder.Ended()
-	if len(spans) != 4 {
-		t.Fatalf("got %d spans, want 4", len(spans))
-	}
-	for _, span := range spans[:2] {
-		attrs := attribute.NewSet(span.Attributes()...)
-		for key, want := range map[attribute.Key]string{
-			"proposal.scope": "local", "proposal.value.hash_prefix": "loser", "proposal.proposer": "local-validator",
-		} {
-			got, ok := attrs.Value(key)
-			if !ok || got.AsString() != want {
-				t.Fatalf("%s: %s = %v, want %s", span.Name(), key, got, want)
-			}
-		}
-	}
-	attrs := attribute.NewSet(spans[3].Attributes()...)
-	if got, _ := attrs.Value("value.hash_prefix"); got.AsString() != "winner" {
-		t.Fatal("root lost committed value identity")
+func TestCatchupOnlySpans(t *testing.T) {
+	r := newRecorder(t)
+	b, clock := newChronoBaton()
+	t0 := clock.now
+	b.stampCommitStart(context.Background(), 42)
+	clock.now = t0.Add(time.Second)
+	b.stampCommitEnd(42)
+	spans := spanTree(t, r, 2)
+	if spans["commit"] == nil || !spans["block"].SpanContext().IsValid() ||
+		!spans["block"].StartTime().Equal(t0) || !spans["block"].EndTime().Equal(clock.now) {
+		t.Fatal("incorrect catchup trace")
 	}
 }

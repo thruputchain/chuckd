@@ -25,10 +25,13 @@ func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto
 
 	b.stampCommitStart(ctx, cb.BlockHeight())
 	b.chrono.lk.Lock()
-	b.chrono.at(cb.BlockHeight()).attributes = []attribute.KeyValue{
-		attribute.Int("tx_count", cb.NumTransactions()),
-		attribute.String("proposer", protoutil.VIDString(protoutil.ValueProposer(value))),
-		attribute.String("value.hash_prefix", protoutil.ValueDisplay(value)),
+	if x := b.chrono.existing(cb.BlockHeight()); x != nil {
+		x.attributes = []attribute.KeyValue{
+			attribute.Int("tx_count", cb.NumTransactions()),
+			attribute.String("proposer", protoutil.VIDString(protoutil.ValueProposer(value))),
+			attribute.String("value.hash_prefix", protoutil.ValueDisplay(value)),
+		}
+		x.networkHash, x.hasNetworkHash = value.Proposal_header.Network_hash, true
 	}
 	b.chrono.lk.Unlock()
 	defer b.stampCommitEnd(cb.BlockHeight())

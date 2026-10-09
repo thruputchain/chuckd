@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/groundhogchain/chuckd/util/blocktrace"
 	"github.com/groundhogchain/lib-go/liblog"
 	proto "github.com/groundhogchain/protocol-go"
 	"go.opentelemetry.io/otel"
@@ -23,7 +24,14 @@ type blockChrono struct {
 	scpNominationDelay time.Duration
 	attributes         []attribute.KeyValue
 	proposalAttributes []attribute.KeyValue
-	emitted            bool
+	owned              bool
+	networkHash        [32]byte
+	hasNetworkHash     bool
+	rootSC             trace.SpanContext
+	rootEmitted        bool
+	proposeEmitted     bool
+	nominateEmitted    bool
+	commitEmitted      bool
 }
 
 type chrono struct {
@@ -49,8 +57,16 @@ type chrono struct {
 
 func (x *chrono) at(height proto.BlockHeight) *blockChrono {
 	k := &x.block[int(height)%len(x.block)]
-	if k.height != height {
-		*k = blockChrono{height: height}
+	if !k.owned || k.height != height {
+		*k = blockChrono{height: height, owned: true}
+	}
+	return k
+}
+
+func (x *chrono) existing(height proto.BlockHeight) *blockChrono {
+	k := &x.block[int(height)%len(x.block)]
+	if !k.owned || k.height != height {
+		return nil
 	}
 	return k
 }
@@ -72,11 +88,16 @@ func (b *Baton) stampNominateStart(ctx context.Context, height proto.BlockHeight
 	}
 }
 
-func (b *Baton) stampMempoolNominateEnd(height proto.BlockHeight, now time.Time) {
+func (b *Baton) stampMempoolNominateEnd(height proto.BlockHeight, now time.Time, attrs []attribute.KeyValue, networkHash [32]byte) {
 	b.chrono.lk.Lock()
 	defer b.chrono.lk.Unlock()
 
-	b.chrono.at(height).mempoolNominateEnd = now
+	if x := b.chrono.existing(height); x != nil {
+		x.mempoolNominateEnd = now
+		x.proposalAttributes = attrs
+		x.networkHash, x.hasNetworkHash = networkHash, true
+		x.emitSpans()
+	}
 	b.chrono.lastMempoolNominateEnd = now
 	b.chrono.lastMempoolNominateEndHeight = height
 }
@@ -85,7 +106,9 @@ func (b *Baton) reportSCPNominationDelay(ctx context.Context, height proto.Block
 	b.chrono.lk.Lock()
 	defer b.chrono.lk.Unlock()
 
-	b.chrono.at(height).scpNominationDelay = d
+	if x := b.chrono.existing(height); x != nil {
+		x.scpNominationDelay = d
+	}
 	b.chrono.lastSCPNominationDelay = d
 	b.chrono.lastSCPNominationDelayHeight = height
 
@@ -107,7 +130,9 @@ func (b *Baton) reportPersistCV(height proto.BlockHeight, d time.Duration) {
 	b.chrono.lk.Lock()
 	defer b.chrono.lk.Unlock()
 
-	b.chrono.at(height).persistCV = d
+	if x := b.chrono.existing(height); x != nil {
+		x.persistCV = d
+	}
 	b.chrono.lastPersistCV = d
 	b.chrono.lastPersistCVHeight = height
 }
@@ -117,8 +142,10 @@ func (b *Baton) stampNominateEnd(height proto.BlockHeight) {
 	defer b.chrono.lk.Unlock()
 
 	now := b.handler.Now()
-	b.chrono.at(height).nominateEnd = now
-	b.chrono.at(height).emitSpans()
+	if x := b.chrono.existing(height); x != nil {
+		x.nominateEnd = now
+		x.emitSpans()
+	}
 	b.chrono.lastNominateEnd = now
 	b.chrono.lastNominateEndHeight = height
 }
@@ -152,8 +179,10 @@ func (b *Baton) stampCommitEnd(height proto.BlockHeight) {
 	defer b.chrono.lk.Unlock()
 
 	now := b.handler.Now()
-	b.chrono.at(height).commitEnd = now
-	b.chrono.at(height).emitSpans()
+	if x := b.chrono.existing(height); x != nil {
+		x.commitEnd = now
+		x.emitSpans()
+	}
 	b.chrono.lastCommitEnd = now
 	b.chrono.lastCommitEndHeight = height
 }
@@ -162,10 +191,9 @@ func (b *Baton) stampCommitEnd(height proto.BlockHeight) {
 // proposal may still be running; it must not delay emission of the commit trace.
 // Catchup has only a commit phase.
 func (x *blockChrono) emitSpans() {
-	if x.emitted || x.commitEnd.IsZero() {
+	if x.commitEnd.IsZero() {
 		return
 	}
-	x.emitted = true
 	start, end := x.commitStart, x.commitEnd
 	if !x.nominateStart.IsZero() && x.nominateStart.Before(start) {
 		start = x.nominateStart
@@ -174,22 +202,34 @@ func (x *blockChrono) emitSpans() {
 		end = x.nominateEnd
 	}
 	tracer := otel.Tracer("github.com/groundhogchain/chuckd/sub/baton/baton")
-	ctx, root := tracer.Start(context.Background(), "block", trace.WithNewRoot(),
-		trace.WithTimestamp(start), trace.WithAttributes(append(x.attributes, attribute.Int64("block.height", int64(x.height)))...))
-	phase := func(name string, start, end time.Time, attrs ...attribute.KeyValue) {
-		if start.IsZero() || end.IsZero() || end.Before(start) {
+	// Late phases remain children of the original root even after it has ended.
+	ctx := trace.ContextWithSpanContext(context.Background(), x.rootSC)
+	if !x.rootEmitted {
+		rootCtx := context.Background()
+		if x.hasNetworkHash {
+			rootCtx = blocktrace.WithTraceID(rootCtx, blocktrace.TraceID(x.networkHash, uint64(x.height)))
+		}
+		attrs := append([]attribute.KeyValue{}, x.attributes...)
+		attrs = append(attrs, attribute.Int64("groundhog.block.height", int64(x.height)))
+		var root trace.Span
+		ctx, root = tracer.Start(rootCtx, "block", trace.WithNewRoot(),
+			trace.WithTimestamp(start), trace.WithAttributes(attrs...))
+		x.rootSC, x.rootEmitted = root.SpanContext(), true
+		defer root.End(trace.WithTimestamp(end))
+	}
+	phase := func(name string, start, end time.Time, emitted *bool, attrs ...attribute.KeyValue) {
+		if *emitted || start.IsZero() || end.IsZero() || end.Before(start) {
 			return
 		}
 		_, span := tracer.Start(ctx, name, trace.WithTimestamp(start), trace.WithAttributes(attrs...))
 		span.End(trace.WithTimestamp(end))
+		*emitted = true
 	}
-	proposalAttrs := append([]attribute.KeyValue{attribute.String("proposal.scope", "local")}, x.proposalAttributes...)
-	phase("propose", x.nominateStart, x.mempoolNominateEnd, proposalAttrs...)
+	phase("propose", x.nominateStart, x.mempoolNominateEnd, &x.proposeEmitted, x.proposalAttributes...)
 	nominateStart := x.mempoolNominateEnd
 	if nominateStart.IsZero() {
 		nominateStart = x.nominateStart
 	}
-	phase("nominate", nominateStart, x.nominateEnd, proposalAttrs...)
-	phase("commit", x.commitStart, x.commitEnd)
-	root.End(trace.WithTimestamp(end))
+	phase("nominate", nominateStart, x.nominateEnd, &x.nominateEmitted, x.proposalAttributes...)
+	phase("commit", x.commitStart, x.commitEnd, &x.commitEmitted)
 }
