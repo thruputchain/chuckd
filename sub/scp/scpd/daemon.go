@@ -108,14 +108,31 @@ func StartSCPDaemon(
 }
 
 // scpdEnv returns the Rust logging settings, parent OTEL_* variables, and network hash.
+// Parent service identity settings are withheld because scpd sets its own service identity.
 // scpd uses the hash to derive per-slot block trace IDs (see util/blocktrace).
 func scpdEnv(parent []string, logLevel string, networkHash *proto.NetworkHash) []string {
 	env := []string{"RUST_BACKTRACE=full", "RUST_LOG=" + logLevel}
 	for _, entry := range parent {
-		key, _, ok := strings.Cut(entry, "=")
-		if ok && strings.HasPrefix(key, "OTEL_") {
-			env = append(env, entry)
+		key, value, ok := strings.Cut(entry, "=")
+		if !ok || !strings.HasPrefix(key, "OTEL_") || key == "OTEL_SERVICE_NAME" {
+			continue
 		}
+		if key == "OTEL_RESOURCE_ATTRIBUTES" {
+			var kept []string
+			for _, pair := range strings.Split(value, ",") {
+				attrKey, _, _ := strings.Cut(pair, "=")
+				attrKey = strings.TrimSpace(attrKey)
+				if strings.TrimSpace(pair) == "" || attrKey == "service.name" || attrKey == "service.instance.id" {
+					continue
+				}
+				kept = append(kept, pair)
+			}
+			if len(kept) == 0 {
+				continue
+			}
+			entry = key + "=" + strings.Join(kept, ",")
+		}
+		env = append(env, entry)
 	}
 	if networkHash != nil {
 		env = append(env, "GROUNDHOG_NETWORK_HASH="+hex.EncodeToString(networkHash[:]))
