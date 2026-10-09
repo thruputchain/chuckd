@@ -151,3 +151,16 @@ type Reply_Schedcoord_lookup_transactions struct {
 	OptSTB proto.OptSignedTransactionBatch
 	Err    error
 }
+
+type Request_Schedcoord_lookup_transaction_outcomes struct {
+	Reply chan<- Reply_Schedcoord_lookup_transaction_outcomes
+	Ctx   context.Context
+	STHB  proto.TransactionHashBatch
+}
+
+func (Request_Schedcoord_lookup_transaction_outcomes) IsSchedCoordRequest() {}
+
+type Reply_Schedcoord_lookup_transaction_outcomes struct {
+	Outcomes proto.SchedulerTransactionOutcomeBatch
+	Err      error
+}

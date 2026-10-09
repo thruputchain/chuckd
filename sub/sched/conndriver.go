@@ -61,6 +61,10 @@ func driveConn(
 				optSTB, err := conn.Schedcoord_lookup_transactions(req.Ctx, req.STHB)
 				req.Reply <- Reply_Schedcoord_lookup_transactions{OptSTB: optSTB, Err: err}
 
+			case Request_Schedcoord_lookup_transaction_outcomes:
+				outcomes, err := conn.Schedcoord_lookup_transaction_outcomes(req.Ctx, req.STHB)
+				req.Reply <- Reply_Schedcoord_lookup_transaction_outcomes{Outcomes: outcomes, Err: err}
+
 			default:
 				panic("unknown sched_coord request type")
 			}
