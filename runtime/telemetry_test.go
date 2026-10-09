@@ -727,3 +727,137 @@ func TestTracingSDKDisabled(t *testing.T) {
 		})
 	}
 }
+
+func TestRatioSamplerArguments(t *testing.T) {
+	old := otel.GetErrorHandler()
+	t.Cleanup(func() { otel.SetErrorHandler(old) })
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		t.Errorf("unexpected SDK error: %v", err)
+	}))
+	for _, name := range []string{"traceidratio", "parentbased_traceidratio"} {
+		for _, tc := range []struct {
+			arg      string
+			missing  bool
+			warn     int
+			low      fixedTraceID
+			high     fixedTraceID
+			lowWant  bool
+			highWant bool
+		}{
+			{arg: "0.5", low: 0x7f, high: 0x81, lowWant: true},
+			{arg: " 0.25 ", low: 0x3f, high: 0x41, lowWant: true},
+			{arg: "0", low: 0x01, high: 0xff},
+			{arg: "1", low: 0x01, high: 0xff, lowWant: true, highWant: true},
+			{missing: true, warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "abc", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "NaN", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "Inf", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "-Inf", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "-0.1", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+			{arg: "1.1", warn: 1, low: 0x0a, high: 0x0f, lowWant: true},
+		} {
+			label := tc.arg
+			if tc.missing {
+				label = "missing"
+			}
+			t.Run(name+"/"+label, func(t *testing.T) {
+				t.Setenv("OTEL_TRACES_SAMPLER", " "+strings.ToUpper(name)+" ")
+				t.Setenv("OTEL_TRACES_SAMPLER_ARG", tc.arg)
+				if tc.missing {
+					if err := os.Unsetenv("OTEL_TRACES_SAMPLER_ARG"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				for _, sample := range []struct {
+					id   fixedTraceID
+					want bool
+				}{{tc.low, tc.lowWant}, {tc.high, tc.highWant}} {
+					warnings := 0
+					p := newTraceProvider(func(err error) {
+						warnings++
+						if !strings.Contains(err.Error(), "using "+name+"(0.05)") {
+							t.Errorf("incorrect fallback warning: %v", err)
+						}
+					}, sdktrace.WithIDGenerator(sample.id))
+					t.Cleanup(func() {
+						if err := p.Shutdown(context.Background()); err != nil {
+							t.Error(err)
+						}
+					})
+					if warnings != tc.warn {
+						t.Fatalf("warnings=%d, want %d", warnings, tc.warn)
+					}
+					check := func(ctx context.Context, want bool) {
+						t.Helper()
+						_, span := p.Tracer("test").Start(ctx, "sample")
+						defer span.End()
+						if span.SpanContext().IsSampled() != want {
+							t.Errorf("id=%x parent=%v: sampled=%v, want %v", byte(sample.id),
+								trace.SpanContextFromContext(ctx), span.SpanContext().IsSampled(), want)
+						}
+					}
+					check(context.Background(), sample.want)
+					for _, sampled := range []bool{false, true} {
+						flags := trace.TraceFlags(0)
+						if sampled {
+							flags = trace.FlagsSampled
+						}
+						id, sid := sample.id.NewIDs(context.Background())
+						parent := trace.NewSpanContext(trace.SpanContextConfig{
+							TraceID: id, SpanID: sid, TraceFlags: flags,
+						})
+						want := sample.want
+						if name == "parentbased_traceidratio" {
+							want = sampled
+						}
+						check(trace.ContextWithSpanContext(context.Background(), parent), want)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestBlockTraceSamplerCrossProcessBoundary(t *testing.T) {
+	old := otel.GetErrorHandler()
+	t.Cleanup(func() { otel.SetErrorHandler(old) })
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		t.Errorf("unexpected SDK error: %v", err)
+	}))
+	var network [32]byte
+	for i := range network {
+		network[i] = 0x11
+	}
+	id := blocktrace.TraceID(network, 42)
+	if id.String() != "553a3192399806a83a6f64004c4cab48" {
+		t.Fatalf("unexpected shared trace ID: %s", id)
+	}
+	// The decision is uint64(lowBE64(traceID) >> 1) < uint64(ratio * 2^63),
+	// the same rule as opentelemetry_sdk 0.33 sample_based_on_probability used
+	// by scpd. This vector's threshold is 0x3a6f64004c4cab48 / 2^64 ≈ 0.2283.
+	for _, name := range []string{"traceidratio", "parentbased_traceidratio"} {
+		for _, tc := range []struct {
+			arg  string
+			want bool
+		}{{"0.22", false}, {"0.23", true}} {
+			t.Run(name+"/"+tc.arg, func(t *testing.T) {
+				t.Setenv("OTEL_TRACES_SAMPLER", name)
+				t.Setenv("OTEL_TRACES_SAMPLER_ARG", tc.arg)
+				p := newTraceProvider(func(err error) { t.Errorf("unexpected warning: %v", err) },
+					sdktrace.WithIDGenerator(blocktrace.IDGenerator()))
+				t.Cleanup(func() {
+					if err := p.Shutdown(context.Background()); err != nil {
+						t.Error(err)
+					}
+				})
+				_, span := p.Tracer("test").Start(blocktrace.WithTraceID(context.Background(), id), "block")
+				defer span.End()
+				if span.SpanContext().TraceID() != id || span.SpanContext().IsSampled() != tc.want {
+					t.Fatalf("trace ID=%s sampled=%v, want %s sampled=%v", span.SpanContext().TraceID(),
+						span.SpanContext().IsSampled(), id, tc.want)
+				}
+			})
+		}
+	}
+}

@@ -290,7 +290,7 @@ func setupTracing(ctx context.Context, instanceID string) *sdktrace.TracerProvid
 		return nil
 	}
 	provider := newTraceProvider(func(err error) {
-		liblog.Warnf(ctx, "trace sampler: %v; using parentbased_traceidratio(0.05)", err)
+		liblog.Warnf(ctx, "trace sampler: %v", err)
 	},
 		sdktrace.WithResource(rsc),
 		sdktrace.WithIDGenerator(blocktrace.IDGenerator()),
@@ -332,32 +332,34 @@ func newTraceProvider(warn func(error), opts ...sdktrace.TracerProviderOption) *
 func traceSamplerOptions(warn func(error)) []sdktrace.TracerProviderOption {
 	name := strings.ToLower(strings.TrimSpace(os.Getenv("OTEL_TRACES_SAMPLER")))
 	var err error
+	fallback := "parentbased_traceidratio"
 	switch name {
 	case "":
 	case "always_on", "always_off", "parentbased_always_on", "parentbased_always_off":
 		return nil
 	case "traceidratio", "parentbased_traceidratio":
-		arg, present := os.LookupEnv("OTEL_TRACES_SAMPLER_ARG")
-		if !present {
-			return nil
-		}
-		arg = strings.TrimSpace(arg)
+		fallback = name
+		arg := strings.TrimSpace(os.Getenv("OTEL_TRACES_SAMPLER_ARG"))
 		ratio, parseErr := strconv.ParseFloat(arg, 64)
-		if parseErr == nil && !math.IsNaN(ratio) && ratio >= 0 && ratio <= 1 {
-			return nil
+		if parseErr == nil && !math.IsNaN(ratio) && !math.IsInf(ratio, 0) && ratio >= 0 && ratio <= 1 {
+			return ratioSamplerOptions(name, ratio)
 		}
 		err = fmt.Errorf("invalid OTEL_TRACES_SAMPLER_ARG %q", arg)
 	default:
 		err = fmt.Errorf("invalid OTEL_TRACES_SAMPLER %q", name)
 	}
 	if err != nil {
-		warn(err)
+		warn(fmt.Errorf("%w; using %s(0.05)", err, fallback))
 	}
-	// Valid explicit settings are read by the SDK. Override its always-on
-	// default only when unset or invalid, without modifying the environment.
-	return []sdktrace.TracerProviderOption{
-		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(0.05))),
+	return ratioSamplerOptions(fallback, 0.05)
+}
+
+func ratioSamplerOptions(name string, ratio float64) []sdktrace.TracerProviderOption {
+	var sampler sdktrace.Sampler = sdktrace.TraceIDRatioBased(ratio)
+	if name == "parentbased_traceidratio" {
+		sampler = sdktrace.ParentBased(sampler)
 	}
+	return []sdktrace.TracerProviderOption{sdktrace.WithSampler(sampler)}
 }
 
 type warningSpanExporter struct {
