@@ -38,9 +38,11 @@ func TestPprofRates(t *testing.T) {
 
 func TestProfileRateConflicts(t *testing.T) {
 	oldEnabled, oldMutex, oldBlock := pprofEnabled, pprofMutexFraction, pprofBlockRate
+	oldAllowRemote := pprofAllowRemote
 	oldMutexPath, oldBlockPath := mutexProfilePath, blockProfilePath
 	t.Cleanup(func() {
 		SetPprof(oldEnabled, oldMutex, oldBlock)
+		SetPprofAllowRemote(oldAllowRemote)
 		SetMutexProfilePath(oldMutexPath)
 		SetBlockProfilePath(oldBlockPath)
 	})
@@ -50,22 +52,26 @@ func TestProfileRateConflicts(t *testing.T) {
 		mutexPath, blockPath string
 		mutexRate, blockRate int
 		conflict             string
+		allowRemote          bool
 	}{
-		{"mutex conflict", true, "mutex.pprof", "", 5, 0, "--mutex"},
-		{"block conflict", true, "", "block.pprof", 0, 10000, "--block"},
-		{"default rates", true, "mutex.pprof", "block.pprof", 0, 0, ""},
-		{"live only", true, "", "", 5, 10000, ""},
-		{"disabled", false, "mutex.pprof", "block.pprof", 5, 10000, "--pprof-mutex-fraction requires --pprof"},
-		{"negative mutex", true, "", "", -1, 0, "--pprof-mutex-fraction must be non-negative"},
-		{"negative block", true, "", "", 0, -1, "--pprof-block-rate must be non-negative"},
-		{"mutex without pprof", false, "", "", 5, 0, "--pprof-mutex-fraction requires --pprof"},
-		{"block without pprof", false, "", "", 0, 100000, "--pprof-block-rate requires --pprof"},
-		{"disabled defaults", false, "", "", 0, 0, ""},
-		{"independent mutex", true, "mutex.pprof", "", 0, 10000, ""},
-		{"independent block", true, "", "block.pprof", 5, 0, ""},
+		{"mutex conflict", true, "mutex.pprof", "", 5, 0, "--mutex", false},
+		{"block conflict", true, "", "block.pprof", 0, 10000, "--block", false},
+		{"default rates", true, "mutex.pprof", "block.pprof", 0, 0, "", false},
+		{"live only", true, "", "", 5, 10000, "", false},
+		{"disabled", false, "mutex.pprof", "block.pprof", 5, 10000, "--pprof-mutex-fraction requires --pprof", false},
+		{"negative mutex", true, "", "", -1, 0, "--pprof-mutex-fraction must be non-negative", false},
+		{"negative block", true, "", "", 0, -1, "--pprof-block-rate must be non-negative", false},
+		{"mutex without pprof", false, "", "", 5, 0, "--pprof-mutex-fraction requires --pprof", false},
+		{"block without pprof", false, "", "", 0, 100000, "--pprof-block-rate requires --pprof", false},
+		{"disabled defaults", false, "", "", 0, 0, "", false},
+		{"independent mutex", true, "mutex.pprof", "", 0, 10000, "", false},
+		{"independent block", true, "", "block.pprof", 5, 0, "", false},
+		{"remote without pprof", false, "", "", 0, 0, "--pprof-allow-remote requires --pprof", true},
+		{"remote with pprof", true, "", "", 0, 0, "", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			SetPprof(tc.enabled, tc.mutexRate, tc.blockRate)
+			SetPprofAllowRemote(tc.allowRemote)
 			SetMutexProfilePath(tc.mutexPath)
 			SetBlockProfilePath(tc.blockPath)
 			if tc.conflict == "" {

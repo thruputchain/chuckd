@@ -43,6 +43,7 @@ func SetupTelemetry(ctx context.Context, instanceID string, addr string, config 
 const maxConcurrentPprof = 2
 const maxPprofSeconds = 60
 const telemetryReadHeaderTimeout = 10 * time.Second
+const telemetryIdleTimeout = 60 * time.Second
 
 type telemetry struct {
 	addr net.Addr
@@ -51,7 +52,7 @@ type telemetry struct {
 }
 
 func (t *telemetry) shutdown(ctx context.Context) error {
-	return errors.Join(t.srv.Shutdown(ctx), t.mp.Shutdown(ctx))
+	return errors.Join(t.srv.Close(), t.mp.Shutdown(ctx))
 }
 
 func isLoopback(ip net.IP) bool { return ip.IsLoopback() }
@@ -61,7 +62,7 @@ func pprofRemoteAllowed(config PprofConfig) bool {
 }
 
 func newTelemetryServer(mux http.Handler) *http.Server {
-	return &http.Server{Handler: mux, ReadHeaderTimeout: telemetryReadHeaderTimeout}
+	return &http.Server{Handler: mux, ReadHeaderTimeout: telemetryReadHeaderTimeout, IdleTimeout: telemetryIdleTimeout}
 }
 
 func startTelemetry(ctx context.Context, instanceID, addr string, config PprofConfig) (*telemetry, error) {
@@ -187,11 +188,14 @@ func limitPprof(sem chan struct{}, next http.Handler) http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "invalid form", http.StatusBadRequest)
-			return
+		values := r.URL.Query()["seconds"]
+		if r.Method != http.MethodPost {
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, "invalid form", http.StatusBadRequest)
+				return
+			}
+			values = r.Form["seconds"]
 		}
-		values := r.Form["seconds"]
 		if len(values) > 1 {
 			http.Error(w, "seconds must be given at most once", http.StatusBadRequest)
 			return

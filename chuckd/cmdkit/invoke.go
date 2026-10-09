@@ -230,6 +230,9 @@ func applyPprofRates(setMutex func(int) int, setBlock func(int)) {
 }
 
 func validateProfileOptions() error {
+	if pprofAllowRemote && !pprofEnabled {
+		return fmt.Errorf("--pprof-allow-remote requires --pprof")
+	}
 	if pprofMutexFraction < 0 {
 		return fmt.Errorf("--pprof-mutex-fraction must be non-negative")
 	}

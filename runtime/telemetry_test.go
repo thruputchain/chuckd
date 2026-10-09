@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -191,9 +192,11 @@ func TestPprofMethodsAndForms(t *testing.T) {
 		{http.MethodPost, "/debug/pprof/heap", "seconds=61", "GET, HEAD", "", 405},
 		{http.MethodPut, "/debug/pprof/heap", "", "GET, HEAD", "", 405},
 		{http.MethodPut, "/debug/pprof/symbol", "", "GET, HEAD, POST", "", 405},
-		{http.MethodPost, "/debug/pprof/symbol", "seconds=61", "", "seconds must be an integer between 0 and 60", 400},
+		{http.MethodPost, "/debug/pprof/symbol", "seconds=61", "", "", 200},
+		{http.MethodPost, "/debug/pprof/symbol?seconds=61", "", "", "seconds must be an integer between 0 and 60", 400},
+		{http.MethodPost, "/debug/pprof/symbol?seconds=1&seconds=1", "", "", "seconds must be given at most once", 400},
 		{http.MethodGet, "/debug/pprof/profile?seconds=1&seconds=61", "", "", "seconds must be given at most once", 400},
-		{http.MethodPost, "/debug/pprof/symbol?seconds=1", "seconds=1", "", "seconds must be given at most once", 400},
+		{http.MethodPost, "/debug/pprof/symbol?seconds=1", "seconds=1", "", "", 200},
 		{http.MethodGet, "/debug/pprof/heap?seconds=%zz", "", "", "invalid form", 400},
 		{http.MethodHead, "/debug/pprof/heap", "", "", "", 200},
 		{http.MethodPost, "/debug/pprof/symbol", "", "", "", 200},
@@ -207,6 +210,17 @@ func TestPprofMethodsAndForms(t *testing.T) {
 		if r.Code != tc.status || r.Header().Get("Allow") != tc.allow || !strings.Contains(r.Body.String(), tc.message) {
 			t.Fatalf("%s %s body=%q: status=%d Allow=%q response=%q", tc.method, tc.target, tc.body, r.Code, r.Header().Get("Allow"), r.Body.String())
 		}
+	}
+}
+
+func TestPprofSymbolPostBody(t *testing.T) {
+	req := newPprofRequest(http.MethodPost, "/debug/pprof/symbol")
+	req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf("%#x", reflect.ValueOf(TestPprofIndex).Pointer())))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r := httptest.NewRecorder()
+	telemetryMux(PprofConfig{}, true, false).ServeHTTP(r, req)
+	if r.Code != http.StatusOK || !strings.Contains(r.Body.String(), "TestPprofIndex") {
+		t.Fatalf("symbol response: status=%d body=%q", r.Code, r.Body.String())
 	}
 }
 
@@ -272,8 +286,53 @@ func TestPprofConcurrency(t *testing.T) {
 }
 
 func TestTelemetryReadHeaderTimeout(t *testing.T) {
-	if got := newTelemetryServer(http.NewServeMux()).ReadHeaderTimeout; got != 10*time.Second {
+	srv := newTelemetryServer(http.NewServeMux())
+	if got := srv.ReadHeaderTimeout; got != 10*time.Second {
 		t.Fatalf("ReadHeaderTimeout = %v, want 10s", got)
+	}
+	if got := srv.IdleTimeout; got != 60*time.Second {
+		t.Fatalf("IdleTimeout = %v, want 60s", got)
+	}
+}
+
+func TestTelemetryShutdownDuringProfile(t *testing.T) {
+	srv, err := startTelemetry(context.Background(), t.Name(), "127.0.0.1:0", PprofConfig{Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		srv.srv.Close()
+		srv.mp.Shutdown(context.Background())
+	})
+	requestDone := make(chan struct{})
+	go func() {
+		defer close(requestDone)
+		resp, err := http.Get("http://" + srv.addr.String() + "/debug/pprof/profile?seconds=5")
+		if err == nil {
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+		}
+	}()
+	time.Sleep(200 * time.Millisecond)
+	select {
+	case <-requestDone:
+		t.Fatal("profile request finished before shutdown")
+	default:
+	}
+	done := make(chan error, 1)
+	go func() { done <- srv.shutdown(context.Background()) }()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("shutdown did not return within 1s")
+	}
+	select {
+	case <-requestDone:
+	case <-time.After(time.Second):
+		t.Fatal("profile client did not disconnect after shutdown")
 	}
 }
 
