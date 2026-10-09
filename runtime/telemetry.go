@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/groundhogchain/chuckd"
+	"github.com/groundhogchain/chuckd/util/blocktrace"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
@@ -59,13 +60,28 @@ type telemetry struct {
 	tp   *sdktrace.TracerProvider
 }
 
+// shutdown closes the metrics server before flushing providers, so an in-flight
+// profile cannot delay exit.
 func (t *telemetry) shutdown(ctx context.Context) error {
-	srvErr := t.srv.Close()
-	var traceErr error
-	if t.tp != nil {
-		traceErr = t.tp.Shutdown(ctx)
+	return errors.Join(t.srv.Close(), newShutdown(t.tp, t.mp)(ctx))
+}
+
+const traceShutdownTimeout = 5 * time.Second
+
+func newShutdown(tracerProvider *sdktrace.TracerProvider, meterProvider *sdkmetric.MeterProvider) func(context.Context) error {
+	return func(ctx context.Context) error {
+		var traceErr error
+		if tracerProvider != nil {
+			traceCtx, cancel := context.WithTimeout(ctx, traceShutdownTimeout)
+			defer cancel()
+			traceErr = tracerProvider.Shutdown(traceCtx)
+		}
+		var metricErr error
+		if meterProvider != nil {
+			metricErr = meterProvider.Shutdown(ctx)
+		}
+		return errors.Join(traceErr, metricErr)
 	}
-	return errors.Join(srvErr, traceErr, t.mp.Shutdown(ctx))
 }
 
 func isLoopback(ip net.IP) bool { return ip.IsLoopback() }
@@ -258,20 +274,16 @@ func setupTracing(ctx context.Context, instanceID string) *sdktrace.TracerProvid
 		otel.SetTracerProvider(noop.NewTracerProvider())
 		return nil
 	}
-	var warning sync.Once
 	warn := func(err error) {
-		warning.Do(func() { liblog.Warnf(ctx, "trace exporter: %v", err) })
+		liblog.Warnf(ctx, "trace exporter: %v", err)
 	}
 	// The gRPC exporter connects asynchronously; an unavailable collector cannot
 	// delay startup. Export failures are reported once by the exporter wrapper.
-	rsc, err := resource.New(ctx,
-		resource.WithAttributes(semconv.ServiceName("chuckd"), semconv.ServiceInstanceID(instanceID)),
-		resource.WithFromEnv(),
-	)
+	rsc, err := traceResource(ctx, instanceID)
 	if err != nil {
 		warn(err)
 	}
-	exporter, err := otlptracegrpc.New(ctx)
+	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{Enabled: false}))
 	if err != nil {
 		warn(err)
 		otel.SetTracerProvider(noop.NewTracerProvider())
@@ -281,7 +293,8 @@ func setupTracing(ctx context.Context, instanceID string) *sdktrace.TracerProvid
 		liblog.Warnf(ctx, "trace sampler: %v; using parentbased_traceidratio(0.05)", err)
 	},
 		sdktrace.WithResource(rsc),
-		sdktrace.WithBatcher(&warningSpanExporter{SpanExporter: exporter, warn: warn}),
+		sdktrace.WithIDGenerator(blocktrace.IDGenerator()),
+		sdktrace.WithBatcher(&warningSpanExporter{SpanExporter: exporter, warn: warn}, sdktrace.WithExportTimeout(2*time.Second)),
 	)
 	otel.SetTracerProvider(provider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
@@ -294,7 +307,7 @@ func newTraceProvider(warn func(error), opts ...sdktrace.TracerProviderOption) *
 		return sdktrace.NewTracerProvider(opts...)
 	}
 	opts = append(opts, samplerOpts...)
-	// v1.35.0 parses the environment before applying WithSampler and reports
+	// v1.45.0 parses the environment before applying WithSampler and reports
 	// invalid settings to the global handler even when the sampler is overridden.
 	// During startup, suppress that duplicate report while preserving other errors.
 	old := otel.GetErrorHandler()
@@ -349,12 +362,13 @@ func traceSamplerOptions(warn func(error)) []sdktrace.TracerProviderOption {
 
 type warningSpanExporter struct {
 	sdktrace.SpanExporter
-	warn func(error)
+	warn    func(error)
+	warning sync.Once
 }
 
 func (x *warningSpanExporter) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
 	if err := x.SpanExporter.ExportSpans(ctx, spans); err != nil {
-		x.warn(err)
+		x.warning.Do(func() { x.warn(err) })
 	}
 	// Avoid repeated warnings from the batch processor's global error handler.
 	return nil
@@ -363,8 +377,7 @@ func (x *warningSpanExporter) ExportSpans(ctx context.Context, spans []sdktrace.
 func createResource(instanceID string) (*resource.Resource, error) {
 	return resource.Merge(
 		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
+		resource.NewSchemaless(
 			// Service metadata
 			semconv.ServiceNameKey.String("chuckd"),
 			semconv.ServiceVersionKey.String(chuckd.Short()),
@@ -378,4 +391,11 @@ func createResource(instanceID string) (*resource.Resource, error) {
 			// attribute.Int("container.cpu.limit", 4),
 		),
 	)
+}
+
+func traceResource(ctx context.Context, instanceID string) (*resource.Resource, error) {
+	base, baseErr := createResource(instanceID)
+	env, envErr := resource.New(ctx, resource.WithFromEnv())
+	rsc, mergeErr := resource.Merge(base, env)
+	return rsc, errors.Join(baseErr, envErr, mergeErr)
 }

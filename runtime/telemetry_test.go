@@ -3,6 +3,7 @@ package runtime
 import (
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,7 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/groundhogchain/chuckd"
+	"github.com/groundhogchain/chuckd/util/blocktrace"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
@@ -426,6 +431,121 @@ func TestSetupTelemetryBindError(t *testing.T) {
 	if err == nil {
 		t.Cleanup(func() { shutdown(context.Background()) })
 		t.Fatal("second listener did not return a bind error")
+	}
+}
+
+func TestTelemetryResources(t *testing.T) {
+	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "")
+	t.Setenv("OTEL_SERVICE_NAME", "")
+	for _, build := range []func(string) (*resource.Resource, error){
+		createResource,
+		func(id string) (*resource.Resource, error) { return traceResource(context.Background(), id) },
+	} {
+		rsc, err := build("x")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for key, want := range map[string]string{"service.name": "chuckd", "service.version": chuckd.Short(), "service.instance.id": "x"} {
+			got, ok := rsc.Set().Value(attribute.Key(key))
+			if !ok || got.AsString() != want {
+				t.Errorf("%s = %v, want %q", key, got, want)
+			}
+		}
+	}
+	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "service.version=override,service.instance.id=env")
+	t.Setenv("OTEL_SERVICE_NAME", "env-service")
+	rsc, err := traceResource(context.Background(), "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]string{"service.name": "env-service", "service.version": "override", "service.instance.id": "env"} {
+		got, _ := rsc.Set().Value(attribute.Key(key))
+		if got.AsString() != want {
+			t.Errorf("%s = %v, want %q", key, got, want)
+		}
+	}
+}
+
+type failingSpanExporter struct{}
+
+func (failingSpanExporter) ExportSpans(context.Context, []sdktrace.ReadOnlySpan) error {
+	return errors.New("export failed")
+}
+
+func (failingSpanExporter) Shutdown(context.Context) error { return nil }
+
+func TestExportWarningAfterResourceWarning(t *testing.T) {
+	warnings := 0
+	warn := func(error) { warnings++ }
+	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "invalid")
+	_, err := traceResource(context.Background(), "x")
+	if err == nil {
+		t.Fatal("expected resource error")
+	}
+	warn(err)
+	exporter := &warningSpanExporter{SpanExporter: failingSpanExporter{}, warn: warn}
+	for range 2 {
+		if err := exporter.ExportSpans(context.Background(), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if warnings != 2 {
+		t.Fatalf("warnings = %d, want resource warning and one export warning", warnings)
+	}
+}
+
+func TestTracingBlackHoleShutdown(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		var connections []net.Conn
+		defer func() {
+			for _, conn := range connections {
+				conn.Close()
+			}
+		}()
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			connections = append(connections, conn)
+		}
+	}()
+	t.Cleanup(func() { listener.Close(); <-done })
+	oldProvider, oldHandler, oldPropagator := otel.GetTracerProvider(), otel.GetErrorHandler(), otel.GetTextMapPropagator()
+	t.Cleanup(func() {
+		otel.SetTracerProvider(oldProvider)
+		otel.SetErrorHandler(oldHandler)
+		otel.SetTextMapPropagator(oldPropagator)
+	})
+	t.Setenv("OTEL_SDK_DISABLED", "false")
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://"+listener.Addr().String())
+	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
+	t.Setenv("OTEL_TRACES_SAMPLER", "always_on")
+	provider := setupTracing(context.Background(), "test")
+	if provider == nil {
+		t.Fatal("missing tracer provider")
+	}
+	shutdown := newShutdown(provider, nil)
+	t.Cleanup(func() { shutdown(context.Background()) })
+	id := blocktrace.TraceID([32]byte{1}, 42)
+	ctx := blocktrace.WithTraceID(context.Background(), id)
+	for range 3 {
+		_, span := provider.Tracer("test").Start(ctx, "black-hole")
+		if span.SpanContext().TraceID() != id {
+			t.Error("provider did not use block trace ID")
+		}
+		span.End()
+	}
+	start := time.Now()
+	shutdown(context.Background())
+	if elapsed := time.Since(start); elapsed > 7*time.Second {
+		t.Fatalf("shutdown took %v", elapsed)
 	}
 }
 
