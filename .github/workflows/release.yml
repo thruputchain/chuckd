@@ -35,7 +35,7 @@ jobs:
     uses: ./.github/workflows/coordinator-build.yml
     with:
       source_commit: ${{ github.sha }}
-      component_version: 0.1.29-rc.3
+      component_version: 0.1.31-rc.1
     secrets:
       CHUCKD_TO_CHUCKD_KEY: ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
       CHUCKD_TO_LIB_GO_KEY: ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
