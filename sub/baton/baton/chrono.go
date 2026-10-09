@@ -189,7 +189,8 @@ func (b *Baton) stampCommitEnd(height proto.BlockHeight) {
 
 // emitSpans reconstructs completed phases as soon as commit finishes. A local
 // proposal may still be running; it must not delay emission of the commit trace.
-// Catchup has only a commit phase.
+// Phases that complete later are added as children of the already-ended root,
+// so they can extend past the root's end. Catchup has only a commit phase.
 func (x *blockChrono) emitSpans() {
 	if x.commitEnd.IsZero() {
 		return
