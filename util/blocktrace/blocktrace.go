@@ -24,8 +24,9 @@ func TraceID(networkHash [32]byte, height uint64) trace.TraceID {
 
 type traceIDKey struct{}
 
-// WithTraceID makes the next root span started from ctx use id as its trace ID
-// when the tracer provider uses IDGenerator.
+// WithTraceID makes every root span started from ctx (or a descendant without
+// an active span) use id as its trace ID when the tracer provider uses
+// IDGenerator. Use it only to start the block root; do not pass ctx on.
 func WithTraceID(ctx context.Context, id trace.TraceID) context.Context {
 	return context.WithValue(ctx, traceIDKey{}, id)
 }

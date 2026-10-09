@@ -222,7 +222,8 @@ func (x *blockChrono) emitSpans() {
 		if *emitted || start.IsZero() || end.IsZero() || end.Before(start) {
 			return
 		}
-		_, span := tracer.Start(ctx, name, trace.WithTimestamp(start), trace.WithAttributes(attrs...))
+		_, span := tracer.Start(ctx, name, trace.WithTimestamp(start), trace.WithAttributes(attrs...),
+			trace.WithAttributes(attribute.Int64("groundhog.block.height", int64(x.height))))
 		span.End(trace.WithTimestamp(end))
 		*emitted = true
 	}

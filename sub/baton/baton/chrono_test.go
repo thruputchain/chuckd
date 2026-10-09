@@ -83,6 +83,9 @@ func spanTree(t *testing.T, r *tracetest.SpanRecorder, count int) map[string]sdk
 			t.Fatalf("incorrect parent or trace ID for %s", name)
 		}
 		attrs := attribute.NewSet(span.Attributes()...)
+		if got, ok := attrs.Value("groundhog.block.height"); !ok || got.AsInt64() != 42 {
+			t.Fatalf("%s missing groundhog.block.height", name)
+		}
 		if attrs.HasValue("proposal.scope") {
 			t.Fatal("obsolete proposal.scope attribute")
 		}
