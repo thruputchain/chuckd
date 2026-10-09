@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -45,7 +46,17 @@ var (
 					inside,
 					outside,
 				)
+				// The hash only correlates scpd's traces with chuckd's; never block startup on it.
+				networkHash, err := resolveNetworkHash(serverGenesisPath, serverHostedBootstrapMetadataPath)
+				if err != nil {
+					liblog.Warnf(ctx, "network hash for scpd trace correlation: %v", err)
+					networkHash = nil
+				}
+				if networkHash != nil {
+					liblog.Infof(ctx, "passing network hash to scpd: %s", hex.EncodeToString(networkHash[:]))
+				}
 				opcfg := coordinator.OperationalConfig{
+					NetworkHash:    networkHash,
 					StorageDir:     serverStorageDir,
 					SchedAddr:      serverSchedAddress,
 					DebugPort:      0, // not used by coordinator system
@@ -122,13 +133,43 @@ var (
 )
 
 func loadGenesisConfigurationFile(ctx context.Context, filePath string) proto.GenesisConfiguration {
-	data, err := os.ReadFile(filePath)
-	must.Assertf(ctx, err == nil, "reading genesis file (%w)", err)
-
-	var genesis proto.GenesisConfiguration
-	err = libxdr.JsonToXdr(&genesis, data)
+	genesis, err := readGenesisConfigurationFile(filePath)
 	must.NoError(ctx, err)
 	return genesis
+}
+
+func readGenesisConfigurationFile(filePath string) (proto.GenesisConfiguration, error) {
+	var genesis proto.GenesisConfiguration
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return genesis, fmt.Errorf("reading genesis file: %w", err)
+	}
+	err = libxdr.JsonToXdr(&genesis, data)
+	return genesis, err
+}
+
+func resolveNetworkHash(genesisPath, metadataPath string) (*proto.NetworkHash, error) {
+	if genesisPath != "" {
+		genesis, err := readGenesisConfigurationFile(genesisPath)
+		if err != nil {
+			return nil, err
+		}
+		return &genesis.Network_hash, nil
+	}
+	if metadataPath == "" {
+		return nil, nil
+	}
+	metadata, err := loadHostedBootstrapMetadata(metadataPath)
+	if err != nil {
+		return nil, err
+	}
+	decoded, err := hex.DecodeString(metadata.NetworkHash)
+	if err != nil {
+		return nil, err
+	}
+	var hash proto.NetworkHash
+	copy(hash[:], decoded)
+	return &hash, nil
 }
 
 type genesisControl interface {

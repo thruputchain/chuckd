@@ -54,6 +54,7 @@ type OperationalConfig struct {
 	SCPHandleAddr  string
 	SCPControlAddr string
 	IsValidator    bool
+	NetworkHash    *proto.NetworkHash
 }
 
 func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
@@ -81,6 +82,7 @@ func (s *System) Start(ctx context.Context, opcfg OperationalConfig) Control {
 		opcfg.IsValidator,
 		*s.cfg.Scp_config,
 		protoutil.ToSecretKey(s.cfg.Validator_config.Private_info.Secret_key),
+		opcfg.NetworkHash,
 	)
 	s.scpHandler = scpHandler
 	s.scpController = scpController

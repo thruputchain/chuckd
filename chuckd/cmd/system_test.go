@@ -27,6 +27,7 @@ var expectedMinimalCostModel = proto.StorageCostModelXdr{
 func writeMinimalGenesisFile(t *testing.T) string {
 	t.Helper()
 	genesis := proto.GenesisConfiguration{
+		Network_hash:       proto.NetworkHash{0xab},
 		Storage_cost_model: expectedMinimalCostModel,
 		Root_contract:      proto.Contract{Contract_type: proto.KRv32},
 	}
@@ -40,6 +41,40 @@ func writeMinimalGenesisFile(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func TestResolveNetworkHash(t *testing.T) {
+	genesisPath := writeMinimalGenesisFile(t)
+	metadata := testHostedBootstrapMetadata()
+	metadata.NetworkHash = strings.Repeat("cd", 32)
+	metadataPath := writeHostedBootstrapMetadataJSON(t, metadata)
+	var metadataHash proto.NetworkHash
+	for i := range metadataHash {
+		metadataHash[i] = 0xcd
+	}
+	genesisHash := proto.NetworkHash{0xab}
+	for _, tc := range []struct {
+		name, genesis, metadata string
+		want                    *proto.NetworkHash
+		wantErr                 bool
+	}{
+		{"genesis", genesisPath, "", &genesisHash, false},
+		{"metadata", "", metadataPath, &metadataHash, false},
+		{"neither", "", "", nil, false},
+		{"genesis precedence", genesisPath, "missing", &genesisHash, false},
+		{"missing genesis", "missing", "", nil, true},
+		{"missing metadata", "", "missing", nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := resolveNetworkHash(tc.genesis, tc.metadata)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("error = %v", err)
+			}
+			if (got == nil) != (tc.want == nil) || (got != nil && *got != *tc.want) {
+				t.Fatalf("hash = %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
 
 func TestLoadGenesisConfigurationFileAcceptsMinimalDefaultCostModel(t *testing.T) {
