@@ -58,8 +58,12 @@ func flushBlockProfile(ctx context.Context, blockProfilePath string) {
 }
 
 func Invoke(ctx context.Context, f func()) error {
+	if err := validateProfileOptions(); err != nil {
+		return err
+	}
 
 	hooks := []func(os.Signal){}
+	applyPprofRates(runtime.SetMutexProfileFraction, runtime.SetBlockProfileRate)
 
 	// mem profile
 	if memProfilePath != "" {
@@ -127,7 +131,12 @@ func Invoke(ctx context.Context, f func()) error {
 	}
 
 	// start telemetry
-	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr)
+	shutdown, err := xruntime.SetupTelemetry(ctx, instanceID, metricsAddr, xruntime.PprofConfig{
+		Enabled:            pprofEnabled,
+		AllowRemote:        pprofAllowRemote,
+		CPUProfileActive:   cpuProfilePath != "",
+		TraceProfileActive: traceProfilePath != "",
+	})
 	if err != nil {
 		liblog.Fatalf(ctx, "starting telemetry: %v", err)
 		return err
@@ -196,6 +205,53 @@ var metricsAddr string
 
 func SetMetricsAddr(addr string) {
 	metricsAddr = addr
+}
+
+var pprofEnabled bool
+var pprofAllowRemote bool
+var pprofMutexFraction int
+var pprofBlockRate int
+
+func SetPprof(enabled bool, mutexFraction, blockRate int) {
+	pprofEnabled = enabled
+	pprofMutexFraction = mutexFraction
+	pprofBlockRate = blockRate
+}
+
+func SetPprofAllowRemote(allow bool) {
+	pprofAllowRemote = allow
+}
+
+func applyPprofRates(setMutex func(int) int, setBlock func(int)) {
+	if pprofEnabled {
+		setMutex(pprofMutexFraction)
+		setBlock(pprofBlockRate)
+	}
+}
+
+func validateProfileOptions() error {
+	if pprofAllowRemote && !pprofEnabled {
+		return fmt.Errorf("--pprof-allow-remote requires --pprof")
+	}
+	if pprofMutexFraction < 0 {
+		return fmt.Errorf("--pprof-mutex-fraction must be non-negative")
+	}
+	if pprofBlockRate < 0 {
+		return fmt.Errorf("--pprof-block-rate must be non-negative")
+	}
+	if !pprofEnabled && pprofMutexFraction != 0 {
+		return fmt.Errorf("--pprof-mutex-fraction requires --pprof")
+	}
+	if !pprofEnabled && pprofBlockRate != 0 {
+		return fmt.Errorf("--pprof-block-rate requires --pprof")
+	}
+	if pprofEnabled && mutexProfilePath != "" && pprofMutexFraction != 0 {
+		return fmt.Errorf("--mutex and --pprof-mutex-fraction cannot be combined with --pprof: file profiling sets the mutex sampling fraction to 1")
+	}
+	if pprofEnabled && blockProfilePath != "" && pprofBlockRate != 0 {
+		return fmt.Errorf("--block and --pprof-block-rate cannot be combined with --pprof: file profiling sets the block sampling rate to 1")
+	}
+	return nil
 }
 
 var stackTrace bool
