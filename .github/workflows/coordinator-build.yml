@@ -110,6 +110,8 @@ jobs:
         name: Build coordinator
         env:
           SCPD_PROFILE: release
+          # Release-only jemalloc heap profiling; this runs on namespace runners.
+          SCPD_HEAP_PROFILING: "1"
         run: |
           set -euo pipefail
           start=$(date -u +%s)
