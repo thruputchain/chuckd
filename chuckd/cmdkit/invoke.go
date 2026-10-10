@@ -143,7 +143,7 @@ func Invoke(ctx context.Context, f func()) error {
 	}
 	defer func() {
 		if err := shutdown(ctx); err != nil {
-			liblog.Fatalf(ctx, "shutdown telemetry: %v", err)
+			liblog.Warnf(ctx, "shutdown telemetry: %v", err)
 		}
 	}()
 	hooks = append(hooks,

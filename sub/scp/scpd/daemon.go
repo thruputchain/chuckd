@@ -2,11 +2,13 @@ package scpd
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,6 +31,7 @@ func StartSCPDaemon(
 	isValidator bool,
 	cfg proto.SCPConfig,
 	secretKey proto.SecretKey,
+	networkHash *proto.NetworkHash,
 ) (*SCPHandler, *SCPController, func()) {
 
 	liblog.Infof(ctx, "starting scpd, control_address=%s, handle_address=%s ...", controlAddr, handleAddr)
@@ -70,7 +73,7 @@ func StartSCPDaemon(
 		"--config-path", tmpPath,
 		"--secret-key", secretKeyText,
 	)
-	cmd.Env = []string{"RUST_BACKTRACE=full", "RUST_LOG=" + liblog.GetLogLevel().String()}
+	cmd.Env = scpdEnv(os.Environ(), liblog.GetLogLevel().String(), networkHash)
 	cmd.Stdout = libtext.NewPrefixWriter(liblog.Writer(ctx), "[scpd:out] ")
 	cmd.Stderr = libtext.NewPrefixWriter(liblog.Writer(ctx), "[scpd:err] ")
 
@@ -102,4 +105,37 @@ func StartSCPDaemon(
 	}
 
 	return handler, controller, func() { kill(os.Kill) }
+}
+
+// scpdEnv returns the Rust logging settings, parent OTEL_* variables, and network hash.
+// Parent service identity settings are withheld because scpd sets its own service identity.
+// scpd uses the hash to derive per-slot block trace IDs (see util/blocktrace).
+func scpdEnv(parent []string, logLevel string, networkHash *proto.NetworkHash) []string {
+	env := []string{"RUST_BACKTRACE=full", "RUST_LOG=" + logLevel}
+	for _, entry := range parent {
+		key, value, ok := strings.Cut(entry, "=")
+		if !ok || !strings.HasPrefix(key, "OTEL_") || key == "OTEL_SERVICE_NAME" {
+			continue
+		}
+		if key == "OTEL_RESOURCE_ATTRIBUTES" {
+			var kept []string
+			for _, pair := range strings.Split(value, ",") {
+				attrKey, _, _ := strings.Cut(pair, "=")
+				attrKey = strings.TrimSpace(attrKey)
+				if strings.TrimSpace(pair) == "" || attrKey == "service.name" || attrKey == "service.instance.id" {
+					continue
+				}
+				kept = append(kept, pair)
+			}
+			if len(kept) == 0 {
+				continue
+			}
+			entry = key + "=" + strings.Join(kept, ",")
+		}
+		env = append(env, entry)
+	}
+	if networkHash != nil {
+		env = append(env, "GROUNDHOG_NETWORK_HASH="+hex.EncodeToString(networkHash[:]))
+	}
+	return env
 }

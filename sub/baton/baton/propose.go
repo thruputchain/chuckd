@@ -13,6 +13,7 @@ import (
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/groundhogchain/lib-go/must"
 	proto "github.com/groundhogchain/protocol-go"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type proposing struct {
@@ -76,7 +77,6 @@ func (b *Baton) propose(
 	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
 
 	tMempoolProposeEnd := b.handler.Now()
-	b.stampMempoolNominateEnd(height, tMempoolProposeEnd)
 	liblog.Debugf(ctx, "mempool_proposal_delay=%v | height=%d, num_txs=%d",
 		tMempoolProposeEnd.Sub(t0),
 		height,
@@ -99,6 +99,10 @@ func (b *Baton) propose(
 		Value:        *value,
 		Proposal_txs: proposal.Transactions,
 	}
+	b.stampMempoolNominateEnd(height, tMempoolProposeEnd, []attribute.KeyValue{
+		attribute.String("proposal.value.hash_prefix", protoutil.ValueDisplay(value)),
+		attribute.String("proposal.proposer", protoutil.VIDString(protoutil.ValueProposer(value))),
+	}, value.Proposal_header.Network_hash)
 	cb := &proto.CatchupBlock{
 		Consensus_basis:     *basis,
 		Signed_transactions: proposedBlock.Txs,

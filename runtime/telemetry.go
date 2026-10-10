@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"math"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -11,16 +13,22 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/groundhogchain/chuckd"
+	"github.com/groundhogchain/chuckd/util/blocktrace"
 	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // PprofConfig controls live profiling and endpoints reserved by file profiling.
@@ -49,10 +57,31 @@ type telemetry struct {
 	addr net.Addr
 	srv  *http.Server
 	mp   *sdkmetric.MeterProvider
+	tp   *sdktrace.TracerProvider
 }
 
+// shutdown closes the metrics server before flushing providers, so an in-flight
+// profile cannot delay exit.
 func (t *telemetry) shutdown(ctx context.Context) error {
-	return errors.Join(t.srv.Close(), t.mp.Shutdown(ctx))
+	return errors.Join(t.srv.Close(), newShutdown(t.tp, t.mp)(ctx))
+}
+
+const traceShutdownTimeout = 5 * time.Second
+
+func newShutdown(tracerProvider *sdktrace.TracerProvider, meterProvider *sdkmetric.MeterProvider) func(context.Context) error {
+	return func(ctx context.Context) error {
+		var traceErr error
+		if tracerProvider != nil {
+			traceCtx, cancel := context.WithTimeout(ctx, traceShutdownTimeout)
+			defer cancel()
+			traceErr = tracerProvider.Shutdown(traceCtx)
+		}
+		var metricErr error
+		if meterProvider != nil {
+			metricErr = meterProvider.Shutdown(ctx)
+		}
+		return errors.Join(traceErr, metricErr)
+	}
 }
 
 func isLoopback(ip net.IP) bool { return ip.IsLoopback() }
@@ -92,6 +121,7 @@ func startTelemetry(ctx context.Context, instanceID, addr string, config PprofCo
 
 	// Set the global meter provider
 	otel.SetMeterProvider(meterProvider)
+	tracerProvider := setupTracing(ctx, instanceID)
 
 	// Set up HTTP server to expose Prometheus metrics endpoint
 	remote := !isLoopback(ln.Addr().(*net.TCPAddr).IP)
@@ -122,7 +152,7 @@ func startTelemetry(ctx context.Context, instanceID, addr string, config PprofCo
 
 	// Return a shutdown function that cleans up resources
 	liblog.Infof(ctx, "prometheus metrics endpoint started at %s/metrics", ln.Addr())
-	return &telemetry{addr: ln.Addr(), srv: srv, mp: meterProvider}, nil
+	return &telemetry{addr: ln.Addr(), srv: srv, mp: meterProvider, tp: tracerProvider}, nil
 }
 
 func telemetryMux(config PprofConfig, servePprof, allowRemote bool) *http.ServeMux {
@@ -237,11 +267,119 @@ func profileConflict(flag string) http.HandlerFunc {
 	}
 }
 
+// setupTracing leaves tracing disabled unless the standard OTLP endpoint is set.
+func setupTracing(ctx context.Context, instanceID string) *sdktrace.TracerProvider {
+	if strings.EqualFold(os.Getenv("OTEL_SDK_DISABLED"), "true") ||
+		os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
+		otel.SetTracerProvider(noop.NewTracerProvider())
+		return nil
+	}
+	warn := func(err error) {
+		liblog.Warnf(ctx, "trace exporter: %v", err)
+	}
+	// The gRPC exporter connects asynchronously; an unavailable collector cannot
+	// delay startup. Export failures are reported once by the exporter wrapper.
+	rsc, err := traceResource(ctx, instanceID)
+	if err != nil {
+		warn(err)
+	}
+	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{Enabled: false}))
+	if err != nil {
+		warn(err)
+		otel.SetTracerProvider(noop.NewTracerProvider())
+		return nil
+	}
+	provider := newTraceProvider(func(err error) {
+		liblog.Warnf(ctx, "trace sampler: %v", err)
+	},
+		sdktrace.WithResource(rsc),
+		sdktrace.WithIDGenerator(blocktrace.IDGenerator()),
+		sdktrace.WithBatcher(&warningSpanExporter{SpanExporter: exporter, warn: warn}, sdktrace.WithExportTimeout(2*time.Second)),
+	)
+	otel.SetTracerProvider(provider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	return provider
+}
+
+func newTraceProvider(warn func(error), opts ...sdktrace.TracerProviderOption) *sdktrace.TracerProvider {
+	samplerOpts := traceSamplerOptions(warn)
+	if len(samplerOpts) == 0 {
+		return sdktrace.NewTracerProvider(opts...)
+	}
+	opts = append(opts, samplerOpts...)
+	// v1.45.0 parses the environment before applying WithSampler and reports
+	// invalid settings to the global handler even when the sampler is overridden.
+	// During startup, suppress that duplicate report while preserving other errors.
+	old := otel.GetErrorHandler()
+	// The SDK's initial handler delegates to the first replacement. Saving it
+	// would make forwarding recurse; preserve its log.Print behavior instead.
+	if fmt.Sprintf("%T", old) == "*global.ErrDelegator" {
+		old = otel.ErrorHandlerFunc(func(err error) { log.Print(err) })
+	}
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		msg := err.Error()
+		if strings.HasPrefix(msg, "unsupported sampler:") ||
+			strings.HasPrefix(msg, "parsing sampler argument:") ||
+			strings.HasPrefix(msg, "invalid trace ID ratio:") {
+			return
+		}
+		old.Handle(err)
+	}))
+	defer otel.SetErrorHandler(old)
+	return sdktrace.NewTracerProvider(opts...)
+}
+
+func traceSamplerOptions(warn func(error)) []sdktrace.TracerProviderOption {
+	name := strings.ToLower(strings.TrimSpace(os.Getenv("OTEL_TRACES_SAMPLER")))
+	var err error
+	fallback := "parentbased_traceidratio"
+	switch name {
+	case "":
+	case "always_on", "always_off", "parentbased_always_on", "parentbased_always_off":
+		return nil
+	case "traceidratio", "parentbased_traceidratio":
+		fallback = name
+		arg := strings.TrimSpace(os.Getenv("OTEL_TRACES_SAMPLER_ARG"))
+		ratio, parseErr := strconv.ParseFloat(arg, 64)
+		if parseErr == nil && !math.IsNaN(ratio) && !math.IsInf(ratio, 0) && ratio >= 0 && ratio <= 1 {
+			return ratioSamplerOptions(name, ratio)
+		}
+		err = fmt.Errorf("invalid OTEL_TRACES_SAMPLER_ARG %q", arg)
+	default:
+		err = fmt.Errorf("invalid OTEL_TRACES_SAMPLER %q", name)
+	}
+	if err != nil {
+		warn(fmt.Errorf("%w; using %s(0.05)", err, fallback))
+	}
+	return ratioSamplerOptions(fallback, 0.05)
+}
+
+func ratioSamplerOptions(name string, ratio float64) []sdktrace.TracerProviderOption {
+	var sampler sdktrace.Sampler = sdktrace.TraceIDRatioBased(ratio)
+	if name == "parentbased_traceidratio" {
+		sampler = sdktrace.ParentBased(sampler)
+	}
+	return []sdktrace.TracerProviderOption{sdktrace.WithSampler(sampler)}
+}
+
+type warningSpanExporter struct {
+	sdktrace.SpanExporter
+	warn    func(error)
+	warning sync.Once
+}
+
+func (x *warningSpanExporter) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+	if err := x.SpanExporter.ExportSpans(ctx, spans); err != nil {
+		x.warning.Do(func() { x.warn(err) })
+	}
+	// Avoid repeated warnings from the batch processor's global error handler.
+	return nil
+}
+
 func createResource(instanceID string) (*resource.Resource, error) {
 	return resource.Merge(
 		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
+		resource.NewSchemaless(
 			// Service metadata
 			semconv.ServiceNameKey.String("chuckd"),
 			semconv.ServiceVersionKey.String(chuckd.Short()),
@@ -255,4 +393,11 @@ func createResource(instanceID string) (*resource.Resource, error) {
 			// attribute.Int("container.cpu.limit", 4),
 		),
 	)
+}
+
+func traceResource(ctx context.Context, instanceID string) (*resource.Resource, error) {
+	base, baseErr := createResource(instanceID)
+	env, envErr := resource.New(ctx, resource.WithFromEnv())
+	rsc, mergeErr := resource.Merge(base, env)
+	return rsc, errors.Join(baseErr, envErr, mergeErr)
 }
