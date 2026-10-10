@@ -257,6 +257,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.workflow_sha }}", workflow)
         self.assertIn("measurement_script=.workflow-tooling/.github/scripts/write-build-measurement.py", workflow)
 
+    def test_historical_build_uses_workflow_packaging_tooling(self):
+        workflow = (ROOT / ".github/workflows/coordinator-build.yml").read_text()
+        self.assertIn("            scripts/package_coordinator.sh\n", workflow)
+        self.assertIn("bash .workflow-tooling/scripts/package_coordinator.sh", workflow)
+        self.assertLess(workflow.index("path: .workflow-tooling"), workflow.index("id: package"))
+
 
 if __name__ == "__main__":
     unittest.main()

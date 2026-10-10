@@ -133,11 +133,25 @@ jobs:
             fi
           done
 
+      # Historical main ancestors predate the packaging helper; load it with the
+      # measurement tooling from the workflow revision, not the source checkout.
+      - name: Check out build tooling from workflow revision
+        if: always()
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .workflow-tooling
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/write-build-measurement.py
+            scripts/package_coordinator.sh
+          sparse-checkout-cone-mode: false
+
       - id: package
         name: Package coordinator
         run: |
           set -euo pipefail
-          ./scripts/package_coordinator.sh "${{ matrix.architecture }}"
+          bash .workflow-tooling/scripts/package_coordinator.sh "${{ matrix.architecture }}"
 
       - name: Upload coordinator artifact
         if: steps.package.outcome == 'success'
@@ -147,16 +161,6 @@ jobs:
           path: |
             chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
             chuckd-coordinator-debuginfo-linux-${{ matrix.architecture }}.tar.gz
-
-      - name: Check out measurement tooling from workflow revision
-        if: always()
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
-        with:
-          ref: ${{ github.workflow_sha }}
-          path: .workflow-tooling
-          persist-credentials: false
-          sparse-checkout: .github/scripts/write-build-measurement.py
-          sparse-checkout-cone-mode: false
 
       - name: Write build measurement
         if: always()
