@@ -96,20 +96,39 @@ class ProfileTests(unittest.TestCase):
                                      ["--config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml", expected])
 
 
+def first_file(*candidates):
+    return next((p for p in candidates if p and Path(p).is_file()), None)
+
+
 class PackagingTests(unittest.TestCase):
+    # BFD target names GNU objcopy reports in --info for each fixture architecture.
+    BFD_TARGETS = {"x86_64": "elf64-x86-64", "arm64": "elf64-littleaarch64"}
+
     @classmethod
     def setUpClass(cls):
-        cls.tools = {}
-        for name in ("clang", "ld.lld", "objcopy", "readelf"):
-            alternatives = [shutil.which(name), shutil.which("llvm-" + name)]
-            if name == "ld.lld":
-                alternatives.append("/opt/homebrew/opt/lld/bin/ld.lld")
-            else:
-                alternatives.append("/opt/homebrew/opt/llvm/bin/" +
-                                    (name if name == "clang" else "llvm-" + name))
-            cls.tools[name] = next((p for p in alternatives if p and Path(p).is_file()), None)
+        brew = "/opt/homebrew/opt"
+        cls.tools = {
+            "clang": first_file(shutil.which("clang"), brew + "/llvm/bin/clang"),
+            "ld.lld": first_file(shutil.which("ld.lld"), shutil.which("llvm-ld.lld"),
+                                 brew + "/lld/bin/ld.lld"),
+        }
+        # Prefer LLVM tools: they handle every ELF machine. A native GNU objcopy may
+        # only know its host architecture; require_objcopy_support skips the rest.
+        for name in ("objcopy", "readelf"):
+            cls.tools[name] = first_file(shutil.which("llvm-" + name),
+                                         brew + "/llvm/bin/llvm-" + name, shutil.which(name))
         if not all(cls.tools.values()):
-            raise unittest.SkipTest("ELF fixture tools unavailable")
+            missing = sorted(name for name, path in cls.tools.items() if not path)
+            raise unittest.SkipTest("ELF fixture tools unavailable: " + ", ".join(missing))
+        # GNU objcopy lists its BFD targets; llvm-objcopy rejects --info.
+        info = subprocess.run([cls.tools["objcopy"], "--info"], capture_output=True, text=True)
+        cls.bfd_targets = info.stdout if info.returncode == 0 and "elf64-" in info.stdout else None
+
+    def require_objcopy_support(self, architecture):
+        target = self.BFD_TARGETS[architecture]
+        if self.bfd_targets is not None and target not in self.bfd_targets.split():
+            self.skipTest(f"{self.tools['objcopy']} does not support {target}; "
+                          "install llvm-objcopy and llvm-readelf to cover " + architecture)
 
     def fixture(self, root, name, target, *, build_id=True):
         source = root / (name + ".c")
@@ -125,6 +144,7 @@ class PackagingTests(unittest.TestCase):
         for architecture, target in (("x86_64", "x86_64-linux-gnu"), ("arm64", "aarch64-linux-gnu")):
             for fallback in (False, True):
                 with self.subTest(architecture=architecture, fallback=fallback), tempfile.TemporaryDirectory() as tmp:
+                    self.require_objcopy_support(architecture)
                     root = Path(tmp)
                     self.fixture(root, "chuckd", target, build_id=not fallback)
                     self.fixture(root, "scpd", target)
