@@ -1,7 +1,7 @@
 """Offline profile selection and debuginfo packaging contracts."""
 import fnmatch
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
 import tarfile
@@ -96,6 +96,11 @@ class ProfileTests(unittest.TestCase):
                                      ["--config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml", expected])
 
 
+CHUCKD_INSTALL_PATH = "/usr/bin/chuckd"
+# gdb resolves a debuglink without a GNU build-id under /usr/lib/debug/<binary dir>/.
+FALLBACK_DEBUG = "usr/lib/debug" + str(PurePosixPath(CHUCKD_INSTALL_PATH).parent) + "/chuckd.debug"
+
+
 def first_file(*candidates):
     return next((p for p in candidates if p and Path(p).is_file()), None)
 
@@ -165,8 +170,13 @@ class PackagingTests(unittest.TestCase):
                     with tarfile.open(root / debug) as archive:
                         files = [m.name for m in archive.getmembers() if m.isfile()]
                         self.assertEqual(len(files), 2)
+                        build_id_files = [f for f in files if f.startswith("usr/lib/debug/.build-id/")]
                         if fallback:
-                            self.assertIn("usr/lib/debug/chuckd.debug", files)
+                            self.assertIn(FALLBACK_DEBUG, files)
+                            self.assertEqual(len(build_id_files), 1)
+                        else:
+                            self.assertEqual(len(build_id_files), 2)
+                            self.assertNotIn(FALLBACK_DEBUG, files)
                     for binary in ("chuckd", "scpd"):
                         shipped = root / runtime / binary
                         sections = subprocess.check_output([self.tools["readelf"], "-S", str(shipped)], text=True)
@@ -174,8 +184,17 @@ class PackagingTests(unittest.TestCase):
                         self.assertIn(".gnu_debuglink", sections)
                         self.assertNotIn(".debug_info", sections)
                         notes = subprocess.check_output([self.tools["readelf"], "-n", str(shipped)], text=True)
+                        link_dump = root / (binary + ".debuglink")
+                        subprocess.run([self.tools["objcopy"], "--dump-section", f".gnu_debuglink={link_dump}",
+                                        str(shipped), str(root / (binary + ".scratch"))], check=True, capture_output=True)
+                        link = link_dump.read_bytes().split(b"\0")[0].decode()
                         if binary == "chuckd" and fallback:
-                            debug_file = root / debug.removesuffix(".tar.gz") / "usr/lib/debug/chuckd.debug"
+                            self.assertNotIn("Build ID: ", notes)
+                            # gdb looks up /usr/lib/debug/<dir of installed binary>/<debuglink>.
+                            self.assertEqual(link, "chuckd.debug")
+                            self.assertEqual("/" + str(PurePosixPath(FALLBACK_DEBUG).relative_to("usr/lib/debug")),
+                                             str(PurePosixPath(CHUCKD_INSTALL_PATH).parent / link))
+                            debug_file = root / debug.removesuffix(".tar.gz") / FALLBACK_DEBUG
                         else:
                             build_id = notes.split("Build ID: ")[1].split()[0]
                             debug_file = root / debug.removesuffix(".tar.gz") / "usr/lib/debug/.build-id" / build_id[:2] / (build_id[2:] + ".debug")

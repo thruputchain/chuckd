@@ -10,14 +10,18 @@ esac
 package_dir="chuckd-coordinator-linux-${architecture}"
 # Keep debuginfo outside packaging's chuckd-coordinator-linux-*.tar.gz glob.
 debug_dir="chuckd-coordinator-debuginfo-linux-${architecture}"
+# Where groundhogchain/packaging installs the shipped binaries.
+installed_dir=/usr/bin
 mkdir -p "$package_dir" "$debug_dir/usr/lib/debug/.build-id"
 
 for binary in chuckd scpd; do
   install -m 0755 "${binary}.dev" "$package_dir/$binary"
   build_id=$(readelf -n "$package_dir/$binary" | awk '/Build ID:/ {print $3}')
   if [[ -z "$build_id" && "$binary" == chuckd ]]; then
-    # Go may have only a Go build-id. Keep a named fallback without linker changes.
-    debug_file="$debug_dir/usr/lib/debug/chuckd.debug"
+    # Go may have only a Go build-id. Without a GNU build-id gdb resolves the
+    # debuglink under /usr/lib/debug/<binary dir>/, and packaging installs
+    # chuckd at /usr/bin/chuckd (validator deb and image).
+    debug_file="$debug_dir/usr/lib/debug${installed_dir}/chuckd.debug"
   elif [[ "$build_id" =~ ^([0-9a-f]{2}){2,}$ ]]; then
     debug_file="$debug_dir/usr/lib/debug/.build-id/${build_id:0:2}/${build_id:2}.debug"
   else
