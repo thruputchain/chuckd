@@ -185,7 +185,9 @@ class WorkflowTests(unittest.TestCase):
             artifacts = root / "artifacts"
             artifacts.mkdir()
             if complete:
-                for name in ("chuckd-coordinator-linux-x86_64.tar.gz", "chuckd-coordinator-linux-arm64.tar.gz", "groundhog-component-build.json"):
+                for name in ("chuckd-coordinator-linux-x86_64.tar.gz", "chuckd-coordinator-linux-arm64.tar.gz",
+                             "chuckd-coordinator-debuginfo-linux-x86_64.tar.gz", "chuckd-coordinator-debuginfo-linux-arm64.tar.gz",
+                             "groundhog-component-build.json"):
                     (artifacts / name).write_text("fixture")
             # Unexpected downloaded files must never enter the release.
             (artifacts / "unexpected.txt").write_text("not a release asset")
@@ -244,6 +246,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("sha=" + SHA, log)
         self.assertIn("--verify-tag", log)
         self.assertIn("--latest=false", log)
+        self.assertIn("chuckd-coordinator-debuginfo-linux-x86_64.tar.gz", log)
+        self.assertIn("chuckd-coordinator-debuginfo-linux-arm64.tar.gz", log)
         self.assertNotIn("unexpected.txt", log)
         self.assertNotIn("delete", log)
         self.assertNotIn("PATCH", log)
@@ -252,6 +256,12 @@ class WorkflowTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/coordinator-build.yml").read_text()
         self.assertIn("ref: ${{ github.workflow_sha }}", workflow)
         self.assertIn("measurement_script=.workflow-tooling/.github/scripts/write-build-measurement.py", workflow)
+
+    def test_historical_build_uses_workflow_packaging_tooling(self):
+        workflow = (ROOT / ".github/workflows/coordinator-build.yml").read_text()
+        self.assertIn("            scripts/package_coordinator.sh\n", workflow)
+        self.assertIn("bash .workflow-tooling/scripts/package_coordinator.sh", workflow)
+        self.assertLess(workflow.index("path: .workflow-tooling"), workflow.index("id: package"))
 
 
 if __name__ == "__main__":

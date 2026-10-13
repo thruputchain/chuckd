@@ -108,6 +108,10 @@ jobs:
 
       - id: coordinator-build
         name: Build coordinator
+        env:
+          SCPD_PROFILE: release
+          # Release-only jemalloc heap profiling; this runs on namespace runners.
+          SCPD_HEAP_PROFILING: "1"
         run: |
           set -euo pipefail
           start=$(date -u +%s)
@@ -131,32 +135,34 @@ jobs:
             fi
           done
 
-      - id: package
-        name: Package coordinator
-        run: |
-          set -euo pipefail
-          package_dir="chuckd-coordinator-linux-${{ matrix.architecture }}"
-          mkdir -p "$package_dir"
-          install -m 0755 chuckd.dev "$package_dir/chuckd"
-          install -m 0755 scpd.dev "$package_dir/scpd"
-          tar -C "$package_dir" -czf "${package_dir}.tar.gz" chuckd scpd
-
-      - name: Upload coordinator artifact
-        if: steps.package.outcome == 'success'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: chuckd-linux-${{ matrix.architecture }}-release-artifact
-          path: chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
-
-      - name: Check out measurement tooling from workflow revision
+      # Historical main ancestors predate the packaging helper; load it with the
+      # measurement tooling from the workflow revision, not the source checkout.
+      - name: Check out build tooling from workflow revision
         if: always()
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
         with:
           ref: ${{ github.workflow_sha }}
           path: .workflow-tooling
           persist-credentials: false
-          sparse-checkout: .github/scripts/write-build-measurement.py
+          sparse-checkout: |
+            .github/scripts/write-build-measurement.py
+            scripts/package_coordinator.sh
           sparse-checkout-cone-mode: false
+
+      - id: package
+        name: Package coordinator
+        run: |
+          set -euo pipefail
+          bash .workflow-tooling/scripts/package_coordinator.sh "${{ matrix.architecture }}"
+
+      - name: Upload coordinator artifact
+        if: steps.package.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: chuckd-linux-${{ matrix.architecture }}-release-artifact
+          path: |
+            chuckd-coordinator-linux-${{ matrix.architecture }}.tar.gz
+            chuckd-coordinator-debuginfo-linux-${{ matrix.architecture }}.tar.gz
 
       - name: Write build measurement
         if: always()
