@@ -7,16 +7,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
-jobs:
-  build-test:
-    runs-on: self-hosted
-    steps:
-      - name: Clean up .gitconfig
-        run: |
-          echo "Cleaning up .gitconfig"
-          rm -f /home/hogci/.gitconfig
+permissions:
+  contents: read
 
-      - uses: webfactory/ssh-agent@v0.9.1
+jobs:
+  # A one-minute Go build and test; it needs no bench hardware, so it runs on
+  # Namespace instead of queueing behind hog_sched benchmarks on hog1.
+  build-test:
+    runs-on: namespace-profile-chuckd-rs-linux
+    steps:
+      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
         with:
           ssh-private-key: |
             ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
@@ -25,19 +25,38 @@ jobs:
             ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
             ${{ secrets.CHUCKD_TO_HOGX_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
+        with:
+          submodules: false
 
-      - name: Run hog schedule
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547 # v1
+        with:
+          cache: go
+
+      - name: Set up Go private modules
         run: |
-          hog_sched \
-            --i="${{ github.event.repository.name }}-${{ github.run_id }}" \
-            --key=github_repo --value=${{ github.repository }} \
-            --key=git_commit --value=${{ github.sha }} \
-            --key=git_branch --value=${{ github.head_ref || github.ref_name }} \
-            ./scripts/schedules/build_test_cover.toml
+          go env -w GOPRIVATE=github.com/groundhogchain/*
+          go env -w GONOSUMDB=github.com/groundhogchain/*
+          go env -w GONOPROXY=github.com/groundhogchain/*
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test with coverage
+        run: go test ./... -covermode=atomic -coverprofile=coverage.out
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: coverage
           path: coverage.out
+          if-no-files-found: ignore
