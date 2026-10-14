@@ -87,8 +87,8 @@ coordinator:
 scpd:
 	./scripts/build_scpd.sh
 
-# CI runs go test with coverage and nothing else (scripts/schedules/
-# build_test_cover.toml), so check is the test suite. lint and fmt-check are
+# CI runs go test with coverage and nothing else
+# (.github/workflows/build_test_cover.yml), so check is the test suite. lint and fmt-check are
 # here for parity with the sibling repos and both report pre-existing findings
 # in generated code, which is why check does not depend on them.
 .PHONY: check
