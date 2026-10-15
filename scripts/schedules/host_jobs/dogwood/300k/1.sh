@@ -14,18 +14,18 @@ cat > dogwood-bench-config-host=${HOG_HOST_1},seq=0.json << EOF
     "validator_config": {
         "private_info": {
             "public_info": {
-                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
+                "public_key": {"scheme": "Ed25519", "ed25519": "GhaZ5bWgDDymAapwjTX29EBSVt5X7pCbBQVsZLV1Nf5L"},
                 "address": "${HOG_HOST_1}:4000"
             },
-            "secret_key": "6ddfd88d90ef5d5e499b0b39364e9fddb94f6abf96735e684cfde237f4ae97cfe94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
+            "secret_key": {"scheme": "Ed25519", "ed25519": "6ddfd88d90ef5d5e499b0b39364e9fddb94f6abf96735e684cfde237f4ae97cfe94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"}
         },
         "known_validators": [
             {
-                "public_key": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db",
+                "public_key": {"scheme": "Ed25519", "ed25519": "GhaZ5bWgDDymAapwjTX29EBSVt5X7pCbBQVsZLV1Nf5L"},
                 "address": "${HOG_HOST_1}:4000"
             },
             {
-                "public_key": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c",
+                "public_key": {"scheme": "Ed25519", "ed25519": "CFVg7SVpsQDDqia668sbtiu5L9M34P5JFm39bPFUtxgK"},
                 "address": "${HOG_HOST_2}:4000"
             }
         ]
@@ -65,11 +65,11 @@ cat > dogwood-bench-config-host=${HOG_HOST_1},seq=0.json << EOF
             "validators": [
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "e94479904e6fa19bb7bf744eadb1773b46eabe06f9b363a12b5bef665b8553db"
+                    "ed25519": "GhaZ5bWgDDymAapwjTX29EBSVt5X7pCbBQVsZLV1Nf5L"
                 },
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "a7271c142fe68384d9543ff85ee8614e7ddd3b60db8d80e7bf38f534193fbb8c"
+                    "ed25519": "CFVg7SVpsQDDqia668sbtiu5L9M34P5JFm39bPFUtxgK"
                 }
             ],
             "inner_sets": [

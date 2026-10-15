@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/lib-go/libxdr"
 	"github.com/thruputchain/lib-go/must"
 	proto "github.com/thruputchain/thruput-protocol-go"
@@ -46,12 +47,12 @@ func writeMinimalGenesisFile(t *testing.T) string {
 func TestResolveNetworkHash(t *testing.T) {
 	genesisPath := writeMinimalGenesisFile(t)
 	metadata := testHostedBootstrapMetadata()
-	metadata.NetworkHash = strings.Repeat("cd", 32)
-	metadataPath := writeHostedBootstrapMetadataJSON(t, metadata)
 	var metadataHash proto.NetworkHash
 	for i := range metadataHash {
 		metadataHash[i] = 0xcd
 	}
+	metadata.NetworkHash = encoding.Base58(metadataHash[:])
+	metadataPath := writeHostedBootstrapMetadataJSON(t, metadata)
 	genesisHash := proto.NetworkHash{0xab}
 	for _, tc := range []struct {
 		name, genesis, metadata string

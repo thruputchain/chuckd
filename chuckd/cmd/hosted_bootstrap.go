@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/spf13/cobra"
 	"github.com/thruputchain/chuckd"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
@@ -125,17 +126,14 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 	if err := json.Unmarshal(data, &metadata); err != nil {
 		return hostedBootstrapMetadata{}, fmt.Errorf("parsing hosted bootstrap metadata: %w", err)
 	}
-	if metadata.SchemaVersion != 2 {
+	if metadata.SchemaVersion != 3 {
 		return hostedBootstrapMetadata{}, fmt.Errorf("unsupported hosted bootstrap metadata schemaVersion %d", metadata.SchemaVersion)
 	}
 	if metadata.Kind != "hog-hosted-bootstrap" {
 		return hostedBootstrapMetadata{}, fmt.Errorf("unsupported hosted bootstrap metadata kind %q", metadata.Kind)
 	}
-	if len(metadata.NetworkHash) != 64 || strings.ToLower(metadata.NetworkHash) != metadata.NetworkHash {
-		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata networkHash must be exactly 64 lowercase hexadecimal characters")
-	}
-	if _, err := hex.DecodeString(metadata.NetworkHash); err != nil {
-		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata networkHash must be exactly 64 lowercase hexadecimal characters")
+	if _, err := encoding.Decode32(metadata.NetworkHash); err != nil {
+		return hostedBootstrapMetadata{}, fmt.Errorf("hosted bootstrap metadata networkHash: %w", err)
 	}
 	protocol := proto.HogProtocol()
 	if metadata.Protocol != string(protocol[:]) {
@@ -154,16 +152,12 @@ func loadHostedBootstrapMetadata(path string) (hostedBootstrapMetadata, error) {
 }
 
 func decodeHostedBootstrapHash(value string, index int) (proto.TransactionHash, error) {
-	trimmed := strings.TrimPrefix(value, "0x")
-	if len(trimmed) != 64 {
-		return proto.TransactionHash{}, fmt.Errorf("initialization transaction %d hash must be 32 bytes of hex", index)
-	}
-	decoded, err := hex.DecodeString(trimmed)
+	decoded, err := encoding.Decode32(value)
 	if err != nil {
 		return proto.TransactionHash{}, fmt.Errorf("decoding initialization transaction %d hash: %w", index, err)
 	}
 	var hash proto.TransactionHash
-	copy(hash[:], decoded)
+	copy(hash[:], decoded[:])
 	return hash, nil
 }
 
@@ -255,18 +249,18 @@ func hashSingleHostedBootstrapTxSet(txHash proto.TransactionHash) proto.TxsHash 
 }
 
 func validateHostedBootstrapCommittedTip(metadata hostedBootstrapMetadata, tx proto.SignedTransaction, tip *proto.DbTip) error {
-	networkHashBytes, err := hex.DecodeString(metadata.NetworkHash)
+	networkHashBytes, err := encoding.Decode32(metadata.NetworkHash)
 	if err != nil {
 		return fmt.Errorf("decoding hosted bootstrap network hash: %w", err)
 	}
 	var expectedNetworkHash proto.NetworkHash
-	copy(expectedNetworkHash[:], networkHashBytes)
+	copy(expectedNetworkHash[:], networkHashBytes[:])
 	if actual := tip.Value.Proposal_header.Network_hash; actual != expectedNetworkHash {
-		return fmt.Errorf("committed genesis ceremony network hash %x does not match hosted bootstrap metadata %x", actual, expectedNetworkHash)
+		return fmt.Errorf("committed genesis ceremony network hash %s does not match hosted bootstrap metadata %s", encoding.Base58(actual[:]), encoding.Base58(expectedNetworkHash[:]))
 	}
 	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
 	if actual := tip.Value.Proposal_header.Txs_hash; actual != expectedTxsHash {
-		return fmt.Errorf("committed genesis ceremony transaction set hash %x does not match hosted bootstrap transaction %x", actual, expectedTxsHash)
+		return fmt.Errorf("committed genesis ceremony transaction set hash %s does not match hosted bootstrap transaction %s", encoding.Base58(actual[:]), encoding.Base58(expectedTxsHash[:]))
 	}
 	return nil
 }
@@ -429,7 +423,7 @@ func writeHostedRuntimeManifest(metadata hostedBootstrapMetadata, cfg hostedBoot
 		endpoints["viewGateway"] = cfg.viewGatewayAddress
 	}
 	manifest := map[string]any{
-		"schemaVersion":              3,
+		"schemaVersion":              4,
 		"kind":                       "hosted-devnet-runtime",
 		"networkHash":                metadata.NetworkHash,
 		"protocol":                   metadata.Protocol,
@@ -517,7 +511,7 @@ func commitHostedBootstrap(ctx context.Context, cfg hostedBootstrapConfig, sched
 	}
 
 	valueHash := protoutil.HashValueToProto(&committedTip.Value)
-	commit := hostedBootstrapCommit{Height: 1, ValueHash: "0x" + hex.EncodeToString(valueHash[:])}
+	commit := hostedBootstrapCommit{Height: 1, ValueHash: encoding.Base58(valueHash[:])}
 
 	manifestHash, err := writeHostedRuntimeManifest(metadata, cfg, commit)
 	if err != nil {

@@ -7,10 +7,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/chuckd/deploy/common"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/lib-go/liblog"
-	"github.com/thruputchain/lib-go/libxdr"
 )
 
 func CoordinatorBenchShellLocal(
@@ -49,7 +49,7 @@ func CoordinatorBenchShellLocal(
 			protoutil.VPublicKeyToID(
 				qcfg.Validator_config.Private_info.Public_info.Public_key))
 		fmt.Fprintf(&sh, "cat > config-%s.json << EOF\n", untypedVID)
-		fmt.Fprintln(&sh, libxdr.MustXdrToJsonString(&qcfg))
+		fmt.Fprintln(&sh, configtext.MustMarshalString(&qcfg))
 		fmt.Fprintln(&sh, "EOF")
 	}
 

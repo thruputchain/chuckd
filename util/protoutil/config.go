@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/lib-go/must"
 	proto "github.com/thruputchain/thruput-protocol-go"
 )
@@ -59,7 +59,7 @@ func WriteConfigsToDir(ctx context.Context, cfgs []*proto.Config, dir string) {
 	err := os.MkdirAll(dir, 0755)
 	must.NoError(ctx, err)
 	for i, cfg := range cfgs {
-		jsbuf, err := libxdr.XdrToJson(cfg)
+		jsbuf, err := configtext.Marshal(cfg)
 		must.NoError(ctx, err)
 		err = os.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.json", i)), jsbuf, 0644)
 		must.NoError(ctx, err)
