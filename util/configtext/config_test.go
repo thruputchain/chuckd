@@ -2,7 +2,9 @@ package configtext_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -45,6 +47,18 @@ func TestValidatorConfigPreservesIdentityAndSecret(t *testing.T) {
 	raw, err := libxdr.XdrToJson(&value)
 	if err != nil {
 		t.Fatal(err)
+	}
+	var original map[string]any
+	if err := json.Unmarshal(raw, &original); err != nil {
+		t.Fatal(err)
+	}
+	originalSecret := original["private_info"].(map[string]any)["secret_key"]
+	if !reflect.DeepEqual(private["secret_key"], originalSecret) {
+		t.Fatal("operator JSON changed the raw secret-key representation")
+	}
+	secret := private["secret_key"].(map[string]any)["Ed25519"].(map[string]any)["ed25519"]
+	if secret != hex.EncodeToString(identity.Secret_key.Ed25519()[:]) {
+		t.Fatal("operator JSON secret must retain the exact hex keypair")
 	}
 	if err := configtext.Unmarshal(raw, &decoded); err == nil {
 		t.Fatal("legacy hex must require regeneration")
@@ -133,5 +147,29 @@ func TestUnsupportedPublicKeyScheme(t *testing.T) {
 		if err := configtext.Unmarshal(data, &value); err == nil || !strings.Contains(err.Error(), "unsupported public key scheme") {
 			t.Fatalf("unsupported scheme must be rejected by the adapter, got %v", err)
 		}
+	}
+}
+
+func TestInvalidPublicKeysInBothShapes(t *testing.T) {
+	for name, shape := range map[string]string{
+		"explicit scheme": `{"scheme":"Ed25519","ed25519":%q}`,
+		"tagged arm":      `{"Ed25519":{"ed25519":%q}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			for _, text := range []string{
+				"", strings.Repeat("0", 32), strings.Repeat("ab", 32),
+				"0x" + strings.Repeat("ab", 32), strings.Repeat("1", 31),
+				strings.Repeat("1", 33), strings.Repeat("2", 32), strings.Repeat("z", 44),
+				" " + strings.Repeat("1", 32),
+			} {
+				t.Run(text, func(t *testing.T) {
+					data := []byte(`{"threshold":1,"validators":[` + fmt.Sprintf(shape, text) + `],"inner_sets":[]}`)
+					var value proto.SCPQuorumSet
+					if err := configtext.Unmarshal(data, &value); err == nil {
+						t.Fatal("malformed or wrong-width public key accepted")
+					}
+				})
+			}
+		})
 	}
 }
