@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os/exec"
 	"path"
 
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/spf13/cobra"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
 	"github.com/thruputchain/chuckd/runtime"
@@ -89,6 +89,10 @@ var (
 		Short: "start coordinator with loadgen benchmark",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			networkHash, err := encoding.Decode32(benchNetworkHash)
+			if err != nil {
+				return fmt.Errorf("network hash: %w", err)
+			}
 			return cmdkit.Invoke(ctx, func() {
 				ctx = libmetrics.WithMetricAttributes(ctx,
 					attribute.String("cmd", "bench coordinator"),
@@ -96,12 +100,6 @@ var (
 				)
 				cfg := LoadCoordinatorConfig(ctx)
 				must.Assertf(ctx, cfg.Validator_config != nil, "missing validator config section")
-				networkHashBytes, err := hex.DecodeString(benchNetworkHash)
-				must.NoError(ctx, err)
-				must.Assertf(ctx, len(networkHashBytes) == len(proto.NetworkHash{}),
-					"network hash must be 32 bytes")
-				var networkHash proto.NetworkHash
-				copy(networkHash[:], networkHashBytes)
 				testCfg := loadgen.Config{
 					NumAccts:       benchNumAccts,
 					NumTxsPerBlock: benchTxsPerBlock,
@@ -276,7 +274,7 @@ func init() {
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumAccts, "num-accts", 100, "number of accounts to generate")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchNumBlocks, "num-blocks", 100, "number of blocks to generate")
 	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchLoadgenAddr, "loadgen-addr", "localhost:44400", "loadgen address")
-	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchNetworkHash, "network-hash", "0000000000000000000000000000000000000000000000000000000000000001", "32-byte network hash in lowercase hex")
+	benchCoordinatorLoadgenCmd.Flags().StringVar(&benchNetworkHash, "network-hash", "11111111111111111111111111111112", "32-byte network hash in unprefixed base58")
 	benchCoordinatorLoadgenCmd.Flags().BoolVar(&benchMockScheduler, "mock-scheduler", false, "use a mock scheduler")
 	benchCoordinatorLoadgenCmd.Flags().IntVar(&benchSkip, "skip", 0, "number of initial blocks to skip reporting")
 
