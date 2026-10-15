@@ -155,7 +155,7 @@ func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	path := writeHostedBootstrapMetadata(t, `{
   "schemaVersion": 3,
   "kind": "wrong",
-  "networkHash": "`+strings.Repeat("00", 32)+`",
+  "networkHash": "`+strings.Repeat("1", 32)+`",
   "protocol": "`+testProtocolText()+`",
   "initializationTransactions": []
 }`)
@@ -188,7 +188,7 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
 		SchemaVersion: 3,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkHash:   strings.Repeat("00", 32),
+		NetworkHash:   strings.Repeat("1", 32),
 		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
@@ -212,7 +212,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
 		SchemaVersion: 3,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkHash:   strings.Repeat("00", 32),
+		NetworkHash:   strings.Repeat("1", 32),
 		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
@@ -233,7 +233,7 @@ func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
 		SchemaVersion: 3,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkHash:   strings.Repeat("00", 32),
+		NetworkHash:   strings.Repeat("1", 32),
 		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`

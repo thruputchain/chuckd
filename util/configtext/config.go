@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/lib-go/libxdr"
 	proto "github.com/thruputchain/thruput-protocol-go"
-	"github.com/mr-tron/base58"
 	"github.com/xdrpp/goxdr/xdr"
 )
 
@@ -167,23 +167,18 @@ func (c converter) publicKeyBody(scheme string, arm map[string]any) error {
 	if !ok {
 		return fmt.Errorf("public key must be a string")
 	}
-	var decoded []byte
-	var err error
 	if c.output {
-		decoded, err = hex.DecodeString(text)
-	} else {
-		if len(text) < width || len(text) > (width*138/100)+1 {
-			return fmt.Errorf("expected a %d-byte base58 public key; regenerate old configuration", width)
+		decoded, err := hex.DecodeString(text)
+		if err != nil || len(decoded) != width {
+			return fmt.Errorf("invalid %d-byte public key", width)
 		}
-		decoded, err = base58.Decode(text)
-	}
-	if err != nil || len(decoded) != width {
-		return fmt.Errorf("invalid %d-byte public key", width)
-	}
-	if c.output {
-		arm[field] = base58.Encode(decoded)
+		arm[field] = encoding.Base58(decoded)
 	} else {
-		arm[field] = hex.EncodeToString(decoded)
+		decoded, err := encoding.Decode32(text)
+		if err != nil {
+			return fmt.Errorf("invalid base58 public key; regenerate old configuration: %w", err)
+		}
+		arm[field] = hex.EncodeToString(decoded[:])
 	}
 	return nil
 }
