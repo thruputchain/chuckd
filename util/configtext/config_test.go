@@ -121,3 +121,17 @@ func TestScheduledConfigurations(t *testing.T) {
 		})
 	}
 }
+
+func TestUnsupportedPublicKeyScheme(t *testing.T) {
+	// The pinned protocol's public and secret key unions only support Ed25519.
+	for _, key := range []string{
+		`{"scheme":"MlDsa65","mldsa65":"` + strings.Repeat("1", 1952) + `"}`,
+		`{"MlDsa65":{"mldsa65":"` + strings.Repeat("1", 1952) + `"}}`,
+	} {
+		data := []byte(`{"threshold":1,"validators":[` + key + `],"inner_sets":[]}`)
+		var value proto.SCPQuorumSet
+		if err := configtext.Unmarshal(data, &value); err == nil || !strings.Contains(err.Error(), "unsupported public key scheme") {
+			t.Fatalf("unsupported scheme must be rejected by the adapter, got %v", err)
+		}
+	}
+}

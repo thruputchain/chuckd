@@ -159,15 +159,10 @@ func (c converter) publicKey(v map[string]any) error {
 }
 
 func (c converter) publicKeyBody(scheme string, arm map[string]any) error {
-	field, width := "", 0
-	switch scheme {
-	case "Ed25519":
-		field, width = "ed25519", 32
-	case "MlDsa65":
-		field, width = "mldsa65", 1952
-	default:
+	if scheme != "Ed25519" {
 		return fmt.Errorf("unsupported public key scheme")
 	}
+	const field, width = "ed25519", 32
 	text, ok := arm[field].(string)
 	if !ok {
 		return fmt.Errorf("public key must be a string")
