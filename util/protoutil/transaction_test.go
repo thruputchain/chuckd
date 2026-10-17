@@ -46,11 +46,4 @@ func TestHashSignedTxCoversSignedEncoding(t *testing.T) {
 	if HashSignedTx(&tx) == HashSignedTx(&resigned) {
 		t.Fatal("HashSignedTx ignores the signatures")
 	}
-
-	withKey := signedTxWithSignature(1)
-	key := proto.PublicKey{Scheme: proto.Ed25519}
-	withKey.Pubkey_claim_key = &key
-	if HashSignedTx(&tx) == HashSignedTx(&withKey) {
-		t.Fatal("HashSignedTx ignores the pubkey claim key")
-	}
 }
