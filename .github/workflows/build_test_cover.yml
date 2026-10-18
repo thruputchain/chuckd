@@ -25,9 +25,26 @@ jobs:
             ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
             ${{ secrets.CHUCKD_TO_HOGX_KEY }}
 
+      # Repositories transferred to thruputchain no longer match the deploy keys
+      # above (their comments name groundhogchain), so fetch them over HTTPS
+      # with the read-only PAT. The rewrites are keyed on the thruputchain
+      # prefix, which outranks the blanket git@github.com: rewrite below.
+      - name: Authenticate thruputchain sources
+        env:
+          READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
+        run: |
+          set +x
+          base="https://x-access-token:${READ_ACCESS_PAT}@github.com/thruputchain/"
+          git config --global --add url."$base".insteadOf "https://github.com/thruputchain/"
+          git config --global --add url."$base".insteadOf "git@github.com:thruputchain/"
+          git config --global --add url."$base".insteadOf "ssh://git@github.com/thruputchain/"
+
+      # persist-credentials: false so the checkout's GITHUB_TOKEN header does
+      # not take precedence over the PAT on later github.com fetches.
       - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
         with:
           submodules: false
+          persist-credentials: false
 
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
