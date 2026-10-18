@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/rs/zerolog"
 	ghc "github.com/thruputchain/chuckd"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
 	chuckdruntime "github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/lib-go/liblog"
 	"github.com/thruputchain/lib-go/librpc"
 	"github.com/thruputchain/lib-go/must"

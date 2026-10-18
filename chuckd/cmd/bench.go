@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"path"
 
-	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/spf13/cobra"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
 	"github.com/thruputchain/chuckd/runtime"
@@ -18,12 +17,12 @@ import (
 	"github.com/thruputchain/chuckd/system/scheduler"
 	"github.com/thruputchain/chuckd/system/systemkit"
 	"github.com/thruputchain/chuckd/test/testnet"
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/lib-go/liblog"
 	"github.com/thruputchain/lib-go/libmetrics"
 	"github.com/thruputchain/lib-go/libnet"
 	"github.com/thruputchain/lib-go/libtime"
 	"github.com/thruputchain/lib-go/must"
-	proto "github.com/thruputchain/thruput-protocol-go"
 	"go.opentelemetry.io/otel/attribute"
 )
 

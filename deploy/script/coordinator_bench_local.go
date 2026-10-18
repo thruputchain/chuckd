@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/chuckd/deploy/common"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/lib-go/liblog"
 )

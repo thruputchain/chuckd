@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/chuckd/deploy/common"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/lib-go/libtext"
 	proto "github.com/thruputchain/thruput-protocol-go"
 )

@@ -13,11 +13,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/spf13/cobra"
 	"github.com/thruputchain/chuckd"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
 	"github.com/thruputchain/chuckd/sub/sched"
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/chuckd/util/xdrutil"
 	"github.com/thruputchain/lib-go/liblog"

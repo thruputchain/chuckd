@@ -6,12 +6,12 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/spf13/cobra"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
 	"github.com/thruputchain/chuckd/runtime"
 	"github.com/thruputchain/chuckd/system/coordinator"
 	"github.com/thruputchain/chuckd/system/dogwood"
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/lib-go/liblog"
 	"github.com/thruputchain/lib-go/libnet"
