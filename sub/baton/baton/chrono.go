@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/blocktrace"
-	"github.com/groundhogchain/lib-go/liblog"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/blocktrace"
+	"github.com/thruputchain/lib-go/liblog"
+	proto "github.com/thruputchain/thruput-protocol-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -202,7 +202,7 @@ func (x *blockChrono) emitSpans() {
 	if x.nominateEnd.After(end) {
 		end = x.nominateEnd
 	}
-	tracer := otel.Tracer("github.com/groundhogchain/chuckd/sub/baton/baton")
+	tracer := otel.Tracer("github.com/thruputchain/chuckd/sub/baton/baton")
 	// Late phases remain children of the original root even after it has ended.
 	ctx := trace.ContextWithSpanContext(context.Background(), x.rootSC)
 	if !x.rootEmitted {

@@ -3,7 +3,7 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
+	"github.com/thruputchain/chuckd/sub/scp/scpkit"
 )
 
 type TestSCP struct {

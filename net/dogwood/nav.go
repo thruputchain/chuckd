@@ -7,16 +7,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
-	"github.com/groundhogchain/chuckd/util/dogwoodutil"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libstat"
-	"github.com/groundhogchain/lib-go/libtime"
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/router"
+	"github.com/thruputchain/chuckd/system/systemfixed"
+	"github.com/thruputchain/chuckd/util/dogwoodutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libstat"
+	"github.com/thruputchain/lib-go/libtime"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // Navigator maintains a cache of routes rooted at this node that have been socialized with others,

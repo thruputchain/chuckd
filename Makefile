@@ -27,7 +27,7 @@ export GONOSUMDB ?= github.com/groundhogchain/*
 export GONOPROXY ?= github.com/groundhogchain/*
 
 # Release builds set this; scripts/build_chuckd.sh passes it to the linker as
-# -X github.com/groundhogchain/chuckd.distributionVersion, which is the Go
+# -X github.com/thruputchain/chuckd.distributionVersion, which is the Go
 # equivalent of the generated version.c that hogd compiles in.
 export CHUCKD_DISTRIBUTION_VERSION ?=
 

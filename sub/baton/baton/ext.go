@@ -3,9 +3,9 @@ package baton
 import (
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type externalized interface {

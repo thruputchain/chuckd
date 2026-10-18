@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/groundhogchain/chuckd/chuckd/cmd"
+	"github.com/thruputchain/chuckd/chuckd/cmd"
 )
 
 func main() {

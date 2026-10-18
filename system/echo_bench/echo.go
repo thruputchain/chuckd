@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/netutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/lib-go/libflow"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librpc"
-	"github.com/groundhogchain/lib-go/libstat"
-	"github.com/groundhogchain/lib-go/must"
+	"github.com/thruputchain/chuckd/util/netutil"
+	"github.com/thruputchain/chuckd/util/rpcutil"
+	"github.com/thruputchain/lib-go/libflow"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/librpc"
+	"github.com/thruputchain/lib-go/libstat"
+	"github.com/thruputchain/lib-go/must"
 )
 
 type EchoBenchmark struct {

@@ -5,12 +5,12 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/net/discovery"
-	"github.com/groundhogchain/chuckd/net/dogwood"
-	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/discovery"
+	"github.com/thruputchain/chuckd/net/dogwood"
+	"github.com/thruputchain/chuckd/net/router"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type System struct {

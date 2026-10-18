@@ -8,10 +8,10 @@ import (
 	"runtime/pprof"
 	"runtime/trace"
 
-	xruntime "github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libruntime"
-	"github.com/groundhogchain/lib-go/must"
+	xruntime "github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libruntime"
+	"github.com/thruputchain/lib-go/must"
 )
 
 func flushMemProfile(ctx context.Context, memProfilePath string) {

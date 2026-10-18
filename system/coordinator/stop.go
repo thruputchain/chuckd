@@ -1,7 +1,7 @@
 package coordinator
 
 import (
-	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/liblog"
 )
 
 func (s *System) Stop() {

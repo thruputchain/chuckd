@@ -3,8 +3,8 @@ package benchxdr
 import (
 	"testing"
 
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func BenchmarkMarshalParallel(b *testing.B) {

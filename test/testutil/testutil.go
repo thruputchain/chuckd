@@ -7,13 +7,13 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/libtime"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/system/systemfixed"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	"github.com/thruputchain/lib-go/libtime"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type TestGen struct {

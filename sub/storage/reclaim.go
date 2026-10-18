@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/must"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/must"
 )
 
 // XXX: reclaim prepersisted cvs

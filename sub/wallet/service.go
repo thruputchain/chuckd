@@ -6,9 +6,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/groundhogchain/chuckd/sub/kit"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/kit"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type WalletService struct {

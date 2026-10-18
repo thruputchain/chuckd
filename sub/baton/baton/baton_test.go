@@ -7,17 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/test/testutil"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libruntime"
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
+	"github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/sub/scp/scpkit"
+	"github.com/thruputchain/chuckd/test/testutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libruntime"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 var testMarshaler = libxdr.NewXdrMarshaler()

@@ -1,6 +1,6 @@
 package dogwood
 
-import "github.com/groundhogchain/chuckd/net/magnolia"
+import "github.com/thruputchain/chuckd/net/magnolia"
 
 // nChunksPerSheaf = nPayBytes / maxBytesPerChunk / nPaySheaves
 

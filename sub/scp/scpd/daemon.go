@@ -12,14 +12,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/libruntime"
-	"github.com/groundhogchain/lib-go/libtext"
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/libruntime"
+	"github.com/thruputchain/lib-go/libtext"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // Must call SCPHandler.SetHandler after this call.

@@ -1,8 +1,8 @@
 package protoutil
 
 import (
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // VerifyCatchupBlock verifies the integrity of the catchup block:

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type View struct {

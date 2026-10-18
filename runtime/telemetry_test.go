@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd"
-	"github.com/groundhogchain/chuckd/util/blocktrace"
+	"github.com/thruputchain/chuckd"
+	"github.com/thruputchain/chuckd/util/blocktrace"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/resource"

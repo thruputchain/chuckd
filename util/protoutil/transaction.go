@@ -3,8 +3,8 @@ package protoutil
 import (
 	"crypto/sha256"
 
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func Pack[T any](ts []*T) []T {

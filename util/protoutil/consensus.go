@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func HashProposalTxsSlow(txs *proto.ProposalTxs) proto.ProposalTxsHash {

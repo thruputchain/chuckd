@@ -6,10 +6,10 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/groundhogchain/chuckd/deploy/common"
-	"github.com/groundhogchain/lib-go/libtext"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/deploy/common"
+	"github.com/thruputchain/lib-go/libtext"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type BenchDogwoodExecDef struct {

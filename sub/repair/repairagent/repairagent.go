@@ -4,14 +4,14 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/sub/cvpool"
-	"github.com/groundhogchain/chuckd/util/netutil"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/router"
+	"github.com/thruputchain/chuckd/sub/cvpool"
+	"github.com/thruputchain/chuckd/util/netutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/librand"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type RepairAgent struct {

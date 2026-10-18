@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/test/testnet"
+	"github.com/thruputchain/chuckd/test/testnet"
 )
 
 func TestEcho(t *testing.T) {

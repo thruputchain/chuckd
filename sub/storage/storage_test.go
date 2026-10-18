@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TestDiskStorageCatchupBlockRoundtrip(t *testing.T) {

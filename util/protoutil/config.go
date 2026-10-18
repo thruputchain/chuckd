@@ -8,9 +8,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func InitConfig(ctx context.Context, rr io.Reader, address string) *proto.ValidatorConfig {

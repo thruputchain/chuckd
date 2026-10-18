@@ -3,7 +3,7 @@ package rpcutil
 import (
 	"context"
 
-	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/liblog"
 	"github.com/xdrpp/goxdr/xdr"
 )
 

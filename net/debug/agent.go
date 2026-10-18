@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
 )
 
 func StartAndWaitCounterpartiesReady(

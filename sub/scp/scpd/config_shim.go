@@ -1,7 +1,7 @@
 package scpd
 
 import (
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type SCPConfig_shim struct {

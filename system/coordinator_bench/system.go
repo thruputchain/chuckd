@@ -5,12 +5,12 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/chuckd/test/testnet"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/chuckd/system/coordinator"
+	"github.com/thruputchain/chuckd/test/testnet"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type CoordinatorBenchSystem struct {

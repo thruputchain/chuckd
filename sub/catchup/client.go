@@ -4,11 +4,11 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/system/systemfixed"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librpc"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/system/systemfixed"
+	"github.com/thruputchain/chuckd/util/rpcutil"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/librpc"
+	proto "github.com/thruputchain/thruput-protocol-go"
 	"github.com/xdrpp/goxdr/rpc"
 )
 

@@ -3,7 +3,7 @@ package dogwood
 import (
 	"context"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func (x *DogwoodService) Dogwood_null(ctx context.Context) error {

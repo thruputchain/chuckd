@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type Slot = proto.SCPSlotIndex

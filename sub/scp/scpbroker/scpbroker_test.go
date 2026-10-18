@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/scp/scpbroker"
-	"github.com/groundhogchain/chuckd/sub/scp/scpd"
-	"github.com/groundhogchain/chuckd/test/testnet"
-	"github.com/groundhogchain/chuckd/util/netutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/lib-go/librpc"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/scp/scpbroker"
+	"github.com/thruputchain/chuckd/sub/scp/scpd"
+	"github.com/thruputchain/chuckd/test/testnet"
+	"github.com/thruputchain/chuckd/util/netutil"
+	"github.com/thruputchain/chuckd/util/rpcutil"
+	"github.com/thruputchain/lib-go/librpc"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // mockSCPControl implements proto.SCP_Control1 with a gate on received_envelope.

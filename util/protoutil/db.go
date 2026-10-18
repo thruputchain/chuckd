@@ -3,7 +3,7 @@ package protoutil
 import (
 	"fmt"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func DbTipString(tip proto.DbTip) string {

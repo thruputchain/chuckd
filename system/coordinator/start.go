@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/sub/scp/scpd"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/sched"
+	"github.com/thruputchain/chuckd/sub/scp/scpd"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // System dependencies:

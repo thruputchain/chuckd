@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
 )
 
 func touch(t *testing.T, full string) {

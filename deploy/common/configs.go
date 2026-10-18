@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libmath"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/libmath"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func MakeBaseConfig(

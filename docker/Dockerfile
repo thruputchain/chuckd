@@ -18,7 +18,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN \
     # Enable authentication for private Go modules
     git config --global url."https://$(cat /run/secrets/GITHUB_TOKEN)@github.com/".insteadOf "https://github.com/" && \
     # Set GOPRIVATE for private repositories
-    go env -w GOPRIVATE=github.com/groundhogchain/*
+    go env -w GOPRIVATE=github.com/thruputchain/*
 
 # Download dependencies
 RUN go mod download

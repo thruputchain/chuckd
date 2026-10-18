@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/net/magnolia"
-	"github.com/groundhogchain/lib-go/libflow"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libstat"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/magnolia"
+	"github.com/thruputchain/lib-go/libflow"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libstat"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // NOTE: transmission can be received twice if code redundancy exceeds 100%.

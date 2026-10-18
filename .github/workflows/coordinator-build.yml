@@ -101,9 +101,9 @@ jobs:
 
       - name: Set up Go private modules
         run: |
-          go env -w GOPRIVATE=github.com/groundhogchain/*
-          go env -w GONOSUMDB=github.com/groundhogchain/*
-          go env -w GONOPROXY=github.com/groundhogchain/*
+          go env -w GOPRIVATE=github.com/thruputchain/*
+          go env -w GONOSUMDB=github.com/thruputchain/*
+          go env -w GONOPROXY=github.com/thruputchain/*
           git config --global url."git@github.com:".insteadOf "https://github.com/"
 
       - id: coordinator-build

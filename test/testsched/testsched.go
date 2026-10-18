@@ -5,17 +5,17 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
-	"github.com/groundhogchain/chuckd/test/testdb"
-	"github.com/groundhogchain/chuckd/test/testmempool"
-	"github.com/groundhogchain/chuckd/test/testutil"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/sched"
+	"github.com/thruputchain/chuckd/system/systemfixed"
+	"github.com/thruputchain/chuckd/test/testdb"
+	"github.com/thruputchain/chuckd/test/testmempool"
+	"github.com/thruputchain/chuckd/test/testutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	"github.com/thruputchain/lib-go/librand"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type TestScheduler struct {

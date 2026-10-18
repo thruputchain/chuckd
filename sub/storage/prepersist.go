@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/must"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/must"
 )
 
 type PrePersist struct {

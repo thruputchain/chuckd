@@ -3,9 +3,9 @@ package dogwood
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/lib-go/libnet"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/router"
+	"github.com/thruputchain/lib-go/libnet"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type DogwoodDialer interface {

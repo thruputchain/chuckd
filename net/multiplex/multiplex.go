@@ -3,15 +3,15 @@ package multiplex
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/net/dogwood"
-	"github.com/groundhogchain/chuckd/sub/storage"
-	"github.com/groundhogchain/chuckd/system/systemfixed"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	"github.com/groundhogchain/lib-go/libflow"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/dogwood"
+	"github.com/thruputchain/chuckd/sub/storage"
+	"github.com/thruputchain/chuckd/system/systemfixed"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	"github.com/thruputchain/lib-go/libflow"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // scp msgs, proposed txsets,

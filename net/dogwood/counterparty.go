@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func WaitCounterpartiesReady(ctx context.Context, dialer libnet.Dialer, vs []proto.ValidatorPublicInfo) {

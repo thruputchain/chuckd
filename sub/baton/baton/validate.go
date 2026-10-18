@@ -1,8 +1,8 @@
 package baton
 
 import (
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // validated cache

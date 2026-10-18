@@ -3,7 +3,7 @@ package magnolia
 import (
 	"testing"
 
-	"github.com/groundhogchain/lib-go/libtext"
+	"github.com/thruputchain/lib-go/libtext"
 )
 
 func TestBallsIntoBins(t *testing.T) {

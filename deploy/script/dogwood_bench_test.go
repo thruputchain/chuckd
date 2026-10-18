@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/groundhogchain/lib-go/librand"
+	"github.com/thruputchain/lib-go/librand"
 )
 
 func TestDogwoodLocalScript(t *testing.T) {

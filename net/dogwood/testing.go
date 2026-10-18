@@ -4,15 +4,15 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/groundhogchain/chuckd/net/discovery"
-	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/test/testnet"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/discovery"
+	"github.com/thruputchain/chuckd/net/router"
+	"github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/chuckd/test/testnet"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type Dogwood3Harness struct {

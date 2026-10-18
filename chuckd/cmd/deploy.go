@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
-	"github.com/groundhogchain/chuckd/deploy/script"
-	"github.com/groundhogchain/chuckd/runtime"
 	"github.com/spf13/cobra"
+	"github.com/thruputchain/chuckd/chuckd/cmdkit"
+	"github.com/thruputchain/chuckd/deploy/script"
+	"github.com/thruputchain/chuckd/runtime"
 )
 
 var (

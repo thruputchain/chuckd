@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 const ShortHashLen = 3

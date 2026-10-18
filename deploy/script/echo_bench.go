@@ -4,8 +4,8 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/groundhogchain/lib-go/libtext"
-	"github.com/groundhogchain/lib-go/must"
+	"github.com/thruputchain/lib-go/libtext"
+	"github.com/thruputchain/lib-go/must"
 )
 
 type BenchEchoExecDef struct {

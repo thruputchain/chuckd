@@ -5,16 +5,16 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/groundhogchain/chuckd/net/discovery"
-	"github.com/groundhogchain/chuckd/net/router"
-	"github.com/groundhogchain/chuckd/util/netutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/librpc"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/net/discovery"
+	"github.com/thruputchain/chuckd/net/router"
+	"github.com/thruputchain/chuckd/util/netutil"
+	"github.com/thruputchain/chuckd/util/rpcutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/librand"
+	"github.com/thruputchain/lib-go/librpc"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type DogwoodService struct {

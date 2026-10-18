@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/sub/storage"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/storage"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type ConsensusValuePool struct {
