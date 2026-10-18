@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +11,7 @@ import (
 	"github.com/thruputchain/chuckd/runtime"
 	"github.com/thruputchain/chuckd/system/coordinator"
 	"github.com/thruputchain/chuckd/system/dogwood"
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/lib-go/liblog"
 	"github.com/thruputchain/lib-go/libnet"
@@ -53,7 +53,7 @@ var (
 					networkHash = nil
 				}
 				if networkHash != nil {
-					liblog.Infof(ctx, "passing network hash to scpd: %s", hex.EncodeToString(networkHash[:]))
+					liblog.Infof(ctx, "passing network hash to scpd: %s", encoding.Base58(networkHash[:]))
 				}
 				opcfg := coordinator.OperationalConfig{
 					NetworkHash:    networkHash,
@@ -163,12 +163,12 @@ func resolveNetworkHash(genesisPath, metadataPath string) (*proto.NetworkHash, e
 	if err != nil {
 		return nil, err
 	}
-	decoded, err := hex.DecodeString(metadata.NetworkHash)
+	decoded, err := encoding.Decode32(metadata.NetworkHash)
 	if err != nil {
 		return nil, err
 	}
 	var hash proto.NetworkHash
-	copy(hash[:], decoded)
+	copy(hash[:], decoded[:])
 	return &hash, nil
 }
 

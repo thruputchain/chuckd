@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/thruputchain/chuckd/util/encoding"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/chuckd/util/xdrutil"
 	"github.com/thruputchain/lib-go/libxdr"
@@ -43,9 +44,9 @@ func xdrHexSignedTransaction(t *testing.T, tx proto.SignedTransaction) string {
 	return hex.EncodeToString(buf.Bytes())
 }
 
-func hostedBootstrapHashHex(tx proto.SignedTransaction) string {
+func hostedBootstrapHashBase58(tx proto.SignedTransaction) string {
 	hash := protoutil.HashSignedTx(&tx)
-	return "0x" + hex.EncodeToString(hash[:])
+	return encoding.Base58(hash[:])
 }
 
 // testProtocolText is the protocol token as it appears in metadata JSON.
@@ -55,18 +56,18 @@ func testProtocolText() string {
 }
 
 // The native nonce-zero account emitted for bootstrap seed "seed", index 0.
-const testHostedBootstrapPublicKey = "0x8007f4e0a1f7ce19482951626496baa944ce0b870289605a1279630ea5dc846b"
-const testHostedBootstrapWalletAddress = "0x269b179ac3bd69a15af3dbf5656a661e968b96acb573280886d5ce00cc997a36"
+const testHostedBootstrapPublicKey = "9cnDtF1yBL5geTVVWx4Gp7y8aXe8M23QnT1uwSFepD1L"
+const testHostedBootstrapWalletAddress = "3bhf6dpzbd31YRjkJNpfTaFekHmRpKNCoPxm699XgeCD"
 
 func testHostedBootstrapMetadata() hostedBootstrapMetadata {
 	return hostedBootstrapMetadata{
-		SchemaVersion:              2,
+		SchemaVersion:              3,
 		Kind:                       "hog-hosted-bootstrap",
-		NetworkHash:                strings.Repeat("00", 32),
+		NetworkHash:                strings.Repeat("1", 32),
 		Protocol:                   testProtocolText(),
 		BootstrapAccountDerivation: json.RawMessage(`{"scheme":"groundhog-bootstrap-account-v1","seed":"seed"}`),
 		BootstrapAccounts:          json.RawMessage(`[{"index":0,"role":"hosted_dev_account","publicKey":"` + testHostedBootstrapPublicKey + `","walletAddress":"` + testHostedBootstrapWalletAddress + `","initialStorageTokens":"1000"}]`),
-		Bootstrap:                  json.RawMessage(`{"storageCostModel":{"hash":"0x` + strings.Repeat("77", 32) + `","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
+		Bootstrap:                  json.RawMessage(`{"storageCostModel":{"hash":"93MB2qRDNVLxbmmPuYpLdAqn3u2x9ZhaVZK5wELHueP8","baseDataItemCost":"1","bytestringCostPerByte":"2","baseContractDeploymentCost":"3","contractDeploymentCostPerByte":"4","authPerKeyCost":"5","rcqCostPerEntry":"6","replayCacheCostPerEntry":"7","balanceCost":"8"}}`),
 	}
 }
 
@@ -80,7 +81,7 @@ func testHostedBootstrapMetadataWithTransactions(t *testing.T, txs ...proto.Sign
 			XDR   string `json:"xdr"`
 		}{
 			Index: i,
-			Hash:  hostedBootstrapHashHex(tx),
+			Hash:  hostedBootstrapHashBase58(tx),
 			XDR:   xdrHexSignedTransaction(t, tx),
 		})
 	}
@@ -117,11 +118,11 @@ func testHostedBootstrapCeremonyResult(t *testing.T, height proto.BlockHeight) p
 
 func setHostedBootstrapCommitIdentity(t *testing.T, metadata hostedBootstrapMetadata, tx proto.SignedTransaction, tip *proto.DbTip) {
 	t.Helper()
-	networkHash, err := hex.DecodeString(metadata.NetworkHash)
+	networkHash, err := encoding.Decode32(metadata.NetworkHash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	copy(tip.Value.Proposal_header.Network_hash[:], networkHash)
+	copy(tip.Value.Proposal_header.Network_hash[:], networkHash[:])
 	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
 }
 
@@ -143,18 +144,18 @@ func TestHashSingleHostedBootstrapTxSetMatchesHogdMerkleTriePrefix(t *testing.T)
 
 func TestLoadHostedBootstrapMetadataRejectsLegacySchema(t *testing.T) {
 	metadata := testHostedBootstrapMetadata()
-	metadata.SchemaVersion = 1
+	metadata.SchemaVersion = 2
 	path := writeHostedBootstrapMetadataJSON(t, metadata)
-	if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "schemaVersion 1") {
-		t.Fatalf("legacy metadata must require the original producer, got %v", err)
+	if _, err := loadHostedBootstrapMetadata(path); err == nil || !strings.Contains(err.Error(), "schemaVersion 2") {
+		t.Fatalf("legacy metadata must require regeneration, got %v", err)
 	}
 }
 
 func TestLoadHostedBootstrapMetadataRejectsWrongKind(t *testing.T) {
 	path := writeHostedBootstrapMetadata(t, `{
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "kind": "wrong",
-  "networkHash": "`+strings.Repeat("00", 32)+`",
+  "networkHash": "`+strings.Repeat("1", 32)+`",
   "protocol": "`+testProtocolText()+`",
   "initializationTransactions": []
 }`)
@@ -171,7 +172,7 @@ func TestLoadHostedBootstrapMetadataRejectsInvalidNetworkHash(t *testing.T) {
 		strings.Repeat("gg", 32),
 	} {
 		path := writeHostedBootstrapMetadata(t, `{
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "kind": "hog-hosted-bootstrap",
   "networkHash": "`+networkHash+`"
 }`)
@@ -185,16 +186,16 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 	tx := proto.SignedTransaction{}
 	txHex := xdrHexSignedTransaction(t, tx)
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 2,
+		SchemaVersion: 3,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkHash:   strings.Repeat("00", 32),
+		NetworkHash:   strings.Repeat("1", 32),
 		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
 			XDR   string `json:"xdr"`
 		}{
-			{Index: 0, Hash: hostedBootstrapHashHex(tx), XDR: txHex},
+			{Index: 0, Hash: hostedBootstrapHashBase58(tx), XDR: txHex},
 		},
 	}
 
@@ -209,9 +210,9 @@ func TestDecodeHostedBootstrapTransactionsDecodesXDR(t *testing.T) {
 
 func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 2,
+		SchemaVersion: 3,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkHash:   strings.Repeat("00", 32),
+		NetworkHash:   strings.Repeat("1", 32),
 		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
@@ -230,16 +231,16 @@ func TestDecodeHostedBootstrapTransactionsRejectsOutOfOrderIndex(t *testing.T) {
 func TestDecodeHostedBootstrapTransactionsRejectsHashMismatch(t *testing.T) {
 	txHex := xdrHexSignedTransaction(t, proto.SignedTransaction{})
 	metadata := hostedBootstrapMetadata{
-		SchemaVersion: 2,
+		SchemaVersion: 3,
 		Kind:          "hog-hosted-bootstrap",
-		NetworkHash:   strings.Repeat("00", 32),
+		NetworkHash:   strings.Repeat("1", 32),
 		Protocol:      testProtocolText(),
 		InitializationTransactions: []struct {
 			Index int    `json:"index"`
 			Hash  string `json:"hash"`
 			XDR   string `json:"xdr"`
 		}{
-			{Index: 0, Hash: "0x" + strings.Repeat("00", 32), XDR: txHex},
+			{Index: 0, Hash: strings.Repeat("1", 32), XDR: txHex},
 		},
 	}
 
@@ -258,7 +259,7 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 		viewGatewayAddress:      "hog-exec.internal:8042",
 		publicRPCURL:            "http://203.0.113.10:8545",
 		runtimeManifestOut:      path,
-	}, hostedBootstrapCommit{Height: 1, ValueHash: "0x" + strings.Repeat("88", 32)})
+	}, hostedBootstrapCommit{Height: 1, ValueHash: "AByCTxLPRZPoyK22KdMxa3xkCbcNbeNWzVeEvh6UcJs9"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,10 +277,10 @@ func TestWriteHostedRuntimeManifest(t *testing.T) {
 	if manifest["kind"] != "hosted-devnet-runtime" {
 		t.Fatalf("kind = %v", manifest["kind"])
 	}
-	if manifest["schemaVersion"] != float64(3) {
+	if manifest["schemaVersion"] != float64(4) {
 		t.Fatalf("schemaVersion = %v", manifest["schemaVersion"])
 	}
-	if manifest["networkHash"] != strings.Repeat("00", 32) {
+	if manifest["networkHash"] != strings.Repeat("1", 32) {
 		t.Fatalf("networkHash = %v", manifest["networkHash"])
 	}
 	wantDerivation := map[string]any{

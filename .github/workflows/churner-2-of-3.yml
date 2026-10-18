@@ -1,10 +1,8 @@
 name: Churner benchmark 2 of 3 nodes churning
 
+# The retired hogx driver fails at startup on the base58 branch.
+# Keep manual execution available pending replacement/retirement in GH-521.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 env:
   CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token

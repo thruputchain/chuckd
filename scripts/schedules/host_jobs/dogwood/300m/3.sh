@@ -16,22 +16,22 @@ cat > dogwood-bench-config-host=${HOG_HOST_3},seq=2.json << EOF
     "validator_config": {
         "private_info": {
             "public_info": {
-                "public_key": "4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69",
+                "public_key": {"scheme": "Ed25519", "ed25519": "6AvmTxLoyrp4hjyd4irz7YkNvdzjC8jNTrCJA4J23Dx4"},
                 "address": "${HOG_HOST_3}:4000"
             },
-            "secret_key": "8bf95630b7cfae0ba02798e0a120fc3f1916a6f6f38f3ae7ff84b6925fb3b39c4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69"
+            "secret_key": {"scheme": "Ed25519", "ed25519": "8bf95630b7cfae0ba02798e0a120fc3f1916a6f6f38f3ae7ff84b6925fb3b39c4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69"}
         },
         "known_validators": [
             {
-                "public_key": "26f0a0b4e6429136e5c2a4f060c83bc44e955f717862e740ba2b7a79e6c16c5c",
+                "public_key": {"scheme": "Ed25519", "ed25519": "3d1JgmibANYWwp3DmbX7avfvkjevAYpwZkN344xn2RFy"},
                 "address": "${HOG_HOST_1}:4000"
             },
             {
-                "public_key": "586b8958193dd81237bc09d4fda7a9e11b1638c775871d1d9d9980108e628700",
+                "public_key": {"scheme": "Ed25519", "ed25519": "6x9z2apK1Ku3UoPQTWNbBwBnBqZwq6djLoiduAwWoEUF"},
                 "address": "${HOG_HOST_2}:4000"
             },
             {
-                "public_key": "4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69",
+                "public_key": {"scheme": "Ed25519", "ed25519": "6AvmTxLoyrp4hjyd4irz7YkNvdzjC8jNTrCJA4J23Dx4"},
                 "address": "${HOG_HOST_3}:4000"
             }
         ]
@@ -71,15 +71,15 @@ cat > dogwood-bench-config-host=${HOG_HOST_3},seq=2.json << EOF
             "validators": [
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "26f0a0b4e6429136e5c2a4f060c83bc44e955f717862e740ba2b7a79e6c16c5c"
+                    "ed25519": "3d1JgmibANYWwp3DmbX7avfvkjevAYpwZkN344xn2RFy"
                 },
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "586b8958193dd81237bc09d4fda7a9e11b1638c775871d1d9d9980108e628700"
+                    "ed25519": "6x9z2apK1Ku3UoPQTWNbBwBnBqZwq6djLoiduAwWoEUF"
                 },
                 {
                     "scheme": "Ed25519",
-                    "ed25519": "4cd574bf0028b118f15e37c944e72f4b6f021fbf9043b7cfe5a88040b9347f69"
+                    "ed25519": "6AvmTxLoyrp4hjyd4irz7YkNvdzjC8jNTrCJA4J23Dx4"
                 }
             ],
             "inner_sets": [

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/thruputchain/chuckd/deploy/common"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/chuckd/util/protoutil"
 	"github.com/thruputchain/lib-go/liblog"
-	"github.com/thruputchain/lib-go/libxdr"
 	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
@@ -113,7 +113,7 @@ fi
 
 	// build config file
 	fmt.Fprintf(&script, "cat > config-%s.json << EOF\n", host)
-	fmt.Fprintln(&script, libxdr.MustXdrToJsonString(&vcfg))
+	fmt.Fprintln(&script, configtext.MustMarshalString(&vcfg))
 	fmt.Fprintln(&script, "EOF")
 
 	storageDir := fmt.Sprintf("./storage-%s", host)

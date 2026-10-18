@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/thruputchain/chuckd/deploy/common"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/lib-go/libtext"
-	"github.com/thruputchain/lib-go/libxdr"
 	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
@@ -196,7 +196,7 @@ EOF
 		"Name":             name,
 		"Host":             host,
 		"ConfigName":       "dogwood-bench-config-" + name + ".json",
-		"ConfigJSON":       libxdr.MustXdrToJsonString(&cfg),
+		"ConfigJSON":       configtext.MustMarshalString(&cfg),
 		"NodeIndex":        index,
 		"Seed":             rand.Int63(),
 		"ChuckdPath":       chuckdPath,
