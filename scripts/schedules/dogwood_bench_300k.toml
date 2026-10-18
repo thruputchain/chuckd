@@ -30,3 +30,4 @@ HOST_JOBS_DIR="./scripts/schedules/host_jobs" \
 GIT_REPO = "{{ .github_repo }}"
 GIT_COMMIT = "{{ .git_commit }}"
 GIT_BRANCH = "{{ .git_branch }}"
+READ_ACCESS_PAT = "{{ .read_access_pat }}"
