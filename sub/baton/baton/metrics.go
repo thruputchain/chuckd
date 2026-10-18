@@ -3,13 +3,13 @@ package baton
 import (
 	"context"
 
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
 
-const batonMeterName = "github.com/groundhogchain/chuckd/sub/baton"
+const batonMeterName = "github.com/thruputchain/chuckd/sub/baton"
 
 type batonMetrics struct {
 	currentBlockHeight metric.Int64Gauge

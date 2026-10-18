@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
 )
 
 type Notify interface {

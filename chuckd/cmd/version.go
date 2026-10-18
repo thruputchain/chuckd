@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/groundhogchain/chuckd"
 	"github.com/spf13/cobra"
+	"github.com/thruputchain/chuckd"
 )
 
 var (

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/lib-go/libmem"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libmem"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func (x *DogwoodService) Send(ctx context.Context, pay libmem.BorrowedBytes) error {

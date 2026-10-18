@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libtext"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
+	"github.com/thruputchain/chuckd/chuckd/cmdkit"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/libtext"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 var (

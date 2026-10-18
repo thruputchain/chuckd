@@ -5,11 +5,11 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/groundhogchain/lib-go/libflow"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libmem"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libflow"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libmem"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type TransmissionSender struct {

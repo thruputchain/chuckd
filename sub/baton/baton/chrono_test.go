@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/util/blocktrace"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/util/blocktrace"
+	proto "github.com/thruputchain/thruput-protocol-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"

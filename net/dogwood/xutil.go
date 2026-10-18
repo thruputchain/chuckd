@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/groundhogchain/chuckd/net/magnolia"
+	"github.com/thruputchain/chuckd/net/magnolia"
 )
 
 type MagnoliaEncoderPool struct {

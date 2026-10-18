@@ -14,7 +14,7 @@ if [[ -n "${CHUCKD_DISTRIBUTION_VERSION:-}" ]]; then
   fi
   build_args+=(
     -ldflags
-    "-X github.com/groundhogchain/chuckd.distributionVersion=$CHUCKD_DISTRIBUTION_VERSION"
+    "-X github.com/thruputchain/chuckd.distributionVersion=$CHUCKD_DISTRIBUTION_VERSION"
   )
 fi
 go build "${build_args[@]}"

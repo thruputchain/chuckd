@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 const rustSignInteropEnvVar = "RUN_CHUCKD_RUST_INTEROP_TEST"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type catchupArrivals []CatchupArrival

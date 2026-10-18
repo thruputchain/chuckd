@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func ConnectToScheduler(

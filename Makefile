@@ -22,12 +22,12 @@ GO ?= go
 # skip the public proxy and checksum database. scripts/setup_go.sh sets the
 # same three plus a repo-local GOPATH; source it instead if you want the
 # module cache kept inside the checkout.
-export GOPRIVATE ?= github.com/groundhogchain/*
-export GONOSUMDB ?= github.com/groundhogchain/*
-export GONOPROXY ?= github.com/groundhogchain/*
+export GOPRIVATE ?= github.com/thruputchain/*
+export GONOSUMDB ?= github.com/thruputchain/*
+export GONOPROXY ?= github.com/thruputchain/*
 
 # Release builds set this; scripts/build_chuckd.sh passes it to the linker as
-# -X github.com/groundhogchain/chuckd.distributionVersion, which is the Go
+# -X github.com/thruputchain/chuckd.distributionVersion, which is the Go
 # equivalent of the generated version.c that hogd compiles in.
 export CHUCKD_DISTRIBUTION_VERSION ?=
 

@@ -3,8 +3,8 @@ package xdrutil
 import (
 	"crypto/sha256"
 
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // batch must be pre-validated with ValidateBatch, otherwise HashParallelBatch will panic.

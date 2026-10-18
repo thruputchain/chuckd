@@ -1,4 +1,4 @@
-module github.com/groundhogchain/chuckd
+module github.com/thruputchain/chuckd
 
 go 1.26.0
 
@@ -16,9 +16,9 @@ require (
 
 require (
 	github.com/dustin/go-humanize v1.0.1
-	github.com/groundhogchain/lib-go v0.0.0-20260512044649-33b87d4adadb
-	github.com/groundhogchain/protocol-go v0.0.0-20261016222237-254ab84ca530
 	github.com/prometheus/client_golang v1.22.0
+	github.com/thruputchain/lib-go v0.0.0-20261018054045-e56684cd4d86
+	github.com/thruputchain/thruput-protocol-go v0.0.0-20261018052825-8f1017e9496b
 	github.com/xdrpp/goxdr v0.0.0-20260507185951-17b997ee737d
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.45.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0

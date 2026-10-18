@@ -14,15 +14,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/deploy/common"
-	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/chuckd/test/testnet"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librpc"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
+	"github.com/thruputchain/chuckd/deploy/common"
+	"github.com/thruputchain/chuckd/system/coordinator"
+	"github.com/thruputchain/chuckd/test/testnet"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/librpc"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // hostScopedNetwork allows each validator to bind debug services on :port while

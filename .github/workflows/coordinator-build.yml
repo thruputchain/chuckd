@@ -24,6 +24,8 @@ on:
         required: true
       CHUCKD_TO_HOGX_KEY:
         required: true
+      READ_ACCESS_PAT:
+        required: true
       GROUNDHOG_REGISTRY_TOKEN:
         required: true
 
@@ -72,10 +74,28 @@ jobs:
             ${{ secrets.CHUCKD_TO_SCP_KEY }}
             ${{ secrets.CHUCKD_TO_HOGX_KEY }}
 
+      # Repositories transferred to thruputchain no longer match the deploy keys
+      # above (their comments name groundhogchain), so fetch them over HTTPS
+      # with the read-only PAT. This covers the hogx and scp submodules and the
+      # Go modules. The rewrites are keyed on the thruputchain prefix, which
+      # outranks the blanket git@github.com: rewrite set up for Go below.
+      - name: Authenticate thruputchain sources
+        env:
+          READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
+        run: |
+          set +x
+          base="https://x-access-token:${READ_ACCESS_PAT}@github.com/thruputchain/"
+          git config --global --add url."$base".insteadOf "https://github.com/thruputchain/"
+          git config --global --add url."$base".insteadOf "git@github.com:thruputchain/"
+          git config --global --add url."$base".insteadOf "ssh://git@github.com/thruputchain/"
+
+      # persist-credentials: false so the checkout's GITHUB_TOKEN header does
+      # not take precedence over the PAT on later github.com fetches.
       - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
         with:
           ref: ${{ inputs.source_commit }}
           submodules: false
+          persist-credentials: false
 
       - name: Verify source commit
         run: test "$(git rev-parse HEAD)" = "${{ inputs.source_commit }}"
@@ -101,9 +121,9 @@ jobs:
 
       - name: Set up Go private modules
         run: |
-          go env -w GOPRIVATE=github.com/groundhogchain/*
-          go env -w GONOSUMDB=github.com/groundhogchain/*
-          go env -w GONOPROXY=github.com/groundhogchain/*
+          go env -w GOPRIVATE=github.com/thruputchain/*
+          go env -w GONOSUMDB=github.com/thruputchain/*
+          go env -w GONOPROXY=github.com/thruputchain/*
           git config --global url."git@github.com:".insteadOf "https://github.com/"
 
       - id: coordinator-build

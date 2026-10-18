@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // advertise tries to advetise the quorum slices we know of to every validator participating in them.

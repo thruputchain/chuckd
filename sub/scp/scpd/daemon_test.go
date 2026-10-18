@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TestSCPDEnv(t *testing.T) {

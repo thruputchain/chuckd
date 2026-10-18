@@ -3,8 +3,8 @@ package router
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/util/dogwoodutil"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/dogwoodutil"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type ValidatorID = proto.ValidatorID

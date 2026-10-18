@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/lib-go/must"
 	"github.com/klauspost/reedsolomon"
+	"github.com/thruputchain/lib-go/must"
 )
 
 type Decoder struct {

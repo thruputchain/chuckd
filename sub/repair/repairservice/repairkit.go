@@ -1,6 +1,6 @@
 package repairservice
 
-import proto "github.com/groundhogchain/protocol-go"
+import proto "github.com/thruputchain/thruput-protocol-go"
 
 type RepairProvider interface {
 	// Announce the cv of our current nomination.

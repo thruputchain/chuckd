@@ -7,17 +7,17 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/groundhogchain/chuckd/chuckd/cmdkit"
-	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/chuckd/system/dogwood"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/libxdr"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/spf13/cobra"
+	"github.com/thruputchain/chuckd/chuckd/cmdkit"
+	"github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/chuckd/system/coordinator"
+	"github.com/thruputchain/chuckd/system/dogwood"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/libxdr"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 var (

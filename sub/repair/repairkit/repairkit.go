@@ -3,7 +3,7 @@ package repairkit
 import (
 	"context"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type RepairAgent interface {

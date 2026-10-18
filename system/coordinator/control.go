@@ -3,9 +3,9 @@ package coordinator
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/sub/sched"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/sub/sched"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type Control struct {

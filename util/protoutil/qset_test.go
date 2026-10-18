@@ -3,8 +3,8 @@ package protoutil
 import (
 	"testing"
 
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TestVerifyQSetSize(t *testing.T) {

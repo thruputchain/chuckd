@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
-	"github.com/groundhogchain/chuckd/util/netutil"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/repair/repairkit"
+	"github.com/thruputchain/chuckd/util/netutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/librand"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 // RepairMissingTxs ensures that the returned transactions match the desired hashes.

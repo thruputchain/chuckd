@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/liblog"
 )
 
 type TestBus struct {

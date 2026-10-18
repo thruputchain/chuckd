@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/groundhogchain/chuckd/runtime"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/libmem"
-	"github.com/groundhogchain/lib-go/libruntime"
-	"github.com/groundhogchain/lib-go/libstat"
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
+	"github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/libmem"
+	"github.com/thruputchain/lib-go/libruntime"
+	"github.com/thruputchain/lib-go/libstat"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TestMain(m *testing.M) {

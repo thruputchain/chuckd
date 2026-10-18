@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/sub/catchup"
-	"github.com/groundhogchain/chuckd/sub/cvpool"
-	"github.com/groundhogchain/chuckd/sub/repair/repairkit"
-	"github.com/groundhogchain/chuckd/sub/repair/repairservice"
-	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/libtime"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/catchup"
+	"github.com/thruputchain/chuckd/sub/cvpool"
+	"github.com/thruputchain/chuckd/sub/repair/repairkit"
+	"github.com/thruputchain/chuckd/sub/repair/repairservice"
+	"github.com/thruputchain/chuckd/sub/scp/scpkit"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/libtime"
+	proto "github.com/thruputchain/thruput-protocol-go"
 	"github.com/xdrpp/goxdr/xdr"
 )
 

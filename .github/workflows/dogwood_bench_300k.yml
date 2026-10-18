@@ -33,4 +33,5 @@ jobs:
             --key=github_repo --value=${{ github.repository }} \
             --key=git_commit --value=${{ github.sha }} \
             --key=git_branch --value=${{ github.head_ref || github.ref_name }} \
+            --key=read_access_pat --value=${{ secrets.READ_ACCESS_PAT }} \
             ./scripts/schedules/dogwood_bench_300k.toml

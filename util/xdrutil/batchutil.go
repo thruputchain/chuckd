@@ -3,7 +3,7 @@ package xdrutil
 import (
 	"fmt"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func ValidateBatch(batch proto.ParallelBatch) error {

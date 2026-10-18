@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/util"
-	"github.com/groundhogchain/lib-go/liblog"
+	"github.com/thruputchain/chuckd/util"
+	"github.com/thruputchain/lib-go/liblog"
 	"golang.org/x/sys/unix"
 )
 

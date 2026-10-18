@@ -3,7 +3,7 @@ package scheduler
 import (
 	"context"
 
-	"github.com/groundhogchain/chuckd/system/coordinator"
+	"github.com/thruputchain/chuckd/system/coordinator"
 )
 
 type LiveScheduler struct{}

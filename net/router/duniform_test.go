@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/util/dogwoodutil"
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/lib-go/librand"
-	"github.com/groundhogchain/lib-go/must"
+	"github.com/thruputchain/chuckd/util/dogwoodutil"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/lib-go/librand"
+	"github.com/thruputchain/lib-go/must"
 )
 
 func generateValidators(ctx context.Context, n int) []ValidatorPublicInfo {

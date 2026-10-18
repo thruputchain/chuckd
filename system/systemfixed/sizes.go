@@ -1,6 +1,6 @@
 package systemfixed
 
-import proto "github.com/groundhogchain/protocol-go"
+import proto "github.com/thruputchain/thruput-protocol-go"
 
 const (
 	MaxBytesTxsMessage = int(proto.KCoordinatorMaxBytesTxsMessage)

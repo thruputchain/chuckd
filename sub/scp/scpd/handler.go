@@ -4,12 +4,12 @@ import (
 	"context"
 	"net"
 
-	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	"github.com/groundhogchain/chuckd/util/netutil"
-	"github.com/groundhogchain/chuckd/util/rpcutil"
-	"github.com/groundhogchain/lib-go/libnet"
-	"github.com/groundhogchain/lib-go/librpc"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/scp/scpkit"
+	"github.com/thruputchain/chuckd/util/netutil"
+	"github.com/thruputchain/chuckd/util/rpcutil"
+	"github.com/thruputchain/lib-go/libnet"
+	"github.com/thruputchain/lib-go/librpc"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type SCPHandler struct {

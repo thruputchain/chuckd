@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
 )
 
 func TestNotifyReceiveStopReleasesBlockedNotifications(t *testing.T) {

@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/groundhogchain/chuckd"
-	"github.com/groundhogchain/chuckd/util/blocktrace"
-	"github.com/groundhogchain/lib-go/liblog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/thruputchain/chuckd"
+	"github.com/thruputchain/chuckd/util/blocktrace"
+	"github.com/thruputchain/lib-go/liblog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/prometheus"

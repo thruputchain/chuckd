@@ -1,7 +1,7 @@
 package scpkit
 
 import (
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func IsSaneSCPEnvelope(env *proto.SCPEnvelope) bool {

@@ -3,9 +3,9 @@ package protoutil
 import (
 	"fmt"
 
-	"github.com/groundhogchain/chuckd/system/systemfixed"
-	"github.com/groundhogchain/lib-go/libxdr"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/system/systemfixed"
+	"github.com/thruputchain/lib-go/libxdr"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func VerifyQSet(qset proto.SCPQuorumSet) error {

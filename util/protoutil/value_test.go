@@ -3,7 +3,7 @@ package protoutil
 import (
 	"testing"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TestValidatorInfoEquals(t *testing.T) {

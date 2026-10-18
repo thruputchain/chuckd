@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/groundhogchain/chuckd/util/protoutil"
-	"github.com/groundhogchain/chuckd/util/xdrutil"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/util/protoutil"
+	"github.com/thruputchain/chuckd/util/xdrutil"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type fakeGenesisCeremonyControl struct {

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	proto "github.com/groundhogchain/protocol-go"
 	"github.com/rs/zerolog"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TestCatchupRejectsUnsupportedPublicKey(t *testing.T) {

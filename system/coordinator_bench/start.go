@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/baton/batonkit"
-	"github.com/groundhogchain/chuckd/sub/sched"
-	"github.com/groundhogchain/chuckd/system/coordinator"
-	"github.com/groundhogchain/lib-go/liblog"
-	"github.com/groundhogchain/lib-go/must"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/baton/batonkit"
+	"github.com/thruputchain/chuckd/sub/sched"
+	"github.com/thruputchain/chuckd/system/coordinator"
+	"github.com/thruputchain/lib-go/liblog"
+	"github.com/thruputchain/lib-go/must"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func (s *CoordinatorBenchSystem) Start(

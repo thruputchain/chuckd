@@ -3,7 +3,7 @@ package protoutil
 import (
 	"time"
 
-	proto "github.com/groundhogchain/protocol-go"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 func TimepointFromTime(t time.Time) proto.TimePoint {

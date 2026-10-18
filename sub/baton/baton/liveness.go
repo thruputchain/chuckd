@@ -3,8 +3,8 @@ package baton
 import (
 	"time"
 
-	"github.com/groundhogchain/chuckd/sub/scp/scpkit"
-	proto "github.com/groundhogchain/protocol-go"
+	"github.com/thruputchain/chuckd/sub/scp/scpkit"
+	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
 type liveness struct {
