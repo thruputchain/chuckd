@@ -9,7 +9,7 @@ import (
 
 func BenchmarkMarshalParallel(b *testing.B) {
 	const n = 1e6
-	x := proto.ParallelTransactionHashBatch{
+	x := proto.ParallelSignedTransactionHashBatch{
 		Segment_bytes: make([]uint32, n*4),
 		Xdr:           make([]byte, n*32),
 	}
@@ -22,7 +22,7 @@ func BenchmarkMarshalParallel(b *testing.B) {
 
 func BenchmarkUnmarshalParallel(b *testing.B) {
 	const n = 1e6
-	x := proto.ParallelTransactionHashBatch{
+	x := proto.ParallelSignedTransactionHashBatch{
 		Segment_bytes: make([]uint32, n*4),
 		Xdr:           make([]byte, n*32),
 	}

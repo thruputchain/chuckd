@@ -8,7 +8,7 @@ import (
 
 func TestHashProposalTxsFastCompatibilityVector(t *testing.T) {
 	txs := proto.ProposalTxs{
-		Hash: proto.ParallelBatch{
+		Signed_hash: proto.ParallelBatch{
 			Segment_tokens: []uint32{1, 2},
 			Segment_bytes:  []uint32{4, 8},
 			Xdr:            []byte{0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3},

@@ -137,7 +137,7 @@ func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHa
 	}
 	storage = UniqueStorageHash(onto.Height+1, storage)
 	proposalTxs := proto.ProposalTxs{
-		Hash: xdrutil.ParallelizeTransactionHashBatch(
+		Signed_hash: xdrutil.ParallelizeSignedTransactionHashBatch(
 			h.m, systemfixed.NominationTransactionHashBatchMaxSegments, hashes),
 		Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(
 			h.m, systemfixed.NominationNondeterministicDataBatchMaxSegments, ntxs),

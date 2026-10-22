@@ -24,7 +24,7 @@ func (b *Baton) validateProposal(
 	proposal := protoutil.ProposalFromBasis(basis)
 	height := proposal.Header.Block_height
 
-	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
+	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Signed_hash)
 
 	eventValidating := batonkit.EventValidating{
 		Onto:           onto,
@@ -97,8 +97,8 @@ func (b *Baton) validateProposal(
 			liblog.Infof(ctx, "scheduler is missing transactions: height=%d; value=%s",
 				height, protoutil.ValueDisplay(value))
 			missing := proto.MissingTransactions{
-				Consensus_value:    *value,
-				Transaction_hashes: *schedValidResult.Missing_tx_hashes(),
+				Consensus_value:  *value,
+				Signed_tx_hashes: *schedValidResult.Missing_signed_tx_hashes(),
 			}
 			err := b.repairMissingTxs(ctx, protoutil.ValueProposer(value), missing)
 			if err != nil { // err can only be context cancelled
@@ -130,11 +130,11 @@ func (b *Baton) repairMissingTxs(
 ) (err error) {
 
 	liblog.Debugf(ctx, "repairing %d missing transactions: height=%d; value=%s",
-		len(missing.Transaction_hashes), protoutil.ValueHeight(&missing.Consensus_value),
+		len(missing.Signed_tx_hashes), protoutil.ValueHeight(&missing.Consensus_value),
 		protoutil.ValueDisplay(&missing.Consensus_value))
 	defer func() {
 		liblog.Debugf(ctx, "repaired %d missing transactions: height=%d; value=%s; error=%v",
-			len(missing.Transaction_hashes), protoutil.ValueHeight(&missing.Consensus_value),
+			len(missing.Signed_tx_hashes), protoutil.ValueHeight(&missing.Consensus_value),
 			protoutil.ValueDisplay(&missing.Consensus_value), err)
 
 	}()

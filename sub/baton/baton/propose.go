@@ -74,7 +74,7 @@ func (b *Baton) propose(
 	proposedBlock := result.Proposed_block()
 	proposal := proposedBlock.Proposal
 	height := proposal.Header.Block_height
-	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Hash)
+	numTxs := xdrutil.TokenSizeOfBatch(proposal.Transactions.Signed_hash)
 
 	tMempoolProposeEnd := b.handler.Now()
 	liblog.Debugf(ctx, "mempool_proposal_delay=%v | height=%d, num_txs=%d",

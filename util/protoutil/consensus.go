@@ -17,7 +17,7 @@ func HashProposalTxsSlow(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 
 func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 	txsBase := *txs
-	txsBase.Hash = proto.ParallelBatch{}
+	txsBase.Signed_hash = proto.ParallelBatch{}
 	txsBase.Nondeterministic_data = proto.ParallelBatch{}
 
 	var hashBase proto.SHA256Hash
@@ -32,7 +32,7 @@ func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 	}()
 	go func() {
 		defer wg.Done()
-		hashTxsHash = xdrutil.HashParallelBatch(txs.Hash)
+		hashTxsHash = xdrutil.HashParallelBatch(txs.Signed_hash)
 	}()
 	go func() {
 		defer wg.Done()
@@ -46,13 +46,13 @@ func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 }
 
 func IsSaneProposalTxs(txs *proto.ProposalTxs) bool {
-	if err := xdrutil.ValidateBatch(txs.Hash); err != nil {
+	if err := xdrutil.ValidateBatch(txs.Signed_hash); err != nil {
 		return false
 	}
 	if err := xdrutil.ValidateBatch(txs.Nondeterministic_data); err != nil {
 		return false
 	}
-	if xdrutil.TokenSizeOfBatch(txs.Hash) !=
+	if xdrutil.TokenSizeOfBatch(txs.Signed_hash) !=
 		xdrutil.TokenSizeOfBatch(txs.Nondeterministic_data) {
 		return false
 	}
