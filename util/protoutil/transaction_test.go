@@ -47,3 +47,19 @@ func TestHashSignedTxCoversSignedEncoding(t *testing.T) {
 		t.Fatal("HashSignedTx ignores the signatures")
 	}
 }
+
+func TestHashTxBodySeparatesSigningFromTransactionIdentity(t *testing.T) {
+	tx := signedTxWithSignature(1)
+	resigned := signedTxWithSignature(2)
+	bodyHash := HashTxBody(&tx.Tx)
+	if bodyHash != HashTxBody(&resigned.Tx) {
+		t.Fatal("changing signatures changed the transaction body hash")
+	}
+	if bodyHash == proto.TransactionHash(HashSignedTx(&tx)) {
+		t.Fatal("body hash equals signed-envelope hash")
+	}
+	resigned.Tx.Uniquifier.Nonce++
+	if bodyHash == HashTxBody(&resigned.Tx) {
+		t.Fatal("changing the body did not change its hash")
+	}
+}

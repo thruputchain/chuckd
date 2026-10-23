@@ -44,8 +44,16 @@ func xdrHexSignedTransaction(t *testing.T, tx proto.SignedTransaction) string {
 	return hex.EncodeToString(buf.Bytes())
 }
 
+// Match hogd's metadata producer directly, independently of the production
+// hash helper, so a change to that helper cannot change both sides of a test.
+func hostedBootstrapBodyHash(tx proto.SignedTransaction) proto.TransactionHash {
+	var body bytes.Buffer
+	libxdr.MarshalXdrWriter(&body, proto.XDR_Transaction(&tx.Tx))
+	return proto.TransactionHash(sha256.Sum256(body.Bytes()))
+}
+
 func hostedBootstrapHashBase58(tx proto.SignedTransaction) string {
-	hash := protoutil.HashSignedTx(&tx)
+	hash := hostedBootstrapBodyHash(tx)
 	return encoding.Base58(hash[:])
 }
 
@@ -123,7 +131,7 @@ func setHostedBootstrapCommitIdentity(t *testing.T, metadata hostedBootstrapMeta
 		t.Fatal(err)
 	}
 	copy(tip.Value.Proposal_header.Network_hash[:], networkHash[:])
-	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
+	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(hostedBootstrapBodyHash(tx))
 }
 
 func TestHashSingleHostedBootstrapTxSetMatchesHogdMerkleTriePrefix(t *testing.T) {
@@ -559,5 +567,29 @@ func TestHostedRuntimeManifestAcceptsIPv6SchedulerGateway(t *testing.T) {
 		runtimeManifestOut:      "runtime-manifest.json",
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDecodeHostedBootstrapTransactionsRejectsSignedEnvelopeHash(t *testing.T) {
+	tx := proto.SignedTransaction{Tx: proto.Transaction{Uniquifier: proto.Uniquifier{Nonce: 7}}}
+	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
+	signedHash := protoutil.HashSignedTx(&tx)
+	metadata.InitializationTransactions[0].Hash = encoding.Base58(signedHash[:])
+	if _, err := decodeHostedBootstrapTransactions(metadata); err == nil || !strings.Contains(err.Error(), "hash mismatch") {
+		t.Fatalf("signed-envelope metadata hash: got %v, want hash mismatch", err)
+	}
+}
+
+func TestValidateHostedBootstrapCommittedTipRequiresBodyHashRoot(t *testing.T) {
+	tx := proto.SignedTransaction{Tx: proto.Transaction{Uniquifier: proto.Uniquifier{Nonce: 7}}}
+	metadata := testHostedBootstrapMetadataWithTransactions(t, tx)
+	var tip proto.DbTip
+	setHostedBootstrapCommitIdentity(t, metadata, tx, &tip)
+	if err := validateHostedBootstrapCommittedTip(metadata, tx, &tip); err != nil {
+		t.Fatalf("body-hash root: %v", err)
+	}
+	tip.Value.Proposal_header.Txs_hash = hashSingleHostedBootstrapTxSet(proto.TransactionHash(protoutil.HashSignedTx(&tx)))
+	if err := validateHostedBootstrapCommittedTip(metadata, tx, &tip); err == nil || !strings.Contains(err.Error(), "transaction set hash") {
+		t.Fatalf("signed-envelope root: got %v, want transaction set hash mismatch", err)
 	}
 }
