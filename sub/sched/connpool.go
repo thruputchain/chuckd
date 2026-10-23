@@ -147,7 +147,7 @@ func (p *ConnPool) Schedulercoord_commit_genesis_ceremony(ctx context.Context, r
 	return r.Result, r.Err
 }
 
-func (p *ConnPool) Schedcoord_lookup_transactions(ctx context.Context, sthb proto.TransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
+func (p *ConnPool) Schedcoord_lookup_transactions(ctx context.Context, sthb proto.SignedTransactionHashBatch) (proto.OptSignedTransactionBatch, error) {
 	reply := make(chan Reply_Schedcoord_lookup_transactions, 1)
 	p.req <- Request_Schedcoord_lookup_transactions{Reply: reply, Ctx: ctx, STHB: sthb}
 	r := <-reply

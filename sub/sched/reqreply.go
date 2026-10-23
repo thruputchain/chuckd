@@ -142,7 +142,7 @@ type Reply_Schedulercoord_commit_genesis_ceremony struct {
 type Request_Schedcoord_lookup_transactions struct {
 	Reply chan<- Reply_Schedcoord_lookup_transactions
 	Ctx   context.Context
-	STHB  proto.TransactionHashBatch
+	STHB  proto.SignedTransactionHashBatch
 }
 
 func (Request_Schedcoord_lookup_transactions) IsSchedCoordRequest() {}

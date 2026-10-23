@@ -193,12 +193,12 @@ func (s *CoordinatorLoadgenSystem) PumpInitTxs(ctx context.Context, ctl coordina
 	must.Assert(ctx, ctl.GetLevers().PauseNominating)
 
 	// install nomination gating hook
-	uncommitted := map[proto.TransactionHash]bool{}
+	uncommitted := map[proto.SignedTransactionHash]bool{}
 	ctl.SetHooks(
 		batonkit.JustCommitHook(
 			// hook pauses nominations iff uncommitted is empty
 			func(cb *batonkit.CommittableBlock) batonkit.BatonLevers {
-				ns, err := xdrutil.SerializeTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Hash)
+				ns, err := xdrutil.SerializeSignedTransactionHashBatch(cb.AsConsensusBasis().Proposal_txs.Signed_hash)
 				must.NoError(ctx, err)
 				for _, h := range ns {
 					delete(uncommitted, h)

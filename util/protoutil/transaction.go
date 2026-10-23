@@ -33,14 +33,14 @@ func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.Propose
 
 // HashSignedTx hashes the whole signed transaction, signatures included, so
 // that proposals commit to the exact encoding each transaction executes.
-func HashSignedTx(tx *proto.SignedTransaction) proto.TransactionHash {
+func HashSignedTx(tx *proto.SignedTransaction) proto.SignedTransactionHash {
 	h := sha256.New()
 	libxdr.MarshalXdrWriter(h, tx)
-	return proto.TransactionHash(h.Sum(nil))
+	return proto.SignedTransactionHash(h.Sum(nil))
 }
 
-func HashSignedTxs(txs []proto.SignedTransaction) []proto.TransactionHash {
-	sxs := make([]proto.TransactionHash, len(txs))
+func HashSignedTxs(txs []proto.SignedTransaction) []proto.SignedTransactionHash {
+	sxs := make([]proto.SignedTransactionHash, len(txs))
 	for i := range txs {
 		sxs[i] = HashSignedTx(&txs[i])
 	}

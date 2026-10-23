@@ -18,7 +18,7 @@ func mkBasis() *proto.ConsensusBasis {
 	m := libxdr.NewXdrMarshaler()
 	return &proto.ConsensusBasis{
 		Proposal_txs: proto.ProposalTxs{
-			Hash:                  xdrutil.ParallelizeTransactionHashBatch(m, 20, txh),
+			Signed_hash:           xdrutil.ParallelizeSignedTransactionHashBatch(m, 20, txh),
 			Nondeterministic_data: xdrutil.ParallelizeNondeterministicProposalDataBatch(m, 20, txn),
 		},
 	}

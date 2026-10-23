@@ -80,18 +80,18 @@ func (x *RepairService) Repair_missing_txs(
 	ctx = liblog.Enterf(ctx, "Repair_missing_txs", "by=%s; height=%d; value=%s; count=%d",
 		libxdr.HashString(env.Signer), protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 		protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
-		len(env.Missing_transactions.Transaction_hashes))
+		len(env.Missing_transactions.Signed_tx_hashes))
 	defer func() {
 		liblog.Leavef(ctx, "by=%s; height=%d; value=%s; count=%d; error=%v; found=%d",
 			libxdr.HashString(env.Signer), protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
-			len(env.Missing_transactions.Transaction_hashes),
+			len(env.Missing_transactions.Signed_tx_hashes),
 			err, len(rtx.Transactions))
 	}()
 
 	<-x.schedReady // wait for x.conn != nil
 
-	txs, err := x.repairMissingTxsFromMempool(ctx, env.Missing_transactions.Transaction_hashes)
+	txs, err := x.repairMissingTxsFromMempool(ctx, env.Missing_transactions.Signed_tx_hashes)
 	if err != nil {
 		liblog.Errorf(ctx, "repair_missing_txs not found in mempool (%v): height=%d; value=%s",
 			err, protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
@@ -119,12 +119,12 @@ func (x *RepairService) repairMissingTxsFromStorage(
 	ctx = liblog.Enterf(ctx, "repairMissingTxsFromStorage", "height=%d; value=%s; count=%d",
 		protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 		protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
-		len(env.Missing_transactions.Transaction_hashes))
+		len(env.Missing_transactions.Signed_tx_hashes))
 	defer func() {
 		liblog.Leavef(ctx, "height=%d; value=%s; count=%d; error=%v; found=%d",
 			protoutil.ValueHeight(&env.Missing_transactions.Consensus_value),
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value),
-			len(env.Missing_transactions.Transaction_hashes),
+			len(env.Missing_transactions.Signed_tx_hashes),
 			err, len(rtx.Transactions))
 	}()
 
@@ -147,7 +147,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 			fmt.Errorf("failed to serialize transaction batch (%w)", err)
 	}
 
-	txhs, err := xdrutil.SerializeTransactionHashBatch(cb.Consensus_basis.Proposal_txs.Hash)
+	txhs, err := xdrutil.SerializeSignedTransactionHashBatch(cb.Consensus_basis.Proposal_txs.Signed_hash)
 	if err != nil {
 		liblog.Errorf(ctx, "failed to serialize transaction hash batch: value=%s",
 			protoutil.ValueDisplay(&env.Missing_transactions.Consensus_value))
@@ -163,13 +163,13 @@ func (x *RepairService) repairMissingTxsFromStorage(
 				len(txs), len(txhs))
 	}
 
-	m := map[proto.TransactionHash]int{}
+	m := map[proto.SignedTransactionHash]int{}
 	for i, txh := range txhs {
 		m[txh] = i
 	}
 
-	result := make([]proto.SignedTransaction, len(env.Missing_transactions.Transaction_hashes))
-	for i, q := range env.Missing_transactions.Transaction_hashes {
+	result := make([]proto.SignedTransaction, len(env.Missing_transactions.Signed_tx_hashes))
+	for i, q := range env.Missing_transactions.Signed_tx_hashes {
 		j, ok := m[q]
 		if !ok {
 			liblog.Errorf(ctx, "transaction hash not found: %s", libxdr.HashString(q))
@@ -184,7 +184,7 @@ func (x *RepairService) repairMissingTxsFromStorage(
 
 func (x *RepairService) repairMissingTxsFromMempool(
 	ctx context.Context,
-	txhs []proto.TransactionHash,
+	txhs []proto.SignedTransactionHash,
 ) (proto.RepairedTransactions, error) {
 
 	found, err := x.conn.Schedcoord_lookup_transactions(ctx, txhs)

@@ -19,8 +19,8 @@ func VerifyCatchupBlock(cb *proto.CatchupBlock) (
 		return ProposalTxsSerialized{}, nil, false
 	}
 
-	txh, err := xdrutil.SerializeTransactionHashBatch(
-		cb.Consensus_basis.Proposal_txs.Hash)
+	txh, err := xdrutil.SerializeSignedTransactionHashBatch(
+		cb.Consensus_basis.Proposal_txs.Signed_hash)
 	if err != nil {
 		return ProposalTxsSerialized{}, nil, false
 	}
