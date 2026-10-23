@@ -13,7 +13,7 @@ import (
 )
 
 func mkBasis() *proto.ConsensusBasis {
-	txh := make([]proto.TransactionHash, 1e6) // 1M
+	txh := make([]proto.SignedTransactionHash, 1e6) // 1M
 	txn := make([]proto.NondeterministicProposalData, 1e6)
 	m := libxdr.NewXdrMarshaler()
 	return &proto.ConsensusBasis{
