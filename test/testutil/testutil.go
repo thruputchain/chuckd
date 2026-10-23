@@ -123,7 +123,7 @@ func (h *TestGen) GenProposalOnto(ctx context.Context, numTxs int, onto *BlockHa
 	txs := make([]proto.SignedTransaction, numTxs)
 	ntxs := make([]proto.NondeterministicProposalData, numTxs)
 	ptxs := make([]proto.ProposedTransaction, numTxs)
-	hashes := make([]proto.TransactionHash, numTxs)
+	hashes := make([]proto.SignedTransactionHash, numTxs)
 	storage := onto.StorageHash
 	for i := range txs {
 		txs[i] = *h.GenSignedTx(ctx)
@@ -192,7 +192,7 @@ func UniqueStorageHash(height proto.BlockHeight, hash proto.StorageShortHash) pr
 }
 
 // TxsHashOf computes the mock scheduler's stand-in for the Merkle root hash of the transactions.
-func TxsHashOf(hashes []proto.TransactionHash) proto.TxsHash {
+func TxsHashOf(hashes []proto.SignedTransactionHash) proto.TxsHash {
 	var r proto.TxsHash
 	for _, h := range hashes {
 		r = xorHash(r, h)
