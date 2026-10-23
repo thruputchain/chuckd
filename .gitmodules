@@ -1,6 +1,3 @@
 [submodule "scp"]
 	path = scp
 	url = git@github.com:thruputchain/scp.git
-[submodule "hogx"]
-	path = hogx
-	url = git@github.com:thruputchain/hogx.git
