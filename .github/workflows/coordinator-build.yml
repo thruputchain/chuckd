@@ -22,8 +22,6 @@ on:
         required: true
       CHUCKD_TO_SCP_KEY:
         required: true
-      CHUCKD_TO_HOGX_KEY:
-        required: true
       READ_ACCESS_PAT:
         required: true
       GROUNDHOG_REGISTRY_TOKEN:
@@ -72,12 +70,11 @@ jobs:
             ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
             ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
             ${{ secrets.CHUCKD_TO_SCP_KEY }}
-            ${{ secrets.CHUCKD_TO_HOGX_KEY }}
 
       # Repositories transferred to thruputchain no longer match the deploy keys
       # above (their comments name groundhogchain), so fetch them over HTTPS
-      # with the read-only PAT. This covers the hogx and scp submodules and the
-      # Go modules. The rewrites are keyed on the thruputchain prefix, which
+      # with the read-only PAT. This covers the scp submodule and the Go
+      # modules. The rewrites are keyed on the thruputchain prefix, which
       # outranks the blanket git@github.com: rewrite set up for Go below.
       - name: Authenticate thruputchain sources
         env:

@@ -43,7 +43,7 @@ DESTDIR ?=
 help:
 	@echo "Setup"
 	@echo "  config        git submodules (SSH-only) plus go mod download"
-	@echo "  submodules    scp and hogx, needed for scpd"
+	@echo "  submodules    scp, needed for scpd"
 	@echo ""
 	@echo "Build"
 	@echo "  build         both binaries"
@@ -107,7 +107,7 @@ fmt:
 	$(GO) fmt ./...
 
 # git ls-files scopes this to the repo's own sources; a plain `gofmt -l .`
-# walks into the scp and hogx submodules and reports their formatting too.
+# walks into the scp submodule and reports its formatting too.
 .PHONY: fmt-check
 fmt-check:
 	@out=$$(gofmt -l $$(git ls-files '*.go')); \

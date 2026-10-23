@@ -23,7 +23,6 @@ jobs:
             ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
             ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
             ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
-            ${{ secrets.CHUCKD_TO_HOGX_KEY }}
 
       # Repositories transferred to thruputchain no longer match the deploy keys
       # above (their comments name groundhogchain), so fetch them over HTTPS
