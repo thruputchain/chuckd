@@ -31,6 +31,14 @@ func UnpackProposedTransactions(ts []proto.ProposedTransaction) []*proto.Propose
 	return Unpack(ts)
 }
 
+// HashTxBody hashes the transaction without its signing envelope. Bootstrap
+// metadata and transaction-set roots use this identity.
+func HashTxBody(tx *proto.Transaction) proto.TransactionHash {
+	h := sha256.New()
+	libxdr.MarshalXdrWriter(h, tx)
+	return proto.TransactionHash(h.Sum(nil))
+}
+
 // HashSignedTx hashes the whole signed transaction, signatures included, so
 // that proposals commit to the exact encoding each transaction executes.
 func HashSignedTx(tx *proto.SignedTransaction) proto.SignedTransactionHash {

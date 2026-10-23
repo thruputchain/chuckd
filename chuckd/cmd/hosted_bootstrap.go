@@ -185,7 +185,7 @@ func decodeHostedBootstrapTransactions(metadata hostedBootstrapMetadata) ([]prot
 		if err := libxdr.UnmarshalXdrEOF(&tx, txBytes); err != nil {
 			return nil, fmt.Errorf("unmarshalling initialization transaction %d xdr: %w", i, err)
 		}
-		if actualHash := protoutil.HashSignedTx(&tx); actualHash != expectedHash {
+		if actualHash := protoutil.HashTxBody(&tx.Tx); actualHash != expectedHash {
 			return nil, fmt.Errorf("initialization transaction %d hash mismatch", i)
 		}
 		txs = append(txs, tx)
@@ -258,7 +258,7 @@ func validateHostedBootstrapCommittedTip(metadata hostedBootstrapMetadata, tx pr
 	if actual := tip.Value.Proposal_header.Network_hash; actual != expectedNetworkHash {
 		return fmt.Errorf("committed genesis ceremony network hash %s does not match hosted bootstrap metadata %s", encoding.Base58(actual[:]), encoding.Base58(expectedNetworkHash[:]))
 	}
-	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashSignedTx(&tx))
+	expectedTxsHash := hashSingleHostedBootstrapTxSet(protoutil.HashTxBody(&tx.Tx))
 	if actual := tip.Value.Proposal_header.Txs_hash; actual != expectedTxsHash {
 		return fmt.Errorf("committed genesis ceremony transaction set hash %s does not match hosted bootstrap transaction %s", encoding.Base58(actual[:]), encoding.Base58(expectedTxsHash[:]))
 	}
