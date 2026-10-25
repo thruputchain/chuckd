@@ -19,7 +19,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/thruputchain/lib-go v0.0.0-20261018054045-e56684cd4d86
-	github.com/thruputchain/thruput-protocol-go v0.0.0-20261022200200-3d3f2102ac17
+	github.com/thruputchain/thruput-protocol-go v0.0.0-20261024144830-65c991b8d27e
 	github.com/xdrpp/goxdr v0.0.0-20260507185951-17b997ee737d
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.45.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
