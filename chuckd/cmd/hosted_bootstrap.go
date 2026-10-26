@@ -223,15 +223,15 @@ func hashSingleHostedBootstrapTxSet(txHash proto.TransactionHash) proto.TxsHash 
 
 	// Leaves retain the full key, including both routing nibbles consumed by
 	// MerkleTriePrefix and the selected inner trie's root branch.
-	leafEncoding := make([]byte, 0, 1+8+sha256.Size+1+sha256.Size)
+	leafEncoding := make([]byte, 0, 1+8+sha256.Size+8)
 	leafEncoding = append(leafEncoding, leafNodeType)
 	pathLength := make([]byte, 8)
 	binary.LittleEndian.PutUint64(pathLength, 64)
 	leafEncoding = append(leafEncoding, pathLength...)
 	leafEncoding = append(leafEncoding, txHash[:]...)
-	leafEncoding = append(leafEncoding, 1)
-	emptyValueHash := sha256.Sum256(nil)
-	leafEncoding = append(leafEncoding, emptyValueHash[:]...)
+	// Commit directly to the key and raw value. The empty value contributes
+	// its uint64 little-endian byte length (zero), with no separate value hash.
+	leafEncoding = append(leafEncoding, make([]byte, 8)...)
 	leafHash := sha256.Sum256(leafEncoding)
 
 	var innerChildren [numBranches][sha256.Size]byte

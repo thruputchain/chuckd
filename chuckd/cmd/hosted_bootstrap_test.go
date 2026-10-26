@@ -139,7 +139,7 @@ func TestHashSingleHostedBootstrapTxSetMatchesHogdMerkleTriePrefix(t *testing.T)
 	for i := range txHash {
 		txHash[i] = byte(i)
 	}
-	wantBytes, err := hex.DecodeString("ec2911947930e9266107044fdec7d6c75134868cf8380e45aec57d50dfaad1c4")
+	wantBytes, err := hex.DecodeString("d88fb1d8dd2249974e30d358bd92e8e0aaff49abd476297573a791024759f726")
 	if err != nil {
 		t.Fatal(err)
 	}
