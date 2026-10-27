@@ -15,6 +15,19 @@ func HashProposalTxsSlow(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 	return proto.ProposalTxsHash(h.Sum(nil))
 }
 
+// proposalTxsDomainSeparator is cxs(DomainSeparator("ProposalTxs")): the zero
+// ExtensionPoint, the length of the name, and the name.
+var proposalTxsDomainSeparator = []byte("\x00\x0bProposalTxs")
+
+// HashProposalTxsFast computes the ProposalTxsHash a ConsensusValue commits to:
+//
+//	SHA-256(cxs(DomainSeparator("ProposalTxs")) || SHA-256(base) ||
+//	        HashParallelBatch(signed_hash) ||
+//	        HashParallelBatch(nondeterministic_data))
+//
+// where base is the XDR of txs with both batches emptied. The three hashes are
+// computed in parallel and combined in order, so the batches cannot trade
+// places (hogd#4508).
 func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 	txsBase := *txs
 	txsBase.Signed_hash = proto.ParallelBatch{}
@@ -39,10 +52,12 @@ func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 		hashTxsND = xdrutil.HashParallelBatch(txs.Nondeterministic_data)
 	}()
 	wg.Wait()
-	for i := range hashBase {
-		hashBase[i] ^= hashTxsHash[i] ^ hashTxsND[i]
-	}
-	return hashBase
+	h := sha256.New()
+	h.Write(proposalTxsDomainSeparator)
+	h.Write(hashBase[:])
+	h.Write(hashTxsHash[:])
+	h.Write(hashTxsND[:])
+	return proto.ProposalTxsHash(h.Sum(nil))
 }
 
 func IsSaneProposalTxs(txs *proto.ProposalTxs) bool {
