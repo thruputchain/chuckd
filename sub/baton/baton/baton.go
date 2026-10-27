@@ -194,7 +194,7 @@ func (b *Baton) HighestCommittedOrExternalized() proto.BlockHeight {
 var ErrTipAlreadyAhead = fmt.Errorf("tip already ahead")
 
 func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (*proto.DbTip, error) {
-	liblog.Infof(ctx, "waiting for commit at height %d", height)
+	liblog.Debugf(ctx, "waiting for commit at height %d", height)
 
 	stop := context.AfterFunc(ctx, func() {
 		b.lk.Lock()
@@ -216,7 +216,7 @@ func (b *Baton) WaitCommittedAt(ctx context.Context, height proto.BlockHeight) (
 				liblog.Errorf(ctx, "waiting for commit at height %d: tip already ahead", height)
 				return nil, ErrTipAlreadyAhead
 			case b.tipHeight() == height:
-				liblog.Infof(ctx, "waiting for commit at height %d: tip reached", height)
+				liblog.Debugf(ctx, "waiting for commit at height %d: tip reached", height)
 				copyTipDb := b.tipDb
 				return &copyTipDb, nil
 			default:

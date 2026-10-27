@@ -34,11 +34,11 @@ func (x scpHandler) ValidateValue(
 	if nomination {
 		kind = "nomination"
 	}
-	liblog.Infof(ctx, "validate value (%s) requested: slot %d; value %s; proposer %s",
+	liblog.Debugf(ctx, "validate value (%s) requested: slot %d; value %s; proposer %s",
 		kind, slot, protoutil.ValueDisplay(&value),
 		protoutil.VIDString(protoutil.ValueProposer(&value)))
 	defer func() {
-		liblog.Infof(ctx, "validate value (%s) completed: slot %d; value %s; proposer %s; result %v",
+		liblog.Debugf(ctx, "validate value (%s) completed: slot %d; value %s; proposer %s; result %v",
 			kind, slot, protoutil.ValueDisplay(&value),
 			protoutil.VIDString(protoutil.ValueProposer(&value)), scpkit.ValidationLevelString(level))
 	}()
@@ -152,7 +152,7 @@ func (b *Baton) fetchBasis(
 	value *proto.ConsensusValue,
 ) (*proto.ConsensusBasis, error) {
 
-	liblog.Infof(ctx, "fetchCV starting: height=%d; value %s; proposer=%s",
+	liblog.Debugf(ctx, "fetchCV starting: height=%d; value %s; proposer=%s",
 		slot, protoutil.ValueDisplay(value), protoutil.VIDString(protoutil.ValueProposer(value)))
 
 	// lookup in cvpool
