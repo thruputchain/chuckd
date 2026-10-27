@@ -106,7 +106,7 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 	}
 	b.nominating = current
 
-	liblog.Infof(ctx, "PREPARING: height %d", protoutil.ValueHeight(&ontoDb.Value)+1)
+	liblog.Debugf(ctx, "PREPARING: height %d", protoutil.ValueHeight(&ontoDb.Value)+1)
 
 	go func() {
 		basis, value, blockID, err := b.propose(nomCtx, *ontoDb)
@@ -129,12 +129,12 @@ func (b *Baton) driveNominate(ctx context.Context, v *View) {
 
 		if !currentWasReplaced {
 			b.setValidated(basis, value, blockID)
-			liblog.Infof(ctx, "nominated block at height %d with value hash %s",
+			liblog.Debugf(ctx, "nominated block at height %d with value hash %s",
 				protoutil.ValueHeight(&basis.Value),
 				protoutil.ValueDisplay(value),
 			)
 		} else {
-			liblog.Infof(ctx, "superceded nomination for block at height %d with value hash %s",
+			liblog.Debugf(ctx, "superceded nomination for block at height %d with value hash %s",
 				protoutil.ValueHeight(&basis.Value),
 				protoutil.ValueDisplay(value),
 			)
