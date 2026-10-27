@@ -41,7 +41,7 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 		protoutil.VIDString(cb.Consensus_basis.Value.Proposal_header.Proposer))
 
 	if _, alreadyPersisting := cbp.persisting[vhash]; alreadyPersisting {
-		liblog.Debugf(ctx, "catchup block already persisting: height %d; value %s; proposer %s",
+		liblog.Infof(ctx, "catchup block already persisting: height %d; value %s; proposer %s",
 			cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display(),
 			protoutil.VIDString(cb.Consensus_basis.Value.Proposal_header.Proposer))
 		return nil
