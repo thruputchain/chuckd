@@ -116,7 +116,7 @@ func (b *Baton) propose(
 		ConsensusBasis: basis,
 		ConsensusValue: value,
 	}
-	liblog.Infof(ctx, "%v", evNominating)
+	liblog.Debugf(ctx, "%v", evNominating)
 	b.handler.Emit(ctx, evNominating)
 
 	// in a single-node setup, the externalization resulting from calling scp.nominate (handler.Nominate below)
@@ -165,7 +165,7 @@ func (b *Baton) propose(
 			ConsensusBasis: basis,
 			ConsensusValue: value,
 		}
-		liblog.Infof(ctx, "%v", evNominated)
+		liblog.Debugf(ctx, "%v", evNominated)
 		b.handler.Emit(ctx, evNominated)
 
 		liblog.Debugf(ctx, "coordinator_nomination_delay=%v | result=accepted, height=%d, num_txs=%d",
