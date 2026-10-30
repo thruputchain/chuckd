@@ -59,4 +59,4 @@ BACKLOG
 
 IDEAS
 
-- nodes disseminate network topology (instead of trees), can even use set reconciliation
+- Marco: nodes disseminate network topology (instead of trees), can even use set reconciliation
