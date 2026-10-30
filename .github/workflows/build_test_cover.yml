@@ -16,30 +16,7 @@ jobs:
   build-test:
     runs-on: namespace-profile-chuckd-rs-linux
     steps:
-      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
-        with:
-          ssh-private-key: |
-            ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
-            ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
-            ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
-            ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
-
-      # Repositories transferred to thruputchain no longer match the deploy keys
-      # above (their comments name groundhogchain), so fetch them over HTTPS
-      # with the read-only PAT. The rewrites are keyed on the thruputchain
-      # prefix, which outranks the blanket git@github.com: rewrite below.
-      - name: Authenticate thruputchain sources
-        env:
-          READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
-        run: |
-          set +x
-          base="https://x-access-token:${READ_ACCESS_PAT}@github.com/thruputchain/"
-          git config --global --add url."$base".insteadOf "https://github.com/thruputchain/"
-          git config --global --add url."$base".insteadOf "git@github.com:thruputchain/"
-          git config --global --add url."$base".insteadOf "ssh://git@github.com/thruputchain/"
-
-      # persist-credentials: false so the checkout's GITHUB_TOKEN header does
-      # not take precedence over the PAT on later github.com fetches.
+      # The Go modules are public, so no credentials: the proxy serves them.
       - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
         with:
           submodules: false
@@ -52,13 +29,6 @@ jobs:
       - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547 # v1
         with:
           cache: go
-
-      - name: Set up Go private modules
-        run: |
-          go env -w GOPRIVATE=github.com/thruputchain/*
-          go env -w GONOSUMDB=github.com/thruputchain/*
-          go env -w GONOPROXY=github.com/thruputchain/*
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
 
       - name: Build
         run: go build ./...

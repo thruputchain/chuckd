@@ -18,7 +18,7 @@ Thruput protocol's XDR, through
 | `net/` | Networking: `dogwood` (erasure-coded broadcast), `magnolia` (Reed-Solomon coding), `discovery`, `router`, `multiplex` |
 | `runtime/` | Process-level concerns: telemetry, pprof, metrics |
 | `util/`, `test/` | Shared helpers and test fixtures |
-| `scripts/` | Build, packaging and benchmark-schedule scripts |
+| `scripts/` | Build, packaging and benchmark job scripts |
 | `deploy/` | Generators for multi-node benchmark deployments |
 | `doc/` | Design notes and operator documentation |
 
@@ -46,8 +46,18 @@ make fmt     # go fmt ./...
 ```
 
 Some integration tests are opt-in through environment variables:
-`CHUCKD_VIRTUAL_TEST=1` runs the multi-node virtual coordinator benchmark and
-`CHUCKD_RUST_INTEROP_TEST=1` checks signing against the Rust implementation.
+`RUN_CHUCKD_VIRTUAL_TEST=1` runs the multi-node virtual coordinator tests and
+`RUN_CHUCKD_RUST_INTEROP_TEST=1` checks signing against the Rust implementation.
+
+## Benchmarks
+
+The cluster benchmarks (`chuckd bench coordinator` on three hosts, the Dogwood
+broadcast benchmarks, the virtual coordinator tests) run through the private
+[thruputchain/benchmarks](https://github.com/thruputchain/benchmarks)
+repository, which holds their hog_sched schedules under `chuckd/`. The per-host
+job scripts they run live here under `scripts/schedules/host_jobs/`. Every push
+to `main` dispatches the Dogwood benchmarks there through
+`.github/workflows/benchmarks.yml`.
 
 ## Running
 

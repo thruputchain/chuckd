@@ -11,15 +11,6 @@ WORKDIR /app
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./
 
-# The GitHub token is passed as a build argument
-# Configure git to use the token for github.com
-RUN --mount=type=secret,id=GITHUB_TOKEN \
-    git config --global url."https://$(cat /run/secrets/GITHUB_TOKEN):@github.com/".insteadOf "https://github.com/" && \
-    # Enable authentication for private Go modules
-    git config --global url."https://$(cat /run/secrets/GITHUB_TOKEN)@github.com/".insteadOf "https://github.com/" && \
-    # Set GOPRIVATE for private repositories
-    go env -w GOPRIVATE=github.com/thruputchain/*
-
 # Download dependencies
 RUN go mod download
 

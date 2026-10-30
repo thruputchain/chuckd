@@ -72,13 +72,7 @@ jobs:
       source_commit: ${{ needs.authorize.outputs.source_commit }}
       component_version: ${{ needs.authorize.outputs.component_version }}
     secrets:
-      CHUCKD_TO_CHUCKD_KEY: ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
-      CHUCKD_TO_LIB_GO_KEY: ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
-      CHUCKD_TO_PROTOCOL_GO_KEY: ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
-      CHUCKD_TO_METRICS_HISTORY_KEY: ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
-      CHUCKD_TO_SCP_KEY: ${{ secrets.CHUCKD_TO_SCP_KEY }}
       READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
-      GROUNDHOG_REGISTRY_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
 
   publish:
     needs: [authorize, build]

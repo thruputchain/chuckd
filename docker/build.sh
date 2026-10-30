@@ -5,5 +5,4 @@ REPOSITORY_NAME=thruputchain
 TAG=chuckd.latest
 
 docker build --debug \
-  --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN \
   -t $REPOSITORY_NAME:$TAG --file ./Dockerfile ./..
