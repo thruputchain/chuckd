@@ -9,6 +9,9 @@ on:
 env:
   CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: self-hosted
@@ -18,7 +21,7 @@ jobs:
           echo "Cleaning up .gitconfig"
           rm -f /home/hogci/.gitconfig
 
-      - uses: webfactory/ssh-agent@v0.9.1
+      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
         with:
           ssh-private-key: |
             ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
@@ -33,7 +36,7 @@ jobs:
             ${{ secrets.CHUCKD_TO_XDR_RPC_KEY }}
             ${{ secrets.CHUCKD_TO_SERDE_ARRAYS_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
 
       - name: Run hog schedule
         run: |

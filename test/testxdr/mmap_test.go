@@ -79,9 +79,7 @@ func TestMmap(t *testing.T) {
 
 	filename := path.Join(t.TempDir(), "mmap_test")
 	liblog.Debugf(t.Context(), "FILE: %s", filename)
-	xxx(t.Context(), filename)
-
-	filename = path.Join("/home/local/petar/", "mmap_test")
-	liblog.Debugf(t.Context(), "FILE: %s", filename)
-	xxx(t.Context(), filename)
+	if err := xxx(t.Context(), filename); err != nil {
+		t.Fatal(err)
+	}
 }

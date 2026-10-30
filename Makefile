@@ -42,7 +42,7 @@ DESTDIR ?=
 .PHONY: help
 help:
 	@echo "Setup"
-	@echo "  config        git submodules (SSH-only) plus go mod download"
+	@echo "  config        git submodules plus go mod download"
 	@echo "  submodules    scp, needed for scpd"
 	@echo ""
 	@echo "Build"
@@ -66,8 +66,7 @@ help:
 	@echo "Variables: PREFIX BINDIR DESTDIR CHUCKD_DISTRIBUTION_VERSION"
 	@echo "  GO covers config, test, lint and fmt; the build scripts call go themselves"
 
-# Both submodule remotes are git@github.com, so this needs an SSH agent holding
-# a key GitHub accepts. scpd cannot build without the scp submodule.
+# scpd cannot build without the scp submodule.
 .PHONY: submodules
 submodules:
 	git submodule update --init --recursive

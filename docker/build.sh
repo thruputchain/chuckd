@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-REPOSITORY_NAME=groundhogchain
+REPOSITORY_NAME=thruputchain
 TAG=chuckd.latest
 
 docker build --debug \

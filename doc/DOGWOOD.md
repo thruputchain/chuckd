@@ -1,22 +1,26 @@
-# Dogwood: Dissemination system for Groundhog
+# Dogwood: Dissemination system for Thruput
 
-Dogwood is the code name for Groundhog's dissemination subsystem.
+> This page predates the current configuration format: keys are now written
+> as `{"scheme": "Ed25519", "ed25519": "<base58>"}` objects (see the
+> benchmark configs under `scripts/schedules/host_jobs/` for current examples)
+> and the binary is built from this repository with `make build`. The
+> operational description and the `sys dogwood` flags are still accurate.
+
+Dogwood is the code name for Thruput's dissemination subsystem.
 It can be deployed as a standalone system, which performs broadcasts on behalf of a local client.
-The local client controls the Dogwood node via the [Dogwood XDR/RPC API](https://github.com/groundhogchain/protocol/blob/main/dogwood_api.x).
+The local client controls the Dogwood node via the [Dogwood XDR/RPC API](https://github.com/thruputchain/thruput-protocol/blob/main/dogwood_api.x).
 
 # Deployment
 
 To deploy a Dogwood node:
 
-1. Set up your Go and Git environment to [work with private Go repositories](https://fueled.com/blog/using-private-modules-in-go/).
-
-2. Install the Dogwood software:
+1. Build `chuckd` from this repository (`make coordinator`), or install it:
 
 ```sh
-go install github.com/groundhogchain/chuckd@dogwood-v1.0.0
+go install github.com/thruputchain/chuckd/chuckd@latest
 ```
 
-3. Prepare a JSON config file `config.json` following the [XDR configuration protocol](https://github.com/groundhogchain/protocol/blob/main/dogwood_api.x#L5), e.g.
+2. Prepare a JSON config file `config.json` following the [XDR configuration protocol](https://github.com/thruputchain/thruput-protocol/blob/main/dogwood_api.x), e.g.
 
 ```json
 {
@@ -24,9 +28,9 @@ go install github.com/groundhogchain/chuckd@dogwood-v1.0.0
         "private_info": {
             "public_info": {
                 "public_key": "3FK04muEJGo2jCm/reF/KlqTvEFzDKUzoFzS8FaNYpg=", # public keys are Base64 32-byte Ed25519 keys
-                "address": "hog5:7177"
+                "address": "node1.example.net:7177"
             },
-            "secret_key": "CT+aTotBXKAQIt+yIiUKEMSDwejYPGdCdXrMi07hbjTcUrTia4QkajaMKb+t4X8qWpO8QXMMpTOgXNLwVo1imA=="
+            "secret_key": "<this node's secret key>"
         },
         "quorum_set": { # quorum_set can be left empty
             "threshold": 0,
@@ -36,15 +40,15 @@ go install github.com/groundhogchain/chuckd@dogwood-v1.0.0
         "known_validators": [ # known_validators lists all nodes in the network, known to this node
             {
                 "public_key": "3FK04muEJGo2jCm/reF/KlqTvEFzDKUzoFzS8FaNYpg=",
-                "address": "hog5:7177"
+                "address": "node1.example.net:7177"
             },
             {
                 "public_key": "PxR+5bWjVdjdov9nxKnvlrO8Rtdawhq/wtzENCESuro=",
-                "address": "hog6:7177"
+                "address": "node2.example.net:7177"
             },
             {
                 "public_key": "SHE76vO9juFofGPNh3yi4WnLc2Y673JkaJUv9xUIxqw=",
-                "address": "hog7:7177"
+                "address": "node3.example.net:7177"
             }
         ]
     },
@@ -71,7 +75,7 @@ go install github.com/groundhogchain/chuckd@dogwood-v1.0.0
 }
 ```
 
-4. Deploy the Dogwood server:
+3. Deploy the Dogwood server:
 
 ```sh
 chuckd \

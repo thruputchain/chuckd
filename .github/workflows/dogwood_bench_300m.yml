@@ -1,11 +1,14 @@
 name: Dogwood benchmark 300m
 
+# Runs on self-hosted bench hardware with repository secrets, so it is
+# dispatched manually rather than triggered by pushes or pull requests: a
+# public repository must not run untrusted pull-request code on self-hosted
+# runners.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-test:
@@ -16,7 +19,7 @@ jobs:
           echo "Cleaning up .gitconfig"
           rm -f /home/hogci/.gitconfig
 
-      - uses: webfactory/ssh-agent@v0.9.1
+      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
         with:
           ssh-private-key: |
             ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
@@ -24,7 +27,7 @@ jobs:
             ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
             ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
 
       - name: Run hog schedule
         run: |
