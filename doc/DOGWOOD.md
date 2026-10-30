@@ -17,15 +17,18 @@ To deploy a Dogwood node:
    go install github.com/thruputchain/chuckd/chuckd@latest
    ```
 
-2. Generate this node's identity. The command writes a configuration with a
-   fresh key pair, readable by the current user only:
+2. Generate this node's identity. The command writes a coordinator
+   configuration with a fresh key pair, readable by the current user only:
 
    ```sh
-   chuckd config init --config config.json
+   chuckd config init --config identity.json
    ```
 
-   Then fill in the rest. The example below is what a complete
-   configuration looks like for a three-node network; the keys in it are
+   A standalone Dogwood node reads a smaller configuration
+   (`DogwoodStandaloneConfig` in `dogwood_api.x`): just `validator_config`,
+   `router_config` and `dogwood_config`. Copy the `validator_config` from
+   `identity.json` into a `config.json` like the example below, which is a
+   complete configuration for a three-node network. The keys in it are
    throwaway keys generated for this page, so replace all of them with your
    own. Public keys are base58 Ed25519 keys and secret keys are hex.
    Durations are strings, in milliseconds.
@@ -74,14 +77,7 @@ To deploy a Dogwood node:
        "transmission_sender_worker_count": 32,
        "transmission_partial_max_ttl_msec": "10000",
        "transmission_partial_idle_ttl_msec": "1000"
-     },
-     "discovery_config": null,
-     "scp_config": null,
-     "mempool_config": null,
-     "catchup_config": null,
-     "baton_config": null,
-     "repair_config": null,
-     "storage_config": null
+     }
    }
    ```
 

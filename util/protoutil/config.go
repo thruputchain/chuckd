@@ -57,14 +57,32 @@ func GenerateConfigs(ctx context.Context, rr io.Reader, n int) []*proto.Validato
 
 // WriteConfigsToDir writes config-<i>.json for each config. The files hold
 // secret keys, so they and a directory this creates are readable by this
-// user only.
+// user only, and an existing file is refused rather than overwritten.
 func WriteConfigsToDir(ctx context.Context, cfgs []*proto.Config, dir string) {
 	err := os.MkdirAll(dir, 0o700)
 	must.NoError(ctx, err)
 	for i, cfg := range cfgs {
 		jsbuf, err := configtext.Marshal(cfg)
 		must.NoError(ctx, err)
-		err = os.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.json", i)), jsbuf, 0o600)
+		err = WriteNewConfigFile(path.Join(dir, fmt.Sprintf("config-%d.json", i)), jsbuf)
 		must.NoError(ctx, err)
 	}
+}
+
+// WriteNewConfigFile creates path with mode 0600 and writes text to it. It
+// refuses to replace an existing file: writing into one would keep whatever
+// permissions it has, exposing the secret key a config holds.
+func WriteNewConfigFile(path string, text []byte) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		if os.IsExist(err) {
+			return fmt.Errorf("config already exists: %s", path)
+		}
+		return err
+	}
+	if _, err := f.Write(text); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
