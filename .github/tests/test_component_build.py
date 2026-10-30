@@ -45,7 +45,7 @@ class MeasurementTests(unittest.TestCase):
                 architecture = "x86_64" if platform == "linux/amd64" else "arm64"
                 (root / f"chuckd-coordinator-linux-{architecture}.tar.gz").write_bytes(b"fixture")
             env = {**os.environ, "RUNNER_TEMP": tmp, "PLATFORM": platform,
-                   "GITHUB_REPOSITORY": "groundhogchain/chuckd", "GITHUB_RUN_ID": "12",
+                   "GITHUB_REPOSITORY": "thruputchain/chuckd", "GITHUB_RUN_ID": "12",
                    "GITHUB_RUN_ATTEMPT": attempt, "SOURCE_COMMIT": SHA,
                    "COMPONENT_VERSION": "0.0.0-main.g" + SHA[:12],
                    "BUILD_OUTCOME": "success" if timing is not None else "",
@@ -101,7 +101,7 @@ class WorkflowTests(unittest.TestCase):
             log = root / "gh.log"
             env = {**os.environ, "PATH": str(fakebin) + os.pathsep + os.environ["PATH"],
                    "TARGET_COMMIT": target, "GITHUB_OUTPUT": str(output),
-                   "GITHUB_REPOSITORY": "groundhogchain/chuckd", "PROBE_SHA": sha,
+                   "GITHUB_REPOSITORY": "thruputchain/chuckd", "PROBE_SHA": sha,
                    "PROBE_ANCESTOR_STATUS": "0" if ancestor else "1",
                    "PROBE_RELEASE_STATUS": "0" if existing else "1", "PROBE_GH_LOG": str(log), "PROBE_API_STATUS": api_status}
             result = subprocess.run(["bash", "-c", run_block(PUBLISHER, "Resolve and authorize target commit")], cwd=root, env=env, capture_output=True, text=True)
@@ -170,13 +170,14 @@ class WorkflowTests(unittest.TestCase):
             checksum.chmod(0o755)
             version = "0.0.0-main.g" + SHA[:12]
             env = {**os.environ, "PATH": str(fakebin) + os.pathsep + os.environ["PATH"], "SOURCE_COMMIT": SHA,
-                   "COMPONENT_VERSION": version, "GITHUB_STEP_SUMMARY": str(root / "summary")}
+                   "COMPONENT_VERSION": version, "GITHUB_REPOSITORY": "thruputchain/chuckd",
+                   "GITHUB_STEP_SUMMARY": str(root / "summary")}
             result = subprocess.run(["bash", "-c", run_block(PUBLISHER, "Generate component-build-v1 descriptor")], cwd=root, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             descriptor = json.loads((artifacts / "groundhog-component-build.json").read_text())
             self.assertEqual(set(descriptor), {"schema", "component", "artifacts"})
             self.assertEqual(descriptor["schema"], "groundhog-component-build-v1")
-            self.assertEqual(descriptor["component"], {"name": "chuckd-go", "repository": "groundhogchain/chuckd", "sourceCommit": SHA, "version": version})
+            self.assertEqual(descriptor["component"], {"name": "chuckd-go", "repository": "thruputchain/chuckd", "sourceCommit": SHA, "version": version})
             self.assertEqual(descriptor["artifacts"], expected)
 
     def run_publish(self, *, api_status="0", release_id="", tag_status="0", complete=True):
@@ -209,7 +210,7 @@ class WorkflowTests(unittest.TestCase):
             gh.chmod(0o755)
             log = root / "gh.log"
             env = {**os.environ, "PATH": str(fakebin) + os.pathsep + os.environ["PATH"],
-                   "SOURCE_COMMIT": SHA, "GITHUB_REPOSITORY": "groundhogchain/chuckd",
+                   "SOURCE_COMMIT": SHA, "GITHUB_REPOSITORY": "thruputchain/chuckd",
                    "PROBE_GH_LOG": str(log), "PROBE_API_STATUS": api_status,
                    "PROBE_RELEASE_ID": release_id, "PROBE_TAG_STATUS": tag_status}
             result = subprocess.run(["bash", "-c", run_block(PUBLISHER, "Refuse replacement and publish immutable prerelease")], cwd=root, env=env, capture_output=True, text=True)

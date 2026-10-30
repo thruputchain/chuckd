@@ -2,14 +2,14 @@ package cmd
 
 import (
 	cryptorand "crypto/rand"
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
+	"github.com/thruputchain/chuckd/util/configtext"
 	"github.com/thruputchain/chuckd/util/protoutil"
-	"github.com/thruputchain/lib-go/libtext"
 	"github.com/thruputchain/lib-go/must"
 	proto "github.com/thruputchain/thruput-protocol-go"
 )
@@ -32,18 +32,15 @@ var (
 				cfg := proto.Config{
 					Validator_config: vcfg,
 				}
+				// The same operator representation LoadCoordinatorConfig reads:
+				// base58 public keys, hex secret keys.
+				text, err := configtext.Marshal(&cfg)
+				must.NoError(ctx, err)
 				if configToStdout {
-					fmt.Println(libtext.Display(cfg))
+					fmt.Println(string(text))
 				} else {
 					cfgPath := effectiveConfigPath(ctx)
-					_, err := os.Stat(cfgPath)
-					if errors.Is(err, os.ErrNotExist) {
-						err := os.WriteFile(cfgPath, libtext.SprintJSONBytes(cfg), 0644)
-						must.NoError(ctx, err)
-					} else {
-						must.NoError(ctx, err)
-						must.Errorf(ctx, "config already exists: %s", cfgPath)
-					}
+					must.NoError(ctx, writeNewConfig(cfgPath, text))
 				}
 			})
 		},
@@ -67,6 +64,27 @@ var (
 		},
 	}
 )
+
+// writeNewConfig creates path with its parent directory, readable by this
+// user only (the file holds the validator's secret key), and refuses to
+// replace an existing file.
+func writeNewConfig(path string, text []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		if os.IsExist(err) {
+			return fmt.Errorf("config already exists: %s", path)
+		}
+		return err
+	}
+	if _, err := f.Write(text); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
 
 var (
 	configToStdout  bool

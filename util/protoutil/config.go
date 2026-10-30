@@ -55,13 +55,16 @@ func GenerateConfigs(ctx context.Context, rr io.Reader, n int) []*proto.Validato
 	return cfg
 }
 
+// WriteConfigsToDir writes config-<i>.json for each config. The files hold
+// secret keys, so they and a directory this creates are readable by this
+// user only.
 func WriteConfigsToDir(ctx context.Context, cfgs []*proto.Config, dir string) {
-	err := os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(dir, 0o700)
 	must.NoError(ctx, err)
 	for i, cfg := range cfgs {
 		jsbuf, err := configtext.Marshal(cfg)
 		must.NoError(ctx, err)
-		err = os.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.json", i)), jsbuf, 0644)
+		err = os.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.json", i)), jsbuf, 0o600)
 		must.NoError(ctx, err)
 	}
 }

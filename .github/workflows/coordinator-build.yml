@@ -12,10 +12,11 @@ on:
         required: true
         type: string
     secrets:
-      # Read access to the scp submodule while it is private. The Go modules
-      # are public and come from the proxy; scp's crates come from crates.io.
+      # Read access to the scp submodule while it is private; unneeded once
+      # it is public, and absent on fork pull requests. The Go modules are
+      # public and come from the proxy; scp's crates come from crates.io.
       READ_ACCESS_PAT:
-        required: true
+        required: false
 
 permissions:
   actions: read
@@ -50,13 +51,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      # The scp submodule is still private, so fetch it over HTTPS with the
-      # read-only PAT. Everything else the build fetches is public.
+      # While the scp submodule is private, fetch it over HTTPS with the
+      # read-only PAT when one is configured. Everything else the build
+      # fetches is public, and a public scp needs no credential at all.
       - name: Authenticate thruputchain sources
         env:
           READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
         run: |
           set +x
+          if [ -z "$READ_ACCESS_PAT" ]; then
+            echo "No READ_ACCESS_PAT; fetching thruputchain sources anonymously"
+            exit 0
+          fi
           base="https://x-access-token:${READ_ACCESS_PAT}@github.com/thruputchain/"
           git config --global --add url."$base".insteadOf "https://github.com/thruputchain/"
           git config --global --add url."$base".insteadOf "git@github.com:thruputchain/"
