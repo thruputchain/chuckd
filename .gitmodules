@@ -1,3 +1,0 @@
-[submodule "scp"]
-	path = scp
-	url = https://github.com/thruputchain/scp.git

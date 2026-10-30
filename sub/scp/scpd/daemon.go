@@ -53,10 +53,20 @@ func StartSCPDaemon(
 	err = tmpFile.Close()
 	must.NoError(ctx, err)
 
-	// encode secret key
+	// The secret key goes to scpd on an inherited pipe, which nothing else
+	// can read, so it never appears in scpd's command line (which every
+	// process on the host can read through /proc/<pid>/cmdline) or on disk.
+	// The key is far smaller than a pipe buffer, so writing it before scpd
+	// starts cannot block; scpd reads the pipe to EOF at startup.
 
 	must.Assert(ctx, secretKey.Scheme == proto.Ed25519)
 	secretKeyText := protoutil.EncodeBase64(secretKey.Ed25519()[:])
+	keyReader, keyWriter, err := os.Pipe()
+	must.NoError(ctx, err)
+	_, err = io.WriteString(keyWriter, secretKeyText)
+	must.NoError(ctx, err)
+	err = keyWriter.Close()
+	must.NoError(ctx, err)
 
 	// start handler
 
@@ -71,13 +81,15 @@ func StartSCPDaemon(
 		"--handle-addr", handleAddr,
 		"--is-validator", fmt.Sprintf("%v", isValidator),
 		"--config-path", tmpPath,
-		"--secret-key", secretKeyText,
+		"--secret-key-fd", "3", // the first entry of ExtraFiles
 	)
+	cmd.ExtraFiles = []*os.File{keyReader}
 	cmd.Env = scpdEnv(os.Environ(), liblog.GetLogLevel().String(), networkHash)
 	cmd.Stdout = libtext.NewPrefixWriter(liblog.Writer(ctx), "[scpd:out] ")
 	cmd.Stderr = libtext.NewPrefixWriter(liblog.Writer(ctx), "[scpd:err] ")
 
 	err = cmd.Start()
+	keyReader.Close() // scpd holds its own copy
 	must.NoError(ctx, err)
 	kill := func(sig os.Signal) {
 		fmt.Fprintf(os.Stderr, "killing scpd with pid %d\n", cmd.Process.Pid)

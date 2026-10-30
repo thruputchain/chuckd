@@ -4,3 +4,6 @@ __
 .codex
 __pycache__/
 *.pyc
+.scpd/
+scpd.dev
+chuckd.dev

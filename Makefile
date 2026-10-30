@@ -1,13 +1,15 @@
 # Convenience wrapper around scripts/ and the Go toolchain. The scripts stay
 # authoritative; every target here invokes one, or the command CI runs.
 #
-#   make config     submodules and module downloads
+#   make config     module downloads
 #   make build      both binaries: the coordinator and scpd
 #   make help       list every target
 #
 # Not needed for a local devnode: hog-devnode is a single process that the
 # groundhog CLI supervises directly. chuckd and scpd are the multi-process
-# validator's coordinator and SCP daemon.
+# validator's coordinator and SCP daemon. scpd is built from the
+# thruput-scp-server crate on crates.io; scripts/build_scpd.sh pins the
+# version.
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
@@ -37,13 +39,12 @@ DESTDIR ?=
 .PHONY: help
 help:
 	@echo "Setup"
-	@echo "  config        git submodules plus go mod download"
-	@echo "  submodules    scp, needed for scpd"
+	@echo "  config        go mod download"
 	@echo ""
 	@echo "Build"
 	@echo "  build         both binaries"
 	@echo "  coordinator   just chuckd -> ./$(CHUCKD_BIN)"
-	@echo "  scpd          just the SCP daemon, needs the scp submodule -> ./$(SCPD_BIN)"
+	@echo "  scpd          just the SCP daemon, from crates.io; needs cargo -> ./$(SCPD_BIN)"
 	@echo ""
 	@echo "Verify"
 	@echo "  check         what CI enforces: the test suite"
@@ -61,13 +62,8 @@ help:
 	@echo "Variables: PREFIX BINDIR DESTDIR CHUCKD_DISTRIBUTION_VERSION"
 	@echo "  GO covers config, test, lint and fmt; the build scripts call go themselves"
 
-# scpd cannot build without the scp submodule.
-.PHONY: submodules
-submodules:
-	git submodule update --init --recursive
-
 .PHONY: config
-config: submodules
+config:
 	$(GO) mod download
 
 .PHONY: build
@@ -100,8 +96,7 @@ lint:
 fmt:
 	$(GO) fmt ./...
 
-# git ls-files scopes this to the repo's own sources; a plain `gofmt -l .`
-# walks into the scp submodule and reports its formatting too.
+# git ls-files scopes this to the repo's own sources.
 .PHONY: fmt-check
 fmt-check:
 	@out=$$(gofmt -l $$(git ls-files '*.go')); \

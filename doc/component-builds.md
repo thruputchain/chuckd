@@ -9,7 +9,7 @@ It does not publish crates or deploy a bundle.
 Use a full source commit for reproducible dispatch:
 
 ```bash
-gh workflow run component-build.yml --repo groundhogchain/chuckd --ref main \
+gh workflow run component-build.yml --repo thruputchain/chuckd --ref main \
   -f target_commit=<40-character-main-ancestor>
 ```
 

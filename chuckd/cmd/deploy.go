@@ -8,6 +8,7 @@ import (
 	"github.com/thruputchain/chuckd/chuckd/cmdkit"
 	"github.com/thruputchain/chuckd/deploy/script"
 	"github.com/thruputchain/chuckd/runtime"
+	"github.com/thruputchain/lib-go/must"
 )
 
 var (
@@ -143,7 +144,8 @@ func init() {
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployNumCommits, "num-commits", 100, "stop after number of commits")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 	//
-	deployCoordinatorBenchNetCmd.Flags().StringSliceVar(&deployHosts, "hosts", []string{"hog6", "hog7", "hog8"}, "hosts")
+	deployCoordinatorBenchNetCmd.Flags().StringSliceVar(&deployHosts, "hosts", nil, "comma-separated validator hosts, one script per host")
+	must.NoError(ctx, deployCoordinatorBenchNetCmd.MarkFlagRequired("hosts"))
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployValidatorPort, "v-port", 50000, "validator port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployWalletPort, "w-port", 40000, "wallet port")
 	deployCoordinatorBenchNetCmd.Flags().IntVar(&deployMetricsPort, "m-port", 2223, "metrics port")
@@ -158,7 +160,8 @@ func init() {
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployNumBlocks, "num-blocks", 100, "number of blocks")
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployRoundMsec, "round-msec", 3000, "target round duration, msec")
 	//
-	deployCoordinatorLoadgenCmd.Flags().StringSliceVar(&deployHosts, "hosts", []string{"hog8"}, "hosts")
+	deployCoordinatorLoadgenCmd.Flags().StringSliceVar(&deployHosts, "hosts", nil, "comma-separated validator hosts, one script per host")
+	must.NoError(ctx, deployCoordinatorLoadgenCmd.MarkFlagRequired("hosts"))
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployValidatorPort, "v-port", 50000, "validator port")
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployWalletPort, "w-port", 40000, "wallet port")
 	deployCoordinatorLoadgenCmd.Flags().IntVar(&deployMetricsPort, "m-port", 2223, "metrics port")

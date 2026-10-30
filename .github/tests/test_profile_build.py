@@ -11,23 +11,32 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-FETCH = "--config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml"
+def install_command(root, profile, heap=False):
+    """The cargo install line build_scpd.sh runs for a profile."""
+    install_root = root / ".scpd"
+    args = ["install", "--locked", "--force", "--version", "2.0.0",
+            "--root", str(install_root), "--target-dir", str(install_root / "target")]
+    if profile == "debug":
+        args.append("--debug")
+    if heap:
+        args += ["--features", "heap-profiling"]
+    return " ".join(args + ["thruput-scp-server"])
 
 
 def run_build(root, profile=None, heap=None):
     (root / "scripts").mkdir()
     shutil.copy(ROOT / "scripts/build_scpd.sh", root / "scripts/build_scpd.sh")
-    for name in ("debug", "release"):
-        folder = root / "scp/target" / name
-        folder.mkdir(parents=True)
-        (folder / "scpd").write_text(name)
     fakebin = root / "bin"
     fakebin.mkdir()
     cargo = fakebin / "cargo"
-    cargo.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$PROBE_LOG"\n')
+    # Records its arguments and "installs" a binary named after the profile.
+    cargo.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$PROBE_LOG"\n'
+                     'mkdir -p "$PROBE_ROOT/.scpd/bin"\n'
+                     'case " $* " in *" --debug "*) printf debug ;; *) printf release ;; esac'
+                     ' > "$PROBE_ROOT/.scpd/bin/scpd"\n')
     cargo.chmod(0o755)
     env = {**os.environ, "PATH": str(fakebin) + os.pathsep + os.environ["PATH"],
-           "PROBE_LOG": str(root / "cargo.log")}
+           "PROBE_LOG": str(root / "cargo.log"), "PROBE_ROOT": str(root)}
     env.pop("SCPD_PROFILE", None)
     env.pop("SCPD_HEAP_PROFILING", None)
     if profile is not None:
@@ -40,20 +49,17 @@ def run_build(root, profile=None, heap=None):
 
 class ProfileTests(unittest.TestCase):
     def test_heap_profiling_is_opt_in(self):
-        release = "build --offline --locked --release"
-        for heap, expected in ((None, release), ("", release), ("0", release),
-                               ("1", release + " --features heap-profiling"),
-                               ("yes", None)):
+        for heap, enabled in ((None, False), ("", False), ("0", False), ("1", True), ("yes", None)):
             with self.subTest(heap=heap), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 result = run_build(root, "release", heap)
-                if expected is None:
+                if enabled is None:
                     self.assertEqual(result.returncode, 2)
                     self.assertFalse((root / "cargo.log").exists())
                     continue
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((root / "cargo.log").read_text().splitlines(),
-                                 [FETCH, expected + " -p scp_server --bin scpd"])
+                                 [install_command(root, "release", enabled)])
 
     def test_only_the_coordinator_release_build_enables_heap_profiling(self):
         # Benches and hog-cluster builds must not compile jemalloc (OOM risk).
@@ -88,12 +94,8 @@ class ProfileTests(unittest.TestCase):
                 else:
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual((root / "scpd.dev").read_text(), target)
-                    expected = "build --offline --locked "
-                    if profile == "release":
-                        expected += "--release "
-                    expected += "-p scp_server --bin scpd"
                     self.assertEqual((root / "cargo.log").read_text().splitlines(),
-                                     ["--config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml", expected])
+                                     [install_command(root, target)])
 
 
 CHUCKD_INSTALL_PATH = "/usr/bin/chuckd"

@@ -71,8 +71,6 @@ jobs:
     with:
       source_commit: ${{ needs.authorize.outputs.source_commit }}
       component_version: ${{ needs.authorize.outputs.component_version }}
-    secrets:
-      READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
 
   publish:
     needs: [authorize, build]
@@ -103,11 +101,12 @@ jobs:
           x86_digest=$(sha256sum chuckd-coordinator-linux-x86_64.tar.gz | cut -d' ' -f1)
           arm64_digest=$(sha256sum chuckd-coordinator-linux-arm64.tar.gz | cut -d' ' -f1)
           jq -n --sort-keys --compact-output \
+            --arg repository "$GITHUB_REPOSITORY" \
             --arg sourceCommit "$SOURCE_COMMIT" \
             --arg version "$COMPONENT_VERSION" \
             --arg x86Digest "sha256:$x86_digest" \
             --arg arm64Digest "sha256:$arm64_digest" \
-            '{schema:"groundhog-component-build-v1",component:{name:"chuckd-go",repository:"groundhogchain/chuckd",sourceCommit:$sourceCommit,version:$version},artifacts:{"linux/amd64":{"coordinator-archive":{filename:"chuckd-coordinator-linux-x86_64.tar.gz",sha256:$x86Digest}},"linux/arm64":{"coordinator-archive":{filename:"chuckd-coordinator-linux-arm64.tar.gz",sha256:$arm64Digest}}}}' \
+            '{schema:"groundhog-component-build-v1",component:{name:"chuckd-go",repository:$repository,sourceCommit:$sourceCommit,version:$version},artifacts:{"linux/amd64":{"coordinator-archive":{filename:"chuckd-coordinator-linux-x86_64.tar.gz",sha256:$x86Digest}},"linux/arm64":{"coordinator-archive":{filename:"chuckd-coordinator-linux-arm64.tar.gz",sha256:$arm64Digest}}}}' \
             > groundhog-component-build.json
           descriptor_digest=$(sha256sum groundhog-component-build.json | cut -d' ' -f1)
           echo "Descriptor digest for bundle manifests: sha256:$descriptor_digest" >> "$GITHUB_STEP_SUMMARY"

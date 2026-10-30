@@ -2,13 +2,20 @@
 
 set -xeuo pipefail
 
-SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 ROOT=$(pwd)
-build_args=(--offline --locked)
+
+# scpd comes from the thruput-scp-server crate on crates.io
+# (https://github.com/thruputchain/scp). Bump this with the scp release.
+SCPD_VERSION=2.0.0
+
+# The install root and target directory live in the checkout, so repeated
+# builds reuse compiled dependencies and nothing lands in ~/.cargo.
+install_root="${ROOT}/.scpd"
+install_args=(--locked --force --version "${SCPD_VERSION}" --root "${install_root}" --target-dir "${install_root}/target")
 
 case "${SCPD_PROFILE-dev}" in
-  dev) target_profile=debug ;;
-  release) build_args+=(--release); target_profile=release ;;
+  dev) install_args+=(--debug) ;;
+  release) ;;
   *) echo "invalid SCPD_PROFILE: ${SCPD_PROFILE}; expected dev or release" >&2; exit 2 ;;
 esac
 
@@ -16,14 +23,9 @@ esac
 # SCPD_HEAP_PROFILING=1; benches and hog-cluster builds must leave it unset.
 case "${SCPD_HEAP_PROFILING-}" in
   ""|0) ;;
-  1) build_args+=(--features heap-profiling) ;;
+  1) install_args+=(--features heap-profiling) ;;
   *) echo "invalid SCPD_HEAP_PROFILING: ${SCPD_HEAP_PROFILING}; expected 1, 0 or unset" >&2; exit 2 ;;
 esac
 
-cd ${SCRIPT_DIR}/../scp
-
-cargo --config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml
-cargo build "${build_args[@]}" -p scp_server --bin scpd
-cp "./target/${target_profile}/scpd" "${ROOT}/scpd.dev"
-
-cd ${ROOT}
+cargo install "${install_args[@]}" thruput-scp-server
+cp "${install_root}/bin/scpd" "${ROOT}/scpd.dev"
