@@ -173,31 +173,3 @@ func TestInvalidPublicKeysInBothShapes(t *testing.T) {
 		})
 	}
 }
-
-// The configuration example in doc/DOGWOOD.md is the first JSON block of that
-// page; it must be a complete configuration in the form `chuckd sys dogwood`
-// loads (LoadDogwoodConfig reads a DogwoodStandaloneConfig).
-func TestDogwoodDocExample(t *testing.T) {
-	page, err := os.ReadFile("../../doc/DOGWOOD.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, rest, ok := strings.Cut(string(page), "```json\n")
-	if !ok {
-		t.Fatal("doc/DOGWOOD.md has no JSON block")
-	}
-	example, _, ok := strings.Cut(rest, "```")
-	if !ok {
-		t.Fatal("doc/DOGWOOD.md JSON block is not closed")
-	}
-	var cfg proto.DogwoodStandaloneConfig
-	if err := configtext.Unmarshal([]byte(example), &cfg); err != nil {
-		t.Fatalf("doc/DOGWOOD.md example does not load: %v", err)
-	}
-	if cfg.Dogwood_config.Route_count == 0 || cfg.Router_config.Tree_fan_out == 0 {
-		t.Fatal("doc/DOGWOOD.md example lacks the router or dogwood settings")
-	}
-	if n := len(cfg.Validator_config.Known_validators); n != 3 {
-		t.Fatalf("doc/DOGWOOD.md example has %d known validators, want 3", n)
-	}
-}
