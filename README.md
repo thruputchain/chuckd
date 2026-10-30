@@ -24,12 +24,11 @@ Thruput protocol's XDR, through
 
 ## Building
 
-Requirements: Go (the version in `go.mod`) and, for `scpd`, a Rust toolchain:
-`scpd` is built from the [`thruput-scp-server`](https://crates.io/crates/thruput-scp-server)
-crate, at the version `scripts/build_scpd.sh` pins.
+Requirements: Go (the version in `go.mod`) and, for `scpd`, a Rust toolchain
+and the `scp` submodule.
 
 ```sh
-make config      # go mod download
+make config      # git submodules plus go mod download
 make build       # ./chuckd.dev and ./scpd.dev
 make coordinator # just chuckd
 make install     # copy both binaries to $PREFIX/bin as chuckd and scpd
