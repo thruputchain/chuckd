@@ -11,13 +11,6 @@ on:
         description: Version embedded in the coordinator binary
         required: true
         type: string
-    secrets:
-      # Read access to the scp submodule while it is private; unneeded once
-      # it is public, and absent on fork pull requests. The Go modules are
-      # public and come from the proxy; scp's crates come from crates.io.
-      READ_ACCESS_PAT:
-        required: false
-
 permissions:
   actions: read
   contents: read
@@ -38,7 +31,6 @@ jobs:
             runner: namespace-profile-hogd-linux-arm64
     runs-on: ${{ matrix.runner }}
     env:
-      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       CHUCKD_DISTRIBUTION_VERSION: ${{ inputs.component_version }}
     steps:
       - name: Initialize measurement
@@ -51,36 +43,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      # While the scp submodule is private, fetch it over HTTPS with the
-      # read-only PAT when one is configured. Everything else the build
-      # fetches is public, and a public scp needs no credential at all.
-      - name: Authenticate thruputchain sources
-        env:
-          READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
-        run: |
-          set +x
-          if [ -z "$READ_ACCESS_PAT" ]; then
-            echo "No READ_ACCESS_PAT; fetching thruputchain sources anonymously"
-            exit 0
-          fi
-          base="https://x-access-token:${READ_ACCESS_PAT}@github.com/thruputchain/"
-          git config --global --add url."$base".insteadOf "https://github.com/thruputchain/"
-          git config --global --add url."$base".insteadOf "git@github.com:thruputchain/"
-          git config --global --add url."$base".insteadOf "ssh://git@github.com/thruputchain/"
-
-      # persist-credentials: false so the checkout's GITHUB_TOKEN header does
-      # not take precedence over the PAT on later github.com fetches.
+      # Nothing the build fetches needs a credential: the Go modules come
+      # from the proxy and scpd from the thruput-scp-server crate on
+      # crates.io.
       - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
         with:
           ref: ${{ inputs.source_commit }}
-          submodules: false
           persist-credentials: false
 
       - name: Verify source commit
         run: test "$(git rev-parse HEAD)" = "${{ inputs.source_commit }}"
-
-      - name: Fetch submodules
-        run: git submodule update --init --recursive
 
       - name: Verify native Linux architecture
         run: test "$(uname -m)" = "${{ matrix.machine }}"

@@ -19,7 +19,6 @@ jobs:
       # The Go modules are public, so no credentials: the proxy serves them.
       - uses: namespacelabs/nscloud-checkout-action@def520b6c21233362f09c9ceda4352c51cceca26 # v8
         with:
-          submodules: false
           persist-credentials: false
 
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5

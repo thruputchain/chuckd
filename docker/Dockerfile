@@ -1,8 +1,8 @@
 # A Go-only image: it holds the chuckd binary and nothing else. It runs the
 # standalone Dogwood disseminator (`chuckd sys dogwood`) and the Dogwood and
 # echo benchmarks, but not the coordinator: `chuckd sys coordinator` needs
-# scpd, the Rust SCP daemon built from the scp submodule, which this image
-# does not build or package. For a coordinator, use the release archives
+# scpd, the Rust SCP daemon from the thruput-scp-server crate, which this
+# image does not build or package. For a coordinator, use the release archives
 # (chuckd-coordinator-linux-*.tar.gz), which ship both binaries.
 
 # Build stage

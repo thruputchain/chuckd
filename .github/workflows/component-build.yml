@@ -71,8 +71,6 @@ jobs:
     with:
       source_commit: ${{ needs.authorize.outputs.source_commit }}
       component_version: ${{ needs.authorize.outputs.component_version }}
-    secrets:
-      READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
 
   publish:
     needs: [authorize, build]

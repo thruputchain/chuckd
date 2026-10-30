@@ -14,7 +14,7 @@ are welcome.
 ## Development
 
 ```sh
-make config   # submodules and go mod download
+make config   # go mod download
 make build    # chuckd.dev and scpd.dev
 make check    # go test ./...
 make lint     # go vet ./...
