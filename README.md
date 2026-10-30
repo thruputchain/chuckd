@@ -49,16 +49,6 @@ Some integration tests are opt-in through environment variables:
 `RUN_CHUCKD_VIRTUAL_TEST=1` runs the multi-node virtual coordinator tests and
 `RUN_CHUCKD_RUST_INTEROP_TEST=1` checks signing against the Rust implementation.
 
-## Benchmarks
-
-The cluster benchmarks (`chuckd bench coordinator` on three hosts, the Dogwood
-broadcast benchmarks, the virtual coordinator tests) run through the private
-[thruputchain/benchmarks](https://github.com/thruputchain/benchmarks)
-repository, which holds their hog_sched schedules under `chuckd/`. The per-host
-job scripts they run live here under `scripts/schedules/host_jobs/`. Every push
-to `main` dispatches the Dogwood benchmarks there through
-`.github/workflows/benchmarks.yml`.
-
 ## Running
 
 `chuckd --help` documents the global flags (logging, profiling, metrics

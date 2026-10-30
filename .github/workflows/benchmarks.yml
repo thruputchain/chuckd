@@ -1,19 +1,11 @@
 name: Benchmarks
 
-# Starts the Dogwood benchmark runs for each push to main. The runs themselves
-# happen in the private thruputchain/benchmarks repository, on its benchmark
-# cluster; this job only asks for them, on a GitHub-hosted runner. The
-# schedules live there under chuckd/; the per-host job scripts they run stay
-# here under scripts/schedules/host_jobs/.
-#
-# It dispatches as a GitHub App whose only permission is Actions: read and
-# write, installed only on thruputchain/benchmarks. Its client ID and key
-# (GEOPHREY_CLIENT_ID, GEOPHREY_CLIENT_KEY) are secrets of the `benchmarks`
-# environment, whose deployment branches are limited to main, so only
-# workflows already merged to main can use them; a workflow on any other
-# branch or a fork PR never sees them. The App's runs show as <app>[bot]: the
-# benchmarks repository accepts them only for chuckd main commits. See
-# chuckd/README.md in that repository.
+# Starts the Dogwood benchmark runs for each push to main. The runs happen
+# elsewhere; this job only asks for them, on a GitHub-hosted runner, as a
+# GitHub App whose only permission is Actions: read and write. Its client ID
+# and key are secrets of the `benchmarks` environment, whose deployment
+# branches are limited to main, so only workflows already merged to main can
+# use them; a workflow on any other branch or a fork PR never sees them.
 
 on:
   push:
