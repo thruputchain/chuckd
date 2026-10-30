@@ -12,19 +12,9 @@ on:
         required: true
         type: string
     secrets:
-      CHUCKD_TO_CHUCKD_KEY:
-        required: true
-      CHUCKD_TO_LIB_GO_KEY:
-        required: true
-      CHUCKD_TO_PROTOCOL_GO_KEY:
-        required: true
-      CHUCKD_TO_METRICS_HISTORY_KEY:
-        required: true
-      CHUCKD_TO_SCP_KEY:
-        required: true
+      # Read access to the scp submodule while it is private. The Go modules
+      # are public and come from the proxy; scp's crates come from crates.io.
       READ_ACCESS_PAT:
-        required: true
-      GROUNDHOG_REGISTRY_TOKEN:
         required: true
 
 permissions:
@@ -47,8 +37,6 @@ jobs:
             runner: namespace-profile-hogd-linux-arm64
     runs-on: ${{ matrix.runner }}
     env:
-      CARGO_REGISTRIES_GROUNDHOG_TOKEN: ${{ secrets.GROUNDHOG_REGISTRY_TOKEN }}
-      CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS: cargo:token
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       CHUCKD_DISTRIBUTION_VERSION: ${{ inputs.component_version }}
     steps:
@@ -62,20 +50,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
-        with:
-          ssh-private-key: |
-            ${{ secrets.CHUCKD_TO_CHUCKD_KEY }}
-            ${{ secrets.CHUCKD_TO_LIB_GO_KEY }}
-            ${{ secrets.CHUCKD_TO_PROTOCOL_GO_KEY }}
-            ${{ secrets.CHUCKD_TO_METRICS_HISTORY_KEY }}
-            ${{ secrets.CHUCKD_TO_SCP_KEY }}
-
-      # Repositories transferred to thruputchain no longer match the deploy keys
-      # above (their comments name groundhogchain), so fetch them over HTTPS
-      # with the read-only PAT. This covers the scp submodule and the Go
-      # modules. The rewrites are keyed on the thruputchain prefix, which
-      # outranks the blanket git@github.com: rewrite set up for Go below.
+      # The scp submodule is still private, so fetch it over HTTPS with the
+      # read-only PAT. Everything else the build fetches is public.
       - name: Authenticate thruputchain sources
         env:
           READ_ACCESS_PAT: ${{ secrets.READ_ACCESS_PAT }}
@@ -115,13 +91,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547 # v1
         with:
           cache: go
-
-      - name: Set up Go private modules
-        run: |
-          go env -w GOPRIVATE=github.com/thruputchain/*
-          go env -w GONOSUMDB=github.com/thruputchain/*
-          go env -w GONOPROXY=github.com/thruputchain/*
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
 
       - id: coordinator-build
         name: Build coordinator

@@ -1,4 +1,7 @@
 #!/bin/sh
+# The validator identities below are throwaway benchmark keys that are checked
+# in so every run of this schedule uses the same topology. They secure nothing
+# and must never be reused outside this benchmark.
 # chmod +x dogwood-bench-host=${HOG_HOST_3},seq=2.sh
 
 set -xe

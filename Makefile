@@ -18,13 +18,8 @@ SHELL := /bin/bash
 # does not change which toolchain builds the binaries.
 GO ?= go
 
-# The module and its dependencies live in private repos, so the toolchain must
-# skip the public proxy and checksum database. scripts/setup_go.sh sets the
-# same three plus a repo-local GOPATH; source it instead if you want the
+# scripts/setup_go.sh sets a repo-local GOPATH; source it if you want the
 # module cache kept inside the checkout.
-export GOPRIVATE ?= github.com/thruputchain/*
-export GONOSUMDB ?= github.com/thruputchain/*
-export GONOPROXY ?= github.com/thruputchain/*
 
 # Release builds set this; scripts/build_chuckd.sh passes it to the linker as
 # -X github.com/thruputchain/chuckd.distributionVersion, which is the Go
@@ -42,7 +37,7 @@ DESTDIR ?=
 .PHONY: help
 help:
 	@echo "Setup"
-	@echo "  config        git submodules (SSH-only) plus go mod download"
+	@echo "  config        git submodules plus go mod download"
 	@echo "  submodules    scp, needed for scpd"
 	@echo ""
 	@echo "Build"
@@ -66,8 +61,7 @@ help:
 	@echo "Variables: PREFIX BINDIR DESTDIR CHUCKD_DISTRIBUTION_VERSION"
 	@echo "  GO covers config, test, lint and fmt; the build scripts call go themselves"
 
-# Both submodule remotes are git@github.com, so this needs an SSH agent holding
-# a key GitHub accepts. scpd cannot build without the scp submodule.
+# scpd cannot build without the scp submodule.
 .PHONY: submodules
 submodules:
 	git submodule update --init --recursive
