@@ -23,7 +23,7 @@ esac
 cd ${SCRIPT_DIR}/../scp
 
 cargo --config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml
-cargo build "${build_args[@]}" -p scp_server --bin scpd
+cargo build "${build_args[@]}" -p thruput-scp-server --bin scpd
 cp "./target/${target_profile}/scpd" "${ROOT}/scpd.dev"
 
 cd ${ROOT}

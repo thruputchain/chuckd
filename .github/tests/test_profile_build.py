@@ -53,7 +53,7 @@ class ProfileTests(unittest.TestCase):
                     continue
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((root / "cargo.log").read_text().splitlines(),
-                                 [FETCH, expected + " -p scp_server --bin scpd"])
+                                 [FETCH, expected + " -p thruput-scp-server --bin scpd"])
 
     def test_only_the_coordinator_release_build_enables_heap_profiling(self):
         # Benches and hog-cluster builds must not compile jemalloc (OOM risk).
@@ -91,7 +91,7 @@ class ProfileTests(unittest.TestCase):
                     expected = "build --offline --locked "
                     if profile == "release":
                         expected += "--release "
-                    expected += "-p scp_server --bin scpd"
+                    expected += "-p thruput-scp-server --bin scpd"
                     self.assertEqual((root / "cargo.log").read_text().splitlines(),
                                      ["--config net.git-fetch-with-cli=true fetch --manifest-path Cargo.toml", expected])
 
