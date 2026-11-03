@@ -36,7 +36,7 @@ func (cbp *CatchupBlockPool) CBPoolAdd(
 
 	vhash := protoutil.HashValue(&value)
 
-	liblog.Infof(ctx, "adding catchup block to pool: height %d; value %s; proposer %s",
+	liblog.Debugf(ctx, "adding catchup block to pool: height %d; value %s; proposer %s",
 		cb.Consensus_basis.Value.Proposal_header.Block_height, vhash.Display(),
 		protoutil.VIDString(cb.Consensus_basis.Value.Proposal_header.Proposer))
 
@@ -75,7 +75,7 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, value pro
 	donePersisting, ok := cbp.persisting[vhash]
 	cbp.lk.Unlock()
 	if !ok {
-		liblog.Infof(ctx, "catchup need not wait for pre-persist: value %s",
+		liblog.Debugf(ctx, "catchup need not wait for pre-persist: value %s",
 			vhash.Display())
 		return nil
 	}
@@ -83,7 +83,7 @@ func (cbp *CatchupBlockPool) waitFinishPrePersist(ctx context.Context, value pro
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-donePersisting:
-		liblog.Infof(ctx, "finished waiting for catchup to pre-persist: value %s",
+		liblog.Debugf(ctx, "finished waiting for catchup to pre-persist: value %s",
 			vhash.Display())
 		return nil
 	}
@@ -93,7 +93,7 @@ func (cbp *CatchupBlockPool) CBPoolWaitPrePersist(
 	ctx context.Context,
 	value proto.ConsensusValue,
 ) error {
-	liblog.Infof(ctx, "waiting for pre-persisting of catchup block: height %d; value %s",
+	liblog.Debugf(ctx, "waiting for pre-persisting of catchup block: height %d; value %s",
 		protoutil.ValueHeight(&value), protoutil.ValueDisplay(&value))
 
 	// NOTE: we have no way of knowing currently if the block had initiated pre-persist at all.
@@ -109,7 +109,7 @@ func (cbp *CatchupBlockPool) CBPoolWaitPersist(
 	ctx context.Context,
 	value proto.ConsensusValue,
 ) error {
-	liblog.Infof(ctx, "waiting for persisting of catchup block: height %d; value %s",
+	liblog.Debugf(ctx, "waiting for persisting of catchup block: height %d; value %s",
 		protoutil.ValueHeight(&value), protoutil.ValueDisplay(&value))
 
 	err := cbp.waitFinishPrePersist(ctx, value)
