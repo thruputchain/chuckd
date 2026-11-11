@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def install_command(root, profile, heap=False):
     """The cargo install line build_scpd.sh runs for a profile."""
     install_root = root / ".scpd"
-    args = ["install", "--locked", "--force", "--version", "2.0.0",
+    args = ["+1.96.0", "install", "--locked", "--force", "--version", "2.0.0",
             "--root", str(install_root), "--target-dir", str(install_root / "target")]
     if profile == "debug":
         args.append("--debug")
@@ -35,8 +35,13 @@ def run_build(root, profile=None, heap=None):
                      'case " $* " in *" --debug "*) printf debug ;; *) printf release ;; esac'
                      ' > "$PROBE_ROOT/.scpd/bin/scpd"\n')
     cargo.chmod(0o755)
+    # Records the toolchain the script asks rustup for, without installing one.
+    rustup = fakebin / "rustup"
+    rustup.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$RUSTUP_LOG"\n')
+    rustup.chmod(0o755)
     env = {**os.environ, "PATH": str(fakebin) + os.pathsep + os.environ["PATH"],
-           "PROBE_LOG": str(root / "cargo.log"), "PROBE_ROOT": str(root)}
+           "PROBE_LOG": str(root / "cargo.log"), "PROBE_ROOT": str(root),
+           "RUSTUP_LOG": str(root / "rustup.log")}
     env.pop("SCPD_PROFILE", None)
     env.pop("SCPD_HEAP_PROFILING", None)
     if profile is not None:
@@ -60,6 +65,16 @@ class ProfileTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((root / "cargo.log").read_text().splitlines(),
                                  [install_command(root, "release", enabled)])
+
+    def test_installs_with_the_crates_rust_version(self):
+        # thruput-scp-server needs a newer rustc than some hosts' default.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run_build(root)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((root / "rustup.log").read_text().splitlines(),
+                             ["toolchain install 1.96.0 --profile minimal --no-self-update"])
+            self.assertTrue((root / "cargo.log").read_text().startswith("+1.96.0 install "))
 
     def test_only_the_coordinator_release_build_enables_heap_profiling(self):
         # Benches and hog-cluster builds must not compile jemalloc (OOM risk).
