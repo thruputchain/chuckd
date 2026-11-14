@@ -71,8 +71,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/thruputchain/lib-go v0.0.0-20261018054045-e56684cd4d86 h1:UNHkuQ2Bipq39RRPD8/CIzn1iZx6PMB6tHL/5C3Eqig=
 github.com/thruputchain/lib-go v0.0.0-20261018054045-e56684cd4d86/go.mod h1:f14jum/n+TRvCU+HigC6//TeNxa5LE/oH64iuymT6qw=
-github.com/thruputchain/thruput-protocol-go v0.0.0-20261112181410-bcb6a6e18517 h1:/GhFnbRyfgnW8Yrs0ZYWnDND6pHG8WpfTGlP4xSOyGM=
-github.com/thruputchain/thruput-protocol-go v0.0.0-20261112181410-bcb6a6e18517/go.mod h1:oERH9pENcPpWNS3MJjFIqpTSwUDsR5JNXUeSHYT1HF0=
+github.com/thruputchain/thruput-protocol-go v0.0.0-20261113191659-d69f79946d02 h1:fbxwOKC/Gh82vABzgbCz2IegrGrffXTzID5Lh7Bia3I=
+github.com/thruputchain/thruput-protocol-go v0.0.0-20261113191659-d69f79946d02/go.mod h1:oERH9pENcPpWNS3MJjFIqpTSwUDsR5JNXUeSHYT1HF0=
 github.com/xdrpp/goxdr v0.0.0-20260507185951-17b997ee737d h1:bhhKw5D7JNxeT+GiysMMd9QTSbeuls9jcAE4EGZAL7c=
 github.com/xdrpp/goxdr v0.0.0-20260507185951-17b997ee737d/go.mod h1:c8BqfFp3TPnJYZnVZGcRDM91+wxEY7IiWEhtdthMfMg=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
