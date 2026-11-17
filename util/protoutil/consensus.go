@@ -21,28 +21,22 @@ var proposalTxsDomainSeparator = []byte("\x00\x0bProposalTxs")
 
 // HashProposalTxsFast computes the ProposalTxsHash a ConsensusValue commits to:
 //
-//	SHA-256(cxs(DomainSeparator("ProposalTxs")) || SHA-256(base) ||
-//	        HashParallelBatch(signed_hash) ||
-//	        HashParallelBatch(nondeterministic_data))
+//	SHA-256(cxs(ProposalTxsCommit))
 //
-// where base is the XDR of txs with both batches emptied. The three hashes are
-// computed in parallel and combined in order, so the batches cannot trade
-// places (hogd#4508).
+// ProposalTxsCommit is a struct of the protocol's proposal.x. Its fields are,
+// in order, DomainSeparator("ProposalTxs"), the HashParallelBatch of
+// signed_hash and the HashParallelBatch of nondeterministic_data. The two
+// batch hashes are computed in parallel. Each has its own field, so the
+// batches cannot trade places (hogd#4508).
+//
+// As in HashParallelBatch, the cxs encoding is written out by hand: the bytes
+// of the separator, then the two 32-byte hashes.
 func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
-	txsBase := *txs
-	txsBase.Signed_hash = proto.ParallelBatch{}
-	txsBase.Nondeterministic_data = proto.ParallelBatch{}
-
-	var hashBase proto.SHA256Hash
 	var hashTxsHash proto.SHA256Hash
 	var hashTxsND proto.SHA256Hash
 
 	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		hashBase = HashProposalTxsSlow(&txsBase)
-	}()
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		hashTxsHash = xdrutil.HashParallelBatch(txs.Signed_hash)
@@ -54,7 +48,6 @@ func HashProposalTxsFast(txs *proto.ProposalTxs) proto.ProposalTxsHash {
 	wg.Wait()
 	h := sha256.New()
 	h.Write(proposalTxsDomainSeparator)
-	h.Write(hashBase[:])
 	h.Write(hashTxsHash[:])
 	h.Write(hashTxsND[:])
 	return proto.ProposalTxsHash(h.Sum(nil))
