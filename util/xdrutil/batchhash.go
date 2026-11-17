@@ -16,7 +16,7 @@ var parallelBatchDomainSeparator = []byte("\x00\x0dParallelBatch")
 //
 //	SHA-256(cxs(BatchCommit))
 //
-// BatchCommit is the struct of the protocol's parallel.x. Its fields are, in
+// BatchCommit is a struct of the protocol's parallel.x. Its fields are, in
 // order, DomainSeparator("ParallelBatch"), the batch's segment_tokens and
 // segment_bytes, and segment_hashes, where segment_hashes[i] is the SHA-256
 // of the bytes of xdr that segment_bytes[i] counts. The segments hash in
@@ -24,12 +24,13 @@ var parallelBatchDomainSeparator = []byte("\x00\x0dParallelBatch")
 // in order, so nothing is combined by XOR and no two valid batches share a
 // preimage (hogd#4508).
 //
-// The protocol revision chuckd builds with does not define BatchCommit yet,
-// so its cxs encoding is written out here, field by field.
+// Go has no cxs encoder here (goxdr generates XDR only), so the cxs encoding
+// of BatchCommit is written out, field by field.
 //
 // batch must be pre-validated with ValidateBatch. HashParallelBatch does not
 // check the shape itself: bytes of xdr past the counted segments are left out
-// of the hash, and counts that overrun xdr are not reliably caught.
+// of the hash, counts that overrun xdr are not reliably caught, and count
+// arrays of unequal length are hashed as they are.
 func HashParallelBatch(batch proto.ParallelBatch) proto.SHA256Hash {
 	segHashes := make([][sha256.Size]byte, len(batch.Segment_bytes))
 	var wg sync.WaitGroup
