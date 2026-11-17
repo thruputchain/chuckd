@@ -7,20 +7,25 @@ import (
 	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
-// parallelBatchDomainSeparator is cxs(DomainSeparator("ParallelBatch")): the
-// zero ExtensionPoint, the length of the name, and the name.
+// parallelBatchDomainSeparator is cxs(DomainSeparator("ParallelBatch")), the
+// first field of a BatchCommit: the zero ExtensionPoint, the length of the
+// name, and the name.
 var parallelBatchDomainSeparator = []byte("\x00\x0dParallelBatch")
 
 // HashParallelBatch computes the hash that commits to a batch:
 //
-//	SHA-256(cxs(DomainSeparator("ParallelBatch")) ||
-//	        cxs(segment_tokens) || cxs(segment_bytes) ||
-//	        SHA-256(SHA-256(segment_0) || ... || SHA-256(segment_{n-1})))
+//	SHA-256(cxs(BatchCommit))
 //
-// where segment_i is the bytes of xdr that segment_bytes[i] counts. The
-// segments hash in parallel. Their hashes are hashed in order and the counts
-// are encoded with their lengths, so nothing is combined by XOR and no two
-// valid batches share a preimage (hogd#4508).
+// BatchCommit is the struct of the protocol's parallel.x. Its fields are, in
+// order, DomainSeparator("ParallelBatch"), the batch's segment_tokens and
+// segment_bytes, and segment_hashes, where segment_hashes[i] is the SHA-256
+// of the bytes of xdr that segment_bytes[i] counts. The segments hash in
+// parallel. cxs encodes each array behind its length and the segment hashes
+// in order, so nothing is combined by XOR and no two valid batches share a
+// preimage (hogd#4508).
+//
+// The protocol revision chuckd builds with does not define BatchCommit yet,
+// so its cxs encoding is written out here, field by field.
 //
 // batch must be pre-validated with ValidateBatch. HashParallelBatch does not
 // check the shape itself: bytes of xdr past the counted segments are left out
@@ -40,16 +45,15 @@ func HashParallelBatch(batch proto.ParallelBatch) proto.SHA256Hash {
 
 	// A cxs unsigned int takes at most 5 bytes, and so does each length.
 	ncounts := len(batch.Segment_tokens) + len(batch.Segment_bytes)
-	preimage := make([]byte, 0, len(parallelBatchDomainSeparator)+5*(2+ncounts)+sha256.Size)
-	preimage = append(preimage, parallelBatchDomainSeparator...)
-	preimage = appendCxsUint32s(preimage, batch.Segment_tokens)
-	preimage = appendCxsUint32s(preimage, batch.Segment_bytes)
+	commit := make([]byte, 0, len(parallelBatchDomainSeparator)+5*(3+ncounts)+sha256.Size*len(segHashes))
+	commit = append(commit, parallelBatchDomainSeparator...)
+	commit = appendCxsUint32s(commit, batch.Segment_tokens)
+	commit = appendCxsUint32s(commit, batch.Segment_bytes)
+	commit = appendCxsUint32(commit, uint32(len(segHashes)))
 
 	wg.Wait()
-	h := sha256.New()
 	for i := range segHashes {
-		h.Write(segHashes[i][:])
+		commit = append(commit, segHashes[i][:]...)
 	}
-	preimage = h.Sum(preimage)
-	return proto.SHA256Hash(sha256.Sum256(preimage))
+	return proto.SHA256Hash(sha256.Sum256(commit))
 }
