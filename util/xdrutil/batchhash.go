@@ -7,25 +7,24 @@ import (
 	proto "github.com/thruputchain/thruput-protocol-go"
 )
 
-// parallelBatchDomainSeparator is cxs(DomainSeparator("ParallelBatch")), the
-// first field of a BatchCommit: the zero ExtensionPoint, the length of the
-// name, and the name.
+// parallelBatchDomainSeparator is cxs(DomainSeparator("ParallelBatch")), which
+// goes before the BatchCommit in the hash: the zero ExtensionPoint, the length
+// of the name, and the name.
 var parallelBatchDomainSeparator = []byte("\x00\x0dParallelBatch")
 
 // HashParallelBatch computes the hash that commits to a batch:
 //
-//	SHA-256(cxs(BatchCommit))
+//	SHA-256(cxs(DomainSeparator("ParallelBatch")) || cxs(BatchCommit))
 //
 // BatchCommit is a struct of the protocol's parallel.x. Its fields are, in
-// order, DomainSeparator("ParallelBatch"), the batch's segment_tokens and
-// segment_bytes, and segment_hashes, where segment_hashes[i] is the SHA-256
-// of the bytes of xdr that segment_bytes[i] counts. The segments hash in
-// parallel. cxs encodes each array behind its length and the segment hashes
-// in order, so nothing is combined by XOR and no two valid batches share a
-// preimage (hogd#4508).
+// order, an ext, which is 0, the batch's segment_tokens and segment_bytes, and
+// segment_hashes, where segment_hashes[i] is the SHA-256 of the bytes of xdr
+// that segment_bytes[i] counts. The segments hash in parallel. cxs encodes
+// each array behind its length and the segment hashes in order, so nothing is
+// combined by XOR and no two valid batches share a preimage (hogd#4508).
 //
 // Go has no cxs encoder here (goxdr generates XDR only), so the cxs encoding
-// of BatchCommit is written out, field by field.
+// of BatchCommit is written out, field by field. Its ext takes one byte.
 //
 // batch must be pre-validated with ValidateBatch. HashParallelBatch does not
 // check the shape itself: bytes of xdr past the counted segments are left out
@@ -46,15 +45,17 @@ func HashParallelBatch(batch proto.ParallelBatch) proto.SHA256Hash {
 
 	// A cxs unsigned int takes at most 5 bytes, and so does each length.
 	ncounts := len(batch.Segment_tokens) + len(batch.Segment_bytes)
-	commit := make([]byte, 0, len(parallelBatchDomainSeparator)+5*(3+ncounts)+sha256.Size*len(segHashes))
-	commit = append(commit, parallelBatchDomainSeparator...)
-	commit = appendCxsUint32s(commit, batch.Segment_tokens)
-	commit = appendCxsUint32s(commit, batch.Segment_bytes)
-	commit = appendCxsUint32(commit, uint32(len(segHashes)))
+	preimage := make([]byte, 0, len(parallelBatchDomainSeparator)+1+5*(3+ncounts)+sha256.Size*len(segHashes))
+	preimage = append(preimage, parallelBatchDomainSeparator...)
+	// The ext of the BatchCommit: its only version is 0, one byte in cxs.
+	preimage = append(preimage, 0)
+	preimage = appendCxsUint32s(preimage, batch.Segment_tokens)
+	preimage = appendCxsUint32s(preimage, batch.Segment_bytes)
+	preimage = appendCxsUint32(preimage, uint32(len(segHashes)))
 
 	wg.Wait()
 	for i := range segHashes {
-		commit = append(commit, segHashes[i][:]...)
+		preimage = append(preimage, segHashes[i][:]...)
 	}
-	return proto.SHA256Hash(sha256.Sum256(commit))
+	return proto.SHA256Hash(sha256.Sum256(preimage))
 }
