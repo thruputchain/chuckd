@@ -33,7 +33,7 @@ func (b *Baton) validateProposal(
 		ConsensusValue: value,
 		ConsensusBasis: basis,
 	}
-	liblog.Infof(ctx, "%v", eventValidating)
+	liblog.Debugf(ctx, "%v", eventValidating)
 	b.handler.Emit(ctx, eventValidating)
 
 	defer func() {
@@ -44,12 +44,12 @@ func (b *Baton) validateProposal(
 			ConsensusValue: value,
 			ConsensusBasis: basis,
 		}
-		liblog.Infof(ctx, "%v", eventValidated)
+		liblog.Debugf(ctx, "%v", eventValidated)
 		b.handler.Emit(ctx, eventValidated)
 	}()
 
 	for {
-		liblog.Infof(ctx, "scheduler validating: height=%d; value=%s",
+		liblog.Debugf(ctx, "scheduler validating: height=%d; value=%s",
 			height, protoutil.ValueDisplay(value))
 		schedValidResult, err := b.handler.Schedulercoord_validate_block(ctx, onto.Id, *proposal)
 		if err != nil {

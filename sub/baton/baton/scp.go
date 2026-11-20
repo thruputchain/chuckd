@@ -75,7 +75,7 @@ func (x scpHandler) SCPExternalizedValue(ctx context.Context, slot scpkit.Slot, 
 		return
 	}
 
-	liblog.Infof(ctx, "received externalization for slot %d with value hash %s",
+	liblog.Debugf(ctx, "received externalization for slot %d with value hash %s",
 		slot,
 		protoutil.ValueDisplay(&value))
 
