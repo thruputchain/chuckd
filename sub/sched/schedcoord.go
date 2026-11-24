@@ -6,6 +6,7 @@ import (
 
 	"github.com/thruputchain/chuckd/util/netutil"
 	"github.com/thruputchain/chuckd/util/rpcutil"
+	"github.com/thruputchain/lib-go/liblog"
 	"github.com/thruputchain/lib-go/libnet"
 	"github.com/thruputchain/lib-go/librpc"
 	proto "github.com/thruputchain/thruput-protocol-go"
@@ -23,11 +24,23 @@ type SchedulerCoordClient struct {
 }
 
 func DialSchedulerCoordClient(ctx context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
-	sock, err := dialer.Dial(ctx, address)
+	return dialSchedulerClient(ctx, ctx, dialer, address)
+}
+
+func dialSchedulerClient(ctx, lifetime context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
+	var sock net.Conn
+	var err error
+	if isTCPDialer(dialer) {
+		d := &net.Dialer{}
+		d.SetMultipathTCP(false)
+		sock, err = d.DialContext(ctx, "tcp", address)
+	} else {
+		sock, err = dialer.Dial(ctx, address)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return NewSchedulerCoordClient(ctx, sock), nil
+	return NewSchedulerCoordClient(lifetime, sock), nil
 }
 
 func NewSchedulerCoordClient(ctx context.Context, sock net.Conn) *SchedulerCoordClient {
@@ -42,4 +55,31 @@ func NewSchedulerCoordClient(ctx context.Context, sock net.Conn) *SchedulerCoord
 
 func (cc *SchedulerCoordClient) Close() {
 	cc.driver.Close()
+}
+
+func isTCPDialer(dialer libnet.Dialer) bool {
+	switch dialer.(type) {
+	case libnet.TCPNet, libnet.TCPReuseNet, *libnet.TCPNet, *libnet.TCPReuseNet:
+		return true
+	default:
+		return false
+	}
+}
+
+func dialProposalClient(ctx, lifetime context.Context, address string) (SchedulerCoordConn, error) {
+	d := &net.Dialer{}
+	d.SetMultipathTCP(true)
+	sock, err := d.DialContext(ctx, "tcp", address)
+	if err != nil {
+		return nil, err
+	}
+	// Go negotiates TCP fallback for kernels and servers without MPTCP. A
+	// diagnostic failure must not discard an otherwise working connection.
+	active, probeErr := sock.(*net.TCPConn).MultipathTCP()
+	if probeErr != nil {
+		liblog.Infof(ctx, "SchedulerCoord proposal MPTCP status unavailable: %v", probeErr)
+	} else {
+		liblog.Infof(ctx, "SchedulerCoord proposal MPTCP active=%t", active)
+	}
+	return NewSchedulerCoordClient(lifetime, sock), nil
 }
