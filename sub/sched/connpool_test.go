@@ -114,6 +114,10 @@ func awaitCount(t *testing.T, srv *testListener, count int) {
 }
 
 func TestProposalConnectionRouting(t *testing.T) {
+	// This matrix tests the ordinary baseline and explicit opt-in. An external
+	// Go-wide MPTCP override is covered separately by the default-preservation
+	// test, and must not change the routing matrix's baseline.
+	t.Setenv("GODEBUG", "multipathtcp=0")
 	for _, tc := range []struct {
 		name           string
 		client, server bool
@@ -357,6 +361,73 @@ func TestProposalCancelAndClose(t *testing.T) {
 	}
 	if proposals.Load() != 1 {
 		t.Fatalf("canceled proposal executed: %d", proposals.Load())
+	}
+}
+
+func TestRunningProposalCancellationReconnects(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux proposal transport")
+	}
+	ctx := testContext(t)
+	started := make(chan struct{})
+	unblock := make(chan struct{})
+	var proposals atomic.Int32
+	srv := startTestListener(t, "127.0.0.1:0", false, func(*net.TCPConn) testRPC {
+		return testRPC{
+			null: func() error { return nil },
+			proposal: func(ctx context.Context) (proto.SchedulerProposalResult, error) {
+				if proposals.Add(1) == 1 {
+					close(started)
+					<-unblock
+				}
+				return successfulProposal(ctx)
+			},
+		}
+	})
+	defer close(unblock)
+	conn, err := connectPoolToScheduler(ctx, libnet.TCPNet{}, srv.Addr().String(), 2, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	callCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		_, err := conn.Schedulercoord_propose_block(callCtx, 0, proto.ProposalContext{})
+		result <- err
+	}()
+	// The server has really received the claimed RPC, and remains blocked on
+	// it. Cancel only the caller, not the pool or the server connection.
+	select {
+	case <-started:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("running cancellation: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("running canceled caller did not return")
+	}
+	if proposals.Load() != 1 {
+		t.Fatalf("canceled proposal replayed: %d invocations", proposals.Load())
+	}
+	if err := conn.Schedulercoord_null(ctx); err != nil {
+		t.Fatalf("ordinary pool after cancellation: %v", err)
+	}
+	// A new proposal must succeed on a fresh logical connection even while
+	// the abandoned server handler is still blocked, without replaying it.
+	if r, err := conn.Schedulercoord_propose_block(ctx, 0, proto.ProposalContext{}); err != nil || r.Outcome != proto.SchedulerProposalError {
+		t.Fatalf("proposal after cancellation: %v %v", r, err)
+	}
+	awaitCount(t, srv, 3)
+	if proposals.Load() != 2 {
+		t.Fatalf("want two executed proposals, got %d", proposals.Load())
 	}
 }
 
