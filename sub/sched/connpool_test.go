@@ -182,7 +182,7 @@ func TestProposalConnectionRouting(t *testing.T) {
 					enabled = "1"
 				}
 				t.Setenv("HOGD_COORD_PROPOSAL_MPTCP", enabled)
-				conn, err = ConnectPoolToScheduler(ctx, libnet.TCPNet{}, srv.Addr().String())
+				conn, err = ConnectPoolToScheduler(ctx, libnet.TCPReuseNet{}, srv.Addr().String())
 			} else {
 				conn, err = connectPoolToScheduler(ctx, libnet.TCPNet{}, srv.Addr().String(), tc.count, tc.client)
 			}
@@ -406,5 +406,90 @@ func TestOptInKeepsCustomDialer(t *testing.T) {
 	}
 	if err := conn.Schedulercoord_null(ctx); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDefaultOffPreservesCallerDialerAndGoDefaults(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux MPTCP support")
+	}
+	// Explicitly request the Go-wide dial default. Only an opted-in proposal
+	// pool may override it for the ordinary connections; the old public client
+	// and the disabled pool must preserve the caller's libnet behavior.
+	t.Setenv("GODEBUG", "multipathtcp=1")
+	t.Setenv("HOGD_COORD_PROPOSAL_MPTCP", "")
+	for _, tc := range []struct {
+		name   string
+		dialer libnet.Dialer
+	}{
+		{"TCPNet", libnet.TCPNet{}},
+		{"TCPReuseNet", libnet.TCPReuseNet{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var nullActive, proposalActive atomic.Bool
+			srv := startTestListener(t, "127.0.0.1:0", true, func(sock *net.TCPConn) testRPC {
+				return testRPC{
+					null: func() error { active, _ := sock.MultipathTCP(); nullActive.Store(active); return nil },
+					proposal: func(ctx context.Context) (proto.SchedulerProposalResult, error) {
+						active, _ := sock.MultipathTCP()
+						proposalActive.Store(active)
+						return successfulProposal(ctx)
+					},
+				}
+			})
+			ctx := testContext(t)
+			address := srv.Addr().String()
+			stock, err := tc.dialer.Dial(ctx, address)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected, err := stock.(*net.TCPConn).MultipathTCP()
+			stock.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !expected {
+				t.Log("MPTCP unavailable; comparing with the original dialer fallback")
+			}
+			direct, err := DialSchedulerCoordClient(ctx, tc.dialer, address)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer direct.Close()
+			if err := direct.Schedulercoord_null(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if nullActive.Load() != expected {
+				t.Fatal("public dial changed the original transport")
+			}
+			ordinary, err := ConnectPoolToScheduler(ctx, tc.dialer, address)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer ordinary.Close()
+			if err := ordinary.Schedulercoord_null(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := ordinary.Schedulercoord_propose_block(ctx, 0, proto.ProposalContext{}); err != nil {
+				t.Fatal(err)
+			}
+			if nullActive.Load() != expected || proposalActive.Load() != expected {
+				t.Fatal("disabled pool changed the original transport")
+			}
+			selected, err := connectPoolToScheduler(ctx, tc.dialer, address, 3, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer selected.Close()
+			if err := selected.Schedulercoord_null(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := selected.Schedulercoord_propose_block(ctx, 0, proto.ProposalContext{}); err != nil {
+				t.Fatal(err)
+			}
+			if nullActive.Load() || proposalActive.Load() != expected {
+				t.Fatal("enabled pool did not isolate the proposal transport")
+			}
+		})
 	}
 }

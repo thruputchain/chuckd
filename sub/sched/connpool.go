@@ -42,7 +42,7 @@ func connectPoolToScheduler(ctx context.Context, net libnet.Dialer, schedAddr st
 			defer wg.Done()
 			// dialUntilSuccess only returns an error when startup is canceled.
 			conns[i], _ = dialUntilSuccess(ctx, schedAddr, func(ctx context.Context) (SchedulerCoordConn, error) {
-				return dialSchedulerClient(ctx, poolCtx, net, schedAddr)
+				return dialSchedulerClient(ctx, poolCtx, net, schedAddr, multipath)
 			})
 		}(i)
 	}

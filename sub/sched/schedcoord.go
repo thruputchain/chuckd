@@ -24,13 +24,18 @@ type SchedulerCoordClient struct {
 }
 
 func DialSchedulerCoordClient(ctx context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
-	return dialSchedulerClient(ctx, ctx, dialer, address)
+	return dialSchedulerClient(ctx, ctx, dialer, address, false)
 }
 
-func dialSchedulerClient(ctx, lifetime context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
+func dialSchedulerClient(ctx, lifetime context.Context, dialer libnet.Dialer, address string, forceOrdinaryTCP bool) (SchedulerCoordConn, error) {
 	var sock net.Conn
 	var err error
-	if isTCPDialer(dialer) {
+	// Only the explicitly selected proposal pool overrides the built-in
+	// dialer's global Go defaults for its ordinary connections. TCPNet and
+	// TCPReuseNet have identical dial behavior; reuse socket options apply to
+	// TCPReuseNet.Listen only. Unselected and custom callers use their original
+	// Dial implementation, including GODEBUG=multipathtcp settings.
+	if forceOrdinaryTCP && isTCPDialer(dialer) {
 		d := &net.Dialer{}
 		d.SetMultipathTCP(false)
 		sock, err = d.DialContext(ctx, "tcp", address)
