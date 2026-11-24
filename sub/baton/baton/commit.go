@@ -18,7 +18,7 @@ import (
 func (b *Baton) commit(ctx context.Context, cb *batonkit.CommittableBlock) proto.BlockID {
 
 	value := cb.ConsensusValue()
-	liblog.Infof(ctx, "committing: height %d; value %s; proposer %s",
+	liblog.Debugf(ctx, "committing: height %d; value %s; proposer %s",
 		cb.BlockHeight(),
 		protoutil.ValueDisplay(value),
 		protoutil.VIDString(protoutil.ValueProposer(value)))
