@@ -3,8 +3,6 @@ package sched
 import (
 	"context"
 	"errors"
-	"os"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,21 +17,14 @@ func ConnectPoolToScheduler(
 	net libnet.Dialer,
 	schedAddr string,
 ) (SchedulerCoordConn, error) {
-	return connectPoolToScheduler(ctx, net, schedAddr, 20, os.Getenv("HOGD_COORD_PROPOSAL_MPTCP") == "1")
+	return connectPoolToScheduler(ctx, net, schedAddr, 20)
 }
 
-func connectPoolToScheduler(ctx context.Context, net libnet.Dialer, schedAddr string, count int, multipath bool) (SchedulerCoordConn, error) {
+func connectPoolToScheduler(ctx context.Context, net libnet.Dialer, schedAddr string, count int) (SchedulerCoordConn, error) {
 	if count < 1 {
 		return nil, errors.New("sched: empty connection pool")
 	}
-	// Keep one or more ordinary connections for every other RPC. Custom dialers
-	// retain their transport rather than being bypassed by a direct TCP dial.
-	multipath = multipath && count > 1 && runtime.GOOS == "linux" && isTCPDialer(net)
-	ordinaryCount := count
-	if multipath {
-		ordinaryCount--
-	}
-	conns := make([]SchedulerCoordConn, ordinaryCount)
+	conns := make([]SchedulerCoordConn, count)
 	poolCtx, stopPool := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Add(len(conns))
@@ -42,23 +33,9 @@ func connectPoolToScheduler(ctx context.Context, net libnet.Dialer, schedAddr st
 			defer wg.Done()
 			// dialUntilSuccess only returns an error when startup is canceled.
 			conns[i], _ = dialUntilSuccess(ctx, schedAddr, func(ctx context.Context) (SchedulerCoordConn, error) {
-				return dialSchedulerClient(ctx, poolCtx, net, schedAddr, multipath)
+				return dialSchedulerClient(ctx, poolCtx, net, schedAddr)
 			})
 		}(i)
-	}
-	var proposal SchedulerCoordConn
-	var proposalDial schedulerDialer
-	if multipath {
-		proposalDial = func(ctx context.Context) (SchedulerCoordConn, error) {
-			return dialProposalClient(ctx, poolCtx, schedAddr)
-		}
-		// On the first call, retry connection establishment as the ordinary pool
-		// does. On subsequent calls, the proposal worker reconnects without replay.
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			proposal, _ = dialUntilSuccess(ctx, schedAddr, proposalDial)
-		}()
 	}
 	wg.Wait()
 	if err := ctx.Err(); err != nil {
@@ -68,12 +45,9 @@ func connectPoolToScheduler(ctx context.Context, net libnet.Dialer, schedAddr st
 				conn.Close()
 			}
 		}
-		if proposal != nil {
-			proposal.Close()
-		}
 		return nil, err
 	}
-	return newConnPool(poolCtx, stopPool, conns, proposal, proposalDial), nil
+	return newConnPool(poolCtx, stopPool, conns), nil
 }
 
 type schedulerDialer func(context.Context) (SchedulerCoordConn, error)
@@ -99,30 +73,24 @@ func dialUntilSuccess(ctx context.Context, schedAddr string, dial schedulerDiale
 }
 
 type ConnPool struct {
-	ctx         context.Context
-	cancel      context.CancelFunc
-	req         chan<- *poolRequest
-	proposalReq chan<- *poolRequest
+	ctx    context.Context
+	cancel context.CancelFunc
+	req    chan<- *poolRequest
 }
 
 func NewConnPool(ctx context.Context, conns []SchedulerCoordConn) *ConnPool {
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	return newConnPool(ctx, cancel, conns, nil, nil)
+	return newConnPool(ctx, cancel, conns)
 }
 
-func newConnPool(ctx context.Context, cancel context.CancelFunc, conns []SchedulerCoordConn, proposal SchedulerCoordConn, dial schedulerDialer) *ConnPool {
+func newConnPool(ctx context.Context, cancel context.CancelFunc, conns []SchedulerCoordConn) *ConnPool {
 	rr := make(chan *poolRequest, len(conns))
-	p := &ConnPool{ctx: ctx, cancel: cancel, req: rr, proposalReq: rr}
-	if len(conns) == 0 && proposal == nil {
+	p := &ConnPool{ctx: ctx, cancel: cancel, req: rr}
+	if len(conns) == 0 {
 		cancel()
 	}
 	for _, conn := range conns {
 		go driveConn(ctx, conn, rr)
-	}
-	if proposal != nil {
-		requests := make(chan *poolRequest, 1)
-		p.proposalReq = requests
-		go driveProposalConn(ctx, proposal, dial, requests)
 	}
 	return p
 }
@@ -205,7 +173,7 @@ func (p *ConnPool) Schedulercoord_submit_vetted(ctx context.Context, vid proto.V
 
 func (p *ConnPool) Schedulercoord_propose_block(ctx context.Context, onto proto.BlockID, propCx proto.ProposalContext) (proto.SchedulerProposalResult, error) {
 	reply := make(chan Reply_Schedulercoord_propose_block, 1)
-	r, err := poolCall(p, ctx, p.proposalReq, Request_Schedulercoord_propose_block{Reply: reply, Ctx: ctx, Onto: onto, PropCx: propCx}, reply)
+	r, err := poolCall(p, ctx, p.req, Request_Schedulercoord_propose_block{Reply: reply, Ctx: ctx, Onto: onto, PropCx: propCx}, reply)
 	if err != nil {
 		return r.Result, err
 	}
