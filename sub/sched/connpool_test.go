@@ -159,10 +159,11 @@ func TestSharedPoolMixedRequests(t *testing.T) {
 	}
 }
 
-// Two concurrent proposals must be able to use two shared workers. A
-// dedicated proposal queue with a single worker cannot pass this test.
+// Concurrent proposals must be able to use all twenty shared workers.
+// A dedicated proposal queue with fewer workers cannot pass this test.
 func TestConcurrentProposalsUseSharedWorkers(t *testing.T) {
-	started := make(chan struct{}, 2)
+	const workers = 20
+	started := make(chan struct{}, workers)
 	release := make(chan struct{})
 	srv := startTestListener(t, "127.0.0.1:0", func(*net.TCPConn) testRPC {
 		return testRPC{
@@ -180,13 +181,13 @@ func TestConcurrentProposalsUseSharedWorkers(t *testing.T) {
 		}
 	}()
 	ctx := testContext(t)
-	conn, err := connectPoolToScheduler(ctx, libnet.TCPNet{}, srv.Addr().String(), 2)
+	conn, err := ConnectPoolToScheduler(ctx, libnet.TCPNet{}, srv.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer conn.Close()
-	results := make(chan error, 2)
-	for i := 0; i < 2; i++ {
+	results := make(chan error, workers)
+	for i := 0; i < workers; i++ {
 		go func() {
 			r, err := conn.Schedulercoord_propose_block(ctx, 0, proto.ProposalContext{})
 			if err == nil && r.Outcome != proto.SchedulerProposalError {
@@ -195,18 +196,18 @@ func TestConcurrentProposalsUseSharedWorkers(t *testing.T) {
 			results <- err
 		}()
 	}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < workers; i++ {
 		select {
 		case <-started:
 		case <-ctx.Done():
 			t.Fatal("proposals did not start concurrently on shared workers")
 		}
 	}
-	// Both RPCs reached separate server handlers before either could finish.
-	// Release them and confirm both callers receive their replies.
+	// All RPCs reached separate server handlers before any could finish.
+	// Release them and confirm all callers receive their replies.
 	close(release)
 	released = true
-	for i := 0; i < 2; i++ {
+	for i := 0; i < workers; i++ {
 		if err := <-results; err != nil {
 			t.Fatal(err)
 		}
