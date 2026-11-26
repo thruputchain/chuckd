@@ -23,11 +23,15 @@ type SchedulerCoordClient struct {
 }
 
 func DialSchedulerCoordClient(ctx context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
+	return dialSchedulerClient(ctx, ctx, dialer, address)
+}
+
+func dialSchedulerClient(ctx, lifetime context.Context, dialer libnet.Dialer, address string) (SchedulerCoordConn, error) {
 	sock, err := dialer.Dial(ctx, address)
 	if err != nil {
 		return nil, err
 	}
-	return NewSchedulerCoordClient(ctx, sock), nil
+	return NewSchedulerCoordClient(lifetime, sock), nil
 }
 
 func NewSchedulerCoordClient(ctx context.Context, sock net.Conn) *SchedulerCoordClient {
